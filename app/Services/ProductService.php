@@ -17,9 +17,11 @@ class ProductService extends Service
 
         $response = $client->request(
             'GET',
-            'http://www.uniqlo.com/tw/store/ApiGetProductInfo.do',
+            "http://www.uniqlo.com/tw/spa-catalog/products/{$productID}",
             [
-                'query' => ['format' => 'json', 'product' => $productID]
+                'headers' => [
+                    'User-Agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 10_3 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) CriOS/56.0.2924.75 Mobile/14E5239e Safari/602.1'
+                ]
             ]
         );
 

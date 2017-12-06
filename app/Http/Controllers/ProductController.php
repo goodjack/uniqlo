@@ -57,15 +57,18 @@ class ProductController extends Controller
         $productInfo = $this->productService->getProductInfo($id);
         $styleDictionary = $this->productService->getStyleDictionary($id);
 
-        print_r($productInfo->GoodsInfo->goods->goodsNm);
-        echo '<br>';
+        // print_r($productInfo->GoodsInfo->goods->goodsNm);
+        // echo '<br>';
 
-        foreach ($styleDictionary->imgs as $img) {
-            echo "<img src=\"http://www.uniqlo.com/{$styleDictionary->imgdir}{$img->fnm}-xl.jpg\">";
-            echo '<br>';
-        }
+        // foreach ($styleDictionary->imgs as $img) {
+        //     echo "<img src=\"http://www.uniqlo.com/{$styleDictionary->imgdir}{$img->fnm}-xl.jpg\">";
+        //     echo '<br>';
+        // }
 
-        return;
+        return view('products.show', [
+            'productInfo' => $productInfo,
+            'styleDictionary' => $styleDictionary
+        ]);
     }
 
     /**
