@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
+    @include('layouts.google-analytics')
+    
     <meta charset="utf-8">
 
     <title>@yield('title')</title>
