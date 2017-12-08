@@ -6,24 +6,31 @@ class ProductPresenter
 {
     public function getProductMainImage($productInfo)
     {
-        // $l1GoodsCd = $productInfo->GoodsInfo->goods->l1GoodsCd;
-        
-        // $key = $productInfo->GoodsInfo->goods->dispL2GoodsKey;
-        // $colorCd = $productInfo->GoodsInfo->goods->l2GoodsList->{$key}->L2GoodsInfo->colorCd;
+        $imageUrl = $this->getProductMainImageUrl($productInfo);
 
-        $color = $productInfo->representativeSKU->color;
-        $id = $productInfo->id;
-
-        $html = "<img class=\"ts fluid rounded link image\" src=\"http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$color}_{$id}.jpg\">";
+        $html = "<img class=\"ts fluid rounded link image\" src=\"{$imageUrl}\">";
 
         return $html;
     }
 
+    public function getProductMainImageUrl($productInfo)
+    {
+        $color = $productInfo->representativeSKU->color;
+        $id = $productInfo->id;
+
+        return "http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$color}_{$id}.jpg";
+    }
+
     public function getProductName($productInfo)
     {
-        $name = $productInfo->name;
+        return $productInfo->name;
+    }
 
-        $html = "<h2 class=\"ts header\">{$name}</h2>";
+    public function getProductHeader($productInfo)
+    {
+        $productName = $this->getProductName($productInfo);
+        
+        $html = "<h2 class=\"ts header\">{$productName}</h2>";
 
         return $html;
     }

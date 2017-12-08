@@ -1,7 +1,11 @@
 @inject('productPresenter', 'App\Presenters\ProductPresenter')
 @extends('layouts.master')
 
-@section('title', '查詢')
+@section('title', $productPresenter->getProductName($productInfo))
+
+@section('metadata')
+<meta property="og:image" content="{{ $productPresenter->getProductMainImageUrl($productInfo) }}" />
+@endsection
 
 @section('content')
         <!-- 片段 -->
@@ -11,7 +15,7 @@
                     {!! $productPresenter->getProductMainImage($productInfo) !!}
                 </div>
                 <div class="eleven wide column">
-                    {!! $productPresenter->getProductName($productInfo) !!}
+                    {!! $productPresenter->getProductHeader($productInfo) !!}
                     {!! $productPresenter->getProductTag($productInfo) !!}
                     {!! $productPresenter->getProductComment($productInfo) !!}
                 </div>

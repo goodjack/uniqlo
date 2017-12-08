@@ -2,10 +2,12 @@
 <html>
   <head>
     @include('layouts.google-analytics')
-    
+
     <meta charset="utf-8">
 
-    <title>@yield('title')</title>
+    <title>@yield('title') - UQ 搜尋</title>
+
+    @yield('metadata')
 
     <!-- Tocas UI：CSS 與元件 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/2.3.3/tocas.css">
