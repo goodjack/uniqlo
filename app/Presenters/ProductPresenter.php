@@ -71,7 +71,7 @@ class ProductPresenter
 
     public function getUniqloLinkButton($productInfo)
     {
-        return "<a href=\"http://www.uniqlo.com/tw/store/goods/{$productInfo->id}\"  target=\"_blank\"><button class=\"ts negative basic icon button\"><i class=\"external link icon\"></i> 前往官網</button></a>";
+        return "<a href=\"http://www.uniqlo.com/tw/store/goods/{$productInfo->id}\"  target=\"_blank\"><button class=\"ts mini negative basic labeled icon button\"><i class=\"external link icon\"></i> 前往官網</button></a>";
     }
 
     public function getSubImages($productInfo)
