@@ -28,7 +28,7 @@
         
         </div>
         <!-- / 片段 -->
-        <div class="ts grid">
+        <div class="ts doubling four waterfall cards">
             {!! $productPresenter->getSubImages($productInfo) !!}
             {!! $productPresenter->getStyleDictionaryImages($styleDictionary) !!}
         </div>

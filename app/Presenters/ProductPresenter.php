@@ -86,7 +86,10 @@ class ProductPresenter
 
     public function getSubImageTag($id, $subImg)
     {
-        return "<div class=\"four wide column\"><div class=\"ts fluid link images\"><a href=\"http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImg}.jpg\"  target=\"_blank\"><img src=\"http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImg}.jpg\"></a></div></div>";
+        $link = "http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImg}.jpg";
+        $imgUrl = $link;
+
+        return $this->getImageTag($link, $imgUrl);
     }
 
     public function getStyleDictionaryImages($styleDictionary)
@@ -101,6 +104,14 @@ class ProductPresenter
 
     public function getStyleDictionaryImageTag($imgDir, $imgID, $imgFnm)
     {
-        return "<div class=\"four wide column\"><div class=\"ts fluid link images\"><a href=\"http://www.uniqlo.com/tw/stylingbook/detail.html#/detail/{$imgID}\"  target=\"_blank\"><img src=\"http://www.uniqlo.com/{$imgDir}{$imgFnm}-xl.jpg\"></a></div></div>";
+        $link = "http://www.uniqlo.com/tw/stylingbook/detail.html#/detail/{$imgID}";
+        $imgUrl = "http://www.uniqlo.com/{$imgDir}{$imgFnm}-xl.jpg";
+
+        return $this->getImageTag($link, $imgUrl);
+    }
+
+    public function getImageTag($link, $imgUrl)
+    {
+        return "<a class=\"ts card\" href=\"{$link}\" target=\"_blank\"><div class=\"image\"><img src=\"{$imgUrl}\"></div></a>";
     }
 }
