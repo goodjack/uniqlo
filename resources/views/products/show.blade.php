@@ -9,23 +9,24 @@
 
 @section('content')
         <!-- 片段 -->
-        <div class="ts segment">
-            <div class="ts grid">
-                <div class="five wide column">
-                    {!! $productPresenter->getProductMainImage($productInfo) !!}
-                </div>
-                <div class="eleven wide column">
-                    {!! $productPresenter->getProductHeader($productInfo) !!}
-                    {!! $productPresenter->getProductTag($productInfo) !!}
-                    {!! $productPresenter->getProductComment($productInfo) !!}
+        <div class="ts card">
+            <div class="content">
+                <div class="ts stackable grid">
+                    <div class="five wide column">
+                        {!! $productPresenter->getProductMainImage($productInfo) !!}
+                    </div>
+                    <div class="eleven wide column">
+                        {!! $productPresenter->getProductHeader($productInfo) !!}
+                        {!! $productPresenter->getProductTag($productInfo) !!}
+                        {!! $productPresenter->getProductComment($productInfo) !!}
+                    </div>
                 </div>
             </div>
 
-            <div class="ts separated right floated buttons">
+            <div class="right aligned secondary extra content">
                 {!! $productPresenter->getSalePrice($productInfo) !!}
                 {!! $productPresenter->getUniqloLinkButton($productInfo) !!}
             </div>
-        
         </div>
         <!-- / 片段 -->
         <div class="ts doubling four waterfall cards">
