@@ -16,6 +16,10 @@ Route::get('/', function () {
 });
 
 Route::resource('products', 'ProductController');
+Route::group(['prefix' => 'search'], function () {
+    Route::get('/', 'SearchController@index');
+    Route::get('/{query}', 'SearchController@search');
+});
 
 Auth::routes();
 
