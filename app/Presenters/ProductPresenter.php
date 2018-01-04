@@ -66,12 +66,12 @@ class ProductPresenter
 
     public function getSalePrice($productInfo)
     {
-        return "<button class=\"ts link button\"><h4>NT\${$productInfo->representativeSKU->salePrice}</h4></button>";
+        return "<button class=\"ts mini link button\"><h4>NT\${$productInfo->representativeSKU->salePrice}</h4></button>";
     }
 
     public function getUniqloLinkButton($productInfo)
     {
-        return "<a href=\"http://www.uniqlo.com/tw/store/goods/{$productInfo->id}\"  target=\"_blank\"><button class=\"ts mini negative basic labeled icon button\"><i class=\"external link icon\"></i> 前往官網</button></a>";
+        return "<a class=\"ts mini negative basic labeled icon button\" href=\"http://www.uniqlo.com/tw/store/goods/{$productInfo->id}\" target=\"_blank\"><i class=\"external link icon\"></i> 前往官網</a>";
     }
 
     public function getSubImages($productInfo)
