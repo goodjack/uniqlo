@@ -1,7 +1,7 @@
 @inject('searchPresenter', 'App\Presenters\SearchPresenter')
 @extends('layouts.master')
 
-@section('title', $query)
+@section('title', $query . " 的搜尋結果")
 
 @section('metadata')
 {{--  <meta property="og:image" content="{{ $searchPresenter->getProductMainImageUrl($productInfo) }}" />  --}}
