@@ -13,6 +13,11 @@ class SearchController extends Controller
         $this->searchService = $searchService;
     }
 
+    public function index(Request $request)
+    {
+        return redirect()->route('search', ['query' => $request->q]);
+    }
+
     public function search($query)
     {
         $searchResults = $this->searchService->getSearchResults($query);
