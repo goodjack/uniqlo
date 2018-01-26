@@ -15,7 +15,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/products/{id}/stock', 'ProductController@showStock');
 Route::resource('products', 'ProductController');
+
 Route::group(['prefix' => 'search'], function () {
     Route::get('/', 'SearchController@index');
     Route::get('/{query}', 'SearchController@search');

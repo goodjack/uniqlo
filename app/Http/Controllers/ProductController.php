@@ -45,7 +45,7 @@ class ProductController extends Controller
     {
         //
     }
-
+    
     /**
      * Display the specified resource.
      *
@@ -56,21 +56,38 @@ class ProductController extends Controller
     {
         $productInfo = $this->productService->getProductInfo($id);
         $styleDictionary = $this->productService->getStyleDictionary($id);
-
+        
         // print_r($productInfo->GoodsInfo->goods->goodsNm);
         // echo '<br>';
-
+        
         // foreach ($styleDictionary->imgs as $img) {
         //     echo "<img src=\"http://www.uniqlo.com/{$styleDictionary->imgdir}{$img->fnm}-xl.jpg\">";
         //     echo '<br>';
         // }
-
+            
         return view('products.show', [
             'productInfo' => $productInfo,
             'styleDictionary' => $styleDictionary
         ]);
     }
-
+            
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function showStock($id)
+    {
+        $productInfo = $this->productService->getProductInfo($id);
+        $productStock = $this->productService->getProductStock($id);
+                    
+        return view('products.stock', [
+            'productInfo' => $productInfo,
+            'productStock' => $productStock
+        ]);
+    }
+            
     /**
      * Show the form for editing the specified resource.
      *

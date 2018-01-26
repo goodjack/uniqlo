@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Cache;
+
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Yish\Generators\Foundation\Service\Service;
@@ -45,7 +47,7 @@ class ProductService extends Service
         return json_decode($response->getBody());
     }
 
-    public function getStock($productID)
+    public function getProductStock($productID)
     {
         $statusApi = env('UQ_API_STATUS');
 
@@ -79,5 +81,34 @@ class ProductService extends Service
         });
 
         return $stock;
+    }
+
+    public function getStoreList()
+    {
+        $minutes = 1440; // 1 day
+
+        $storeList = Cache::remember('store_list', $minutes, function () {
+            $client = new Client();
+            $limit = 10;
+            $times = 1;
+            $totalCount = 0;
+            $storeList = [];
+
+            do {
+                $response = json_decode($client->request(
+                    'GET',
+                    env('UQ_API_STORE_LIST'),
+                    [
+                        'query' => ['limit' => $limit, 'r' => 'storelocator']
+                    ]
+                )->getBody());
+
+                $totalCount = $response->result->total_count;
+                array_marge($storeList, $response->result->stores);
+            } while ($times*$limit <= $totalCount);
+        });
+        
+
+        return $storeList;
     }
 }
