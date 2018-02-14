@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Repositories\ProductRepository;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Yish\Generators\Foundation\Service\Service;
@@ -12,6 +13,11 @@ use function Functional\map;
 class ProductService extends Service
 {
     protected $repository;
+
+    public function __construct(ProductRepository $productRepository)
+    {
+        $this->productRepository = $productRepository;
+    }
 
     public function getProductInfo($productID)
     {
@@ -79,5 +85,35 @@ class ProductService extends Service
         });
 
         return $stock;
+    }
+
+    public function fetchAllProducts()
+    {
+        $client = new Client();
+        $limit = 20;
+        $page = 1;
+        $total = 0;
+
+        do {
+            $response = $client->request(
+                'GET',
+                env('UQ_API_PRODUCTS'),
+                [
+                    'headers' => [
+                        'User-Agent' => env('USER_AGENT_MOBILE')
+                    ],
+                    'query' => [
+                        'limit' => $limit,
+                        'page' => $page
+                    ]
+                ]
+            );
+            
+            $products = json_decode($response->getBody());
+            $this->productRepository->saveProductsFromUniqlo($products->records);
+
+            $total = $products->total;
+            sleep(random_int(1, 5));
+        } while ($total >= $page++ * $limit);
     }
 }
