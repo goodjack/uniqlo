@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use App\Services\CategoryService;
 use Illuminate\Console\Command;
 
-class GetCategories extends Command
+class FetchCategories extends Command
 {
     /**
      * The name and signature of the console command.
