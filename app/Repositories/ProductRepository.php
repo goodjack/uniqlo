@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Product;
+use App\ProductHistory;
 use Exception;
 use Yish\Generators\Foundation\Repository\Repository;
 
@@ -37,6 +38,10 @@ class ProductRepository extends Repository
                 // $model->style_dicrionary_images = json_encode($product->style_dicrionary_images); //TODO:
 
                 $model->save();
+
+                $history = new ProductHistory;
+                $history->price = $model->price;
+                $model->histories()->save($history);
             } catch (Exception $e) {
                 echo 'Caught exception: ',  $e->getMessage(), "\n";
             }
