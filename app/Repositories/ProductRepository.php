@@ -36,7 +36,7 @@ class ProductRepository extends Repository
                 $model->limit_sales_end_msg = $product->representativeSKU->limitSalesEndMsg;
                 $model->new = $product->new;
                 $model->sub_images = json_encode($product->subImages);
-                // $model->style_dicrionary_images = json_encode($product->style_dicrionary_images); //TODO:
+                // $model->style_dictionary_images = json_encode($product->style_dictionary_images); //TODO:
 
                 $model->save();
 
