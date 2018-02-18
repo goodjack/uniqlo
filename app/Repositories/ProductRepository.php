@@ -26,6 +26,7 @@ class ProductRepository extends Repository
                 
                 $model->id = $product->id;
                 $model->name = $product->name;
+                $model->category_id = $product->parentCategoryId;
                 $model->categories = json_encode($product->categories);
                 $model->ancestors = json_encode($product->ancestors);
                 $model->main_image_url = $this->getProductMainImageUrl($product);
