@@ -42,9 +42,9 @@ class ProductService extends Service
 
         $response = $client->request(
             'GET',
-            'http://www.uniqlo.com/tw/styledictionary/api/sdapi2.php',
+            env('UQ_API_STYLE_DICTIONARY'),
             [
-                'query' => ['t' => '3', 'pub' => $productID]
+                'query' => ['pub' => $productID]
             ]
         );
 

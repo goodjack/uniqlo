@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Product;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
 
@@ -51,21 +52,12 @@ class ProductController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(Product $product)
     {
-        $productInfo = $this->productService->getProductInfo($id);
-        $styleDictionary = $this->productService->getStyleDictionary($id);
-
-        // print_r($productInfo->GoodsInfo->goods->goodsNm);
-        // echo '<br>';
-
-        // foreach ($styleDictionary->imgs as $img) {
-        //     echo "<img src=\"http://www.uniqlo.com/{$styleDictionary->imgdir}{$img->fnm}-xl.jpg\">";
-        //     echo '<br>';
-        // }
+        $styleDictionary = $this->productService->getStyleDictionary($product->id);
 
         return view('products.show', [
-            'productInfo' => $productInfo,
+            'product' => $product,
             'styleDictionary' => $styleDictionary
         ]);
     }

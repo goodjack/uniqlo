@@ -4,47 +4,16 @@ namespace App\Presenters;
 
 class ProductPresenter
 {
-    public function getProductMainImage($productInfo)
-    {
-        $imageUrl = $this->getProductMainImageUrl($productInfo);
-
-        $html = "<img class=\"ts fluid rounded link image\" src=\"{$imageUrl}\">";
-
-        return $html;
-    }
-
-    public function getProductMainImageUrl($productInfo)
-    {
-        $color = $productInfo->representativeSKU->color;
-        $id = $productInfo->id;
-
-        return "http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$color}_{$id}.jpg";
-    }
-
-    public function getProductName($productInfo)
-    {
-        return $productInfo->name;
-    }
-
-    public function getProductHeader($productInfo)
-    {
-        $productName = $this->getProductName($productInfo);
-        
-        $html = "<h2 class=\"ts header\">{$productName}</h2>";
-
-        return $html;
-    }
-
-    public function getProductTag($productInfo)
+    public function getProductTag($product)
     {
         $html = '';
 
-        $msg = $productInfo->representativeSKU->limitSalesEndMsg;
+        $msg = $product->limitSalesEndMsg;
         if ($msg) {
             $html .= "<div class=\"ts negative label\">{$msg}</div>";
         }
 
-        $new = $productInfo->new;
+        $new = $product->new;
         if ($new) {
             $html .= "<div class=\"ts inverted label\">新品</div>";
         }
@@ -52,41 +21,20 @@ class ProductPresenter
         return $html;
     }
 
-    public function getProductComment($productInfo)
-    {
-        $comment = $productInfo->catchCopy;
-        $material = $productInfo->material;
-        $care = $productInfo->care;
-
-        $html = "<p>{$comment}</p><p>{$material}</p><p>{$care}</p>";
-
-
-        return $html;
-    }
-
-    public function getSalePrice($productInfo)
-    {
-        return "<button class=\"ts mini link button\"><h4>NT\${$productInfo->representativeSKU->salePrice}</h4></button>";
-    }
-
-    public function getUniqloLinkButton($productInfo)
-    {
-        return "<a class=\"ts mini negative basic labeled icon button\" href=\"http://www.uniqlo.com/tw/store/goods/{$productInfo->id}\" target=\"_blank\"><i class=\"external link icon\"></i> 前往官網</a>";
-    }
-
-    public function getSubImages($productInfo)
+    public function getSubImages($product)
     {
         $html = '';
-        foreach ($productInfo->subImages as $subImg) {
-            $html .= $this->getSubImageTag($productInfo->id, $subImg);
+        $subImages = json_decode($product->sub_images);
+        foreach ($subImages as $subImage) {
+            $html .= $this->getSubImageTag($product->id, $subImage);
         }
 
         return $html;
     }
 
-    public function getSubImageTag($id, $subImg)
+    public function getSubImageTag($id, $subImage)
     {
-        $link = "http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImg}.jpg";
+        $link = "http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImage}.jpg";
         $imgUrl = $link;
 
         return $this->getImageTag($link, $imgUrl);
