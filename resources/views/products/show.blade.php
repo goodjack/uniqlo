@@ -33,6 +33,28 @@
 </div>
 
 <div class="ts doubling four waterfall cards">
+    <div class="ts flatted card">
+        <div class="center aligned content">
+            <div class="ts negative big statistic">
+                <div class="value">{{ $highestPrice }}</div>
+                <div class="label">歷史高價</div>
+            </div>
+        </div>
+        <div class="symbol">
+            <i class="arrow up icon"></i>
+        </div>
+    </div>
+    <div class="ts card">
+        <div class="center aligned content">
+            <div class="ts positive big statistic">
+                <div class="value">{{ $lowestPrice }}</div>
+                <div class="label">歷史低價</div>
+            </div>
+        </div>
+        <div class="symbol">
+            <i class="arrow down icon"></i>
+        </div>
+    </div>
     {!! $productPresenter->getStyleDictionaryImages($styleDictionary) !!}
     {!! $productPresenter->getSubImages($product) !!}
 </div>
