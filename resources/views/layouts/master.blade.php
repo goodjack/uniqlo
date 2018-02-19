@@ -24,7 +24,7 @@
         @include('layouts.nav')
         <!-- 主要內容網格容器 -->
         <div class="ts narrow container relaxed grid">
-            <div class="column">
+            <div class="sixteen wide column">
                 @yield('content')
                 @include('layouts.footer')
             </div>

@@ -2,21 +2,22 @@
 
 namespace App\Services;
 
+use App\Product;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-
 use Yish\Generators\Foundation\Service\Service;
+
+use function Functional\map;
 
 class SearchService extends Service
 {
     public function getSearchResults($query)
     {
         $client = new Client();
-        $searchApi = env('UQ_API_SEARCH');
 
         $response = $client->request(
             'GET',
-            $searchApi,
+            env('UQ_API_SEARCH'),
             [
                 'query' => [
                     'limit' => '10',
@@ -29,5 +30,14 @@ class SearchService extends Service
         );
 
         return json_decode($response->getBody());
+    }
+
+    public function getProducts($searchResults)
+    {
+        $productIDs = map($searchResults->records, function ($record) {
+            return $record->id;
+        });
+
+        return Product::find($productIDs);
     }
 }

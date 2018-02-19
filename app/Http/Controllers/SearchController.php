@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Services\SearchService;
-
 use Illuminate\Http\Request;
 
 class SearchController extends Controller
@@ -21,10 +20,11 @@ class SearchController extends Controller
     public function search($query)
     {
         $searchResults = $this->searchService->getSearchResults($query);
+        $products = $this->searchService->getProducts($searchResults);
 
         return view('search.results', [
             'query' => $query,
-            'searchResults' => $searchResults
+            'products' => $products
         ]);
     }
 }
