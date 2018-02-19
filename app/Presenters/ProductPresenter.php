@@ -8,7 +8,7 @@ class ProductPresenter
     {
         $html = '';
 
-        $msg = $product->limitSalesEndMsg;
+        $msg = $product->limit_sales_end_msg;
         if ($msg) {
             $html .= "<div class=\"ts negative label\">{$msg}</div>";
         }
