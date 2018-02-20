@@ -44,7 +44,7 @@
             <i class="arrow up icon"></i>
         </div>
     </div>
-    <div class="ts card">
+    <div class="ts flatted card">
         <div class="center aligned content">
             <div class="ts positive big statistic">
                 <div class="value">{{ $lowestPrice }}</div>
