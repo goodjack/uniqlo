@@ -33,5 +33,7 @@
 
         <!-- Tocas JS：模塊與 JavaScript 函式 -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/2.3.3/tocas.js"></script>
+
+        @yield('javascript')
     </body>
 </html>

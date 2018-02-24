@@ -2,6 +2,8 @@
 
 namespace App\Presenters;
 
+use Carbon\Carbon;
+
 class ProductPresenter
 {
     public function getProductTag($product)
@@ -61,5 +63,17 @@ class ProductPresenter
     public function getImageTag($link, $imgUrl)
     {
         return "<a class=\"ts card\" href=\"{$link}\" target=\"_blank\"><div class=\"image\"><img src=\"{$imgUrl}\"></div></a>";
+    }
+
+    public function getPriceChartLabels($productHistories)
+    {
+        return $productHistories->pluck(['created_at'])->map(function ($time) {
+            return Carbon::parse($time)->format('m/d');
+        });
+    }
+
+    public function getPriceChartData($productHistories)
+    {
+        return $productHistories->pluck(['price']);
     }
 }

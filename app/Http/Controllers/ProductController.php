@@ -58,12 +58,13 @@ class ProductController extends Controller
     {
         $styleDictionary = $this->productService->getStyleDictionary($product->id);
 
-        $productHistories = $product->histories();
+        $productHistories = $product->histories;
         $highestPrice = $this->productHistoryService->getHighestPrice($productHistories);
         $lowestPrice = $this->productHistoryService->getLowestPrice($productHistories);
 
         return view('products.show', [
             'product' => $product,
+            'productHistories' => $productHistories,
             'highestPrice' => $highestPrice,
             'lowestPrice' => $lowestPrice,
             'styleDictionary' => $styleDictionary

@@ -9,7 +9,7 @@
 
 @section('content')
 <!-- 片段 -->
-<div class="ts card">
+<div class="ts flatted card">
     <div class="content">
         <div class="ts stackable grid">
             <div class="five wide column">
@@ -55,7 +55,32 @@
             <i class="arrow down icon"></i>
         </div>
     </div>
+    <div class="ts flatted card">
+        <canvas id="priceChart" width="400" height="400"></canvas>
+    </div>
     {!! $productPresenter->getStyleDictionaryImages($styleDictionary) !!}
     {!! $productPresenter->getSubImages($product) !!}
 </div>
+@endsection
+
+@section('javascript')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js" integrity="sha256-c0m8xzX5oOBawsnLVpHnU2ieISOvxi584aNElFl2W6M=" crossorigin="anonymous"></script>
+
+<script>
+    var ctx = document.getElementById("priceChart");
+    var priceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {!! $productPresenter->getPriceChartLabels($productHistories) !!},
+            datasets: [{
+                label: '價格',
+                data: {!! $productPresenter->getPriceChartData($productHistories) !!},
+                backgroundColor: 'rgba(206, 94, 87, 0.2)',
+                borderColor: '#ce5e57',
+                borderWidth: 1,
+                steppedLine: 'true'
+            }]
+        }
+    });
+</script>
 @endsection
