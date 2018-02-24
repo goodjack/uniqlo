@@ -56,7 +56,9 @@
         </div>
     </div>
     <div class="ts flatted card">
-        <canvas id="priceChart" width="400" height="400"></canvas>
+        <div class="image">
+            <canvas id="priceChart" width="400" height="400"></canvas>
+        </div>
     </div>
     {!! $productPresenter->getStyleDictionaryImages($styleDictionary) !!}
     {!! $productPresenter->getSubImages($product) !!}
@@ -76,10 +78,40 @@
                 label: '價格',
                 data: {!! $productPresenter->getPriceChartData($productHistories) !!},
                 backgroundColor: 'rgba(206, 94, 87, 0.2)',
-                borderColor: '#ce5e57',
+                borderColor: 'rgba(206, 94, 87, 1.0)',
                 borderWidth: 1,
-                steppedLine: 'true'
+                cubicInterpolationMode: 'monotone'
             }]
+        },
+        options: {
+            title: {
+                display: true,
+                text: '歷史價格折線圖'
+            },
+            legend: {
+                display: false
+            },
+            tooltips: {
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                xPadding: 11,
+                yPadding: 8,
+                titleMarginBottom: 10,
+                titleFontSize: 14,
+                bodyFontSize: 15,
+                displayColors: false,
+                callbacks: {
+                    label: function(tooltipItem, data) {
+                        return data.datasets[tooltipItem.datasetIndex].label + "：NT$" + tooltipItem.yLabel;
+                    }
+                }
+            },
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true
+                    }
+                }]
+            }
         }
     });
 </script>
