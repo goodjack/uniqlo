@@ -26,6 +26,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('category:fetch')->dailyAt('11:00');
         $schedule->command('product:fetch')->dailyAt('11:05');
+        $schedule->command('style:fetch')->dailyAt('11:15');
     }
 
     /**

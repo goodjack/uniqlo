@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Repositories\ProductRepository;
+use Carbon\Carbon;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Yish\Generators\Foundation\Service\Service;
 
+use function Functional\each;
 use function Functional\flat_map;
 use function Functional\map;
 
@@ -97,5 +99,48 @@ class ProductService extends Service
             $total = $products->total;
             sleep(random_int(1, 5));
         } while ($total >= $page++ * $limit);
+    }
+
+    public function fetchAllStyleDictionaries()
+    {
+        $client = new Client();
+
+        $response = $client->request(
+            'GET',
+            env('UQ_API_STYLE_DICTIONARY_LIST'),
+            [
+                'query' => [
+                    'date' => Carbon::today(),
+                    'at' => 'include_uq_plugin',
+                    't' => 3,
+                    'id' => 0
+                ]
+            ]
+        );
+
+        $styleDictionaries = json_decode($response->getBody());
+        $imgDir = $styleDictionaries->imgdir;
+
+        each($styleDictionaries->imgs, function ($styleDictionary) use ($imgDir) {
+            $client = new Client();
+
+            $response = $client->request(
+                'GET',
+                env('UQ_API_STYLE_DICTIONARY_DETAIL'),
+                [
+                    'query' => [
+                        'date' => Carbon::today()->toDateString(),
+                        'at' => 'include_uq_plugin',
+                        't' => 'd',
+                        'id' => $styleDictionary->id
+                    ]
+                ]
+            );
+
+            $detail = json_decode($response->getBody());
+            $this->productRepository->saveStyleDictionaryFromUniqlo($detail, $imgDir);
+
+            sleep(random_int(1, 3));
+        });
     }
 }

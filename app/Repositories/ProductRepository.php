@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Product;
 use App\ProductHistory;
+use App\StyleDictionary;
 use Exception;
 use Yish\Generators\Foundation\Repository\Repository;
 
@@ -12,10 +13,12 @@ use function Functional\each;
 class ProductRepository extends Repository
 {
     protected $product;
+    protected $styleDictionary;
 
-    public function __construct(Product $product)
+    public function __construct(Product $product, StyleDictionary $styleDictionary)
     {
         $this->product = $product;
+        $this->styleDictionary = $styleDictionary;
     }
 
     public function saveProductsFromUniqlo($products)
@@ -55,5 +58,30 @@ class ProductRepository extends Repository
         $id = $product->id;
 
         return "http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$color}_{$id}.jpg";
+    }
+
+    public function saveStyleDictionaryFromUniqlo($detail, $imgDir)
+    {
+        try {
+            $model = StyleDictionary::firstOrNew(['id' => $detail->id]);
+            
+            $model->id = $detail->id;
+            $model->fnm = $detail->fnm;
+            $model->image_url = "http://www.uniqlo.com/tw/stylingbook/detail.html#/detail/{$model->id}";
+            $model->detail_url = "http://www.uniqlo.com/{$imgDir}{$model->fnm}-xl.jpg";
+
+            $model->save();
+        } catch (Exception $e) {
+            echo 'Caught exception: ',  $e->getMessage(), "\n";
+        }
+
+        each($detail->list, function ($person) use ($model) {
+            try {
+                $products = array_pluck($person->products, 'pub');
+                $model->products()->syncWithoutDetaching($products);
+            } catch (Exception $e) {
+                echo 'Caught exception: ',  $e->getMessage(), "\n";
+            }
+        });
     }
 }
