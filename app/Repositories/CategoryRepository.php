@@ -6,7 +6,7 @@ use App\Category;
 use Exception;
 use Yish\Generators\Foundation\Repository\Repository;
 
-use function Functional\map;
+use function Functional\each;
 
 class CategoryRepository extends Repository
 {
@@ -19,7 +19,7 @@ class CategoryRepository extends Repository
 
     public function saveCategoriesFromUniqlo($categories)
     {
-        map($categories, function ($category) {
+        each($categories, function ($category) {
             try {
                 $model = Category::firstOrNew(['id' => $category->id]);
                 

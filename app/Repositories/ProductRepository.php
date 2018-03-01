@@ -7,7 +7,7 @@ use App\ProductHistory;
 use Exception;
 use Yish\Generators\Foundation\Repository\Repository;
 
-use function Functional\map;
+use function Functional\each;
 
 class ProductRepository extends Repository
 {
@@ -20,7 +20,7 @@ class ProductRepository extends Repository
 
     public function saveProductsFromUniqlo($products)
     {
-        map($products, function ($product) {
+        each($products, function ($product) {
             try {
                 $model = Product::firstOrNew(['id' => $product->id]);
                 

@@ -19,23 +19,6 @@ class ProductService extends Service
         $this->productRepository = $productRepository;
     }
 
-    public function getProductInfo($productID)
-    {
-        $client = new Client();
-
-        $response = $client->request(
-            'GET',
-            "http://www.uniqlo.com/tw/spa-catalog/products/{$productID}",
-            [
-                'headers' => [
-                    'User-Agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 10_3 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) CriOS/56.0.2924.75 Mobile/14E5239e Safari/602.1'
-                ]
-            ]
-        );
-
-        return json_decode($response->getBody());
-    }
-
     public function getStyleDictionary($productID)
     {
         $client = new Client();
@@ -53,13 +36,11 @@ class ProductService extends Service
 
     public function getStock($productID)
     {
-        $statusApi = env('UQ_API_STATUS');
-
         $client = new Client();
 
         $response = $client->request(
             'GET',
-            $statusApi,
+            env('UQ_API_STATUS'),
             [
                 'query' => [
                     'client_id' => 'uqsp-tw',
@@ -103,6 +84,7 @@ class ProductService extends Service
                         'User-Agent' => env('USER_AGENT_MOBILE')
                     ],
                     'query' => [
+                        'order' => $asc,
                         'limit' => $limit,
                         'page' => $page
                     ]
