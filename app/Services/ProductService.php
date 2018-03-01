@@ -27,9 +27,12 @@ class ProductService extends Service
 
         $response = $client->request(
             'GET',
-            env('UQ_API_STYLE_DICTIONARY'),
+            env('UQ_API_STYLE_DICTIONARY_DETAIL'),
             [
-                'query' => ['pub' => $productID]
+                'query' => [
+                    't' => 3,
+                    'pub' => $productID
+                ]
             ]
         );
 
