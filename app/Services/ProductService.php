@@ -89,7 +89,7 @@ class ProductService extends Service
                         'User-Agent' => env('USER_AGENT_MOBILE')
                     ],
                     'query' => [
-                        'order' => $asc,
+                        'order' => 'asc',
                         'limit' => $limit,
                         'page' => $page
                     ]
