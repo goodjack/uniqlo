@@ -67,8 +67,8 @@ class ProductRepository extends Repository
             
             $model->id = $detail->id;
             $model->fnm = $detail->fnm;
-            $model->image_url = "http://www.uniqlo.com/tw/stylingbook/detail.html#/detail/{$model->id}";
-            $model->detail_url = "http://www.uniqlo.com/{$imgDir}{$model->fnm}-xl.jpg";
+            $model->image_url = "http://www.uniqlo.com/{$imgDir}{$model->fnm}-xl.jpg";
+            $model->detail_url = "http://www.uniqlo.com/tw/stylingbook/detail.html#/detail/{$model->id}";
 
             $model->save();
         } catch (Exception $e) {
