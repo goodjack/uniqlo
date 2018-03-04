@@ -60,7 +60,7 @@
             <canvas id="priceChart" width="400" height="400"></canvas>
         </div>
     </div>
-    {!! $productPresenter->getStyleDictionaryImages($styleDictionary) !!}
+    {!! $productPresenter->getStyleDictionaries($styleDictionaries) !!}
     {!! $productPresenter->getSubImages($product) !!}
 </div>
 @endsection

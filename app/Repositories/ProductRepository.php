@@ -84,4 +84,9 @@ class ProductRepository extends Repository
             }
         });
     }
+
+    public function getStyleDictionaries(Product $product)
+    {
+        return $product->styleDictionaries;
+    }
 }

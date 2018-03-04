@@ -56,7 +56,7 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
-        $styleDictionary = $this->productService->getStyleDictionary($product->id);
+        $styleDictionaries = $this->productService->getStyleDictionaries($product);
 
         $productHistories = $product->histories;
         $highestPrice = $this->productHistoryService->getHighestPrice($productHistories);
@@ -67,7 +67,7 @@ class ProductController extends Controller
             'productHistories' => $productHistories,
             'highestPrice' => $highestPrice,
             'lowestPrice' => $lowestPrice,
-            'styleDictionary' => $styleDictionary
+            'styleDictionaries' => $styleDictionaries
         ]);
     }
 

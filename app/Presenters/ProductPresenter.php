@@ -42,22 +42,14 @@ class ProductPresenter
         return $this->getImageTag($link, $imgUrl);
     }
 
-    public function getStyleDictionaryImages($styleDictionary)
+    public function getStyleDictionaries($styleDictionaries)
     {
         $html = '';
-        foreach ($styleDictionary->imgs as $img) {
-            $html .= $this->getStyleDictionaryImageTag($styleDictionary->imgdir, $img->id, $img->fnm);
+        foreach ($styleDictionaries as $styleDictionary) {
+            $html .= $this->getImageTag($styleDictionary->detail_url, $styleDictionary->image_url);
         }
 
         return $html;
-    }
-
-    public function getStyleDictionaryImageTag($imgDir, $imgID, $imgFnm)
-    {
-        $link = "http://www.uniqlo.com/tw/stylingbook/detail.html#/detail/{$imgID}";
-        $imgUrl = "http://www.uniqlo.com/{$imgDir}{$imgFnm}-xl.jpg";
-
-        return $this->getImageTag($link, $imgUrl);
     }
 
     public function getImageTag($link, $imgUrl)

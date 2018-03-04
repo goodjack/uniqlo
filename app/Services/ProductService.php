@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Product;
 use App\Repositories\ProductRepository;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
@@ -21,22 +22,9 @@ class ProductService extends Service
         $this->productRepository = $productRepository;
     }
 
-    public function getStyleDictionary($productID)
+    public function getStyleDictionaries(Product $product)
     {
-        $client = new Client();
-
-        $response = $client->request(
-            'GET',
-            env('UQ_API_STYLE_DICTIONARY_DETAIL'),
-            [
-                'query' => [
-                    't' => 3,
-                    'pub' => $productID
-                ]
-            ]
-        );
-
-        return json_decode($response->getBody());
+        return $this->productRepository->getStyleDictionaries($product);
     }
 
     public function getStock($productID)
