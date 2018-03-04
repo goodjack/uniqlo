@@ -32,7 +32,7 @@ class CategoryRepository extends Repository
 
                 $model->save();
             } catch (Exception $e) {
-                echo 'Caught exception: ',  $e->getMessage(), "\n";
+                echo 'Caught exception: ', $e->getMessage(), "\n";
             }
 
             if ($category->children) {

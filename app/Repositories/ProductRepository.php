@@ -47,7 +47,7 @@ class ProductRepository extends Repository
                 $history->price = $model->price;
                 $model->histories()->save($history);
             } catch (Exception $e) {
-                echo 'Caught exception: ',  $e->getMessage(), "\n";
+                echo 'Caught exception: ', $e->getMessage(), "\n";
             }
         });
     }
@@ -72,7 +72,7 @@ class ProductRepository extends Repository
 
             $model->save();
         } catch (Exception $e) {
-            echo 'Caught exception: ',  $e->getMessage(), "\n";
+            echo 'Caught exception: ', $e->getMessage(), "\n";
         }
 
         each($detail->list, function ($person) use ($model) {
@@ -80,7 +80,7 @@ class ProductRepository extends Repository
                 $products = array_pluck($person->products, 'pub');
                 $model->products()->syncWithoutDetaching($products);
             } catch (Exception $e) {
-                echo 'Caught exception: ',  $e->getMessage(), "\n";
+                echo 'Caught exception: ', $e->getMessage(), "\n";
             }
         });
     }
