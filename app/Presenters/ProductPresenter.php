@@ -12,12 +12,12 @@ class ProductPresenter
 
         $msg = $product->limit_sales_end_msg;
         if ($msg) {
-            $html .= "<div class=\"ts negative label\">{$msg}</div>";
+            $html .= "<div class=\"ts negative circular mini label\">{$msg}</div>";
         }
 
         $new = $product->new;
         if ($new) {
-            $html .= "<div class=\"ts inverted label\">新品</div>";
+            $html .= "<div class=\"ts inverted circular mini label\">新品</div>";
         }
 
         return $html;

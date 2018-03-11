@@ -1,5 +1,5 @@
 <!-- 頂部固定選單 -->
-<div class="ts mini fluid top fixed horizontally link inverted negative menu">
+<div class="ts mini fluid top attached horizontally link inverted negative menu">
     <div class="ts narrow container">
         <a href="#" class="item">
             <i class="big fitted search icon"></i>

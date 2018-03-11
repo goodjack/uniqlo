@@ -8,61 +8,94 @@
 @endsection
 
 @section('content')
-<!-- 片段 -->
-<div class="ts flatted card">
-    <div class="content">
-        <div class="ts stackable grid">
-            <div class="five wide column">
-                <img class="ts fluid rounded link image" src="{{ $product->main_image_url }}">
-            </div>
-            <div class="eleven wide column">
-                <h2 class="ts header">{{ $product->name }}</h2>
-                {!! $productPresenter->getProductTag($product) !!}
-                <p>{!! $product->comment !!}</p>
-            </div>
-        </div>
-        <div class="row">
-            <div class="right aligned extra content">
-                <div class="ts separated buttons">
-                    <button class="ts mini link button"><h4>NT${{ $product->price }}</h4></button>
-                    <a class="ts mini negative basic labeled icon button" href="http://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank"><i class="external link icon"></i> 前往官網</a>
-                </div>
+<div class="ts big slate">
+    <div class="ts narrow container">
+        <span class="header">{{ $product->name }}</span>
+        <div class="action">
+            <div class="ts separated buttons">
+                <button class="ts mini link button"><h4>NT${{ $product->price }}</h4></button>
+                <button class="ts mini basic circular disabled button">追蹤</button>
+                <a class="ts mini negative basic circular button" href="http://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank">前往官網</a>
             </div>
         </div>
     </div>
 </div>
 
-<div class="ts doubling four waterfall cards">
-    <div class="ts flatted card">
-        <div class="center aligned content">
-            <div class="ts negative big statistic">
-                <div class="value">{{ $highestPrice }}</div>
-                <div class="label">歷史高價</div>
+<br>
+
+<!-- 主要內容網格容器 -->
+<div class="ts narrow container grid">
+    <div class="four wide computer four wide tablet sixteen wide mobile column">
+        <div class="ts card">
+            <a class="image" href="{{ $product->main_image_url }}" target="_blank">
+                <img src="{{ $product->main_image_url }}">
+            </a>
+            <a class="content" href="http://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank">
+                <div class="header">{{ $product->name }}</div>
+                <div class="meta">
+                    <div>{{ $product->id }}</div>
+                </div>
+                <div class="description">
+                    {!! $product->comment !!}
+                </div>
+            </a>
+            <a class="center aligned extra content" href="http://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank">
+                {!! $productPresenter->getProductTag($product) !!}
+                <div class="ts basic fitted segment">
+                    <h5 class="ts center aligned header">NT${{ $product->price }}</h5>
+                </div>
+            </a>
+        </div>
+    </div>
+    <div class="twelve wide computer twelve wide tablet sixteen wide mobile column">
+        <div class="ts grid">
+            <div class="six wide computer six wide tablet sixteen wide mobile column">
+                <div class="ts grid">
+                    <div class="sixteen wide computer sixteen wide tablet eight wide mobile column">
+                        <div class="ts flatted card">
+                            <div class="center aligned content">
+                                <div class="ts negative big statistic">
+                                    <div class="value">{{ $highestPrice }}</div>
+                                    <div class="label">歷史高價</div>
+                                </div>
+                            </div>
+                            <div class="symbol">
+                                <i class="arrow up icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sixteen wide computer sixteen wide tablet eight wide mobile column">
+                        <div class="ts flatted card">
+                            <div class="center aligned content">
+                                <div class="ts positive big statistic">
+                                    <div class="value">{{ $lowestPrice }}</div>
+                                    <div class="label">歷史低價</div>
+                                </div>
+                            </div>
+                            <div class="symbol">
+                                <i class="arrow down icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="ten wide computer ten wide tablet sixteen wide mobile column">
+                <div class="ts flatted card">
+                    <div class="image">
+                        <canvas id="priceChart" width="457" height="263"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="sixteen wide column">
+                <div class="ts doubling four waterfall cards">
+                    {!! $productPresenter->getStyleDictionaries($styleDictionaries) !!}
+                    {!! $productPresenter->getSubImages($product) !!}
+                </div>
             </div>
         </div>
-        <div class="symbol">
-            <i class="arrow up icon"></i>
-        </div>
     </div>
-    <div class="ts flatted card">
-        <div class="center aligned content">
-            <div class="ts positive big statistic">
-                <div class="value">{{ $lowestPrice }}</div>
-                <div class="label">歷史低價</div>
-            </div>
-        </div>
-        <div class="symbol">
-            <i class="arrow down icon"></i>
-        </div>
-    </div>
-    <div class="ts flatted card">
-        <div class="image">
-            <canvas id="priceChart" width="400" height="400"></canvas>
-        </div>
-    </div>
-    {!! $productPresenter->getStyleDictionaries($styleDictionaries) !!}
-    {!! $productPresenter->getSubImages($product) !!}
 </div>
+<!-- / 主要內容網格容器 -->
 @endsection
 
 @section('javascript')
