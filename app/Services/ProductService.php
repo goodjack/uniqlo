@@ -144,4 +144,14 @@ class ProductService extends Service
     {
         $this->productRepository->setStockoutProducts();
     }
+
+    /**
+     * Get all of the stockout products.
+     *
+     * @return array|null Array of Product models
+     */
+    public function getStockoutProducts()
+    {
+        return $this->productRepository->getStockoutProducts();
+    }
 }

@@ -104,4 +104,13 @@ class ProductController extends Controller
     {
         //
     }
+    
+    public function stockouts()
+    {
+        $stockouts = $this->productService->getStockoutProducts();
+
+        return view('products.stockouts', [
+            'stockouts' => $stockouts
+        ]);
+    }
 }

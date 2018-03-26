@@ -53,7 +53,7 @@ class ProductRepository extends Repository
         });
     }
 
-    public function getProductMainImageUrl($product)
+    public function getProductMainImageUrl(Product $product)
     {
         $color = $product->representativeSKU->color;
         $id = $product->id;
@@ -105,5 +105,18 @@ class ProductRepository extends Repository
         $this->product->whereHas('histories', function ($query) {
             $query->whereDate('created_at', Carbon::today()->toDateString());
         })->update(['stockout' => false]);
+    }
+
+    /**
+     * Get all of the stockout products.
+     *
+     * @return array|null Array of Product models
+     */
+    public function getStockoutProducts()
+    {
+        // TODO: Pagination and Caching
+        return $this->product->where('stockout', true)
+            ->orderBy('updated_at', 'desc')
+            ->get();
     }
 }

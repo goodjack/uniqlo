@@ -13,6 +13,6 @@ class SearchPresenter
 
     public function getProductUrl($product)
     {
-        return action('ProductController@show', ['id' => $product->id]);
+        return $this->productPresenter->getProductUrl($product);
     }
 }

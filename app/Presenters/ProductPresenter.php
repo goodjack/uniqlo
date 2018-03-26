@@ -2,28 +2,32 @@
 
 namespace App\Presenters;
 
+use App\Product;
 use Carbon\Carbon;
 
 class ProductPresenter
 {
-    public function getProductTag($product)
+    public function getProductTag(Product $product)
     {
         $html = '';
 
         $msg = $product->limit_sales_end_msg;
         if ($msg) {
-            $html .= "<div class=\"ts negative circular label\">{$msg}</div>";
+            $html .= "<div class=\"ts basic fitted segment\"><div class=\"ts negative circular label\">{$msg}</div></div>";
         }
 
-        $new = $product->new;
-        if ($new) {
-            $html .= "<div class=\"ts inverted circular label\">新品</div>";
+        if ($product->new) {
+            $html .= "<div class=\"ts basic fitted segment\"><div class=\"ts inverted circular label\">新品</div></div>";
+        }
+
+        if ($product->stockout) {
+            $html .= "<div class=\"ts basic fitted segment\"><div class=\"ts circular label\">可能已經沒有庫存</div></div>";
         }
 
         return $html;
     }
 
-    public function getSubImages($product)
+    public function getSubImages(Product $product)
     {
         $html = '';
         $subImages = json_decode($product->sub_images);
@@ -67,5 +71,16 @@ class ProductPresenter
     public function getPriceChartData($productHistories)
     {
         return $productHistories->pluck(['price']);
+    }
+
+    /**
+     * Get the URL of the specified product.
+     *
+     * @param Product $product
+     * @return void
+     */
+    public function getProductUrl(Product $product)
+    {
+        return action('ProductController@show', ['id' => $product->id]);
     }
 }
