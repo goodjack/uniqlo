@@ -134,4 +134,14 @@ class ProductService extends Service
             sleep(random_int(1, 3));
         });
     }
+
+    /**
+     * Set stockout status to the products.
+     *
+     * @return void
+     */
+    public function setStockoutProducts()
+    {
+        $this->productRepository->setStockoutProducts();
+    }
 }

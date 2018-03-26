@@ -41,5 +41,6 @@ class FetchProducts extends Command
     public function handle()
     {
         $this->productService->fetchAllProducts();
+        $this->productService->setStockoutProducts();
     }
 }

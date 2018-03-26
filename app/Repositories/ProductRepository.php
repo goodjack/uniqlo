@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Product;
 use App\ProductHistory;
 use App\StyleDictionary;
+use Carbon\Carbon;
 use Exception;
 use Yish\Generators\Foundation\Repository\Repository;
 
@@ -88,5 +89,21 @@ class ProductRepository extends Repository
     public function getStyleDictionaries(Product $product)
     {
         return $product->styleDictionaries;
+    }
+
+    /**
+     * Set stockout status to the products.
+     *
+     * @return void
+     */
+    public function setStockoutProducts()
+    {
+        $this->product->whereDoesntHave('histories', function ($query) {
+            $query->whereDate('created_at', Carbon::today()->toDateString());
+        })->update(['stockout' => true]);
+
+        $this->product->whereHas('histories', function ($query) {
+            $query->whereDate('created_at', Carbon::today()->toDateString());
+        })->update(['stockout' => false]);
     }
 }
