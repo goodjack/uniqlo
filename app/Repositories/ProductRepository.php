@@ -53,7 +53,7 @@ class ProductRepository extends Repository
         });
     }
 
-    public function getProductMainImageUrl(Product $product)
+    public function getProductMainImageUrl($product)
     {
         $color = $product->representativeSKU->color;
         $id = $product->id;
