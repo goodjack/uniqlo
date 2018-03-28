@@ -5,11 +5,11 @@ namespace App\Repositories;
 use App\Product;
 use App\ProductHistory;
 use App\StyleDictionary;
-use Carbon\Carbon;
 use Exception;
 use Yish\Generators\Foundation\Repository\Repository;
 
 use function Functional\each;
+use function Functional\map;
 
 class ProductRepository extends Repository
 {
@@ -27,7 +27,7 @@ class ProductRepository extends Repository
         each($products, function ($product) {
             try {
                 $model = Product::firstOrNew(['id' => $product->id]);
-                
+
                 $model->id = $product->id;
                 $model->name = $product->name;
                 $model->category_id = $product->parentCategoryId;
@@ -65,7 +65,7 @@ class ProductRepository extends Repository
     {
         try {
             $model = StyleDictionary::firstOrNew(['id' => $detail->id]);
-            
+
             $model->id = $detail->id;
             $model->fnm = $detail->fnm;
             $model->image_url = "http://www.uniqlo.com/{$imgDir}{$model->fnm}-xl.jpg";
@@ -99,11 +99,11 @@ class ProductRepository extends Repository
     public function setStockoutProducts()
     {
         $this->product->whereDoesntHave('histories', function ($query) {
-            $query->whereDate('created_at', Carbon::today()->toDateString());
+            $query->whereDate('created_at', today()->toDateString());
         })->update(['stockout' => true]);
 
         $this->product->whereHas('histories', function ($query) {
-            $query->whereDate('created_at', Carbon::today()->toDateString());
+            $query->whereDate('created_at', today()->toDateString());
         })->update(['stockout' => false]);
     }
 
@@ -115,8 +115,20 @@ class ProductRepository extends Repository
     public function getStockoutProducts()
     {
         // TODO: Pagination and Caching
-        return $this->product->where('stockout', true)
-            ->orderBy('updated_at', 'desc')
-            ->get();
+        $productIds = ProductHistory::selectRaw('product_id, max(created_at)')
+            ->groupBy('product_id')
+            ->having('max(created_at)', '<', today())
+            ->orderBy('max(created_at)', 'desc')
+            ->get()->map(function ($item, $key) {
+                return $item->product_id;
+            });
+
+        $products = $this->product->whereIn('id', $productIds)->get();
+        $sortedProducts = map($productIds, function ($id) use ($products) {
+            $products = $products->keyBy('id');
+            return $products->get($id);
+        });
+
+        return $sortedProducts;
     }
 }
