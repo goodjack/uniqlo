@@ -117,7 +117,7 @@ class ProductRepository extends Repository
         // TODO: Pagination and Caching
         $productIds = ProductHistory::selectRaw('product_id, max(created_at)')
             ->groupBy('product_id')
-            ->having('max(created_at)', '<', today())
+            ->having('max(created_at)', '<', today()->subDay())
             ->orderBy('max(created_at)', 'desc')
             ->get()->map(function ($item, $key) {
                 return $item->product_id;
