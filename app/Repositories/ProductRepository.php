@@ -16,9 +16,10 @@ class ProductRepository extends Repository
     protected $product;
     protected $styleDictionary;
 
-    public function __construct(Product $product, StyleDictionary $styleDictionary)
+    public function __construct(Product $product, ProductHistory $productHistory, StyleDictionary $styleDictionary)
     {
         $this->product = $product;
+        $this->productHistory = $productHistory;
         $this->styleDictionary = $styleDictionary;
     }
 
@@ -115,6 +116,7 @@ class ProductRepository extends Repository
     public function getStockoutProducts()
     {
         // TODO: Pagination and Caching
+        // TODO: Move to ProductHistory repository
         $productIds = ProductHistory::selectRaw('product_id, max(created_at)')
             ->groupBy('product_id')
             ->having('max(created_at)', '<', today()->subDay())
@@ -130,5 +132,10 @@ class ProductRepository extends Repository
         });
 
         return $sortedProducts;
+    }
+
+    public function getProductsByIds($productIds)
+    {
+        return $products = $this->product->whereIn('id', $productIds)->get();
     }
 }

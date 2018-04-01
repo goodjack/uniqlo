@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Product;
 use App\Repositories\ProductRepository;
+use App\Repositories\ProductHistoryRepository;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
@@ -16,10 +17,13 @@ use function Functional\map;
 class ProductService extends Service
 {
     protected $repository;
+    protected $productRepository;
+    protected $productHistoryRepository;
 
-    public function __construct(ProductRepository $productRepository)
+    public function __construct(ProductRepository $productRepository, ProductHistoryRepository $productHistoryRepository)
     {
         $this->productRepository = $productRepository;
+        $this->productHistoryRepository = $productHistoryRepository;
     }
 
     public function getStyleDictionaries(Product $product)
@@ -83,7 +87,7 @@ class ProductService extends Service
                     ]
                 ]
             );
-            
+
             $products = json_decode($response->getBody());
             $this->productRepository->saveProductsFromUniqlo($products->records);
 
@@ -153,5 +157,36 @@ class ProductService extends Service
     public function getStockoutProducts()
     {
         return $this->productRepository->getStockoutProducts();
+    }
+
+    /**
+     * Get sale products.
+     *
+     * @return array|null Sale products
+     */
+    public function getSaleProducts()
+    {
+        $productHistoryPrices = $this->productHistoryRepository->getProductHistoryPrices();
+
+        $saleProductIds = $productHistoryPrices
+            ->reduce(function ($carry, $productPrices) {
+                $productId = $productPrices->first()->product_id;
+
+                $medianPrice = collect($productPrices->map(function ($product) {
+                    return $product->price;
+                }))->median();
+
+                $lastPrice = $productPrices->last()->price;
+
+                if ($medianPrice > $lastPrice) {
+                    $carry[] = $productId;
+                }
+
+                return $carry;
+            }, []);
+
+        $products = $this->productRepository->getProductsByIds($saleProductIds);
+
+        return $products;
     }
 }

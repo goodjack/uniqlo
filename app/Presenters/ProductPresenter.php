@@ -83,4 +83,9 @@ class ProductPresenter
     {
         return action('ProductController@show', ['id' => $product->id]);
     }
+
+    public function countProducts($products)
+    {
+        return count($products);
+    }
 }

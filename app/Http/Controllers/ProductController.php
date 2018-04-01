@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 class ProductController extends Controller
 {
     protected $productService;
-    
+
     public function __construct(ProductHistoryService $productHistoryService, ProductService $productService)
     {
         $this->productService = $productService;
@@ -104,13 +104,22 @@ class ProductController extends Controller
     {
         //
     }
-    
+
     public function stockouts()
     {
         $stockouts = $this->productService->getStockoutProducts();
 
         return view('products.stockouts', [
             'stockouts' => $stockouts
+        ]);
+    }
+
+    public function sales()
+    {
+        $sales = $this->productService->getSaleProducts();
+
+        return view('products.sales', [
+            'sales' => $sales
         ]);
     }
 }
