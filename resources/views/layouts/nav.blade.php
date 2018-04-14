@@ -1,13 +1,15 @@
 <!-- 頂部固定選單 -->
-<div class="ts mini fluid top attached horizontally link inverted negative menu">
+<div class="ts top fixed borderless small link menu">
     <div class="ts narrow container">
         <a href="#" class="item">
-            <i class="big fitted search icon"></i>
+            <i class="big fitted negative square icon"></i>
+            &nbsp;
+            <i class="big fitted negative square icon"></i>
         </a>
         <div class="mobile only stretched item">
             @include('layouts.search-bar')
         </div>
-        <div class="tablet or large device only item">
+        <div class="tablet or large device only fitted item">
             @include('layouts.search-bar')
         </div>
         <div class="tablet or large device only right menu">

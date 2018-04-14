@@ -8,94 +8,87 @@
 @endsection
 
 @section('content')
-<div class="ts big slate">
-    <div class="ts narrow container">
-        <span class="header">{{ $product->name }}</span>
-        <div class="action">
-            <div class="ts separated buttons">
-                <button class="ts mini link button"><h4>NT${{ $product->price }}</h4></button>
-                <button class="ts mini basic circular disabled button">追蹤</button>
-                <a class="ts mini negative basic circular button" href="http://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank">前往官網</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<br>
-
-<!-- 主要內容網格容器 -->
-<div class="ts narrow container grid">
-    <div class="four wide computer four wide tablet sixteen wide mobile column">
-        <div class="ts card">
-            <a class="image" href="{{ $product->main_image_url }}" target="_blank">
-                <img src="{{ $product->main_image_url }}">
-            </a>
-            <a class="content" href="http://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank">
-                <div class="header">{{ $product->name }}</div>
-                <div class="meta">
-                    <div>{{ $product->id }}</div>
-                </div>
-                <div class="description">
-                    {!! $product->comment !!}
-                </div>
-            </a>
-            <a class="center aligned extra content" href="http://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank">
-                {!! $productPresenter->getProductTag($product) !!}
-                <div class="ts basic fitted segment">
-                    <h5 class="ts center aligned header">NT${{ $product->price }}</h5>
-                </div>
+<div class="ts narrow container relaxed grid">
+    <div class="nine wide computer nine wide tablet sixteen wide mobile column">
+        <div class="ts fluid container">
+            <a class="ts centered image" href="{{ $product->main_image_url }}" target="_blank">
+                <img class="ts centered image" src="{{ $product->main_image_url }}">
             </a>
         </div>
     </div>
-    <div class="twelve wide computer twelve wide tablet sixteen wide mobile column">
-        <div class="ts grid">
-            <div class="six wide computer six wide tablet sixteen wide mobile column">
-                <div class="ts grid">
-                    <div class="sixteen wide computer sixteen wide tablet eight wide mobile column">
-                        <div class="ts flatted card">
-                            <div class="center aligned content">
-                                <div class="ts negative big statistic">
-                                    <div class="value">{{ $highestPrice }}</div>
-                                    <div class="label">歷史高價</div>
-                                </div>
-                            </div>
-                            <div class="symbol">
-                                <i class="arrow up icon"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="sixteen wide computer sixteen wide tablet eight wide mobile column">
-                        <div class="ts flatted card">
-                            <div class="center aligned content">
-                                <div class="ts positive big statistic">
-                                    <div class="value">{{ $lowestPrice }}</div>
-                                    <div class="label">歷史低價</div>
-                                </div>
-                            </div>
-                            <div class="symbol">
-                                <i class="arrow down icon"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="ten wide computer ten wide tablet sixteen wide mobile column">
-                <div class="ts flatted card">
-                    <div class="image">
-                        <canvas id="priceChart" width="457" height="263"></canvas>
-                    </div>
-                </div>
-            </div>
+    <div class="seven wide computer seven wide tablet sixteen wide mobile column">
+        <div class="ts fluid very narrow container grid">
             <div class="sixteen wide column">
-                <div class="ts doubling four waterfall cards">
-                    {!! $productPresenter->getStyleDictionaries($styleDictionaries) !!}
-                    {!! $productPresenter->getSubImages($product) !!}
+                <h3 class="ts dividing header">
+                    {{ $product->name }}
+                    <div class="sub header">商品編號 {{ $product->id }}</div>
+                </h3>
+            </div>
+            <div class="sixteen wide center aligned column">
+                <div class="ts very narrow container">
+                    <div class="ts basic fitted segment">
+                        {!! $productPresenter->getProductTag($product) !!}
+                    </div>
+                </div>
+            </div>
+            <div class="eight wide column">
+                <div class="ts tiny divided horizontal two statistics">
+                    <div class="statistic" style="width: 100%; justify-content: center;">
+                        <div class="value">{{ $highestPrice }}</div>
+                        <div class="label">歷史高價 <i class="fitted caret up icon"></i></div>
+                    </div>
+                    <div class="statistic" style="width: 100%; justify-content: center;">
+                        <div class="value">{{ $lowestPrice }}</div>
+                        <div class="label">歷史低價 <i class="fitted caret down icon"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="eight wide column">
+                <div class="ts borderless card">
+                    <div class="center aligned content">
+                        <div class="ts small statistic">
+                            <div class="value">{{ $product->price }}</div>
+                            <div class="label">現在售價</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ts flatted card">
+            <div class="image">
+                <canvas id="priceChart" width="457" height="263"></canvas>
+                {{-- <canvas id="priceChart" width="739" height="263"></canvas> --}}
+            </div>
+        </div>
+        <div class="ts flatted vertically fitted segment">
+            <details class="ts accordion">
+                <summary>
+                    <i class="dropdown icon"></i>產品介紹
+                </summary>
+                <div class="content">
+                    <p>{!! $product->comment !!}</p>
+                </div>
+            </details>
+        </div>
+        <div class="ts grid">
+            <div class="six wide computer six wide tablet sixteen wide mobile right floated column">
+                <div class="ts fitted clearing flatted borderless segment">
+                    <a class="ts small basic circular fluid button" href="http://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank">前往官網</a>
                 </div>
             </div>
         </div>
     </div>
 </div>
-<!-- / 主要內容網格容器 -->
+
+<div class="ts narrow container grid">
+    <div class="sixteen wide column">
+        <div class="ts section divider"></div>
+        <div class="ts doubling four waterfall cards">
+            {!! $productPresenter->getStyleDictionaries($styleDictionaries) !!}
+            {!! $productPresenter->getSubImages($product) !!}
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('javascript')
