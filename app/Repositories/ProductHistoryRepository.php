@@ -24,8 +24,11 @@ class ProductHistoryRepository extends Repository
      */
     public function getProductHistoryPrices()
     {
-        // TODO: only select products that are still in stock
-        $productIds = $this->product->select('id')->where('stockout', false)->get()->toArray();
+        $productIds = $this->product->select('id')
+            ->where('stockout', false)
+            ->where('limit_sales_end_msg', '')
+            ->get()->toArray();
+
         $productPrices = $this->model->whereIn('product_id', $productIds)->get(['product_id', 'price'])->groupBy('product_id');
 
         return $productPrices;
