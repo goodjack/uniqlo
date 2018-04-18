@@ -122,4 +122,13 @@ class ProductController extends Controller
             'sales' => $sales
         ]);
     }
+
+    public function limitedOffers()
+    {
+        $limitedOffers = $this->productService->getLimitedOfferProducts();
+
+        return view('products.limited-offers', [
+            'limitedOffers' => $limitedOffers
+        ]);
+    }
 }

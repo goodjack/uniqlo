@@ -18,6 +18,7 @@ Route::get('/', function () {
 Route::group(['prefix' => 'products'], function () {
     Route::get('/stockouts', 'ProductController@stockouts');
     Route::get('/sales', 'ProductController@sales');
+    Route::get('/limited-offers', 'ProductController@limitedOffers');
 });
 Route::resource('products', 'ProductController');
 

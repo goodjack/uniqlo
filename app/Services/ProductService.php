@@ -189,4 +189,16 @@ class ProductService extends Service
 
         return $products;
     }
+
+    /**
+     * Get limited offer products.
+     *
+     * @return array|null Limited offer products
+     */
+    public function getLimitedOfferProducts()
+    {
+        $products = $this->productRepository->getLimitedOfferProducts();
+
+        return $products;
+    }
 }

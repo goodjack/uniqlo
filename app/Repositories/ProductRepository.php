@@ -138,4 +138,20 @@ class ProductRepository extends Repository
     {
         return $products = $this->product->whereIn('id', $productIds)->get();
     }
+
+    /**
+     * Get limited offer products.
+     *
+     * @return array|null Limited offer products
+     */
+    public function getLimitedOfferProducts()
+    {
+        $products = $this->product
+            ->where('limit_sales_end_msg', '!=', '')
+            ->where('stockout', false)
+            ->orderBy('limit_sales_end_msg')
+            ->get();
+
+        return $products;
+    }
 }
