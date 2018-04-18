@@ -7,35 +7,35 @@ use Carbon\Carbon;
 
 class ProductPresenter
 {
-    public function getProductTag(Product $product)
+    public function getProductTag($product)
     {
         $html = '';
-        $hasTag = false;
 
         $msg = $product->limit_sales_end_msg;
         if ($msg) {
             $html .= "<div class=\"ts horizontal negative circular label\">{$msg}</div>";
-            $hasTag = true;
         }
 
         if ($product->new) {
             $html .= "<div class=\"ts horizontal inverted circular label\">新品</div>";
-            $hasTag = true;
+        }
+
+        if ($product->sale) {
+            $html .= "<div class=\"ts horizontal inverted circular label\">特價商品</div>";
         }
 
         if ($product->stockout) {
             $html .= "<div class=\"ts horizontal circular label\">可能已經沒有庫存</div>";
-            $hasTag = true;
         }
 
-        if ($hasTag) {
+        if ($html) {
             $html .= "<div class=\"ts hidden divider\"></div>";
         }
 
         return $html;
     }
 
-    public function getSubImages(Product $product)
+    public function getSubImages($product)
     {
         $html = '';
         $subImages = json_decode($product->sub_images);
@@ -87,7 +87,7 @@ class ProductPresenter
      * @param Product $product
      * @return void
      */
-    public function getProductUrl(Product $product)
+    public function getProductUrl($product)
     {
         return action('ProductController@show', ['id' => $product->id]);
     }

@@ -40,8 +40,8 @@ class ProductRepository extends Repository
                 $model->flags = json_encode($product->flags);
                 $model->limit_sales_end_msg = $product->representativeSKU->limitSalesEndMsg;
                 $model->new = $product->new;
+                $model->sale = $this->getSaleStatus($product);
                 $model->sub_images = json_encode($product->subImages);
-                // $model->style_dictionary_images = json_encode($product->style_dictionary_images); //TODO:
 
                 $model->save();
 
@@ -60,6 +60,19 @@ class ProductRepository extends Repository
         $id = $product->id;
 
         return "http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$color}_{$id}.jpg";
+    }
+
+    public function getSaleStatus($product)
+    {
+        $flags = $product->representativeSKU->flags;
+
+        foreach ($flags as $flag) {
+            if ($flag->name == 'SALE') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function saveStyleDictionaryFromUniqlo($detail, $imgDir)
