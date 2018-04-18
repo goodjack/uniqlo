@@ -15,7 +15,7 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/2.3.3/tocas.css">
         <style type="text/css">
             body {
-                padding: 80px 0;
+                padding: 60px 0;
             }
         </style>
     </head>

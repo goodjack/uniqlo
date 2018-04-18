@@ -8,6 +8,7 @@
 @endsection
 
 @section('content')
+<div class="ts hidden divider"></div>
 <div class="ts narrow container relaxed grid">
     <div class="nine wide computer nine wide tablet sixteen wide mobile column">
         <div class="ts fluid container">
@@ -57,7 +58,6 @@
         <div class="ts flatted card">
             <div class="image">
                 <canvas id="priceChart" width="457" height="263"></canvas>
-                {{-- <canvas id="priceChart" width="739" height="263"></canvas> --}}
             </div>
         </div>
         <div class="ts flatted vertically fitted segment">
@@ -83,7 +83,7 @@
 <div class="ts narrow container grid">
     <div class="sixteen wide column">
         <div class="ts section divider"></div>
-        <div class="ts doubling four waterfall cards">
+        <div class="ts doubling four waterfall flatted cards">
             {!! $productPresenter->getStyleDictionaries($styleDictionaries) !!}
             {!! $productPresenter->getSubImages($product) !!}
         </div>
