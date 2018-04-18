@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', "可能已經停售")
+@section('title', "可能已經沒有庫存")
 
 @section('metadata')
 {{--  <meta property="og:image" content="{{ $productPresenter->getProductMainImageUrl($productInfo) }}" />  --}}
@@ -9,7 +9,7 @@
 @section('content')
     <div class="ts fluid slate">
         <i class="archive faded icon"></i>
-        <span class="header">可能已經停售</span>
+        <span class="header">可能已經沒有庫存</span>
     </div>
 
     <br>
