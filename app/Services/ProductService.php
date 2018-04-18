@@ -156,7 +156,7 @@ class ProductService extends Service
      */
     public function getStockoutProducts()
     {
-        return $this->productRepository->getStockoutProducts();
+        return $this->productRepository->getStockoutProductsOrderByDate();
     }
 
     /**

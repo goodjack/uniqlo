@@ -126,7 +126,7 @@ class ProductRepository extends Repository
      *
      * @return array|null Array of Product models
      */
-    public function getStockoutProducts()
+    public function getStockoutProductsOrderByDate()
     {
         // TODO: Pagination and Caching
         // TODO: Move to ProductHistory repository
