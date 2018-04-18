@@ -10,6 +10,9 @@
             <div class="smaller header">{{ $product->name }}</div>
             <div class="meta">{{ $product->id }}</div>
         </div>
+        <div class="center aligned extra content">
+            NT${{ $product->price }}
+        </div>
     </a>
     @endforeach
 </div>
