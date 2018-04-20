@@ -167,4 +167,19 @@ class ProductRepository extends Repository
 
         return $products;
     }
+
+    /**
+     * Get sale products.
+     *
+     * @return array|null Sale products
+     */
+    public function getSaleProducts()
+    {
+        $products = $this->product
+            ->where('sale', true)
+            ->where('stockout', false)
+            ->get();
+
+        return $products;
+    }
 }

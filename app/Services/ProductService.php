@@ -166,26 +166,28 @@ class ProductService extends Service
      */
     public function getSaleProducts()
     {
-        $productHistoryPrices = $this->productHistoryRepository->getProductHistoryPrices();
+        // $productHistoryPrices = $this->productHistoryRepository->getProductHistoryPricesForHiddenSale();
 
-        $saleProductIds = $productHistoryPrices
-            ->reduce(function ($carry, $productPrices) {
-                $productId = $productPrices->first()->product_id;
+        // $saleProductIds = $productHistoryPrices
+        //     ->reduce(function ($carry, $productPrices) {
+        //         $productId = $productPrices->first()->product_id;
 
-                $medianPrice = collect($productPrices->map(function ($product) {
-                    return $product->price;
-                }))->median();
+        //         $medianPrice = collect($productPrices->map(function ($product) {
+        //             return $product->price;
+        //         }))->median();
 
-                $lastPrice = $productPrices->last()->price;
+        //         $lastPrice = $productPrices->last()->price;
 
-                if ($medianPrice > $lastPrice) {
-                    $carry[] = $productId;
-                }
+        //         if ($medianPrice > $lastPrice) {
+        //             $carry[] = $productId;
+        //         }
 
-                return $carry;
-            }, []);
+        //         return $carry;
+        //     }, []);
 
-        $products = $this->productRepository->getProductsByIds($saleProductIds);
+        // $products = $this->productRepository->getProductsByIds($saleProductIds);
+
+        $products = $this->productRepository->getSaleProducts();
 
         return $products;
     }
