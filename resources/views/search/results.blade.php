@@ -11,10 +11,5 @@
         <i class="search faded icon"></i>
         <span class="header">{{ $query }} 的搜尋結果</span>
     </div>
-
-    <br>
-
-    <div class="ts narrow container grid">
-        @include('products.cards', ['products' => $products])
-    </div>
+    @include('products.cards', ['products' => $products])
 @endsection

@@ -12,10 +12,5 @@
         <i class="certificate faded icon"></i>
         <span class="header">{{ $productPresenter->countProducts($sales) }} 件商品特價中</span>
     </div>
-
-    <br>
-
-    <div class="ts narrow container grid">
-        @include('products.cards', ['products' => $sales])
-    </div>
+    @include('products.cards', ['products' => $sales])
 @endsection

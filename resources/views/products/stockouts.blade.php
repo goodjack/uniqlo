@@ -11,10 +11,5 @@
         <i class="archive faded icon"></i>
         <span class="header">可能已經沒有庫存</span>
     </div>
-
-    <br>
-
-    <div class="ts narrow container grid">
-        @include('products.cards', ['products' => $stockouts])
-    </div>
+    @include('products.cards', ['products' => $stockouts])
 @endsection
