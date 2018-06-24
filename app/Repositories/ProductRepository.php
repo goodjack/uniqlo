@@ -163,6 +163,7 @@ class ProductRepository extends Repository
             ->where('limit_sales_end_msg', '!=', '')
             ->where('stockout', false)
             ->orderBy('limit_sales_end_msg')
+            ->orderByRaw('price/max_price')
             ->get();
 
         return $products;
@@ -178,6 +179,7 @@ class ProductRepository extends Repository
         $products = $this->product
             ->where('sale', true)
             ->where('stockout', false)
+            ->orderByRaw('price/max_price')
             ->get();
 
         return $products;
