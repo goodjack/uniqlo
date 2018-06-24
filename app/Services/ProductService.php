@@ -203,4 +203,16 @@ class ProductService extends Service
 
         return $products;
     }
+
+    /**
+     * Set the min price and the max price to the products.
+     *
+     * @param boolean $today
+     * @return void
+     */
+    public function setMinPricesAndMaxPrices(bool $today = false)
+    {
+        $prices = $this->productHistoryRepository->getMinPricesAndMaxPrices($today);
+        $this->productRepository->setMinPricesAndMaxPrices($prices);
+    }
 }

@@ -33,4 +33,23 @@ class ProductHistoryRepository extends Repository
 
         return $productPrices;
     }
+
+    /**
+     * Get the min price and the max price from the products table.
+     *
+     * @param boolean $today
+     * @return array prices
+     */
+    public function getMinPricesAndMaxPrices(bool $today = false)
+    {
+        $prices = $this->model
+            ->select('product_id', \DB::raw('MIN(price) as min_price'), \DB::raw('MAX(price) as max_price'))
+            ->groupBy('product_id');
+
+        if ($today) {
+            $prices->havingRaw('MAX(created_at) > ?', [today()]);
+        }
+
+        return $prices->get();
+    }
 }

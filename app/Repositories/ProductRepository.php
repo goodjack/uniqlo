@@ -182,4 +182,24 @@ class ProductRepository extends Repository
 
         return $products;
     }
+
+    /**
+     * Get the min price and the max price from the products table.
+     *
+     * @param array $prices
+     * @return void
+     */
+    public function setMinPricesAndMaxPrices($prices)
+    {
+        $prices->each(function ($price) {
+            $product = $this->product->find($price->product_id);
+
+            if (!empty($product)) {
+                $product->min_price = $price->min_price;
+                $product->max_price = $price->max_price;
+
+                $product->save();
+            }
+        });
+    }
 }

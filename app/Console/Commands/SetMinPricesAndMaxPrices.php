@@ -2,29 +2,29 @@
 
 namespace App\Console\Commands;
 
-use App\Services\ProductService;
 use Illuminate\Console\Command;
+use App\Services\ProductService;
 
-class FetchProducts extends Command
+class SetMinPricesAndMaxPrices extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'product:fetch';
+    protected $signature = 'price:set
+                            {--today : Only set items updated today}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Fetch all products from UNIQLO';
+    protected $description = 'Set the min price and the max price to the products';
 
     /**
      * Create a new command instance.
      *
-     * @param ProductService $productService
      * @return void
      */
     public function __construct(ProductService $productService)
@@ -41,10 +41,7 @@ class FetchProducts extends Command
      */
     public function handle()
     {
-        $this->productService->fetchAllProducts();
-        $this->productService->setStockoutProducts();
-        $this->call('price:set', [
-            '--today' => true
-        ]);
+        $today = $this->option('today');
+        $this->productService->setMinPricesAndMaxPrices($today);
     }
 }
