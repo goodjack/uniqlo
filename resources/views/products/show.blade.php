@@ -35,11 +35,11 @@
                 <div class="eight wide column">
                     <div class="ts tiny divided horizontal two statistics">
                         <div class="statistic" style="width: 100%; justify-content: center;">
-                            <div class="value">{{ $highestPrice }}</div>
+                            <div class="value">{{ $product->max_price }}</div>
                             <div class="label">歷史高價 <i class="fitted caret up icon"></i></div>
                         </div>
                         <div class="statistic" style="width: 100%; justify-content: center;">
-                            <div class="value">{{ $lowestPrice }}</div>
+                            <div class="value">{{ $product->min_price }}</div>
                             <div class="label">歷史低價 <i class="fitted caret down icon"></i></div>
                         </div>
                     </div>

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Product;
-use App\Services\ProductHistoryService;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
 
@@ -11,10 +10,9 @@ class ProductController extends Controller
 {
     protected $productService;
 
-    public function __construct(ProductHistoryService $productHistoryService, ProductService $productService)
+    public function __construct(ProductService $productService)
     {
         $this->productService = $productService;
-        $this->productHistoryService = $productHistoryService;
     }
 
     /**
@@ -59,14 +57,10 @@ class ProductController extends Controller
         $styleDictionaries = $this->productService->getStyleDictionaries($product);
 
         $productHistories = $product->histories;
-        $highestPrice = $this->productHistoryService->getHighestPrice($productHistories);
-        $lowestPrice = $this->productHistoryService->getLowestPrice($productHistories);
 
         return view('products.show', [
             'product' => $product,
             'productHistories' => $productHistories,
-            'highestPrice' => $highestPrice,
-            'lowestPrice' => $lowestPrice,
             'styleDictionaries' => $styleDictionaries
         ]);
     }
