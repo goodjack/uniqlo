@@ -1,48 +1,37 @@
-@inject('productPresenter', 'App\Presenters\ProductPresenter')
-
 <div class="ts attached padded horizontally fitted fluid segment">
     <div class="ts narrow container">
-        <div class="ts doubling link cards four">
-            @foreach ($products as $product)
-            <a class="ts flatted card" href="{{ $productPresenter->getProductUrl($product) }}">
-                <div class="image">
-                    <img src="{{ $product->main_image_url }}">
-                </div>
-                <div class="content">
-                    <div class="smaller header">{{ $product->name }}</div>
-                    <div class="meta">{{ $product->id }}</div>
-                </div>
-                <div class="center aligned extra content">
-                    @if ($product->max_price > $product->price)
-                    <small>NT${{ $product->max_price }} ⇢</small>
-                    <strong>NT${{ $product->price }}</strong>
-                    @else
-                    NT${{ $product->price }}
-                    @endif
-
-                    @if ($product->price > $product->min_price)
-                    <span style="color: #8BB96E;">⇢ NT${{ $product->min_price }}</span>
-                    @endif
-
-                    @if ($product->limit_sales_end_msg)
-                    <br><span style="color: #CE5F58;">{{ $product->limit_sales_end_msg }}</span>
-                    @endif
-
-                    @if ($product->sale)
-                    <br><span style="color: #79A8B9;">特價商品</span>
-                    @endif
-
-                    @if ($product->new)
-                    <br><span style="color: #79A8B9;">新品</span>
-                    @endif
-                </div>
-                @if ($product->price > $product->min_price)
-                <div class="symbol">
-                    <i class="caution circle icon"></i>
-                </div>
-                @endif
-            </a>
-            @endforeach
+        <div id="category" class="ts top attached four item tabbed menu">
+            <a class="active item" data-tab="Men">男裝 ({{ count($products['men']) }})</a>
+            <a class="item" data-tab="Women">女裝 ({{ count($products['women']) }})</a>
+            <a class="item" data-tab="Kids">童裝 ({{ count($products['kids']) }})</a>
+            <a class="item" data-tab="Baby">嬰幼兒 ({{ count($products['baby']) }})</a>
+        </div>
+        <div data-tab="Men" class="ts active bottom attached tab segment">
+            <div class="ts doubling link cards four">
+                @each('products.card', $products['men'], 'product')
+            </div>
+        </div>
+        <div data-tab="Women" class="ts bottom attached tab segment">
+            <div class="ts doubling link cards four">
+                @each('products.card', $products['women'], 'product')
+            </div>
+        </div>
+        <div data-tab="Kids" class="ts bottom attached tab segment">
+            <div class="ts doubling link cards four">
+                @each('products.card', $products['kids'], 'product')
+            </div>
+        </div>
+        <div data-tab="Baby" class="ts bottom attached tab segment">
+            <div class="ts doubling link cards four">
+                @each('products.card', $products['baby'], 'product')
+            </div>
         </div>
     </div>
 </div>
+
+@section('javascript')
+    @parent
+    <script>
+        ts('#category.tabbed.menu .item').tab();
+    </script>
+@endsection

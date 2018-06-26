@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Foundations\DivideProducts;
 use App\Product;
 use App\Repositories\ProductRepository;
 use App\Repositories\ProductHistoryRepository;
@@ -16,6 +17,8 @@ use function Functional\map;
 
 class ProductService extends Service
 {
+    use divideProducts;
+
     protected $repository;
     protected $productRepository;
     protected $productHistoryRepository;
@@ -156,7 +159,9 @@ class ProductService extends Service
      */
     public function getStockoutProducts()
     {
-        return $this->productRepository->getStockoutProductsOrderByDate();
+        $products = $this->productRepository->getStockoutProductsOrderByDate();
+
+        return $this->divideProducts($products);
     }
 
     /**
@@ -189,7 +194,7 @@ class ProductService extends Service
 
         $products = $this->productRepository->getSaleProducts();
 
-        return $products;
+        return $this->divideProducts($products);
     }
 
     /**
@@ -201,7 +206,7 @@ class ProductService extends Service
     {
         $products = $this->productRepository->getLimitedOfferProducts();
 
-        return $products;
+        return $this->divideProducts($products);
     }
 
     /**

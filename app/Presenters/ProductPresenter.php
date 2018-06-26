@@ -94,6 +94,9 @@ class ProductPresenter
 
     public function countProducts($products)
     {
-        return count($products);
+        return count($products['men'])
+            + count($products['women'])
+            + count($products['kids'])
+            + count($products['baby']);
     }
 }

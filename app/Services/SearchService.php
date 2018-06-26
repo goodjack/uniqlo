@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Foundations\DivideProducts;
 use App\Product;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
@@ -11,6 +12,8 @@ use function Functional\map;
 
 class SearchService extends Service
 {
+    use divideProducts;
+
     public function getSearchResults($query)
     {
         $client = new Client();
@@ -38,6 +41,8 @@ class SearchService extends Service
             return $record->id;
         });
 
-        return Product::find($productIDs);
+        $products = Product::find($productIDs);
+
+        return $this->divideProducts($products);
     }
 }

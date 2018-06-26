@@ -144,7 +144,7 @@ class ProductRepository extends Repository
             return $products->get($id);
         });
 
-        return $sortedProducts;
+        return collect($sortedProducts);
     }
 
     public function getProductsByIds($productIds)
