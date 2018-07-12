@@ -35,6 +35,28 @@ class ProductPresenter
         return $html;
     }
 
+    public function getItemImages($product)
+    {
+        $html = '';
+        $colors = json_decode($product->colors);
+
+        if (!empty($colors)) {
+            foreach ($colors as $color) {
+                $html .= $this->getItemImageTag($product->id, $color->code);
+            }
+        }
+
+        return $html;
+    }
+
+    public function getItemImageTag($id, $colorCode)
+    {
+        $link = "http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$colorCode}_{$id}.jpg";
+        $imgUrl = $link;
+
+        return $this->getImageTag($link, $imgUrl);
+    }
+
     public function getSubImages($product)
     {
         $html = '';

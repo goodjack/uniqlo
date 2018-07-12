@@ -81,14 +81,30 @@
     </div>
 </div>
 
+@if (count($styleDictionaries) > 0)
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
     <div class="ts narrow container">
+        <div class="ts large dividing header">精選穿搭</div>
+        <br>
         <div class="ts doubling four waterfall flatted cards">
             {!! $productPresenter->getStyleDictionaries($styleDictionaries) !!}
-            {!! $productPresenter->getSubImages($product) !!}
         </div>
     </div>
 </div>
+@endif
+
+@if (count(json_decode($product->colors)) > 0 || count(json_decode($product->sub_images)) > 0)
+<div class="ts very padded horizontally fitted attached fluid tertiary segment">
+    <div class="ts narrow container">
+        <div class="ts large dividing header">商品實照</div>
+        <br>
+        <div class="ts doubling four waterfall flatted cards">
+            {!! $productPresenter->getSubImages($product) !!}
+            {!! $productPresenter->getItemImages($product) !!}
+        </div>
+    </div>
+</div>
+@endif
 @endsection
 
 @section('javascript')

@@ -42,6 +42,7 @@ class ProductRepository extends Repository
                 $model->new = $product->new;
                 $model->sale = $this->getSaleStatus($product);
                 $model->sub_images = json_encode($product->subImages);
+                $model->colors = json_encode($product->colors);
 
                 $model->save();
 
