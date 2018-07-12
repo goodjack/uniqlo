@@ -86,7 +86,7 @@
     <div class="ts narrow container">
         <div class="ts large dividing header">精選穿搭</div>
         <br>
-        <div class="ts doubling four waterfall flatted cards">
+        <div class="ts doubling four flatted cards">
             {!! $productPresenter->getStyleDictionaries($styleDictionaries) !!}
         </div>
     </div>
@@ -98,7 +98,7 @@
     <div class="ts narrow container">
         <div class="ts large dividing header">商品實照</div>
         <br>
-        <div class="ts doubling four waterfall flatted cards">
+        <div class="ts doubling four flatted cards">
             {!! $productPresenter->getSubImages($product) !!}
             {!! $productPresenter->getItemImages($product) !!}
         </div>
