@@ -18,6 +18,7 @@
                 padding: 60px 0 0 0;
             }
         </style>
+        @yield('css')
     </head>
 
     <body>

@@ -7,6 +7,16 @@
 <meta property="og:image" content="{{ $product->main_image_url }}" />
 @endsection
 
+@section('css')
+<style>
+    .ts.card .overlapped.content.color-header {
+        top: unset;
+        height: unset;
+        bottom: 0;
+    }
+</style>
+@endsection
+
 @section('content')
 <div class="ts very padded horizontally fitted attached fluid segment">
     <div class="ts narrow container relaxed grid">

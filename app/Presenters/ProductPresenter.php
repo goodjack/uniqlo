@@ -42,19 +42,22 @@ class ProductPresenter
 
         if (!empty($colors)) {
             foreach ($colors as $color) {
-                $html .= $this->getItemImageTag($product->id, $color->code);
+                $colorHeader = "{$color->code} {$color->name}";
+                $html .= $this->getItemImageTag($product->id, $color->code, $colorHeader);
             }
         }
 
         return $html;
     }
 
-    public function getItemImageTag($id, $colorCode)
+    public function getItemImageTag($id, $colorCode, $colorHeader)
     {
         $link = "http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$colorCode}_{$id}.jpg";
         $imgUrl = $link;
 
-        return $this->getImageTag($link, $imgUrl);
+        $html = "<a class=\"ts card\" href=\"{$link}\" target=\"_blank\"><div class=\"image\"><img src=\"{$imgUrl}\"></div><div class=\"overlapped content color-header\">{$colorHeader}</div></a>";
+
+        return $html;
     }
 
     public function getSubImages($product)
