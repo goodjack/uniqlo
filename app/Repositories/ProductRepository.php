@@ -38,6 +38,7 @@ class ProductRepository extends Repository
                 $model->comment = $product->catchCopy;
                 $model->price = $product->representativeSKU->salePrice;
                 $model->flags = json_encode($product->flags);
+                $model->representative_sku_flags = json_encode($product->representativeSKU->flags);
                 $model->limit_sales_end_msg = $product->representativeSKU->limitSalesEndMsg;
                 $model->new = $product->new;
                 $model->sale = $this->getSaleStatus($product);
