@@ -24,6 +24,10 @@
         <br><span style="color: #CE5F58;">{{ $product->limit_sales_end_msg }}</span>
         @endif
 
+        @if ($product->multi_buy)
+        <br><span style="color: #CE5F58;">{{ $product->multi_buy }}</span>
+        @endif
+
         @if ($product->sale)
         <br><span style="color: #79A8B9;">特價商品</span>
         @endif

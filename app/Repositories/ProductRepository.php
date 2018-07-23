@@ -206,4 +206,32 @@ class ProductRepository extends Repository
             }
         });
     }
+
+    /**
+     * Get all of the MULTI_BUY Products.
+     *
+     * @return array
+     */
+    public function getMultiBuyProductIds()
+    {
+        $ids = $this->product->select('id')
+            ->where('representative_sku_flags', 'like', '%MULTI_BUY%')
+            ->pluck('id');
+
+        return $ids;
+    }
+
+    /**
+     * Save the MULTI_BUY promo.
+     *
+     * @param string $id
+     * @param string $promo
+     * @return void
+     */
+    public function saveMultiBuyPromo($id, $promo)
+    {
+        $product = $this->product->find($id);
+        $product->multi_buy = $promo;
+        $product->save();
+    }
 }

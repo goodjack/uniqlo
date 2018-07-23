@@ -99,6 +99,31 @@ class ProductService extends Service
         } while ($total >= $page++ * $limit);
     }
 
+    public function fetchMultiBuyProducts()
+    {
+        $ids = $this->productRepository->getMultiBuyProductIds();
+        $ids->each(function ($id) {
+            $client = new Client();
+
+            $response = $client->request(
+                'GET',
+                env('UQ_API_PRODUCTS_FOR_MULTI_BUY'),
+                [
+                    'query' => [
+                        'format' => 'json',
+                        'product_cd' => $id,
+                    ]
+                ]
+            );
+
+            $productInfo = json_decode($response->getBody());
+            $promo = $productInfo->l2_goods_list[0]->promo_rule_info;
+            $this->productRepository->saveMultiBuyPromo($id, $promo);
+
+            sleep(1);
+        });
+    }
+
     public function fetchAllStyleDictionaries()
     {
         $client = new Client();

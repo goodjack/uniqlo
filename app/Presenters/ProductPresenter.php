@@ -16,6 +16,10 @@ class ProductPresenter
             $html .= "<div class=\"ts horizontal negative circular label\">{$msg}</div>";
         }
 
+        if ($product->multi_buy) {
+            $html .= "<div class=\"ts horizontal negative circular label\">{$product->multi_buy}</div>";
+        }
+
         if ($product->new) {
             $html .= "<div class=\"ts horizontal inverted circular label\">新品</div>";
         }

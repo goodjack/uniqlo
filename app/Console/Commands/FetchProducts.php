@@ -46,5 +46,6 @@ class FetchProducts extends Command
         $this->call('price:set', [
             '--today' => true
         ]);
+        $this->productService->fetchMultiBuyProducts();
     }
 }
