@@ -15,6 +15,11 @@ class Product extends Model
         return $this->hasMany('App\ProductHistory');
     }
 
+    public function multiBuys()
+    {
+        return $this->hasMany('App\MultiBuyHistory');
+    }
+
     public function category()
     {
         return $this->belongsTo('App\Category');

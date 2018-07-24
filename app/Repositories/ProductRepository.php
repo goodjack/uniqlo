@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Product;
 use App\ProductHistory;
+use App\MultiBuyHistory;
 use App\StyleDictionary;
 use Exception;
 use Yish\Generators\Foundation\Repository\Repository;
@@ -233,5 +234,10 @@ class ProductRepository extends Repository
         $product = $this->product->find($id);
         $product->multi_buy = $promo;
         $product->save();
+
+        $multiBuy = new MultiBuyHistory;
+        $multiBuy->product_id = $id;
+        $multiBuy->multi_buy = $promo;
+        $multiBuy->save();
     }
 }
