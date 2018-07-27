@@ -3,7 +3,6 @@
 namespace App\Presenters;
 
 use App\Product;
-use Carbon\Carbon;
 
 class ProductPresenter
 {
@@ -100,14 +99,17 @@ class ProductPresenter
 
     public function getPriceChartLabels($productHistories)
     {
-        return $productHistories->pluck(['created_at'])->map(function ($time) {
-            return Carbon::parse($time)->format('m/d');
-        });
+        return $productHistories->pluck(['created_at']);
     }
 
     public function getPriceChartData($productHistories)
     {
         return $productHistories->pluck(['price']);
+    }
+
+    public function getPriceChartMultiBuyData($productHistories)
+    {
+        return $productHistories->pluck(['multi_buy']);
     }
 
     /**

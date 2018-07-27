@@ -121,19 +121,25 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js" integrity="sha256-c0m8xzX5oOBawsnLVpHnU2ieISOvxi584aNElFl2W6M=" crossorigin="anonymous"></script>
 
 <script>
-    var ctx = document.getElementById("priceChart");
-    var priceChart = new Chart(ctx, {
+    let ctx = document.getElementById("priceChart");
+    let pointBackgroundColor = [];
+    let pointRadius = [];
+    let priceChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: {!! $productPresenter->getPriceChartLabels($productHistories) !!},
             datasets: [{
                 label: '價格',
                 data: {!! $productPresenter->getPriceChartData($productHistories) !!},
+                radius: 1.5,
                 backgroundColor: 'rgba(206, 94, 87, 0.2)',
                 borderColor: 'rgba(206, 94, 87, 1.0)',
                 borderWidth: 1,
-                cubicInterpolationMode: 'monotone'
-            }]
+                cubicInterpolationMode: 'monotone',
+                pointBackgroundColor: pointBackgroundColor,
+                pointRadius: pointRadius
+            }],
+            multiBuyData: {!! $productPresenter->getPriceChartMultiBuyData($productHistories) !!}
         },
         options: {
             title: {
@@ -150,10 +156,16 @@
                 titleMarginBottom: 10,
                 titleFontSize: 14,
                 bodyFontSize: 15,
+                footerFontColor: 'rgba(218, 133, 128, 1.0)',
                 displayColors: false,
                 callbacks: {
                     label: function(tooltipItem, data) {
                         return data.datasets[tooltipItem.datasetIndex].label + "：NT$" + tooltipItem.yLabel;
+                    },
+                    footer: function(tooltipItems, data) {
+                        if (data.multiBuyData[tooltipItems[0].index] !== null) {
+                           return data.multiBuyData[tooltipItems[0].index];
+                        }
                     }
                 }
             },
@@ -166,5 +178,17 @@
             }
         }
     });
+
+    for (let i = 0; i < priceChart.data.datasets[0].data.length; i++) {
+        if (priceChart.data.multiBuyData[i] === null) {
+            pointBackgroundColor.push('rgba(206, 94, 87, 0.2)');
+            pointRadius.push(1.5);
+        } else {
+            pointBackgroundColor.push('rgba(206, 94, 87, 0.9)');
+            pointRadius.push(4);
+        }
+    }
+
+    priceChart.update();
 </script>
 @endsection

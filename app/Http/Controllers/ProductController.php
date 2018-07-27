@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Product;
 use App\Services\ProductService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -56,7 +57,32 @@ class ProductController extends Controller
     {
         $styleDictionaries = $this->productService->getStyleDictionaries($product);
 
+        $multiBuys = $product->multiBuys;
+        $multiBuys = $multiBuys->map(function ($multiBuy) {
+            unset($multiBuy['id']);
+            unset($multiBuy['product_id']);
+            $multiBuy->created_at = Carbon::parse($multiBuy->created_at)->format('m/d');
+
+            return $multiBuy;
+        });
+
         $productHistories = $product->histories;
+        $productHistories = $productHistories->map(function ($productHistorie) use ($multiBuys) {
+            unset($productHistorie['id']);
+            unset($productHistorie['product_id']);
+
+            $productHistorie->created_at = Carbon::parse($productHistorie->created_at)->format('m/d');
+
+            $productHistorie->multi_buy = null;
+            foreach ($multiBuys as $multiBuy) {
+                if ($productHistorie->created_at == $multiBuy->created_at) {
+                    $productHistorie->multi_buy = $multiBuy->multi_buy;
+                    break;
+                }
+            }
+
+            return $productHistorie;
+        });
 
         return view('products.show', [
             'product' => $product,
