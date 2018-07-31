@@ -117,8 +117,10 @@ class ProductService extends Service
             );
 
             $productInfo = json_decode($response->getBody());
-            $promo = $productInfo->l2_goods_list[0]->promo_rule_info;
-            $this->productRepository->saveMultiBuyPromo($id, $promo);
+            $promo = data_get($productInfo, 'l2_goods_list.0.promo_rule_info');
+            if (!empty($promo)) {
+                $this->productRepository->saveMultiBuyPromo($id, $promo);
+            }
 
             sleep(1);
         });
