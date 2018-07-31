@@ -216,6 +216,7 @@ class ProductRepository extends Repository
     public function getMultiBuyProductIds()
     {
         $ids = $this->product->select('id')
+            ->where('stockout', false)
             ->where('representative_sku_flags', 'like', '%MULTI_BUY%')
             ->pluck('id');
 
