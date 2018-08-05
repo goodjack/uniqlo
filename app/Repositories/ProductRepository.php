@@ -173,6 +173,23 @@ class ProductRepository extends Repository
     }
 
     /**
+     * Get MULTI_BUY products.
+     *
+     * @return array|null MULTI_BUY products
+     */
+    public function getMultiBuyProducts()
+    {
+        $products = $this->product
+            ->whereNotNull('multi_buy')
+            ->where('stockout', false)
+            ->orderBy('multi_buy')
+            ->orderBy('price')
+            ->get();
+
+        return $products;
+    }
+
+    /**
      * Get sale products.
      *
      * @return array|null Sale products

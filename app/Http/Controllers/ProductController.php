@@ -151,4 +151,13 @@ class ProductController extends Controller
             'limitedOffers' => $limitedOffers
         ]);
     }
+
+    public function multiBuys()
+    {
+        $multiBuys = $this->productService->getMultiBuyProducts();
+
+        return view('products.multi-buys', [
+            'multiBuys' => $multiBuys
+        ]);
+    }
 }

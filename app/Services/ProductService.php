@@ -237,6 +237,18 @@ class ProductService extends Service
     }
 
     /**
+     * Get MULTI_BUY products.
+     *
+     * @return array|null MULTI_BUY products
+     */
+    public function getMultiBuyProducts()
+    {
+        $products = $this->productRepository->getMultiBuyProducts();
+
+        return $this->divideProducts($products);
+    }
+
+    /**
      * Set the min price and the max price to the products.
      *
      * @param boolean $today
