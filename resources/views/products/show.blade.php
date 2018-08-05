@@ -144,6 +144,7 @@
         options: {
             title: {
                 display: true,
+                lineHeight: 1,
                 text: '歷史價格折線圖'
             },
             legend: {
