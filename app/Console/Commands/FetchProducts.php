@@ -47,5 +47,6 @@ class FetchProducts extends Command
             '--today' => true
         ]);
         $this->productService->fetchMultiBuyProducts();
+        $this->call('multi-buy:set');
     }
 }

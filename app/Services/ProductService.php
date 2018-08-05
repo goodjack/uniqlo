@@ -117,8 +117,10 @@ class ProductService extends Service
             );
 
             $productInfo = json_decode($response->getBody());
-            $promo = $productInfo->l2_goods_list[0]->promo_rule_info;
-            $this->productRepository->saveMultiBuyPromo($id, $promo);
+            $promo = data_get($productInfo, 'l2_goods_list.0.promo_rule_info');
+            if (!empty($promo)) {
+                $this->productRepository->saveMultiBuyPromo($id, $promo);
+            }
 
             sleep(1);
         });
@@ -230,6 +232,18 @@ class ProductService extends Service
     public function getLimitedOfferProducts()
     {
         $products = $this->productRepository->getLimitedOfferProducts();
+
+        return $this->divideProducts($products);
+    }
+
+    /**
+     * Get MULTI_BUY products.
+     *
+     * @return array|null MULTI_BUY products
+     */
+    public function getMultiBuyProducts()
+    {
+        $products = $this->productRepository->getMultiBuyProducts();
 
         return $this->divideProducts($products);
     }

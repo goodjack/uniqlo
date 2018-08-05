@@ -19,6 +19,7 @@ Route::group(['prefix' => 'products'], function () {
     Route::get('/stockouts', 'ProductController@stockouts');
     Route::get('/sales', 'ProductController@sales');
     Route::get('/limited-offers', 'ProductController@limitedOffers');
+    Route::get('/multi-buys', 'ProductController@multiBuys');
 });
 Route::resource('products', 'ProductController');
 
