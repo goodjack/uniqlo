@@ -232,13 +232,35 @@ class ProductRepository extends Repository
      */
     public function saveMultiBuyPromo($id, $promo)
     {
-        $product = $this->product->find($id);
-        $product->multi_buy = $promo;
-        $product->save();
-
         $multiBuy = new MultiBuyHistory;
         $multiBuy->product_id = $id;
         $multiBuy->multi_buy = $promo;
         $multiBuy->save();
+    }
+
+    /**
+     * Set MULTI_BUY to the products.
+     *
+     * @return void
+     */
+    public function setMultiBuyProducts()
+    {
+        $this->product->whereNotNull('multi_buy')
+            ->whereDoesntHave('multiBuys', function ($query) {
+                $query->whereDate('created_at', today()->toDateString());
+            })->update(['multi_buy' => null]);
+
+        $multiBuyHistories = \DB::table('multi_buy_histories')
+            ->select('product_id', \DB::raw('multi_buy as promo'))
+            ->whereIn('id', function ($query) {
+                $query->selectRaw('MAX(id)')
+                    ->from('multi_buy_histories')
+                    ->whereDate('created_at', today()->toDateString())
+                    ->groupBy('product_id');
+            });
+
+        $this->product->joinSub($multiBuyHistories, 'multi_buy_histories', function ($join) {
+            $join->on('products.id', '=', 'multi_buy_histories.product_id');
+        })->update(['multi_buy' => \DB::raw('promo')]);
     }
 }
