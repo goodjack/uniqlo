@@ -160,4 +160,9 @@ class ProductController extends Controller
             'multiBuys' => $multiBuys
         ]);
     }
+
+    public function go(Request $request)
+    {
+        return redirect()->action('ProductController@show', ['product' => $request->id]);
+    }
 }

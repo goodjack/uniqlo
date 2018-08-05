@@ -26,6 +26,15 @@ class RouteServiceProvider extends ServiceProvider
         //
 
         parent::boot();
+
+        Route::bind('product', function ($value) {
+            $product = \App\Product::find($value);
+            if ($product) {
+                return $product;
+            } else {
+                redirect()->route('search', ['query' => $value])->send();
+            }
+        });
     }
 
     /**
