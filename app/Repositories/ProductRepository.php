@@ -15,6 +15,9 @@ use function Functional\map;
 
 class ProductRepository extends Repository
 {
+    const CACHE_KEY_LIMITED_OFFER = 'product:limited_offer';
+    const CACHE_KEY_MULTI_BUY = 'product:multi_buy';
+    const CACHE_KEY_SALE = 'product:sale';
     const CACHE_KEY_STOCKOUT = 'product:stockout';
 
     protected $product;
@@ -172,51 +175,93 @@ class ProductRepository extends Repository
     /**
      * Get limited offer products.
      *
-     * @return array|null Limited offer products
+     * @return Collection|Product[] Limited offer products
      */
     public function getLimitedOfferProducts()
     {
+        if (!Cache::has(self::CACHE_KEY_LIMITED_OFFER)) {
+            $this->setLimitedOfferProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_LIMITED_OFFER);
+    }
+
+    /**
+     * Put limited offer products to the cache.
+     */
+    public function setLimitedOfferProductsCache()
+    {
         $products = $this->product
+            ->select('id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale')
             ->where('limit_sales_end_msg', '!=', '')
             ->where('stockout', false)
             ->orderBy('limit_sales_end_msg')
             ->orderByRaw('price/max_price')
             ->get();
 
-        return $products;
+        $expiresAt = today()->addHours(36);
+        Cache::put(self::CACHE_KEY_LIMITED_OFFER, $products, $expiresAt);
     }
 
     /**
      * Get MULTI_BUY products.
      *
-     * @return array|null MULTI_BUY products
+     * @return Collection|Product[] MULTI_BUY products
      */
     public function getMultiBuyProducts()
     {
+        if (!Cache::has(self::CACHE_KEY_MULTI_BUY)) {
+            $this->setMultiBuyProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_MULTI_BUY);
+    }
+
+    /**
+     * Put the MULTI_BUY products to the cache.
+     */
+    public function setMultiBuyProductsCache()
+    {
         $products = $this->product
+            ->select('id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale')
             ->whereNotNull('multi_buy')
             ->where('stockout', false)
             ->orderBy('multi_buy')
             ->orderBy('price')
             ->get();
 
-        return $products;
+        $expiresAt = today()->addHours(36);
+        Cache::put(self::CACHE_KEY_MULTI_BUY, $products, $expiresAt);
     }
 
     /**
      * Get sale products.
      *
-     * @return array|null Sale products
+     * @return Collection|Product[] Sale products
      */
     public function getSaleProducts()
     {
+        if (!Cache::has(self::CACHE_KEY_SALE)) {
+            $this->setSaleProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_SALE);
+    }
+
+    /**
+     * Put sale products to the cache.
+     */
+    public function setSaleProductsCache()
+    {
         $products = $this->product
+            ->select('id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale')
             ->where('sale', true)
             ->where('stockout', false)
             ->orderByRaw('price/max_price')
             ->get();
 
-        return $products;
+        $expiresAt = today()->addHours(36);
+        Cache::put(self::CACHE_KEY_SALE, $products, $expiresAt);
     }
 
     /**

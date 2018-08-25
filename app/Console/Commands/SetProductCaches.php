@@ -40,6 +40,9 @@ class SetProductCaches extends Command
      */
     public function handle()
     {
+        $this->productRepository->setLimitedOfferProductsCache();
+        $this->productRepository->setMultiBuyProductsCache();
+        $this->productRepository->setSaleProductsCache();
         $this->productRepository->setStockoutProductsCache();
     }
 }
