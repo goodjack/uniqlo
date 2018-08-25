@@ -174,9 +174,9 @@ class ProductService extends Service
      *
      * @return void
      */
-    public function setStockoutProducts()
+    public function setStockoutProductTags()
     {
-        $this->productRepository->setStockoutProducts();
+        $this->productRepository->setStockoutProductTags();
     }
 
     /**
@@ -186,7 +186,7 @@ class ProductService extends Service
      */
     public function getStockoutProducts()
     {
-        $products = $this->productRepository->getStockoutProductsOrderByDate();
+        $products = $this->productRepository->getStockoutProducts();
 
         return $this->divideProducts($products);
     }

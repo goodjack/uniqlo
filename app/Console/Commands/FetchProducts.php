@@ -25,6 +25,7 @@ class FetchProducts extends Command
      * Create a new command instance.
      *
      * @param ProductService $productService
+     *
      * @return void
      */
     public function __construct(ProductService $productService)
@@ -42,11 +43,12 @@ class FetchProducts extends Command
     public function handle()
     {
         $this->productService->fetchAllProducts();
-        $this->productService->setStockoutProducts();
+        $this->productService->setStockoutProductTags();
         $this->call('price:set', [
             '--today' => true
         ]);
         $this->productService->fetchMultiBuyProducts();
         $this->call('multi-buy:set');
+        $this->call('product:cache');
     }
 }
