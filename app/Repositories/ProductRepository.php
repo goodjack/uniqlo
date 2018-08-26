@@ -6,6 +6,7 @@ use App\Product;
 use App\ProductHistory;
 use App\MultiBuyHistory;
 use App\StyleDictionary;
+use Cache;
 use Exception;
 use Yish\Generators\Foundation\Repository\Repository;
 
@@ -14,6 +15,11 @@ use function Functional\map;
 
 class ProductRepository extends Repository
 {
+    const CACHE_KEY_LIMITED_OFFER = 'product:limited_offer';
+    const CACHE_KEY_MULTI_BUY = 'product:multi_buy';
+    const CACHE_KEY_SALE = 'product:sale';
+    const CACHE_KEY_STOCKOUT = 'product:stockout';
+
     protected $product;
     protected $styleDictionary;
 
@@ -110,10 +116,8 @@ class ProductRepository extends Repository
 
     /**
      * Set stockout status to the products.
-     *
-     * @return void
      */
-    public function setStockoutProducts()
+    public function setStockoutProductTags()
     {
         $this->product->whereDoesntHave('histories', function ($query) {
             $query->whereDate('created_at', today()->toDateString());
@@ -125,29 +129,42 @@ class ProductRepository extends Repository
     }
 
     /**
-     * Get all of the stockout products.
+     * Get the stockout products.
      *
-     * @return array|null Array of Product models
+     * @return Collection|Product[]
      */
-    public function getStockoutProductsOrderByDate()
+    public function getStockoutProducts()
     {
-        // TODO: Pagination and Caching
+        if (!Cache::has(self::CACHE_KEY_STOCKOUT)) {
+            $this->setStockoutProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_STOCKOUT);
+    }
+
+    /**
+     * Put the stockout products to the cache.
+     */
+    public function setStockoutProductsCache()
+    {
+        // TODO: Pagination
         // TODO: Move to ProductHistory repository
         $productIds = ProductHistory::selectRaw('product_id, max(created_at)')
             ->groupBy('product_id')
-            ->having('max(created_at)', '<', today()->subDay())
+            ->having('max(created_at)', '<', today())
+            ->having('max(created_at)', '>=', today()->subWeek())
             ->orderBy('max(created_at)', 'desc')
-            ->get()->map(function ($item, $key) {
-                return $item->product_id;
-            });
+            ->pluck('product_id');
 
-        $products = $this->product->whereIn('id', $productIds)->get();
-        $sortedProducts = map($productIds, function ($id) use ($products) {
-            $products = $products->keyBy('id');
+        $products = $this->product
+            ->select('id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale')
+            ->whereIn('id', $productIds)->get()->keyBy('id');
+        $sortedProducts = $productIds->map(function ($id) use ($products) {
             return $products->get($id);
         });
 
-        return collect($sortedProducts);
+        $expiresAt = today()->addHours(36);
+        Cache::put(self::CACHE_KEY_STOCKOUT, $sortedProducts, $expiresAt);
     }
 
     public function getProductsByIds($productIds)
@@ -158,51 +175,93 @@ class ProductRepository extends Repository
     /**
      * Get limited offer products.
      *
-     * @return array|null Limited offer products
+     * @return Collection|Product[] Limited offer products
      */
     public function getLimitedOfferProducts()
     {
+        if (!Cache::has(self::CACHE_KEY_LIMITED_OFFER)) {
+            $this->setLimitedOfferProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_LIMITED_OFFER);
+    }
+
+    /**
+     * Put limited offer products to the cache.
+     */
+    public function setLimitedOfferProductsCache()
+    {
         $products = $this->product
+            ->select('id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale')
             ->where('limit_sales_end_msg', '!=', '')
             ->where('stockout', false)
             ->orderBy('limit_sales_end_msg')
             ->orderByRaw('price/max_price')
             ->get();
 
-        return $products;
+        $expiresAt = today()->addHours(36);
+        Cache::put(self::CACHE_KEY_LIMITED_OFFER, $products, $expiresAt);
     }
 
     /**
      * Get MULTI_BUY products.
      *
-     * @return array|null MULTI_BUY products
+     * @return Collection|Product[] MULTI_BUY products
      */
     public function getMultiBuyProducts()
     {
+        if (!Cache::has(self::CACHE_KEY_MULTI_BUY)) {
+            $this->setMultiBuyProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_MULTI_BUY);
+    }
+
+    /**
+     * Put the MULTI_BUY products to the cache.
+     */
+    public function setMultiBuyProductsCache()
+    {
         $products = $this->product
+            ->select('id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale')
             ->whereNotNull('multi_buy')
             ->where('stockout', false)
             ->orderBy('multi_buy')
             ->orderBy('price')
             ->get();
 
-        return $products;
+        $expiresAt = today()->addHours(36);
+        Cache::put(self::CACHE_KEY_MULTI_BUY, $products, $expiresAt);
     }
 
     /**
      * Get sale products.
      *
-     * @return array|null Sale products
+     * @return Collection|Product[] Sale products
      */
     public function getSaleProducts()
     {
+        if (!Cache::has(self::CACHE_KEY_SALE)) {
+            $this->setSaleProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_SALE);
+    }
+
+    /**
+     * Put sale products to the cache.
+     */
+    public function setSaleProductsCache()
+    {
         $products = $this->product
+            ->select('id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale')
             ->where('sale', true)
             ->where('stockout', false)
             ->orderByRaw('price/max_price')
             ->get();
 
-        return $products;
+        $expiresAt = today()->addHours(36);
+        Cache::put(self::CACHE_KEY_SALE, $products, $expiresAt);
     }
 
     /**
