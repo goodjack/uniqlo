@@ -21,6 +21,7 @@ $factory->define(App\Product::class, function (Faker $faker) {
         'new' => $faker->boolean,
         'sale' => $faker->boolean,
         'stockout' => $faker->boolean,
+        'review_count' => $faker->randomNumber(1),
         'colors' => "[{\"name\":\"{$faker->colorName}\",\"code\":\"{$faker->randomNumber(2, true)}\"},{\"name\":\"{$faker->colorName}\",\"code\":\"{$faker->randomNumber(2, true)}\"}]",
         'sub_images' => "[\"182500_sub5\"]",
         'style_dictionary_images' => null
