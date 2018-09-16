@@ -57,31 +57,26 @@ class ProductController extends Controller
     {
         $styleDictionaries = $this->productService->getStyleDictionaries($product);
 
-        $multiBuys = $product->multiBuys;
-        $multiBuys = $multiBuys->map(function ($multiBuy) {
-            unset($multiBuy['id']);
-            unset($multiBuy['product_id']);
+        $multiBuysRaw = $product->multiBuys()->select('multi_buy', 'created_at')->get();
+        $multiBuys = $multiBuysRaw->map(function ($multiBuy) {
             $multiBuy->created_at = Carbon::parse($multiBuy->created_at)->format('m/d');
 
             return $multiBuy;
         });
 
-        $productHistories = $product->histories;
-        $productHistories = $productHistories->map(function ($productHistorie) use ($multiBuys) {
-            unset($productHistorie['id']);
-            unset($productHistorie['product_id']);
+        $productHistoriesRaw = $product->histories()->select('price', 'created_at')->get();
+        $productHistories = $productHistoriesRaw->map(function ($productHistory) use ($multiBuys) {
+            $productHistory->created_at = Carbon::parse($productHistory->created_at)->format('m/d');
 
-            $productHistorie->created_at = Carbon::parse($productHistorie->created_at)->format('m/d');
-
-            $productHistorie->multi_buy = null;
+            $productHistory->multi_buy = null;
             foreach ($multiBuys as $multiBuy) {
-                if ($productHistorie->created_at == $multiBuy->created_at) {
-                    $productHistorie->multi_buy = $multiBuy->multi_buy;
+                if ($productHistory->created_at === $multiBuy->created_at) {
+                    $productHistory->multi_buy = $multiBuy->multi_buy;
                     break;
                 }
             }
 
-            return $productHistorie;
+            return $productHistory;
         });
 
         return view('products.show', [
