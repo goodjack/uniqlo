@@ -19,6 +19,8 @@ class ProductRepository extends Repository
     const CACHE_KEY_MULTI_BUY = 'product:multi_buy';
     const CACHE_KEY_SALE = 'product:sale';
     const CACHE_KEY_STOCKOUT = 'product:stockout';
+    const CACHE_KEY_NEW = 'product:new';
+    const SELECT_COLUMNS_FOR_PRODUCT_LIST = ['id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale'];
 
     protected $product;
     protected $styleDictionary;
@@ -158,7 +160,7 @@ class ProductRepository extends Repository
             ->pluck('product_id');
 
         $products = $this->product
-            ->select('id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale')
+            ->select(self::SELECT_COLUMNS_FOR_PRODUCT_LIST)
             ->whereIn('id', $productIds)->get()->keyBy('id');
         $sortedProducts = $productIds->map(function ($id) use ($products) {
             return $products->get($id);
@@ -193,7 +195,7 @@ class ProductRepository extends Repository
     public function setLimitedOfferProductsCache()
     {
         $products = $this->product
-            ->select('id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale')
+            ->select(self::SELECT_COLUMNS_FOR_PRODUCT_LIST)
             ->where('limit_sales_end_msg', '!=', '')
             ->where('stockout', false)
             ->orderBy('limit_sales_end_msg')
@@ -224,7 +226,7 @@ class ProductRepository extends Repository
     public function setMultiBuyProductsCache()
     {
         $products = $this->product
-            ->select('id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale')
+            ->select(self::SELECT_COLUMNS_FOR_PRODUCT_LIST)
             ->whereNotNull('multi_buy')
             ->where('stockout', false)
             ->orderBy('multi_buy')
@@ -255,7 +257,7 @@ class ProductRepository extends Repository
     public function setSaleProductsCache()
     {
         $products = $this->product
-            ->select('id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale')
+            ->select(self::SELECT_COLUMNS_FOR_PRODUCT_LIST)
             ->where('sale', true)
             ->where('stockout', false)
             ->orderByRaw('price/max_price')
@@ -263,6 +265,37 @@ class ProductRepository extends Repository
 
         $expiresAt = today()->addHours(36);
         Cache::put(self::CACHE_KEY_SALE, $products, $expiresAt);
+    }
+
+    /**
+     * Get new products.
+     *
+     * @return Collection|Product[] New products
+     */
+    public function getNewProducts()
+    {
+        if (!Cache::has(self::CACHE_KEY_NEW)) {
+            $this->setNewProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_NEW);
+    }
+
+    /**
+     * Put new products to the cache.
+     */
+    public function setNewProductsCache()
+    {
+        $products = $this->product
+            ->select(self::SELECT_COLUMNS_FOR_PRODUCT_LIST)
+            ->where('new', true)
+            ->where('stockout', false)
+            ->orderByRaw('price/max_price')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $expiresAt = today()->addHours(36);
+        Cache::put(self::CACHE_KEY_NEW, $products, $expiresAt);
     }
 
     /**

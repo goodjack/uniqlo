@@ -156,6 +156,15 @@ class ProductController extends Controller
         ]);
     }
 
+    public function news()
+    {
+        $news = $this->productService->getNewProducts();
+
+        return view('products.news', [
+            'news' => $news,
+        ]);
+    }
+
     public function go(Request $request)
     {
         return redirect()->action('ProductController@show', ['product' => $request->id]);

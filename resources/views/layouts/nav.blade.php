@@ -18,6 +18,7 @@
             <a href="{{ action('ProductController@limitedOffers') }}" class="item">期間限定</a>
             <a href="{{ action('ProductController@sales') }}" class="item">特價</a>
             <a href="{{ action('ProductController@multiBuys') }}" class="item">合購</a>
+            <a href="{{ action('ProductController@news') }}" class="item">新品</a>
         </div>
     </div>
 </div>

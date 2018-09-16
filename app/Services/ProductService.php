@@ -249,6 +249,18 @@ class ProductService extends Service
     }
 
     /**
+     * Get new products.
+     *
+     * @return array|null new products
+     */
+    public function getNewProducts()
+    {
+        $products = $this->productRepository->getNewProducts();
+
+        return $this->divideProducts($products);
+    }
+
+    /**
      * Set the min price and the max price to the products.
      *
      * @param boolean $today
