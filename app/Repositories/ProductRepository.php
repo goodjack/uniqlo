@@ -166,8 +166,7 @@ class ProductRepository extends Repository
             return $products->get($id);
         });
 
-        $expiresAt = today()->addHours(36);
-        Cache::put(self::CACHE_KEY_STOCKOUT, $sortedProducts, $expiresAt);
+        Cache::forever(self::CACHE_KEY_STOCKOUT, $sortedProducts);
     }
 
     public function getProductsByIds($productIds)
@@ -202,8 +201,7 @@ class ProductRepository extends Repository
             ->orderByRaw('price/max_price')
             ->get();
 
-        $expiresAt = today()->addHours(36);
-        Cache::put(self::CACHE_KEY_LIMITED_OFFER, $products, $expiresAt);
+        Cache::forever(self::CACHE_KEY_LIMITED_OFFER, $products);
     }
 
     /**
@@ -233,8 +231,7 @@ class ProductRepository extends Repository
             ->orderBy('price')
             ->get();
 
-        $expiresAt = today()->addHours(36);
-        Cache::put(self::CACHE_KEY_MULTI_BUY, $products, $expiresAt);
+        Cache::forever(self::CACHE_KEY_MULTI_BUY, $products);
     }
 
     /**
@@ -263,8 +260,7 @@ class ProductRepository extends Repository
             ->orderByRaw('price/max_price')
             ->get();
 
-        $expiresAt = today()->addHours(36);
-        Cache::put(self::CACHE_KEY_SALE, $products, $expiresAt);
+        Cache::forever(self::CACHE_KEY_SALE, $products);
     }
 
     /**
@@ -294,8 +290,7 @@ class ProductRepository extends Repository
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $expiresAt = today()->addHours(36);
-        Cache::put(self::CACHE_KEY_NEW, $products, $expiresAt);
+        Cache::forever(self::CACHE_KEY_NEW, $products);
     }
 
     /**
