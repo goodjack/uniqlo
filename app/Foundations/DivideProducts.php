@@ -8,28 +8,27 @@ trait DivideProducts
      * Divide products into men, women, kids and baby.
      *
      * @param array $products
+     *
      * @return array
      */
     public function divideProducts($products)
     {
-        list($men, $others) = $products->partition(function ($product) {
-            return starts_with($product->category_id, '001');
-        });
-
-        list($women, $others) = $others->partition(function ($product) {
-            return starts_with($product->category_id, '002');
-        });
-
-        list($kids, $baby) = $others->partition(function ($product) {
-            return starts_with($product->category_id, '003');
-        });
-
-        $result = [
-            'men' => $men,
-            'women' => $women,
-            'kids' => $kids,
-            'baby' => $baby,
+        $groupMapper = [
+            ['name' => 'men', 'code' => '001'],
+            ['name' => 'women', 'code' => '002'],
+            ['name' => 'kids', 'code' => '003'],
+            ['name' => 'baby', 'code' => '004'],
         ];
+
+        $groupedProducts = $products->groupBy(function ($product) {
+            return substr($product->category_id, 0, 3);
+        });
+
+        $result = collect($groupMapper)->reduce(function ($carry, $item) use ($groupedProducts) {
+            $carry[$item['name']] = $groupedProducts->get($item['code']);
+
+            return $carry;
+        }, []);
 
         return $result;
     }
