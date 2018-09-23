@@ -91,6 +91,18 @@
     </div>
 </div>
 
+@if (count($relatedProducts) > 0)
+<div class="ts very padded horizontally fitted attached fluid tertiary segment">
+    <div class="ts narrow container">
+        <div class="ts large dividing header">延伸商品</div>
+        <br>
+        <div class="ts doubling link cards four">
+            @each('products.card', $relatedProducts, 'product')
+        </div>
+    </div>
+</div>
+@endif
+
 @if (count($styleDictionaries) > 0)
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
     <div class="ts narrow container">

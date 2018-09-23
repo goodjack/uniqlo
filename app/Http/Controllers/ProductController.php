@@ -82,7 +82,8 @@ class ProductController extends Controller
         return view('products.show', [
             'product' => $product,
             'productHistories' => $productHistories,
-            'styleDictionaries' => $styleDictionaries
+            'styleDictionaries' => $styleDictionaries,
+            'relatedProducts' => $this->productService->getRelatedProducts($product),
         ]);
     }
 

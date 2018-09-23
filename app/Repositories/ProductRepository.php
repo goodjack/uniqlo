@@ -368,4 +368,15 @@ class ProductRepository extends Repository
             $join->on('products.id', '=', 'multi_buy_histories.product_id');
         })->update(['multi_buy' => \DB::raw('promo')]);
     }
+
+    public function getRelatedProductsForCard($productId)
+    {
+        $relatedId = substr($productId, 0, 6);
+
+        return $this->product
+            ->select(self::SELECT_COLUMNS_FOR_PRODUCT_LIST)
+            ->where('id', 'like', "{$relatedId}%")
+            ->where('id', '<>', $productId)
+            ->get();
+    }
 }

@@ -271,4 +271,9 @@ class ProductService extends Service
         $prices = $this->productHistoryRepository->getMinPricesAndMaxPrices($today);
         $this->productRepository->setMinPricesAndMaxPrices($prices);
     }
+
+    public function getRelatedProducts($product)
+    {
+        return $this->productRepository->getRelatedProductsForCard($product->id);
+    }
 }
