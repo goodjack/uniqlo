@@ -369,14 +369,20 @@ class ProductRepository extends Repository
         })->update(['multi_buy' => \DB::raw('promo')]);
     }
 
-    public function getRelatedProductsForCard($productId)
+    public function getRelatedProducts($product)
     {
-        $relatedId = substr($productId, 0, 6);
+        $relatedId = substr($product->id, 0, 6);
 
         return $this->product
             ->select(self::SELECT_COLUMNS_FOR_PRODUCT_LIST)
-            ->where('id', 'like', "{$relatedId}%")
-            ->where('id', '<>', $productId)
+            ->where('stockout', false)
+            ->where(function ($query) use ($relatedId, $product) {
+                $query->where('id', 'like', "{$relatedId}%")
+                    ->orWhere('name', $product->name);
+            })
+            ->where('id', '<>', $product->id)
+            ->orderBy('price')
+            ->orderBy('id', 'desc')
             ->get();
     }
 }

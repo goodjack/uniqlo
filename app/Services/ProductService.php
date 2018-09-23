@@ -274,6 +274,6 @@ class ProductService extends Service
 
     public function getRelatedProducts($product)
     {
-        return $this->productRepository->getRelatedProductsForCard($product->id);
+        return $this->productRepository->getRelatedProducts($product);
     }
 }
