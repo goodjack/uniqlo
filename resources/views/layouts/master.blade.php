@@ -12,7 +12,7 @@
         @yield('metadata')
 
         <!-- Tocas UI：CSS 與元件 -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/2.3.3/tocas.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/2.3.3/tocas.css" integrity="sha256-QKCF3aMJvlWKdpmS+c89QwyQdOjreJwF8Sohw+G4C+0=" crossorigin="anonymous" />
         <style type="text/css">
             body {
                 padding: 60px 0 0 0;
@@ -27,7 +27,7 @@
         @include('layouts.footer')
 
         <!-- Tocas JS：模塊與 JavaScript 函式 -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/2.3.3/tocas.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/2.3.3/tocas.js" integrity="sha256-Z7mKTVYeauqhmGQemIRwmSfVOkknOkEdoNgzT4c8CQE=" crossorigin="anonymous"></script>
 
         @yield('javascript')
     </body>
