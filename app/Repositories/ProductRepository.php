@@ -71,7 +71,7 @@ class ProductRepository extends Repository
         $color = $product->representativeSKU->color;
         $id = $product->id;
 
-        return "http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$color}_{$id}.jpg";
+        return "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$color}_{$id}.jpg";
     }
 
     public function getSaleStatus($product)
@@ -94,8 +94,8 @@ class ProductRepository extends Repository
 
             $model->id = $detail->id;
             $model->fnm = $detail->fnm;
-            $model->image_url = "http://www.uniqlo.com/{$imgDir}{$model->fnm}-xl.jpg";
-            $model->detail_url = "http://www.uniqlo.com/tw/stylingbook/detail.html#/detail/{$model->id}";
+            $model->image_url = "https://www.uniqlo.com/{$imgDir}{$model->fnm}-xl.jpg";
+            $model->detail_url = "https://www.uniqlo.com/tw/stylingbook/detail.html#/detail/{$model->id}";
 
             $model->save();
         } catch (Exception $e) {

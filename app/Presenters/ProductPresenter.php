@@ -55,7 +55,7 @@ class ProductPresenter
 
     public function getItemImageTag($id, $colorCode, $colorHeader)
     {
-        $link = "http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$colorCode}_{$id}.jpg";
+        $link = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$colorCode}_{$id}.jpg";
         $imgUrl = $link;
 
         $html = "<a class=\"ts card\" href=\"{$link}\" target=\"_blank\"><div class=\"image\"><img src=\"{$imgUrl}\"></div><div class=\"overlapped content color-header\">{$colorHeader}</div></a>";
@@ -76,7 +76,7 @@ class ProductPresenter
 
     public function getSubImageTag($id, $subImage)
     {
-        $link = "http://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImage}.jpg";
+        $link = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImage}.jpg";
         $imgUrl = $link;
 
         return $this->getImageTag($link, $imgUrl);

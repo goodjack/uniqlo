@@ -83,7 +83,7 @@
             <div class="ts grid">
                 <div class="six wide computer six wide tablet sixteen wide mobile right floated column">
                     <div class="ts fitted clearing flatted borderless segment">
-                        <a class="ts small basic circular fluid button" href="http://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank">前往官網</a>
+                        <a class="ts small basic circular fluid button" href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank">前往官網</a>
                     </div>
                 </div>
             </div>
