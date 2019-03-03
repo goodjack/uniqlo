@@ -15,7 +15,7 @@ class ProductTest extends TestCase
 
     protected $productRepository;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
 
