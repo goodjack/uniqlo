@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use Illuminate\Support\Arr;
 use App\Product;
 use App\ProductHistory;
 use App\MultiBuyHistory;
@@ -102,9 +103,10 @@ class ProductRepository extends Repository
             echo 'Caught exception: ', $e->getMessage(), "\n";
         }
 
+        // TODO: Replace Functional\each and Arr::pluck
         each($detail->list, function ($person) use ($model) {
             try {
-                $products = array_pluck($person->products, 'pub');
+                $products = Arr::pluck($person->products, 'pub');
                 $model->products()->syncWithoutDetaching($products);
             } catch (Exception $e) {
                 echo 'Caught exception: ', $e->getMessage(), "\n";
