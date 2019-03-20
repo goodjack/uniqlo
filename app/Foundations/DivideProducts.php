@@ -25,7 +25,7 @@ trait DivideProducts
         });
 
         $result = collect($groupMapper)->reduce(function ($carry, $item) use ($groupedProducts) {
-            $carry[$item['name']] = $groupedProducts->get($item['code']);
+            $carry[$item['name']] = $groupedProducts->get($item['code']) ?? [];
 
             return $carry;
         }, []);
