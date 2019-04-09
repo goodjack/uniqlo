@@ -115,7 +115,7 @@
 </div>
 @endif
 
-@if (count(json_decode($product->colors)) > 0 || count(json_decode($product->sub_images)) > 0)
+@if (! empty($product->colors) || ! empty($product->sub_images))
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
     <div class="ts narrow container">
         <div class="ts large dividing header">商品實照</div>
