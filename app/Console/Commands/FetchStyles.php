@@ -5,21 +5,21 @@ namespace App\Console\Commands;
 use App\Services\ProductService;
 use Illuminate\Console\Command;
 
-class FetchStyleDictionaries extends Command
+class FetchStyles extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'style-dict:fetch';
+    protected $signature = 'style:fetch';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Fetch all style dictionaries from UNIQLO';
+    protected $description = 'Fetch all styles from UNIQLO Styling Book';
 
     /**
      * Create a new command instance.
@@ -40,6 +40,6 @@ class FetchStyleDictionaries extends Command
      */
     public function handle()
     {
-        $this->productService->fetchAllStyleDictionaries();
+        $this->productService->fetchAllStyles();
     }
 }

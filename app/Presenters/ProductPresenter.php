@@ -92,6 +92,16 @@ class ProductPresenter
         return $html;
     }
 
+    public function getStyles($styles)
+    {
+        $html = '';
+        foreach ($styles as $style) {
+            $html .= $this->getImageTag($style->detail_url, $style->image_url);
+        }
+
+        return $html;
+    }
+
     public function getImageTag($link, $imgUrl)
     {
         return "<a class=\"ts card\" href=\"{$link}\" target=\"_blank\"><div class=\"image\"><img src=\"{$imgUrl}\"></div></a>";

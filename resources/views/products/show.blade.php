@@ -103,12 +103,13 @@
 </div>
 @endif
 
-@if (count($styleDictionaries) > 0)
+@if (count($styles) > 0 || count($styleDictionaries) > 0)
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
     <div class="ts narrow container">
         <div class="ts large dividing header">精選穿搭</div>
         <br>
         <div class="ts doubling four flatted cards">
+            {!! $productPresenter->getStyles($styles) !!}
             {!! $productPresenter->getStyleDictionaries($styleDictionaries) !!}
         </div>
     </div>

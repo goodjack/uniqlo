@@ -7,6 +7,7 @@ use App\Product;
 use App\ProductHistory;
 use App\MultiBuyHistory;
 use App\StyleDictionary;
+use App\Style;
 use Cache;
 use Exception;
 use Yish\Generators\Foundation\Repository\Repository;
@@ -25,12 +26,18 @@ class ProductRepository extends Repository
 
     protected $product;
     protected $styleDictionary;
+    protected $style;
 
-    public function __construct(Product $product, ProductHistory $productHistory, StyleDictionary $styleDictionary)
-    {
+    public function __construct(
+        Product $product,
+        ProductHistory $productHistory,
+        StyleDictionary $styleDictionary,
+        Style $style
+    ) {
         $this->product = $product;
         $this->productHistory = $productHistory;
         $this->styleDictionary = $styleDictionary;
+        $this->style = $style;
     }
 
     public function saveProductsFromUniqlo($products)
@@ -114,9 +121,40 @@ class ProductRepository extends Repository
         });
     }
 
+    public function saveStyleFromUniqloStyleBook($result)
+    {
+        try {
+            $model = $this->style->firstOrNew(['id' => $result->photo->styleId]);
+            $firstItem = $result->coordinates[0]->items[0];
+
+            $model->id = $result->photo->styleId;
+            $model->dpt_id = $result->photo->dptId;
+            $model->image_path = $firstItem->image_path;
+            $model->image_url = "https://im.uniqlo.com/style/{$model->image_path}-l.jpg";
+            $model->detail_url = "http://www.uniqlo.com/tw/stylingbook/sp/style/{$model->id}";
+
+            $model->save();
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+
+        $items = collect($result->coordinates[0]->items);
+        try {
+            $products = Arr::pluck($items, 'sku_code');
+            $model->products()->syncWithoutDetaching($products);
+        } catch (Exception $e) {
+            echo 'Caught exception: ', $e->getMessage(), "\n";
+        }
+    }
+
     public function getStyleDictionaries(Product $product)
     {
         return $product->styleDictionaries;
+    }
+
+    public function getStyles(Product $product)
+    {
+        return $product->styles;
     }
 
     /**

@@ -29,4 +29,9 @@ class Product extends Model
     {
         return $this->belongsToMany('App\StyleDictionary');
     }
+
+    public function styles()
+    {
+        return $this->belongsToMany('App\Style');
+    }
 }

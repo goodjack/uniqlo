@@ -34,6 +34,11 @@ class ProductService extends Service
         return $this->productRepository->getStyleDictionaries($product);
     }
 
+    public function getStyles(Product $product)
+    {
+        return $this->productRepository->getStyles($product);
+    }
+
     public function getStock($productID)
     {
         $client = new Client();
@@ -164,6 +169,74 @@ class ProductService extends Service
 
             $detail = json_decode($response->getBody());
             $this->productRepository->saveStyleDictionaryFromUniqlo($detail, $imgDir);
+
+            sleep(random_int(1, 3));
+        });
+    }
+
+    public function fetchAllStyles()
+    {
+        $dptIds = collect(['men', 'women', 'kids', 'baby']);
+
+        $dptIds->each(function ($dptId) {
+            return $this->fetchStylesByDptId($dptId);
+        });
+    }
+
+    private function fetchStylesByDptId($dptId)
+    {
+        $client = new Client();
+        $limit = 50;
+        $offset = 0;
+        $styleCount = 0;
+
+        do {
+            $response = $client->request(
+                'GET',
+                env('UQ_API_STYLING_BOOK_LIST'),
+                [
+                    'query' => [
+                        'dptId' => $dptId,
+                        'lang' => 'zh',
+                        'limit' => $limit,
+                        'locale' => 'tw',
+                        'offset' => $offset,
+                    ],
+                ]
+            );
+
+            $responseBody = json_decode($response->getBody());
+
+            $styles = $responseBody->result->styles;
+            $this->fetchStyleDetails($styles);
+
+            $styleCount = $responseBody->result->styleCount;
+
+            $offset += $limit;
+        } while ($styleCount >= $offset);
+    }
+
+    private function fetchStyleDetails($styles)
+    {
+        $styles = collect($styles);
+        $styles->each(function ($style) {
+            $client = new Client();
+
+            $response = $client->request(
+                'GET',
+                env('UQ_API_STYLING_BOOK_DETAIL'),
+                [
+                    'query' => [
+                        'lang' => 'zh',
+                        'limit' => 4,
+                        'locale' => 'tw',
+                        'styleId' => $style->styleId,
+                    ],
+                ]
+            );
+
+            $result = json_decode($response->getBody())->result;
+            $this->productRepository->saveStyleFromUniqloStyleBook($result);
 
             sleep(random_int(1, 3));
         });
