@@ -86,7 +86,8 @@ class ProductPresenter
     {
         $html = '';
         foreach ($styleDictionaries as $styleDictionary) {
-            $html .= $this->getImageTag($styleDictionary->detail_url, $styleDictionary->image_url);
+            $detailUrl = "https://www.uniqlo.com/tw/styledictionary/api/data/0/{$styleDictionary->fnm}.jpg";
+            $html .= $this->getImageTag($detailUrl, $styleDictionary->image_url);
         }
 
         return $html;
