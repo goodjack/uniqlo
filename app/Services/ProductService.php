@@ -100,7 +100,7 @@ class ProductService extends Service
             $this->productRepository->saveProductsFromUniqlo($products->records);
 
             $total = $products->total;
-            sleep(random_int(1, 5));
+            sleep(1);
         } while ($total >= $page++ * $limit);
     }
 
@@ -170,7 +170,7 @@ class ProductService extends Service
             $detail = json_decode($response->getBody());
             $this->productRepository->saveStyleDictionaryFromUniqlo($detail, $imgDir);
 
-            sleep(random_int(1, 3));
+            sleep(1);
         });
     }
 
@@ -249,7 +249,7 @@ class ProductService extends Service
             $result = json_decode($response->getBody())->result;
             $this->productRepository->saveStyleFromUniqloStyleBook($result);
 
-            sleep(random_int(1, 3));
+            sleep(1);
         });
     }
 
