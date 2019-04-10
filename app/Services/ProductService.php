@@ -176,7 +176,18 @@ class ProductService extends Service
 
     public function fetchAllStyles()
     {
-        $dptIds = collect(['men', 'women', 'kids', 'baby']);
+        $dptIds = collect([
+            'men',
+            'women',
+            'kids',
+            'baby',
+            'UserMen',
+            'UserWomen',
+            'UserKids',
+            'UserBaby',
+            'ModelMen',
+            'ModelWomen',
+        ]);
 
         $dptIds->each(function ($dptId) {
             return $this->fetchStylesByDptId($dptId);
