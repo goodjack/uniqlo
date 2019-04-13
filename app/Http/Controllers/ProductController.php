@@ -172,4 +172,16 @@ class ProductController extends Controller
     {
         return redirect()->action('ProductController@show', ['product' => $request->id]);
     }
+
+    public function getProductForApi(Product $product)
+    {
+        return response()->json($product->only([
+            'id',
+            'name',
+            'main_image_url',
+            'price',
+            'min_price',
+            'max_price',
+        ]));
+    }
 }
