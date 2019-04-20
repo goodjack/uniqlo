@@ -53,8 +53,14 @@ class ProductController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show(Product $product)
+    public function show($value)
     {
+        $product = \App\Product::find($value);
+
+        if (! $product) {
+            redirect()->route('search', ['query' => $value])->send();
+        }
+
         $styleDictionaries = $this->productService->getStyleDictionaries($product);
         $styles = $this->productService->getStyles($product);
 
