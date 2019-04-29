@@ -10,14 +10,14 @@
     </div>
     <div class="center aligned extra content">
         @if ($product->max_price > $product->price)
-        <small>NT${{ $product->max_price }} ⇢</small>
-        <strong>NT${{ $product->price }}</strong>
+        <small>${{ $product->max_price }} ⇢</small>
+        <strong>${{ $product->price }}</strong>
         @else
-        NT${{ $product->price }}
+        ${{ $product->price }}
         @endif
 
         @if ($product->price > $product->min_price)
-        <span style="color: #8BB96E;">⇢ NT${{ $product->min_price }}</span>
+        <span style="color: #8BB96E;">⇢ ${{ $product->min_price }}</span>
         @endif
 
         @if ($product->limit_sales_end_msg)
