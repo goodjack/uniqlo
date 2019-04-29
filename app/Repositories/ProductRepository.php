@@ -211,7 +211,7 @@ class ProductRepository extends Repository
 
     public function getProductsByIds($productIds)
     {
-        return $products = $this->product->whereIn('id', $productIds)->get();
+        return $this->product->whereIn('id', $productIds)->get();
     }
 
     /**

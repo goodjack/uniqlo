@@ -91,12 +91,23 @@
     </div>
 </div>
 
+@if (count($suggestProducts) > 0)
+<div class="ts very padded horizontally fitted attached fluid tertiary segment">
+    <div class="ts narrow container">
+        <div class="ts large dividing header">你可能也喜歡</div>
+        <div class="ts segmented selection items">
+            @each('products.item', $suggestProducts, 'product')
+        </div>
+    </div>
+</div>
+@endif
+
 @if (count($relatedProducts) > 0)
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
     <div class="ts narrow container">
         <div class="ts large dividing header">延伸商品</div>
         <br>
-        <div class="ts doubling link cards four">
+        <div class="ts doubling link cards six">
             @each('products.card', $relatedProducts, 'product')
         </div>
     </div>

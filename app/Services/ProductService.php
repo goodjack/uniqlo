@@ -6,6 +6,7 @@ use App\Foundations\DivideProducts;
 use App\Product;
 use App\Repositories\ProductRepository;
 use App\Repositories\ProductHistoryRepository;
+use App\Repositories\StyleRepository;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
@@ -22,11 +23,16 @@ class ProductService extends Service
     protected $repository;
     protected $productRepository;
     protected $productHistoryRepository;
+    protected $styleRepository;
 
-    public function __construct(ProductRepository $productRepository, ProductHistoryRepository $productHistoryRepository)
-    {
+    public function __construct(
+        ProductRepository $productRepository,
+        ProductHistoryRepository $productHistoryRepository,
+        StyleRepository $styleRepository
+    ) {
         $this->productRepository = $productRepository;
         $this->productHistoryRepository = $productHistoryRepository;
+        $this->styleRepository = $styleRepository;
     }
 
     public function getStyleDictionaries(Product $product)
@@ -37,6 +43,21 @@ class ProductService extends Service
     public function getStyles(Product $product)
     {
         return $this->productRepository->getStyles($product);
+    }
+
+    public function getSuggestProducts($selfProductId, $styles, $havingProducts = 3)
+    {
+        $productIds = [];
+
+        while (count($productIds) <= 0 && $havingProducts >= 0) {
+            $productIds = $this->styleRepository->getSuggestProductIds($styles, $havingProducts--);
+
+            $productIds = $productIds->reject(function ($productId) use ($selfProductId) {
+                return $productId === $selfProductId;
+            });
+        }
+
+        return $this->productRepository->getProductsByIds($productIds);
     }
 
     public function getStock($productID)

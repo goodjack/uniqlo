@@ -63,6 +63,7 @@ class ProductController extends Controller
 
         $styleDictionaries = $this->productService->getStyleDictionaries($product);
         $styles = $this->productService->getStyles($product);
+        $suggestProducts = $this->productService->getSuggestProducts($product->id, $styles);
 
         $multiBuysRaw = $product->multiBuys()->select('multi_buy', 'created_at')->get();
         $multiBuys = $multiBuysRaw->map(function ($multiBuy) {
@@ -89,6 +90,7 @@ class ProductController extends Controller
         return view('products.show', [
             'product' => $product,
             'productHistories' => $productHistories,
+            'suggestProducts' => $suggestProducts,
             'styles' => $styles,
             'styleDictionaries' => $styleDictionaries,
             'relatedProducts' => $this->productService->getRelatedProducts($product),
