@@ -58,7 +58,7 @@ class ProductController extends Controller
         $product = \App\Product::find($value);
 
         if (! $product) {
-            redirect()->route('search', ['query' => $value])->send();
+            return redirect()->route('search', ['query' => $value])->send();
         }
 
         $styleDictionaries = $this->productService->getStyleDictionaries($product);
