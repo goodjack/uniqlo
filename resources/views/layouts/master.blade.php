@@ -13,7 +13,7 @@
 
         <!-- Tocas UI：CSS 與元件 -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/2.3.3/tocas.css" integrity="sha256-QKCF3aMJvlWKdpmS+c89QwyQdOjreJwF8Sohw+G4C+0=" crossorigin="anonymous" />
-        <style type="text/css">
+        <style>
             body {
                 padding: 60px 0 0 0;
             }
