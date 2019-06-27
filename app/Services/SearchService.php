@@ -2,33 +2,35 @@
 
 namespace App\Services;
 
-use App\Foundations\DivideProducts;
 use App\Product;
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
+use App\Foundations\DivideProducts;
 use Yish\Generators\Foundation\Service\Service;
-
-use function Functional\map;
 
 class SearchService extends Service
 {
     use divideProducts;
 
+    protected $client;
+
+    public function __construct(Client $client)
+    {
+        $this->client = $client;
+    }
+
     public function getSearchResults($query)
     {
-        $client = new Client();
-
-        $response = $client->request(
+        $response = $this->client->request(
             'GET',
-            env('UQ_API_SEARCH'),
+            config('uniqlo.api.search'),
             [
                 'query' => [
                     'limit' => '10',
                     'order' => 'asc',
                     'page' => '1',
                     'q' => $query,
-                    'sort' => 'flagSortWeightage'
-                ]
+                    'sort' => 'flagSortWeightage',
+                ],
             ]
         );
 
@@ -37,11 +39,13 @@ class SearchService extends Service
 
     public function getProducts($searchResults)
     {
-        $productIDs = map($searchResults->records, function ($record) {
+        $records = collect($searchResults->records);
+
+        $productIds = $records->map(function ($record) {
             return $record->id;
         });
 
-        $products = Product::find($productIDs);
+        $products = Product::find($productIds);
 
         return $this->divideProducts($products);
     }
