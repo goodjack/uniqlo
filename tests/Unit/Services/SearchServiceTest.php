@@ -37,10 +37,11 @@ class SearchServiceTest extends TestCase
         );
     }
 
-    public function test_getProducts()
+    /**
+     * @dataProvider searchResultsProvider
+     */
+    public function test_getProducts($searchResults)
     {
-        $fakeSearchResults = $this->getFakeSearchResults();
-
         factory(Product::class)->create([
             'id' => 409325,
         ]);
@@ -52,7 +53,7 @@ class SearchServiceTest extends TestCase
         factory(Product::class, 10)->create();
 
         $service = app(SearchService::class);
-        $products = $service->getProducts($fakeSearchResults);
+        $products = $service->getProducts($searchResults);
 
         $expected = $this->divideProducts(
             Product::where('id', 409325)
@@ -63,10 +64,15 @@ class SearchServiceTest extends TestCase
         $this->assertEquals($expected, $products);
     }
 
-    private function getFakeSearchResults()
+    public function searchResultsProvider()
     {
-        $responseContent = File::get(base_path('tests/stubs/search-response.json'));
+        $this->refreshApplication();
 
-        return json_decode($responseContent);
+        $responseContent = File::get(base_path('tests/stubs/search-response.json'));
+        $searchResults = json_decode($responseContent);
+
+        return [
+            [$searchResults],
+        ];
     }
 }
