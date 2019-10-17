@@ -68,6 +68,9 @@ class ProductService extends Service
             'GET',
             env('UQ_API_STATUS'),
             [
+                'headers' => [
+                    'User-Agent' => env('USER_AGENT_MOBILE')
+                ],
                 'query' => [
                     'client_id' => 'uqsp-tw',
                     'sku_code' => $productID,
@@ -135,6 +138,9 @@ class ProductService extends Service
                 'GET',
                 env('UQ_API_PRODUCTS_FOR_MULTI_BUY'),
                 [
+                    'headers' => [
+                        'User-Agent' => env('USER_AGENT_MOBILE')
+                    ],
                     'query' => [
                         'format' => 'json',
                         'product_cd' => $id,
@@ -160,6 +166,9 @@ class ProductService extends Service
             'GET',
             env('UQ_API_STYLE_DICTIONARY_LIST'),
             [
+                'headers' => [
+                    'User-Agent' => env('USER_AGENT_MOBILE')
+                ],
                 'query' => [
                     'date' => Carbon::today(),
                     'at' => 'include_uq_plugin',
@@ -179,6 +188,9 @@ class ProductService extends Service
                 'GET',
                 env('UQ_API_STYLE_DICTIONARY_DETAIL'),
                 [
+                    'headers' => [
+                        'User-Agent' => env('USER_AGENT_MOBILE')
+                    ],
                     'query' => [
                         'date' => Carbon::today()->toDateString(),
                         'at' => 'include_uq_plugin',
@@ -227,6 +239,9 @@ class ProductService extends Service
                 'GET',
                 env('UQ_API_STYLING_BOOK_LIST'),
                 [
+                    'headers' => [
+                        'User-Agent' => env('USER_AGENT_MOBILE')
+                    ],
                     'query' => [
                         'dptId' => $dptId,
                         'lang' => 'zh',
@@ -258,6 +273,9 @@ class ProductService extends Service
                 'GET',
                 env('UQ_API_STYLING_BOOK_DETAIL'),
                 [
+                    'headers' => [
+                        'User-Agent' => env('USER_AGENT_MOBILE')
+                    ],
                     'query' => [
                         'lang' => 'zh',
                         'limit' => 4,
