@@ -131,7 +131,7 @@ class ProductPresenter
      */
     public function getProductUrl($product)
     {
-        return action('ProductController@show', ['id' => $product->id]);
+        return action('ProductController@show', ['product' => $product->id]);
     }
 
     public function countProducts($products)
