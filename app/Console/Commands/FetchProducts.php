@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\ProductService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class FetchProducts extends Command
 {
@@ -42,6 +43,8 @@ class FetchProducts extends Command
      */
     public function handle()
     {
+        Log::debug('FetchProducts start');
+
         $this->productService->fetchAllProducts();
         $this->productService->setStockoutProductTags();
         $this->call('price:set', [
@@ -50,5 +53,7 @@ class FetchProducts extends Command
         $this->productService->fetchMultiBuyProducts();
         $this->call('multi-buy:set');
         $this->call('product:cache');
+
+        Log::debug('FetchProducts end');
     }
 }

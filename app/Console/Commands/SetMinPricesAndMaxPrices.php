@@ -2,8 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Services\ProductService;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class SetMinPricesAndMaxPrices extends Command
 {
@@ -41,7 +42,11 @@ class SetMinPricesAndMaxPrices extends Command
      */
     public function handle()
     {
+        Log::debug('SetMinPricesAndMaxPrices start');
+
         $today = $this->option('today');
         $this->productService->setMinPricesAndMaxPrices($today);
+
+        Log::debug('SetMinPricesAndMaxPrices end');
     }
 }

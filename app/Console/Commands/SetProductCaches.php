@@ -2,8 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Repositories\ProductRepository;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class SetProductCaches extends Command
 {
@@ -40,9 +41,13 @@ class SetProductCaches extends Command
      */
     public function handle()
     {
+        Log::debug('SetProductCaches start');
+
         $this->productRepository->setLimitedOfferProductsCache();
         $this->productRepository->setMultiBuyProductsCache();
         $this->productRepository->setSaleProductsCache();
         $this->productRepository->setStockoutProductsCache();
+
+        Log::debug('SetProductCaches end');
     }
 }

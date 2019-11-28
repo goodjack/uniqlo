@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\CategoryService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class FetchCategories extends Command
 {
@@ -42,6 +43,10 @@ class FetchCategories extends Command
      */
     public function handle()
     {
+        Log::debug('FetchCategories start');
+
         $this->categoryService->fetchAllCategories();
+
+        Log::debug('FetchCategories end');
     }
 }

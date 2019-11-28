@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\ProductService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class FetchStyleDictionaries extends Command
 {
@@ -40,6 +41,10 @@ class FetchStyleDictionaries extends Command
      */
     public function handle()
     {
+        Log::debug('FetchStyleDictionaries start');
+
         $this->productService->fetchAllStyleDictionaries();
+
+        Log::debug('FetchStyleDictionaries end');
     }
 }

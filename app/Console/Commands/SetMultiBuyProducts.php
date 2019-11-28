@@ -2,8 +2,9 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Repositories\ProductRepository;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class SetMultiBuyProducts extends Command
 {
@@ -40,6 +41,10 @@ class SetMultiBuyProducts extends Command
      */
     public function handle()
     {
+        Log::debug('SetMultiBuyProducts start');
+
         $this->productRepository->setMultiBuyProducts();
+
+        Log::debug('SetMultiBuyProducts end');
     }
 }

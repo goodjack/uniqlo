@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\ProductService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class FetchStyles extends Command
 {
@@ -40,6 +41,10 @@ class FetchStyles extends Command
      */
     public function handle()
     {
+        Log::debug('FetchStyles start');
+
         $this->productService->fetchAllStyles();
+
+        Log::debug('FetchStyles end');
     }
 }
