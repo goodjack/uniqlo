@@ -1,2 +1,13 @@
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: DuckDuckBot
+User-agent: Applebot
+User-agent: Twitterbot
+User-agent: facebookexternalhit
+Disallow: /
+Allow: /products/
+
 User-agent: *
-Disallow:
+Disallow: /
+
+Crawl-delay: 10
