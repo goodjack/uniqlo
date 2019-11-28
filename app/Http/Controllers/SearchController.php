@@ -14,7 +14,7 @@ class SearchController extends Controller
 
     public function index(Request $request)
     {
-        return redirect()->route('search', ['query' => $request->q]);
+        return redirect()->route('products.limited-offers');
     }
 
     public function search($query)

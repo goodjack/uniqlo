@@ -12,24 +12,26 @@
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    // return view('welcome');
+    return redirect()->route('products.limited-offers');
 });
 
 Route::group(['prefix' => 'products'], function () {
-    Route::get('/stockouts', 'ProductController@stockouts');
-    Route::get('/sales', 'ProductController@sales');
-    Route::get('/limited-offers', 'ProductController@limitedOffers');
-    Route::get('/multi-buys', 'ProductController@multiBuys');
-    Route::get('/news', 'ProductController@news');
-    Route::get('/go', 'ProductController@go')->name('go');
+    Route::get('/', 'ProductController@index')->name('products.index');
+    Route::get('/stockouts', 'ProductController@stockouts')->name('products.stockouts');
+    Route::get('/sales', 'ProductController@sales')->name('products.sales');
+    Route::get('/limited-offers', 'ProductController@limitedOffers')->name('products.limited-offers');
+    Route::get('/multi-buys', 'ProductController@multiBuys')->name('products.multi-buys');
+    Route::get('/news', 'ProductController@news')->name('products.news');
+    Route::get('/go', 'ProductController@go')->name('products.go');
+    Route::get('/{product}', 'ProductController@show')->name('products.show');
 });
-Route::resource('products', 'ProductController');
 
 Route::group(['prefix' => 'search'], function () {
     Route::get('/', 'SearchController@index');
     Route::get('/{query}', 'SearchController@search')->name('search');
 });
 
-Auth::routes();
+// Auth::routes();
 
-Route::get('/home', 'HomeController@index')->name('home');
+// Route::get('/home', 'HomeController@index')->name('home');

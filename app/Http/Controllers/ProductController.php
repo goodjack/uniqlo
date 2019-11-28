@@ -23,7 +23,7 @@ class ProductController extends Controller
      */
     public function index()
     {
-        //
+        return redirect()->route('products.limited-offers');
     }
 
     /**
@@ -58,7 +58,8 @@ class ProductController extends Controller
         $product = \App\Product::find($value);
 
         if (! $product) {
-            return redirect()->route('search', ['query' => $value])->send();
+            // return redirect()->route('search', ['query' => $value])->send();
+            return abort(404);
         }
 
         $styleDictionaries = $this->productService->getStyleDictionaries($product);
