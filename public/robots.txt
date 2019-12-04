@@ -4,7 +4,12 @@ User-agent: DuckDuckBot
 User-agent: Applebot
 User-agent: Twitterbot
 User-agent: facebookexternalhit
+User-agent: LinkedInBot
+User-agent: Linespider
+User-agent: TelegramBot
+User-agent: Slackbot
 Disallow: /
+Allow: /$
 Allow: /products/
 
 User-agent: *
