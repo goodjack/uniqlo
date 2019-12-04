@@ -8,11 +8,8 @@
         <div class="ts hidden divider"></div>
         <div class="ts hidden divider"></div>
         <div class="ts hidden divider"></div>
-        <div class="ts hidden divider"></div>
         <h1 class="ts center aligned header">
-            <i class="big fitted negative square icon"></i>
-            &nbsp;
-            <i class="big fitted negative square icon"></i>
+            <i class="big fitted negative clone icon"></i>
             &nbsp;
             UQ 搜尋
         </h1>
@@ -25,8 +22,6 @@
                 <button class="ts button" type="submit">查看商品</button>
             </center>
         </form>
-        <div class="ts hidden divider"></div>
-        <div class="ts hidden divider"></div>
         <div class="ts hidden divider"></div>
         <div class="ts hidden divider"></div>
         <div class="ts hidden divider"></div>

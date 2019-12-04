@@ -13,7 +13,7 @@
 
 Route::get('/', function () {
     return view('home');
-});
+})->name('home');
 
 Route::group(['prefix' => 'products'], function () {
     Route::get('/', 'ProductController@index')->name('products.index');
