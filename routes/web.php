@@ -12,8 +12,7 @@
 */
 
 Route::get('/', function () {
-    // return view('welcome');
-    return redirect()->route('products.limited-offers');
+    return view('home');
 });
 
 Route::group(['prefix' => 'products'], function () {
