@@ -16,7 +16,7 @@
         <div class="ts hidden divider"></div>
         <div class="ts hidden divider"></div>
         <form class="ts huge form" action="{{ route('products.go') }}">
-            <input name="id" class="ts fluid input" type="number" placeholder="輸入產品編號...">
+            <input name="id" class="ts fluid input" type="number" placeholder="輸入商品編號...">
             <div class="ts hidden divider"></div>
             <center>
                 <button class="ts button" type="submit">查看商品</button>
