@@ -7,7 +7,7 @@
         <div class="mobile only stretched item">
             @include('layouts.search-bar')
         </div>
-        <div class="tablet or large device only fitted item">
+        <div class="tablet or large device only item">
             @include('layouts.search-bar')
         </div>
         <div class="tablet or large device only right menu">
