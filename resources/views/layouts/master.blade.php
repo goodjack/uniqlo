@@ -19,6 +19,8 @@
             }
         </style>
         @yield('css')
+
+        @include('layouts.facebook-pixel')
     </head>
 
     <body>
