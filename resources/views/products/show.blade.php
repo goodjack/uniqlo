@@ -1,7 +1,7 @@
 @inject('productPresenter', 'App\Presenters\ProductPresenter')
 @extends('layouts.master')
 
-@section('title', "UNIQLO {$product->name}")
+@section('title', "{$product->name}")
 
 @section('json-ld')
 <script type="application/ld+json">
@@ -9,7 +9,7 @@
   "@context": "https://schema.org/",
   "@type": "Product",
   "sku": "{{ $product->id }}",
-  "name": "UNIQLO {{ $product->name }} | UNIQLO 比價 | UQ 搜尋",
+  "name": "{{ $product->name }} | UNIQLO 比價 | UQ 搜尋",
   "description": "{{ $product->comment }}",
   "image": [
     "{{ $product->main_image_url }}"
@@ -41,13 +41,13 @@
 <link rel="canonical" href="{{ route('products.show', ['product' => $product->id]) }}" />
 <meta name="description" content="{{ $product->comment }} | UNIQLO 比價 | UQ 搜尋" />
 <meta property="og:type" content="og:product" />
-<meta property="og:title" content="UNIQLO {{ $product->name }} | UQ 搜尋" />
+<meta property="og:title" content="{{ $product->name }} | UQ 搜尋" />
 <meta property="og:url" content="{{ route('products.show', ['product' => $product->id]) }}" />
 <meta property="og:description" content="{{ $product->comment }} | UNIQLO 比價 | UQ 搜尋" />
 <meta property="og:image" content="{{ $product->main_image_url }}" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:creator" content="@littlegoodjack" />
-<meta name="twitter:title" content="UNIQLO {{ $product->name }} | UQ 搜尋" />
+<meta name="twitter:title" content="{{ $product->name }} | UQ 搜尋" />
 <meta name="twitter:description" content="{{ $product->comment }} | UNIQLO 比價 | UQ 搜尋" />
 <meta name="twitter:image" content="{{ $product->main_image_url }}" />
 @endsection
