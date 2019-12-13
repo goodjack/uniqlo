@@ -105,6 +105,7 @@ class ProductPresenter
 
     public function getImageTag($link, $imgUrl)
     {
+        // TODO: Image ALT Attributes
         return "<a class=\"ts card\" href=\"{$link}\" target=\"_blank\"><div class=\"image\"><img src=\"{$imgUrl}\"></div></a>";
     }
 
@@ -132,6 +133,15 @@ class ProductPresenter
     public function getProductUrl($product)
     {
         return action('ProductController@show', ['product' => $product->id]);
+    }
+
+    public function getProductAvailabilityForJsonLd($product)
+    {
+        if ($product->stockout) {
+            return "https://schema.org/OutOfStock";
+        }
+
+        return "https://schema.org/InStock";
     }
 
     public function countProducts($products)

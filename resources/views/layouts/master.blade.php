@@ -7,7 +7,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <meta name="theme-color" content="#ce5e57">
 
-        <title>@yield('title') - UQ 搜尋</title>
+        <title>@yield('title') | UNIQLO 比價 | UQ 搜尋</title>
+
+        @yield('json-ld')
 
         @yield('metadata')
 

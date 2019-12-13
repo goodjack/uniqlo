@@ -1,10 +1,55 @@
 @inject('productPresenter', 'App\Presenters\ProductPresenter')
 @extends('layouts.master')
 
-@section('title', $product->name)
+@section('title', "UNIQLO {$product->name}")
+
+@section('json-ld')
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "sku": "{{ $product->id }}",
+  "name": "UNIQLO {{ $product->name }} | UNIQLO 比價 | UQ 搜尋",
+  "description": "{{ $product->comment }}",
+  "image": [
+    "{{ $product->main_image_url }}"
+  ],
+  "itemCondition": "http://schema.org/NewCondition",
+  "brand": {
+    "@type": "Thing",
+    "name": "UNIQLO"
+  },
+  "offers": {
+    "@type": "AggregateOffer",
+    "lowPrice": "{{ $product->min_price }}",
+    "highPrice": "{{ $product->max_price }}",
+    "priceCurrency": "TWD",
+    "priceValidUntil": "{{ $product->updated_at->toDateString() }}",
+    "availability": "{{ $productPresenter->getProductAvailabilityForJsonLd($product) }}",
+    "itemCondition": "http://schema.org/NewCondition",
+    "url": "{{ route('products.show', ['product' => $product->id]) }}",
+    "seller": {
+      "@type": "Organization",
+      "name": "UNIQLO"
+    }
+  }
+}
+</script>
+@endsection
 
 @section('metadata')
+<link rel="canonical" href="{{ route('products.show', ['product' => $product->id]) }}" />
+<meta name="description" content="{{ $product->comment }} | UNIQLO 比價 | UQ 搜尋" />
+<meta property="og:type" content="og:product" />
+<meta property="og:title" content="UNIQLO {{ $product->name }} | UQ 搜尋" />
+<meta property="og:url" content="{{ route('products.show', ['product' => $product->id]) }}" />
+<meta property="og:description" content="{{ $product->comment }} | UNIQLO 比價 | UQ 搜尋" />
 <meta property="og:image" content="{{ $product->main_image_url }}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:creator" content="@littlegoodjack" />
+<meta name="twitter:title" content="UNIQLO {{ $product->name }} | UQ 搜尋" />
+<meta name="twitter:description" content="{{ $product->comment }} | UNIQLO 比價 | UQ 搜尋" />
+<meta name="twitter:image" content="{{ $product->main_image_url }}" />
 @endsection
 
 @section('css')
@@ -23,17 +68,17 @@
         <div class="nine wide computer nine wide tablet sixteen wide mobile column">
             <div class="ts fluid container">
                 <a class="ts centered image" href="{{ $product->main_image_url }}" target="_blank">
-                    <img class="ts centered image" src="{{ $product->main_image_url }}">
+                    <img class="ts centered image" src="{{ $product->main_image_url }}" alt="{{ $product->name }}">
                 </a>
             </div>
         </div>
         <div class="seven wide computer seven wide tablet sixteen wide mobile column">
             <div class="ts fluid very narrow container grid">
                 <div class="sixteen wide column">
-                    <h3 class="ts dividing header">
+                    <h1 class="ts dividing big header">
                         {{ $product->name }}
                         <div class="sub header">商品編號 {{ $product->id }}</div>
-                    </h3>
+                    </h1>
                 </div>
                 <div class="sixteen wide center aligned column">
                     <div class="ts very narrow container">
@@ -83,7 +128,7 @@
             <div class="ts grid">
                 <div class="six wide computer six wide tablet sixteen wide mobile right floated column">
                     <div class="ts fitted clearing flatted borderless segment">
-                        <a class="ts small basic circular fluid button" href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank">前往官網</a>
+                        <a class="ts small basic circular fluid button" href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank">前往 UNIQLO 官網</a>
                     </div>
                 </div>
             </div>
@@ -94,7 +139,7 @@
 @if (count($suggestProducts) > 0)
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
     <div class="ts narrow container">
-        <div class="ts large dividing header">你可能也喜歡</div>
+        <h2 class="ts large dividing header">你可能也喜歡</h2>
         <div class="ts segmented selection items">
             @each('products.item', $suggestProducts, 'product')
         </div>
@@ -105,7 +150,7 @@
 @if (count($relatedProducts) > 0)
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
     <div class="ts narrow container">
-        <div class="ts large dividing header">延伸商品</div>
+        <h2 class="ts large dividing header">延伸商品</h2>
         <br>
         <div class="ts doubling link cards six">
             @each('products.card', $relatedProducts, 'product')
@@ -117,7 +162,7 @@
 @if (count($styles) > 0 || count($styleDictionaries) > 0)
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
     <div class="ts narrow container">
-        <div class="ts large dividing header">精選穿搭</div>
+        <h2 class="ts large dividing header">精選穿搭</h2>
         <br>
         <div class="ts doubling four flatted cards">
             {!! $productPresenter->getStyles($styles) !!}
@@ -130,7 +175,7 @@
 @if (! empty($product->colors) || ! empty($product->sub_images))
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
     <div class="ts narrow container">
-        <div class="ts large dividing header">商品實照</div>
+        <h2 class="ts large dividing header">商品實照</h2>
         <br>
         <div class="ts doubling four flatted cards">
             {!! $productPresenter->getSubImages($product) !!}
