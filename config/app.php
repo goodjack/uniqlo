@@ -230,5 +230,6 @@ return [
 
     'force_https' => env('APP_FORCE_HTTPS', true),
     'pixel_tracking_id' => env('PIXEL_TRACKING_ID'),
+    'sitemap_name' => env('SITEMAP_NAME'),
 
 ];

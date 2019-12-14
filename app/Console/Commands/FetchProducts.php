@@ -53,6 +53,7 @@ class FetchProducts extends Command
         $this->productService->fetchMultiBuyProducts();
         $this->call('multi-buy:set');
         $this->call('product:cache');
+        $this->call('sitemap:generate');
 
         Log::debug('FetchProducts end');
     }

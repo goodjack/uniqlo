@@ -425,4 +425,11 @@ class ProductRepository extends Repository
             ->orderBy('id', 'desc')
             ->get();
     }
+
+    public function getAllProductsForSitemap()
+    {
+        return $this->product
+            ->select(['id', 'updated_at'])
+            ->get();
+    }
 }

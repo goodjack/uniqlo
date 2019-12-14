@@ -15,6 +15,7 @@
         "laravel/framework": "^6.2",
         "laravel/tinker": "^1.0",
         "lstrojny/functional-php": "^1.9",
+        "spatie/laravel-sitemap": "^5.5",
         "symfony/psr-http-message-bridge": "^1.2",
         "yish/generators": "^3.1",
         "zendframework/zend-diactoros": "^2.1"
