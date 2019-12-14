@@ -1,5 +1,9 @@
 User-agent: Googlebot
+User-agent: Mediapartners-Google
+User-agent: Adsbot-Google
 User-agent: Bingbot
+User-agent: msnbot
+User-agent: Slurp
 User-agent: DuckDuckBot
 User-agent: Applebot
 User-agent: Twitterbot
@@ -11,6 +15,7 @@ User-agent: Slackbot
 Disallow: /
 Allow: /$
 Allow: /products/
+Allow: /sitemap
 
 User-agent: *
 Disallow: /
