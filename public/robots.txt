@@ -16,6 +16,7 @@ Disallow: /
 Allow: /$
 Allow: /products/
 Allow: /sitemap
+Allow: /favicon.ico
 
 User-agent: *
 Disallow: /

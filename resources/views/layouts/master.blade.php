@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant-TW">
     <head>
         @include('layouts.google-analytics')
 
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <meta name="theme-color" content="#ce5e57">
+        <link rel="shortcut icon" href="/favicon.ico">
 
         <title>@yield('title') | UNIQLO 比價 | UQ 搜尋</title>
 
