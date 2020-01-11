@@ -58,7 +58,7 @@ class ProductPresenter
         $link = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$colorCode}_{$id}.jpg";
         $imgUrl = $link;
 
-        $html = "<a class=\"ts card\" href=\"{$link}\" target=\"_blank\"><div class=\"image\"><img src=\"{$imgUrl}\"></div><div class=\"overlapped content color-header\">{$colorHeader}</div></a>";
+        $html = "<a class=\"ts card\" href=\"{$link}\" data-lightbox=\"image\" data-title=\"{$colorHeader}\"><div class=\"image\"><img src=\"{$imgUrl}\" alt=\"{$colorHeader}\"></div><div class=\"overlapped content color-header\">{$colorHeader}</div></a>";
 
         return $html;
     }
@@ -106,7 +106,7 @@ class ProductPresenter
     public function getImageTag($link, $imgUrl)
     {
         // TODO: Image ALT Attributes
-        return "<a class=\"ts card\" href=\"{$link}\" target=\"_blank\"><div class=\"image\"><img src=\"{$imgUrl}\"></div></a>";
+        return "<a class=\"ts card\" href=\"{$link}\" data-lightbox=\"image\"><div class=\"image\"><img src=\"{$imgUrl}\"></div></a>";
     }
 
     public function getPriceChartLabels($productHistories)

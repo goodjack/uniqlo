@@ -60,6 +60,9 @@
         bottom: 0;
     }
 </style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.1/css/lightbox.min.css"
+    integrity="sha256-tBxlolRHP9uMsEFKVk+hk//ekOlXOixLKvye5W2WR5c=" crossorigin="anonymous" />
 @endsection
 
 @section('content')
@@ -67,7 +70,7 @@
     <div class="ts narrow container relaxed grid">
         <div class="nine wide computer nine wide tablet sixteen wide mobile column">
             <div class="ts fluid container">
-                <a class="ts centered image" href="{{ $product->main_image_url }}" target="_blank">
+                <a class="ts centered image" href="{{ $product->main_image_url }}" data-lightbox="image" data-title="{{ $product->name }}">
                     <img class="ts centered image" src="{{ $product->main_image_url }}" alt="{{ $product->name }}">
                 </a>
             </div>
@@ -188,6 +191,7 @@
 
 @section('javascript')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js" integrity="sha256-Uv9BNBucvCPipKQ2NS9wYpJmi8DTOEfTA/nH2aoJALw=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.1/js/lightbox-plus-jquery.min.js" integrity="sha256-j4lH4GKeyuTMQAFtmqhxfZbGxx+3WS6n2EJ/NTB21II=" crossorigin="anonymous"></script>
 
 <script>
     let ctx = document.getElementById("priceChart");
@@ -260,5 +264,14 @@
     }
 
     priceChart.update();
+
+    lightbox.option({
+        'alwaysShowNavOnTouchDevices': true,
+        'albumLabel': '相片 %1 / %2',
+        'disableScrolling': true,
+        'fadeDuration': 150,
+        'resizeDuration': 150,
+        'imageFadeDuration': 0,
+    });
 </script>
 @endsection
