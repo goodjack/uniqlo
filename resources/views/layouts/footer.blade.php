@@ -11,7 +11,7 @@
         <h4 class="ts inverted header">
             <i class="clone icon"></i>
             <div class="content">
-                UQ 搜尋
+                UQ 搜尋 - UNIQLO 價格查詢比價網
             </div>
         </h4>
         <p>

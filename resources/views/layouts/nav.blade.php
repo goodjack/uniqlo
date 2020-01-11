@@ -4,10 +4,7 @@
         <a href="{{ route('home') }}" class="header item">
             <i class="large negative clone icon"></i>UQ 搜尋
         </a>
-        <div class="mobile only stretched item">
-            @include('layouts.search-bar')
-        </div>
-        <div class="tablet or large device only item">
+        <div class="stretched item">
             @include('layouts.search-bar')
         </div>
         <div class="tablet or large device only right menu">

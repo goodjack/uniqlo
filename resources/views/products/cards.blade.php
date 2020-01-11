@@ -7,10 +7,10 @@
             <a class="item" data-tab="Baby">BABY</a>
         </div>
         <div data-tab="Men" class="ts active bottom attached tab segment">
-            <div class="ts large header">
+            <h2 class="ts large header">
                 男裝
                 <div class="inline sub header">共 {{ count($products['men']) }} 件</div>
-            </div>
+            </h2>
             @if (count($products['men']) > 0)
             <div class="ts doubling link cards four">
                 @each('products.card', $products['men'], 'product')
@@ -20,10 +20,10 @@
             @endif
         </div>
         <div data-tab="Women" class="ts bottom attached tab segment">
-            <div class="ts large header">
+            <h2 class="ts large header">
                 女裝
                 <div class="inline sub header">共 {{ count($products['women']) }} 件</div>
-            </div>
+            </h2>
             @if (count($products['women']) > 0)
             <div class="ts doubling link cards four">
                 @each('products.card', $products['women'], 'product')
@@ -33,10 +33,10 @@
             @endif
         </div>
         <div data-tab="Kids" class="ts bottom attached tab segment">
-            <div class="ts large header">
+            <h2 class="ts large header">
                 童裝
                 <div class="inline sub header">共 {{ count($products['kids']) }} 件</div>
-            </div>
+            </h2>
             @if (count($products['kids']) > 0)
             <div class="ts doubling link cards four">
                 @each('products.card', $products['kids'], 'product')
@@ -46,10 +46,10 @@
             @endif
         </div>
         <div data-tab="Baby" class="ts bottom attached tab segment">
-            <div class="ts large header">
+            <h2 class="ts large header">
                 嬰幼兒
                 <div class="inline sub header">共 {{ count($products['baby']) }} 件</div>
-            </div>
+            </h2>
             @if (count($products['baby']) > 0)
             <div class="ts doubling link cards four">
                 @each('products.card', $products['baby'], 'product')
