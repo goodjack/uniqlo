@@ -55,10 +55,11 @@ class ProductPresenter
 
     public function getItemImageTag($id, $colorCode, $colorHeader)
     {
-        $link = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$colorCode}_{$id}.jpg";
-        $imgUrl = $link;
+        $imgUrl = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$colorCode}_{$id}_popup.jpg";
+        $largeImgUrl = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$colorCode}_{$id}.jpg";
 
-        $html = "<a class=\"ts card\" href=\"{$link}\" data-lightbox=\"image\" data-title=\"{$colorHeader}\"><div class=\"image\"><img src=\"{$imgUrl}\" alt=\"{$colorHeader}\"></div><div class=\"overlapped content color-header\">{$colorHeader}</div></a>";
+        // TODO: 整合至 getImageTag
+        $html = "<a class=\"ts card\" href=\"{$largeImgUrl}\" data-lightbox=\"image\" data-title=\"{$colorHeader}\"><div class=\"image\"><img src=\"{$imgUrl}\" alt=\"{$colorHeader}\"></div><div class=\"overlapped content color-header\">{$colorHeader}</div></a>";
 
         return $html;
     }
@@ -76,18 +77,19 @@ class ProductPresenter
 
     public function getSubImageTag($id, $subImage)
     {
-        $link = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImage}.jpg";
-        $imgUrl = $link;
+        $imgUrl = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImage}_popup.jpg";
+        $largeImgUrl = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImage}.jpg";
+        $link = $largeImgUrl;
 
-        return $this->getImageTag($link, $imgUrl);
+        return $this->getImageTag($link, $imgUrl, $largeImgUrl);
     }
 
     public function getStyleDictionaries($styleDictionaries)
     {
         $html = '';
         foreach ($styleDictionaries as $styleDictionary) {
-            $detailUrl = "https://www.uniqlo.com/tw/styledictionary/api/data/0/{$styleDictionary->fnm}.jpg";
-            $html .= $this->getImageTag($detailUrl, $styleDictionary->image_url);
+            $largeImgUrl = "https://www.uniqlo.com/tw/styledictionary/api/data/0/{$styleDictionary->fnm}-xxl.jpg";
+            $html .= $this->getImageTag($largeImgUrl, $styleDictionary->image_url, $largeImgUrl);
         }
 
         return $html;
@@ -97,16 +99,24 @@ class ProductPresenter
     {
         $html = '';
         foreach ($styles as $style) {
-            $html .= $this->getImageTag($style->detail_url, $style->image_url);
+            // TODO: 大圖存 DB
+            $largeImgUrl = "https://im.uniqlo.com/style/{$style->image_path}-xxl.jpg";
+            $html .= $this->getImageTag($style->detail_url, $style->image_url, $largeImgUrl);
         }
 
         return $html;
     }
 
-    public function getImageTag($link, $imgUrl)
+    public function getImageTag($link, $imgUrl, $largeImgUrl = null)
     {
         // TODO: Image ALT Attributes
-        return "<a class=\"ts card\" href=\"{$link}\" data-lightbox=\"image\"><div class=\"image\"><img src=\"{$imgUrl}\"></div></a>";
+        // TODO: 出處說明文字
+
+        if (empty($largeImgUrl)) {
+            $largeImgUrl = $imgUrl;
+        }
+
+        return "<a class=\"ts card\" href=\"{$largeImgUrl}\" data-lightbox=\"image\" data-title=\"<a href='{$link}' target='_blank'>出處</a>\"><div class=\"image\"><img src=\"{$imgUrl}\"></div></a>";
     }
 
     public function getPriceChartLabels($productHistories)
