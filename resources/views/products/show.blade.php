@@ -10,7 +10,7 @@
   "@type": "Product",
   "sku": "{{ $product->id }}",
   "name": "{{ $product->name }} | UNIQLO 比價 | UQ 搜尋",
-  "description": "{{ json_encode($product->comment) }}",
+  "description": {!! json_encode($product->comment) !!},
   "image": [
     "{{ $product->main_image_url }}"
   ],
