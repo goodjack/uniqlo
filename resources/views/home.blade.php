@@ -15,7 +15,7 @@
         </h1>
         <div class="ts hidden divider"></div>
         <div class="ts hidden divider"></div>
-        <form class="ts huge form" action="{{ route('products.go') }}">
+        <form class="ts big form" action="{{ route('products.go') }}">
             <input name="id" class="ts fluid input" type="number" placeholder="輸入 UNIQLO 商品編號比價...">
             <div class="ts hidden divider"></div>
             <center>
