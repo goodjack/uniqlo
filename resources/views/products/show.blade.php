@@ -129,9 +129,18 @@
                 </details>
             </div>
             <div class="ts grid">
-                <div class="six wide computer six wide tablet sixteen wide mobile right floated column">
-                    <div class="ts fitted clearing flatted borderless segment">
-                        <a class="ts small basic circular fluid button" href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank">前往 UNIQLO 官網</a>
+                <div class="sixteen wide column">
+                    <a class="ts small inverted fluid button" href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank" rel="noopener" aria-label="UNIQLO">前往 UNIQLO 官網</a>
+                </div>
+                <div class="sixteen wide column">
+                    <div class="ts fluid separated stackable buttons">
+                        @php
+                            $shareText = urlencode($product->name . " | UNIQLO 比價 | UQ 搜尋");
+                            $shareUrl = urlencode(url()->current() . "?utm_source=uqs&utm_medium=share&utm_campaign=share");
+                        @endphp
+                        <a class="ts mini basic fluid button" href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl }}&quote={{ $shareText }}" target="_blank" rel="noopener" aria-label="Facebook"><i class="facebook icon"></i>Facebook 分享</a>
+                        <a class="ts mini basic fluid button" href="https://twitter.com/intent/tweet/?text={{ $shareText }}&url={{ $shareUrl }}" target="_blank" rel="noopener" aria-label="Twitter"><i class="twitter icon"></i>Twitter 分享</a>
+                        <a class="ts mini basic fluid button" href="https://social-plugins.line.me/lineit/share?text={{ $shareText }}&url={{ $shareUrl }}" target="_blank" rel="noopener" aria-label="Line"><i class="chat icon"></i>Line 分享</a>
                     </div>
                 </div>
             </div>
