@@ -9,7 +9,7 @@
 
 @section('content')
     <div class="ts fluid slate">
-        <i class="certificate faded icon"></i>
+        <i class="positive leaf icon"></i>
         <span class="header">{{ $productPresenter->countProducts($news) }} 件新品</span>
     </div>
     @include('products.cards', ['products' => $news])

@@ -8,7 +8,7 @@
 
 @section('content')
     <div class="ts fluid slate">
-        <i class="archive faded icon"></i>
+        <i class="archive icon"></i>
         <span class="header">可能已經沒有庫存</span>
     </div>
     @include('products.cards', ['products' => $stockouts])

@@ -9,7 +9,7 @@
 
 @section('content')
     <div class="ts fluid slate">
-        <i class="clone faded icon"></i>
+        <i class="info cubes icon"></i>
         <span class="header">{{ $productPresenter->countProducts($multiBuys) }} 件商品合購優惠中</span>
     </div>
     @include('products.cards', ['products' => $multiBuys])
