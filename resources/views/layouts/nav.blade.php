@@ -1,11 +1,13 @@
 <!-- 頂部固定選單 -->
 <div class="ts top fixed borderless small link menu">
-    <div class="ts narrow container">
+    <div class="ts container">
         <a href="{{ route('home') }}" class="header item">
             <i class="large negative clone icon"></i>UQ 搜尋
         </a>
         <div class="stretched item">
             @include('layouts.search-bar')
+        </div>
+        <div class="large device only stretched item">
         </div>
         <div class="tablet or large device only right menu">
             <a href="{{ route('home') }}" class="item">首頁</a>

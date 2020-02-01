@@ -1,5 +1,5 @@
 <div class="ts attached padded horizontally fitted fluid segment">
-    <div class="ts narrow container">
+    <div class="ts container">
         <div id="category" class="ts top attached four item tabbed menu">
             <a class="active item" data-tab="Men">MEN</a>
             <a class="item" data-tab="Women">WOMEN</a>

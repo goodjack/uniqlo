@@ -67,7 +67,7 @@
 
 @section('content')
 <div class="ts very padded horizontally fitted attached fluid segment">
-    <div class="ts narrow container relaxed grid">
+    <div class="ts container relaxed grid">
         <div class="nine wide computer nine wide tablet sixteen wide mobile column">
             <div class="ts fluid container">
                 <a class="ts centered image" href="{{ $product->main_image_url }}" data-lightbox="image" data-title="{{ $product->name }}">
@@ -141,7 +141,7 @@
 
 @if (count($suggestProducts) > 0)
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-    <div class="ts narrow container">
+    <div class="ts container">
         <h2 class="ts large dividing header">你可能也喜歡</h2>
         <div class="ts segmented selection items">
             @each('products.item', $suggestProducts, 'product')
@@ -152,7 +152,7 @@
 
 @if (count($relatedProducts) > 0)
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-    <div class="ts narrow container">
+    <div class="ts container">
         <h2 class="ts large dividing header">延伸商品</h2>
         <br>
         <div class="ts doubling link cards six">
@@ -164,7 +164,7 @@
 
 @if (count($styles) > 0 || count($styleDictionaries) > 0)
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-    <div class="ts narrow container">
+    <div class="ts container">
         <h2 class="ts large dividing header">精選穿搭</h2>
         <br>
         <div class="ts doubling four flatted cards">
@@ -177,7 +177,7 @@
 
 @if (! empty($product->colors) || ! empty($product->sub_images))
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-    <div class="ts narrow container">
+    <div class="ts container">
         <h2 class="ts large dividing header">商品實照</h2>
         <br>
         <div class="ts doubling four flatted cards">
