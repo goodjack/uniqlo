@@ -14,6 +14,13 @@
 
         @yield('metadata')
 
+        <link rel="preconnect" href="https://im.uniqlo.com">
+        <link rel="preconnect" href="https://www.uniqlo.com">
+        <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+        <link rel="dns-prefetch" href="https://im.uniqlo.com">
+        <link rel="dns-prefetch" href="https://www.uniqlo.com">
+        <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+
         <!-- Tocas UI：CSS 與元件 -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/2.3.3/tocas.css" integrity="sha256-QKCF3aMJvlWKdpmS+c89QwyQdOjreJwF8Sohw+G4C+0=" crossorigin="anonymous" />
         <style>
