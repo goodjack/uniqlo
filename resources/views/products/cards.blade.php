@@ -1,12 +1,12 @@
 <div class="ts attached padded horizontally fitted fluid segment">
     <div class="ts container">
-        <div id="category" class="ts top attached four item tabbed menu">
+        <div id="category" class="ts four item large pointing secondary menu">
             <a class="active item" data-tab="Men">MEN</a>
             <a class="item" data-tab="Women">WOMEN</a>
             <a class="item" data-tab="Kids">KIDS</a>
             <a class="item" data-tab="Baby">BABY</a>
         </div>
-        <div data-tab="Men" class="ts active bottom attached tab segment">
+        <div data-tab="Men" class="ts active basic horizontally fitted tab segment">
             <h2 class="ts large header">
                 男裝
                 <div class="inline sub header">共 {{ count($products['men']) }} 件</div>
@@ -19,7 +19,7 @@
                 @include('products.card-empty')
             @endif
         </div>
-        <div data-tab="Women" class="ts bottom attached tab segment">
+        <div data-tab="Women" class="ts basic horizontally fitted tab segment">
             <h2 class="ts large header">
                 女裝
                 <div class="inline sub header">共 {{ count($products['women']) }} 件</div>
@@ -32,7 +32,7 @@
                 @include('products.card-empty')
             @endif
         </div>
-        <div data-tab="Kids" class="ts bottom attached tab segment">
+        <div data-tab="Kids" class="ts basic horizontally fitted tab segment">
             <h2 class="ts large header">
                 童裝
                 <div class="inline sub header">共 {{ count($products['kids']) }} 件</div>
@@ -45,7 +45,7 @@
                 @include('products.card-empty')
             @endif
         </div>
-        <div data-tab="Baby" class="ts bottom attached tab segment">
+        <div data-tab="Baby" class="ts basic horizontally fitted tab segment">
             <h2 class="ts large header">
                 嬰幼兒
                 <div class="inline sub header">共 {{ count($products['baby']) }} 件</div>
@@ -64,6 +64,6 @@
 @section('javascript')
     @parent
     <script>
-        ts('#category.tabbed.menu .item').tab();
+        ts('#category .item').tab();
     </script>
 @endsection
