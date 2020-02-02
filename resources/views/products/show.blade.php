@@ -71,7 +71,7 @@
         <div class="nine wide computer nine wide tablet sixteen wide mobile column">
             <div class="ts fluid container">
                 <a class="ts centered image" href="{{ $product->main_image_url }}" data-lightbox="image" data-title="{{ $product->name }}">
-                    <img class="ts centered image" src="{{ $product->main_image_url }}" alt="{{ $product->name }}">
+                    <img class="ts centered image lazyload" data-src="{{ $product->main_image_url }}" alt="{{ $product->name }}" loading="lazy">
                 </a>
             </div>
         </div>

@@ -2,7 +2,7 @@
 
 <a class="ts flatted card" href="{{ $productPresenter->getProductUrl($product) }}">
     <div class="image">
-        <img src="{{ $product->main_image_url }}">
+        <img data-src="{{ $product->main_image_url }}" class="lazyload" loading="lazy">
     </div>
     <div class="content">
         <div class="smaller header">{{ $product->name }}</div>

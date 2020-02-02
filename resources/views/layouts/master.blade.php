@@ -40,6 +40,7 @@
 
         <!-- Tocas JS：模塊與 JavaScript 函式 -->
         <script src="{{ asset('js/tocas.js') }}"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.2.0/lazysizes.min.js" integrity="sha256-h2tMEmhemR2IN4wbbdNjj9LaDIjzwk2hralQwfJmBOE=" crossorigin="anonymous" async></script>
 
         @yield('javascript')
     </body>

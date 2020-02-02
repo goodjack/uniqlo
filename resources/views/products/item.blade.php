@@ -2,7 +2,7 @@
 
 <a class="item" href="{{ $productPresenter->getProductUrl($product) }}">
     <div class="ts tiny image">
-        <img src="{{ $product->main_image_url }}">
+        <img data-src="{{ $product->main_image_url }}" class="lazyload" loading="lazy">
     </div>
     <div class="middle aligned content">
         <div class="header">

@@ -59,7 +59,7 @@ class ProductPresenter
         $largeImgUrl = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$colorCode}_{$id}.jpg";
 
         // TODO: 整合至 getImageTag
-        $html = "<a class=\"ts card\" href=\"{$largeImgUrl}\" data-lightbox=\"image\" data-title=\"{$colorHeader}\"><div class=\"image\"><img src=\"{$imgUrl}\" alt=\"{$colorHeader}\"></div><div class=\"overlapped content color-header\">{$colorHeader}</div></a>";
+        $html = "<a class=\"ts card\" href=\"{$largeImgUrl}\" data-lightbox=\"image\" data-title=\"{$colorHeader}\"><div class=\"image\"><img data-src=\"{$imgUrl}\" class=\"lazyload\" alt=\"{$colorHeader}\" loading=\"lazy\"></div><div class=\"overlapped content color-header\">{$colorHeader}</div></a>";
 
         return $html;
     }
@@ -116,7 +116,7 @@ class ProductPresenter
             $largeImgUrl = $imgUrl;
         }
 
-        return "<a class=\"ts card\" href=\"{$largeImgUrl}\" data-lightbox=\"image\" data-title=\"<a href='{$link}' target='_blank'>出處</a>\"><div class=\"image\"><img src=\"{$imgUrl}\"></div></a>";
+        return "<a class=\"ts card\" href=\"{$largeImgUrl}\" data-lightbox=\"image\" data-title=\"<a href='{$link}' target='_blank'>出處</a>\"><div class=\"image\"><img data-src=\"{$imgUrl}\" class=\"lazyload\" loading=\"lazy\"></div></a>";
     }
 
     public function getPriceChartLabels($productHistories)
