@@ -46,20 +46,22 @@ class ProductPresenter
         if (!empty($colors)) {
             foreach ($colors as $color) {
                 $colorHeader = "{$color->code} {$color->name}";
-                $html .= $this->getItemImageTag($product->id, $color->code, $colorHeader);
+                $alt = "商品顏色 {$colorHeader}";
+
+                $html .= $this->getItemImageTag($product->id, $color->code, $colorHeader, $alt);
             }
         }
 
         return $html;
     }
 
-    public function getItemImageTag($id, $colorCode, $colorHeader)
+    public function getItemImageTag($id, $colorCode, $colorHeader, $alt)
     {
         $imgUrl = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$colorCode}_{$id}_popup.jpg";
         $largeImgUrl = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$colorCode}_{$id}.jpg";
+        $link = $largeImgUrl;
 
-        // TODO: 整合至 getImageTag
-        $html = "<a class=\"ts card\" href=\"{$largeImgUrl}\" data-lightbox=\"image\" data-title=\"{$colorHeader}\"><div class=\"image\"><img data-src=\"{$imgUrl}\" class=\"lazyload\" alt=\"{$colorHeader}\" loading=\"lazy\"></div><div class=\"overlapped content color-header\">{$colorHeader}</div></a>";
+        $html = $this->getImageTag($link, $imgUrl, $largeImgUrl, $alt, $colorHeader);
 
         return $html;
     }
@@ -68,28 +70,32 @@ class ProductPresenter
     {
         $html = '';
         $subImages = json_decode($product->sub_images);
-        foreach ($subImages as $subImage) {
-            $html .= $this->getSubImageTag($product->id, $subImage);
+        foreach ($subImages as $key => $subImage) {
+            $alt = '商品實照 ' . ($key + 1);
+
+            $html .= $this->getSubImageTag($product->id, $subImage, $alt);
         }
 
         return $html;
     }
 
-    public function getSubImageTag($id, $subImage)
+    public function getSubImageTag($id, $subImage, $alt)
     {
         $imgUrl = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImage}_popup.jpg";
         $largeImgUrl = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImage}.jpg";
         $link = $largeImgUrl;
 
-        return $this->getImageTag($link, $imgUrl, $largeImgUrl);
+        return $this->getImageTag($link, $imgUrl, $largeImgUrl, $alt);
     }
 
     public function getStyleDictionaries($styleDictionaries)
     {
         $html = '';
-        foreach ($styleDictionaries as $styleDictionary) {
-            $largeImgUrl = "https://www.uniqlo.com/tw/styledictionary/api/data/0/{$styleDictionary->fnm}-xxl.jpg";
-            $html .= $this->getImageTag($largeImgUrl, $styleDictionary->image_url, $largeImgUrl);
+        foreach ($styleDictionaries as $key => $styleDictionary) {
+            $largeImgUrl = "https://www.uniqlo.com//tw/styledictionary/api/data/0/{$styleDictionary->fnm}-xxl.jpg";
+            $alt = '精選穿搭 Style Dictionary ' . ($key + 1);
+
+            $html .= $this->getImageTag($largeImgUrl, $styleDictionary->image_url, $largeImgUrl, $alt);
         }
 
         return $html;
@@ -98,25 +104,28 @@ class ProductPresenter
     public function getStyles($styles)
     {
         $html = '';
-        foreach ($styles as $style) {
+        foreach ($styles as $key => $style) {
             // TODO: 大圖存 DB
             $largeImgUrl = "https://im.uniqlo.com/style/{$style->image_path}-xxl.jpg";
-            $html .= $this->getImageTag($style->detail_url, $style->image_url, $largeImgUrl);
+            $alt = '精選穿搭 Style ' . ($key + 1);
+
+            $html .= $this->getImageTag($style->detail_url, $style->image_url, $largeImgUrl, $alt);
         }
 
         return $html;
     }
 
-    public function getImageTag($link, $imgUrl, $largeImgUrl = null)
+    public function getImageTag($link, $imgUrl, $largeImgUrl, $alt, $colorHeader = null)
     {
-        // TODO: Image ALT Attributes
-        // TODO: 出處說明文字
+        $html = "<a class=\"ts card\" href=\"{$largeImgUrl}\" data-lightbox=\"image\" data-title=\"<a href='{$link}' target='_blank'>{$alt}</a>\"><div class=\"image\"><img data-src=\"{$imgUrl}\" class=\"lazyload\" loading=\"lazy\" alt=\"{$alt}\"></div>";
 
-        if (empty($largeImgUrl)) {
-            $largeImgUrl = $imgUrl;
+        if (isset($colorHeader)) {
+            $html .= "<div class=\"overlapped content color-header\">{$colorHeader}</div>";
         }
 
-        return "<a class=\"ts card\" href=\"{$largeImgUrl}\" data-lightbox=\"image\" data-title=\"<a href='{$link}' target='_blank'>出處</a>\"><div class=\"image\"><img data-src=\"{$imgUrl}\" class=\"lazyload\" loading=\"lazy\"></div></a>";
+        $html .= "</a>";
+
+        return $html;
     }
 
     public function getPriceChartLabels($productHistories)
