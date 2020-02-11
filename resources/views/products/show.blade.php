@@ -1,6 +1,19 @@
 @inject('productPresenter', 'App\Presenters\ProductPresenter')
 @extends('layouts.master')
 
+@php
+    $shareText = $product->name . " | UNIQLO 比價 | UQ 搜尋";
+    $shareTextEncode = urlencode($shareText);
+
+    $url = url()->current();
+    $shareUrl = [
+        'facebook' => urlencode($url . "?utm_source=uqs&utm_medium=fb&utm_campaign=share"),
+        'twitter' => urlencode($url . "?utm_source=uqs&utm_medium=twtr&utm_campaign=share"),
+        'line' => urlencode($url . "?utm_source=uqs&utm_medium=line&utm_campaign=share"),
+        'webShare' => $url . "?utm_source=uqs&utm_medium=webshare&utm_campaign=share"
+    ];
+@endphp
+
 @section('title', "{$product->name}")
 
 @section('json-ld')
@@ -50,6 +63,8 @@
 <meta name="twitter:title" content="{{ $product->name }} | UQ 搜尋" />
 <meta name="twitter:description" content="{{ $product->comment }} | UNIQLO 比價 | UQ 搜尋" />
 <meta name="twitter:image" content="{{ $product->main_image_url }}" />
+<meta name="share:text" content="{{ $shareText }}" />
+<meta name="share:url" content="{{ $shareUrl['webShare'] }}" />
 @endsection
 
 @section('css')
@@ -129,18 +144,17 @@
                 </details>
             </div>
             <div class="ts grid">
-                <div class="sixteen wide column">
-                    <a class="ts small inverted fluid button" href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank" rel="noopener" aria-label="UNIQLO">前往 UNIQLO 官網</a>
+                <div id="uniqlo-column" class="sixteen wide column">
+                    <a class="ts inverted fluid button" href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank" rel="noopener" aria-label="UNIQLO">前往 UNIQLO 官網</a>
                 </div>
-                <div class="sixteen wide column">
+                <div id="share-column-1" class="five wide column" style="display: none;">
+                    <a class="ts basic fluid button" id="share" target="_blank" rel="noopener" aria-label="Share"><i class="share icon"></i>分享</a>
+                </div>
+                <div id="share-column-2" class="sixteen wide column">
                     <div class="ts fluid separated stackable buttons">
-                        @php
-                            $shareText = urlencode($product->name . " | UNIQLO 比價 | UQ 搜尋");
-                            $shareUrl = urlencode(url()->current() . "?utm_source=uqs&utm_medium=share&utm_campaign=share");
-                        @endphp
-                        <a class="ts mini basic fluid button" href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl }}&quote={{ $shareText }}" target="_blank" rel="noopener" aria-label="Facebook"><i class="facebook icon"></i>Facebook 分享</a>
-                        <a class="ts mini basic fluid button" href="https://twitter.com/intent/tweet/?text={{ $shareText }}&url={{ $shareUrl }}" target="_blank" rel="noopener" aria-label="Twitter"><i class="twitter icon"></i>Twitter 分享</a>
-                        <a class="ts mini basic fluid button" href="https://social-plugins.line.me/lineit/share?text={{ $shareText }}&url={{ $shareUrl }}" target="_blank" rel="noopener" aria-label="Line"><i class="chat icon"></i>Line 分享</a>
+                        <a class="ts mini basic fluid button" href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}" target="_blank" rel="noopener" aria-label="Facebook"><i class="facebook icon"></i>Facebook 分享</a>
+                        <a class="ts mini basic fluid button" href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}" target="_blank" rel="noopener" aria-label="Twitter"><i class="twitter icon"></i>Twitter 分享</a>
+                        <a class="ts mini basic fluid button" href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}" target="_blank" rel="noopener" aria-label="Line"><i class="chat icon"></i>Line 分享</a>
                     </div>
                 </div>
             </div>
@@ -203,6 +217,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.1/js/lightbox-plus-jquery.min.js" integrity="sha256-j4lH4GKeyuTMQAFtmqhxfZbGxx+3WS6n2EJ/NTB21II=" crossorigin="anonymous"></script>
 
 <script>
+    'use strict';
+
     let ctx = document.getElementById("priceChart");
     let pointBackgroundColor = [];
     let pointRadius = [];
@@ -282,5 +298,33 @@
         'resizeDuration': 150,
         'imageFadeDuration': 0,
     });
+
+    async function webShare() {
+        if (navigator.share === undefined) {
+            return;
+        }
+
+        const title = document.title;
+        const text = document.querySelector('meta[name="share:text"]').getAttribute('content');
+        const url = document.querySelector('meta[name="share:url"]').getAttribute('content');
+
+        try {
+            await navigator.share({title, text, url});
+        } catch (error) {}
+    }
+
+    function onLoad() {
+        if (navigator.share !== undefined) {
+            document.getElementById('share-column-1').style.display = 'block';
+            document.getElementById('share-column-2').style.display = 'none';
+
+            let uniqloColumn = document.getElementById('uniqlo-column');
+            uniqloColumn.className = uniqloColumn.className.replace('sixteen', 'eleven');
+        }
+
+        document.querySelector('#share').addEventListener('click', webShare);
+    }
+
+    window.addEventListener('load', onLoad);
 </script>
 @endsection
