@@ -239,6 +239,7 @@ class ProductRepository extends Repository
             ->where('stockout', false)
             ->orderBy('limit_sales_end_msg')
             ->orderByRaw('price/max_price')
+            ->orderBy('created_at', 'desc')
             ->get();
 
         Cache::forever(self::CACHE_KEY_LIMITED_OFFER, $products);
@@ -268,7 +269,7 @@ class ProductRepository extends Repository
             ->whereNotNull('multi_buy')
             ->where('stockout', false)
             ->orderBy('multi_buy')
-            ->orderBy('price')
+            ->orderBy('created_at', 'desc')
             ->get();
 
         Cache::forever(self::CACHE_KEY_MULTI_BUY, $products);
@@ -298,6 +299,7 @@ class ProductRepository extends Repository
             ->where('sale', true)
             ->where('stockout', false)
             ->orderByRaw('price/max_price')
+            ->orderBy('created_at', 'desc')
             ->get();
 
         Cache::forever(self::CACHE_KEY_SALE, $products);
