@@ -85,7 +85,7 @@
     <div class="ts container relaxed grid">
         <div class="nine wide computer nine wide tablet sixteen wide mobile column">
             <div class="ts fluid container">
-                <a class="ts centered image" href="{{ $product->main_image_url }}" data-lightbox="image" data-title="{{ $product->name }}">
+                <a class="ts centered image" href="{{ $product->main_image_url }}" rel="nofollow noopener" data-lightbox="image" data-title="{{ $product->name }}">
                     <img class="ts centered image lazyload" data-src="{{ $product->main_image_url }}" alt="{{ $product->name }}" loading="lazy">
                 </a>
             </div>
@@ -145,16 +145,16 @@
             </div>
             <div class="ts grid">
                 <div id="uniqlo-column" class="sixteen wide column">
-                    <a class="ts inverted fluid button" href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank" rel="noopener" aria-label="UNIQLO">前往 UNIQLO 官網</a>
+                    <a class="ts inverted fluid button" href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank" rel="nofollow noopener" aria-label="UNIQLO">前往 UNIQLO 官網</a>
                 </div>
                 <div id="share-column-1" class="five wide column" style="display: none;">
-                    <a class="ts basic fluid button" id="share" target="_blank" rel="noopener" aria-label="Share"><i class="share icon"></i>分享</a>
+                    <a class="ts basic fluid button" id="share" target="_blank" rel="nofollow noopener" aria-label="Share"><i class="share icon"></i>分享</a>
                 </div>
                 <div id="share-column-2" class="sixteen wide column">
                     <div class="ts fluid separated stackable buttons">
-                        <a class="ts mini basic fluid button" href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}" target="_blank" rel="noopener" aria-label="Facebook"><i class="facebook icon"></i>Facebook 分享</a>
-                        <a class="ts mini basic fluid button" href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}" target="_blank" rel="noopener" aria-label="Twitter"><i class="twitter icon"></i>Twitter 分享</a>
-                        <a class="ts mini basic fluid button" href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}" target="_blank" rel="noopener" aria-label="Line"><i class="chat icon"></i>Line 分享</a>
+                        <a class="ts mini basic fluid button" href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}" target="_blank" rel="nofollow noopener" aria-label="Facebook"><i class="facebook icon"></i>Facebook 分享</a>
+                        <a class="ts mini basic fluid button" href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}" target="_blank" rel="nofollow noopener" aria-label="Twitter"><i class="twitter icon"></i>Twitter 分享</a>
+                        <a class="ts mini basic fluid button" href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}" target="_blank" rel="nofollow noopener" aria-label="Line"><i class="chat icon"></i>Line 分享</a>
                     </div>
                 </div>
             </div>

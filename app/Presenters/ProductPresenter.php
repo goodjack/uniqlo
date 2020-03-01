@@ -117,7 +117,7 @@ class ProductPresenter
 
     public function getImageTag($link, $imgUrl, $largeImgUrl, $alt, $colorHeader = null)
     {
-        $html = "<a class=\"ts card\" href=\"{$largeImgUrl}\" data-lightbox=\"image\" data-title=\"<a href='{$link}' target='_blank'>{$alt}</a>\"><div class=\"image\"><img data-src=\"{$imgUrl}\" class=\"lazyload\" loading=\"lazy\" alt=\"{$alt}\"></div>";
+        $html = "<a class=\"ts card\" href=\"{$largeImgUrl}\" rel=\"nofollow noopener\" data-lightbox=\"image\" data-title=\"<a href='{$link}' target='_blank' rel='nofollow noopener'>{$alt}</a>\"><div class=\"image\"><img data-src=\"{$imgUrl}\" class=\"lazyload\" loading=\"lazy\" alt=\"{$alt}\"></div>";
 
         if (isset($colorHeader)) {
             $html .= "<div class=\"overlapped content color-header\">{$colorHeader}</div>";
