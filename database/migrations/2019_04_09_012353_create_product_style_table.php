@@ -14,7 +14,7 @@ class CreateProductStyleTable extends Migration
     public function up()
     {
         Schema::create('product_style', function (Blueprint $table) {
-            $table->bigIncrements('id');
+            $table->id();
             $table->string('product_id')->index();
             $table->string('style_id')->index();
         });

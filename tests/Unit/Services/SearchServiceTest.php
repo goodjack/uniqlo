@@ -2,14 +2,14 @@
 
 namespace Tests\Unit\Services;
 
+use App\Foundations\DivideProducts;
 use App\Product;
-use Tests\TestCase;
+use App\Services\SearchService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Response;
-use App\Services\SearchService;
-use App\Foundations\DivideProducts;
-use Illuminate\Support\Facades\File;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
+use PHPUnit\Framework\TestCase;
 
 class SearchServiceTest extends TestCase
 {

@@ -2,12 +2,11 @@
 
 namespace Tests\Unit;
 
-use App\Product;
 use App\MultiBuyHistory;
+use App\Product;
 use App\Repositories\ProductRepository;
-use Tests\TestCase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\TestCase;
 
 class ProductTest extends TestCase
 {
