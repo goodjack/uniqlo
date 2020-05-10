@@ -1,7 +1,7 @@
 <div class="ts attached very padded horizontally fitted fluid inverted segment">
     <div class="ts container">
         <div class="ts inverted horizontal link list">
-            <a href="#" class="item">首頁</a>
+            <a href="{{ route('home') }}" class="item">首頁</a>
             <a href="{{ route('products.limited-offers') }}" class="item">期間限定</a>
             <a href="{{ route('products.sales') }}" class="item">特價</a>
             <a href="{{ route('products.multi-buys') }}" class="item">合購</a>
