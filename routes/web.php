@@ -25,6 +25,7 @@ Route::group(['prefix' => 'products'], function () {
     Route::get('/multi-buys', 'ProductController@multiBuys')->name('products.multi-buys');
     Route::get('/news', 'ProductController@news')->name('products.news');
     Route::get('/go', 'ProductController@go')->name('products.go');
+    Route::get('/most-reviewed', 'ProductController@mostReviewed')->name('products.most-reviewed');
     Route::get('/{product}', 'ProductController@show')->name('products.show');
 });
 

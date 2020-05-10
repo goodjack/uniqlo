@@ -384,6 +384,18 @@ class ProductService extends Service
     }
 
     /**
+     * Get most reviewed products.
+     *
+     * @return array|null most review products
+     */
+    public function getMostReviewedProducts()
+    {
+        $products = $this->productRepository->getMostReviewedProducts();
+
+        return $this->divideProducts($products);
+    }
+
+    /**
      * Set the min price and the max price to the products.
      *
      * @param boolean $today

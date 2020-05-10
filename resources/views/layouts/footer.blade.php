@@ -4,8 +4,9 @@
             <a href="{{ route('home') }}" class="item">首頁</a>
             <a href="{{ route('products.limited-offers') }}" class="item">期間限定</a>
             <a href="{{ route('products.sales') }}" class="item">特價</a>
-            <a href="{{ route('products.multi-buys') }}" class="item">合購</a>
+            <a href="{{ route('products.most-reviewed') }}" class="item">熱門</a>
             <a href="{{ route('products.news') }}" class="item">新品</a>
+            <a href="{{ route('products.multi-buys') }}" class="item">合購</a>
             <a href="{{ route('products.stockouts') }}" class="item">無庫存</a>
         </div>
         <h4 class="ts inverted header">

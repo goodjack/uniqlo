@@ -177,6 +177,19 @@ class ProductController extends Controller
         ]);
     }
 
+    public function mostReviewed()
+    {
+        $products = $this->productService->getMostReviewedProducts();
+
+        return view('products.list', [
+            'products' => $products,
+            'typeName' => '熱門評論商品',
+            'typeStyle' => 'most-reviewed',
+            'typeIcon' => 'comments outline',
+            'routeName' => 'products.most-reviewed',
+        ]);
+    }
+
     public function go(Request $request)
     {
         return redirect()->action('ProductController@show', ['product' => $request->id]);

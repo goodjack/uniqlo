@@ -47,6 +47,7 @@ class SetProductCaches extends Command
         $this->productRepository->setMultiBuyProductsCache();
         $this->productRepository->setSaleProductsCache();
         $this->productRepository->setStockoutProductsCache();
+        $this->productRepository->setMostReviewedProductsCache();
 
         Log::debug('SetProductCaches end');
     }

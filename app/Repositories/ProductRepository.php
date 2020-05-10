@@ -22,6 +22,7 @@ class ProductRepository extends Repository
     const CACHE_KEY_SALE = 'product:sale';
     const CACHE_KEY_STOCKOUT = 'product:stockout';
     const CACHE_KEY_NEW = 'product:new';
+    const CACHE_KEY_MOST_REVIEWED = 'product:most_reviewed';
     const SELECT_COLUMNS_FOR_PRODUCT_LIST = ['id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale'];
 
     protected $product;
@@ -333,6 +334,43 @@ class ProductRepository extends Repository
             ->get();
 
         Cache::forever(self::CACHE_KEY_NEW, $products);
+    }
+
+    /**
+     * Get most reviewed products.
+     *
+     * @return Collection|Product[] New products
+     */
+    public function getMostReviewedProducts()
+    {
+        if (!Cache::has(self::CACHE_KEY_MOST_REVIEWED)) {
+            $this->setMostReviewedProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_MOST_REVIEWED);
+    }
+
+    /**
+     * Put most reviewed products to the cache.
+     */
+    public function setMostReviewedProductsCache()
+    {
+        $products = $this->product
+            ->select(self::SELECT_COLUMNS_FOR_PRODUCT_LIST)
+            ->where('review_count', '>=', function ($query) {
+                $query->selectRaw('MAX(review_count) as max_review_count')
+                    ->from('products')
+                    ->where('stockout', false)
+                    ->groupByRaw('LEFT(category_id, 3)')
+                    ->orderBy('max_review_count')
+                    ->limit(1);
+            })
+            ->where('stockout', false)
+            ->orderBy('review_count', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        Cache::forever(self::CACHE_KEY_MOST_REVIEWED, $products);
     }
 
     /**
