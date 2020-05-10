@@ -12,27 +12,33 @@ class ProductPresenter
 
         $msg = $product->limit_sales_end_msg;
         if ($msg) {
-            $html .= "<div class=\"ts horizontal negative circular label\">{$msg}</div>";
+            $route = route('products.limited-offers');
+            $html .= "<a href=\"{$route}\" class=\"ts circular mini very compact negative button\"><i class=\"certificate icon\"></i>{$msg}</a>";
         }
 
         if ($product->multi_buy) {
-            $html .= "<div class=\"ts horizontal negative circular label\">{$product->multi_buy}</div>";
+            $route = route('products.multi-buys');
+            $html .= "<a href=\"{$route}\" class=\"ts circular mini very compact info button\"><i class=\"cubes icon\"></i>{$product->multi_buy}</a>";
         }
 
         if ($product->new) {
-            $html .= "<div class=\"ts horizontal inverted circular label\">新品</div>";
+            $route = route('products.news');
+            $html .= "<a href=\"{$route}\" class=\"ts circular mini very compact positive button\"><i class=\"leaf icon\"></i>新品</a>";
         }
 
         if ($product->sale) {
-            $html .= "<div class=\"ts horizontal inverted circular label\">特價商品</div>";
+            $route = route('products.sales');
+            $html .= "<a href=\"{$route}\" class=\"ts circular mini very compact primary button\"><i class=\"shopping basket icon\"></i>特價商品</a>";
         }
 
         if ($product->stockout) {
-            $html .= "<div class=\"ts horizontal circular label\">可能已經沒有庫存</div>";
+            $route = route('products.stockouts');
+            $html .= "<a href=\"{$route}\" class=\"ts circular mini very compact button\"><i class=\"archive icon\"></i>可能已經沒有庫存</a>";
         }
 
         if ($html) {
-            $html .= "<div class=\"ts hidden divider\"></div>";
+            $html = '<div class="ts separated buttons">' . $html;
+            $html .= "</div><div class=\"ts hidden divider\"></div>";
         }
 
         return $html;

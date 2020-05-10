@@ -74,6 +74,54 @@
         height: unset;
         bottom: 0;
     }
+
+    #facebook {
+        color: #145cbd;
+    }
+
+    #facebook:hover {
+        color: #ffffff;
+        border-color: #ffffff;
+        background-color: #1877f2;
+    }
+
+    #facebook:active {
+        color: #b6bcc7;
+        border-color: #ffffff;
+        background-color: #145cbd;
+    }
+
+    #twitter {
+        color: #0d7bbf;
+    }
+
+    #twitter:hover {
+        color: #ffffff;
+        border-color: #ffffff;
+        background-color: #1d95e0;
+    }
+
+    #twitter:active {
+        color: #b6bcc7;
+        border-color: #ffffff;
+        background-color: #0d7bbf;
+    }
+
+    #line {
+        color: #05a52f;
+    }
+
+    #line:hover {
+        color: #ffffff;
+        border-color: #ffffff;
+        background-color: #06b833;
+    }
+
+    #line:active {
+        color: #b6bcc7;
+        border-color: #ffffff;
+        background-color: #05a52f;
+    }
 </style>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.1/css/lightbox.min.css"
@@ -152,9 +200,21 @@
                 </div>
                 <div id="share-column-2" class="sixteen wide column">
                     <div class="ts fluid separated stackable buttons">
-                        <a class="ts mini basic fluid button" href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}" target="_blank" rel="nofollow noopener" aria-label="Facebook"><i class="facebook icon"></i>Facebook 分享</a>
-                        <a class="ts mini basic fluid button" href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}" target="_blank" rel="nofollow noopener" aria-label="Twitter"><i class="twitter icon"></i>Twitter 分享</a>
-                        <a class="ts mini basic fluid button" href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}" target="_blank" rel="nofollow noopener" aria-label="Line"><i class="chat icon"></i>Line 分享</a>
+                        <a id="facebook" class="ts mini basic fluid button"
+                            href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
+                            target="_blank" rel="nofollow noopener" aria-label="Facebook">
+                            <i class="facebook icon"></i>Facebook 分享
+                        </a>
+                        <a id="twitter" class="ts mini basic fluid button"
+                            href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
+                            target="_blank" rel="nofollow noopener" aria-label="Twitter">
+                            <i class="twitter icon"></i>Twitter 分享
+                        </a>
+                        <a id="line" class="ts mini basic fluid button"
+                            href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
+                            target="_blank" rel="nofollow noopener" aria-label="Line">
+                            <i class="chat icon"></i>LINE 分享
+                        </a>
                     </div>
                 </div>
             </div>

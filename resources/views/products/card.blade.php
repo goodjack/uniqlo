@@ -25,15 +25,15 @@
         @endif
 
         @if ($product->multi_buy)
-        <br><span style="color: #CE5F58;">{{ $product->multi_buy }}</span>
+        <br><span style="color: #79A8B9;">{{ $product->multi_buy }}</span>
         @endif
 
         @if ($product->sale)
-        <br><span style="color: #79A8B9;">特價商品</span>
+        <br><span style="color: #00ADEA;">特價商品</span>
         @endif
 
         @if ($product->new)
-        <br><span style="color: #79A8B9;">新品</span>
+        <br><span style="color: #8BB96E;">新品</span>
         @endif
     </div>
     @if ($product->price > $product->min_price)
