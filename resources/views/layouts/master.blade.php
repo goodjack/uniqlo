@@ -45,7 +45,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.2.0/lazysizes.min.js"
         integrity="sha256-h2tMEmhemR2IN4wbbdNjj9LaDIjzwk2hralQwfJmBOE=" crossorigin="anonymous" async></script>
     <script>
-        ts('.ts.dropdown').dropdown();
+        ts('.ts.dropdown:not(.basic)').dropdown();
     </script>
 
     @yield('javascript')
