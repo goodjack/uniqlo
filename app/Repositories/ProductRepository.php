@@ -53,6 +53,7 @@ class ProductRepository extends Repository
                 $model->categories = json_encode($product->categories);
                 $model->ancestors = json_encode($product->ancestors);
                 $model->main_image_url = $this->getProductMainImageUrl($product);
+                $model->main_color = $product->representativeSKU->color;
                 $model->comment = $product->catchCopy;
                 $model->price = $product->representativeSKU->salePrice;
                 $model->flags = json_encode($product->flags);
@@ -63,6 +64,7 @@ class ProductRepository extends Repository
                 $model->sub_images = json_encode($product->subImages);
                 $model->colors = json_encode($product->colors);
                 $model->review_count = $product->reviewCount;
+                $model->review_rating = $product->reviewRating;
 
                 $model->save();
 
