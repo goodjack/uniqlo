@@ -141,10 +141,9 @@ class ProductRepository extends Repository
             report($e);
         }
 
-        $items = collect($result->coordinates[0]->items);
         try {
-            $products = Arr::pluck($items, 'sku_code');
-            $model->products()->syncWithoutDetaching($products);
+            $productIds = data_get($result, 'coordinates.*.items.*.sku_code');
+            $model->products()->syncWithoutDetaching($productIds);
         } catch (Exception $e) {
             report($e);
         }
