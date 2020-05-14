@@ -72,7 +72,7 @@ class ProductRepository extends Repository
                 $history->price = $model->price;
                 $model->histories()->save($history);
             } catch (Exception $e) {
-                echo 'Caught exception: ', $e->getMessage(), "\n";
+                report($e);
             }
         });
     }
@@ -110,7 +110,7 @@ class ProductRepository extends Repository
 
             $model->save();
         } catch (Exception $e) {
-            echo 'Caught exception: ', $e->getMessage(), "\n";
+            report($e);
         }
 
         // TODO: Replace Functional\each and Arr::pluck
@@ -119,7 +119,7 @@ class ProductRepository extends Repository
                 $products = Arr::pluck($person->products, 'pub');
                 $model->products()->syncWithoutDetaching($products);
             } catch (Exception $e) {
-                echo 'Caught exception: ', $e->getMessage(), "\n";
+                report($e);
             }
         });
     }
@@ -138,7 +138,7 @@ class ProductRepository extends Repository
 
             $model->save();
         } catch (Exception $e) {
-            echo 'Caught exception: ', $e->getMessage(), "\n";
+            report($e);
         }
 
         $items = collect($result->coordinates[0]->items);
@@ -146,7 +146,7 @@ class ProductRepository extends Repository
             $products = Arr::pluck($items, 'sku_code');
             $model->products()->syncWithoutDetaching($products);
         } catch (Exception $e) {
-            echo 'Caught exception: ', $e->getMessage(), "\n";
+            report($e);
         }
     }
 

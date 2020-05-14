@@ -22,7 +22,7 @@ class CategoryRepository extends Repository
         each($categories, function ($category) {
             try {
                 $model = Category::firstOrNew(['id' => $category->id]);
-                
+
                 $model->id = $category->id;
                 $model->name = $category->name;
                 $model->image = $category->image ?? '';
@@ -32,7 +32,7 @@ class CategoryRepository extends Repository
 
                 $model->save();
             } catch (Exception $e) {
-                echo 'Caught exception: ', $e->getMessage(), "\n";
+                report($e);
             }
 
             if ($category->children) {
