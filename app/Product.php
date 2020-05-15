@@ -34,4 +34,30 @@ class Product extends Model
     {
         return $this->belongsToMany('App\Style');
     }
+
+    /**
+     * Get the reco image (180x180) of the product.
+     *
+     * @return string
+     */
+    public function getRecoImageUrlAttribute()
+    {
+        $id = $this->id;
+        $color = $this->main_color;
+
+        return "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$color}_{$id}_reco.jpg";
+    }
+
+    /**
+     * Get the middles image (228x228) of the product.
+     *
+     * @return string
+     */
+    public function getMiddlesImageUrlAttribute()
+    {
+        $id = $this->id;
+        $color = $this->main_color;
+
+        return "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$color}_{$id}_middles.jpg";
+    }
 }
