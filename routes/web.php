@@ -34,6 +34,10 @@ Route::group(['prefix' => 'search'], function () {
     Route::get('/{query}', 'SearchController@search')->name('search');
 });
 
+Route::group(['prefix' => 'pages'], function () {
+    Route::get('/changelog', 'PageController@getChangelog')->name('pages.changelog');
+});
+
 // Auth::routes();
 
 // Route::get('/home', 'HomeController@index')->name('home');
