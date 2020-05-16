@@ -2,19 +2,18 @@
 
 namespace App\Repositories;
 
-use Illuminate\Support\Arr;
+use App\MultiBuyHistory;
 use App\Product;
 use App\ProductHistory;
-use App\MultiBuyHistory;
-use App\StyleDictionary;
 use App\Style;
+use App\StyleDictionary;
 use Cache;
-use Throwable;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 use Yish\Generators\Foundation\Repository\Repository;
 
 use function Functional\each;
-use function Functional\map;
 
 class ProductRepository extends Repository
 {
