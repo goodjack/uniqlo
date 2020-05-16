@@ -46,6 +46,12 @@
       "name": "UNIQLO"
     }
   }
+  @if ($product->review_count > 0 && ! empty($product->review_rating))
+  ,"aggregateRating": {
+      "ratingValue": "{{ $product->review_rating }}",
+      "ratingCount": "{{ $product->review_count }}"
+  }
+  @endif
 }
 </script>
 @endsection
@@ -143,7 +149,10 @@
                 <div class="sixteen wide column">
                     <h1 class="ts dividing big header">
                         {{ $product->name }}
-                        <div class="sub header">商品編號 {{ $product->id }}</div>
+                        <div class="sub header">
+                            商品編號 {{ $product->id }}
+                            {!! $productPresenter->getRatingForProductShow($product) !!}
+                        </div>
                     </h1>
                 </div>
                 <div class="sixteen wide center aligned column">

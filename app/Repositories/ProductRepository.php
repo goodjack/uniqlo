@@ -23,7 +23,21 @@ class ProductRepository extends Repository
     const CACHE_KEY_STOCKOUT = 'product:stockout';
     const CACHE_KEY_NEW = 'product:new';
     const CACHE_KEY_MOST_REVIEWED = 'product:most_reviewed';
-    const SELECT_COLUMNS_FOR_PRODUCT_LIST = ['id', 'name', 'category_id', 'main_image_url', 'price', 'min_price', 'max_price', 'limit_sales_end_msg', 'multi_buy', 'new', 'sale'];
+    const SELECT_COLUMNS_FOR_PRODUCT_LIST = [
+        'id',
+        'name',
+        'category_id',
+        'main_image_url',
+        'price',
+        'min_price',
+        'max_price',
+        'limit_sales_end_msg',
+        'multi_buy',
+        'new',
+        'sale',
+        'review_count',
+        'review_rating'
+    ];
 
     protected $product;
     protected $styleDictionary;
@@ -368,6 +382,7 @@ class ProductRepository extends Repository
             })
             ->where('stockout', false)
             ->orderBy('review_count', 'desc')
+            ->orderBy('review_rating', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
 

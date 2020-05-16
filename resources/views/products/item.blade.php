@@ -9,8 +9,9 @@
         <div class="header">
             {{ $product->name }}
         </div>
-        <div class="meta">
+        <div class="middoted meta">
             <span>{{ $product->id }}</span>
+            {!! $productPresenter->getRatingForProductCardAndItem($product) !!}
         </div>
     </div>
 </a>

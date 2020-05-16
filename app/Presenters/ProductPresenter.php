@@ -168,6 +168,47 @@ class ProductPresenter
         return "https://schema.org/InStock";
     }
 
+    public function getRatingForProductShow($product)
+    {
+        $html = $this->getRating($product);
+
+        if (! empty($html)) {
+            $html = "&middot; {$html}";
+        }
+
+        return $html;
+    }
+
+    public function getRatingForProductCardAndItem($product)
+    {
+        $html = $this->getRating($product);
+
+        if (! empty($html)) {
+            $html = "<span>{$html}</span>";
+        }
+
+        return $html;
+    }
+
+    public function getRating($product)
+    {
+        if (empty($product->review_count)) {
+            return '';
+        }
+
+        $html = '<i class="fitted star icon"></i> ';
+
+        if ($product->review_rating) {
+            $html .= number_format($product->review_rating, 1, '.', '');
+        } else {
+            $html .= '?';
+        }
+
+        $html .= " ({$product->review_count})";
+
+        return $html;
+    }
+
     public function countProducts($products)
     {
         return count($products['men'])

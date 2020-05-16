@@ -6,7 +6,10 @@
     </div>
     <div class="content">
         <div class="smaller header">{{ $product->name }}</div>
-        <div class="meta">{{ $product->id }}</div>
+        <div class="middoted meta">
+            <span>{{ $product->id }}</span>
+            {!! $productPresenter->getRatingForProductCardAndItem($product) !!}
+        </div>
     </div>
     <div class="center aligned extra content">
         @if ($product->max_price > $product->price)
