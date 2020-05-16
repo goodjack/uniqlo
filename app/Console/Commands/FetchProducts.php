@@ -43,18 +43,36 @@ class FetchProducts extends Command
      */
     public function handle()
     {
-        Log::debug('FetchProducts start');
+        // TODO: queue
 
+        Log::debug('fetchAllProducts start');
         $this->productService->fetchAllProducts();
+        Log::debug('fetchAllProducts end');
+
+        Log::debug('setStockoutProductTags start');
         $this->productService->setStockoutProductTags();
+        Log::debug('setStockoutProductTags end');
+
+        Log::debug('price:set start');
         $this->call('price:set', [
             '--today' => true
         ]);
-        $this->productService->fetchMultiBuyProducts();
-        $this->call('multi-buy:set');
-        $this->call('product:cache');
-        $this->call('sitemap:generate');
+        Log::debug('price:set end');
 
-        Log::debug('FetchProducts end');
+        Log::debug('fetchMultiBuyProducts start');
+        $this->productService->fetchMultiBuyProducts();
+        Log::debug('fetchMultiBuyProducts end');
+
+        Log::debug('multi-buy:set start');
+        $this->call('multi-buy:set');
+        Log::debug('multi-buy:set end');
+
+        Log::debug('product:cache start');
+        $this->call('product:cache');
+        Log::debug('product:cache end');
+
+        Log::debug('sitemap:generate start');
+        $this->call('sitemap:generate');
+        Log::debug('sitemap:generate end');
     }
 }
