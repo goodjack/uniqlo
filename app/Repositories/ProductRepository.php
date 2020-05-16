@@ -10,6 +10,7 @@ use App\StyleDictionary;
 use App\Style;
 use Cache;
 use Exception;
+use Illuminate\Support\Facades\DB;
 use Yish\Generators\Foundation\Repository\Repository;
 
 use function Functional\each;
@@ -451,8 +452,8 @@ class ProductRepository extends Repository
                 $query->whereDate('created_at', today()->toDateString());
             })->update(['multi_buy' => null]);
 
-        $multiBuyHistories = \DB::table('multi_buy_histories')
-            ->select('product_id', \DB::raw('multi_buy as promo'))
+        $multiBuyHistories = DB::table('multi_buy_histories')
+            ->select('product_id', DB::raw('multi_buy as promo'))
             ->whereIn('id', function ($query) {
                 $query->selectRaw('MAX(id)')
                     ->from('multi_buy_histories')
@@ -462,7 +463,7 @@ class ProductRepository extends Repository
 
         $this->product->joinSub($multiBuyHistories, 'multi_buy_histories', function ($join) {
             $join->on('products.id', '=', 'multi_buy_histories.product_id');
-        })->update(['multi_buy' => \DB::raw('promo')]);
+        })->update(['multi_buy' => DB::raw('promo')]);
     }
 
     public function getRelatedProducts($product)

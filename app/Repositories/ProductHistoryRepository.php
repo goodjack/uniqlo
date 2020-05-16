@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Product;
 use App\ProductHistory;
+use Illuminate\Support\Facades\DB;
 use Yish\Generators\Foundation\Repository\Repository;
 
 class ProductHistoryRepository extends Repository
@@ -43,7 +44,7 @@ class ProductHistoryRepository extends Repository
     public function getMinPricesAndMaxPrices(bool $today = false)
     {
         $prices = $this->model
-            ->select('product_id', \DB::raw('MIN(price) as min_price'), \DB::raw('MAX(price) as max_price'))
+            ->select('product_id', DB::raw('MIN(price) as min_price'), DB::raw('MAX(price) as max_price'))
             ->groupBy('product_id');
 
         if ($today) {
