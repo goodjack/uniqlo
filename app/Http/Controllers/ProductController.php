@@ -192,6 +192,10 @@ class ProductController extends Controller
 
     public function go(Request $request)
     {
+        $request->validate([
+            'id' => ['required', 'numeric'],
+        ]);
+
         return redirect()->action('ProductController@show', ['product' => $request->id]);
     }
 
