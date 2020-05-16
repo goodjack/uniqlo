@@ -111,8 +111,7 @@ class ProductPresenter
     {
         $html = '';
         foreach ($styles as $key => $style) {
-            // TODO: 大圖存 DB
-            $largeImgUrl = "https://im.uniqlo.com/style/{$style->image_path}-xxl.jpg";
+            $largeImgUrl = "https://im.uniqlo.com/style/{$style->image_path}-xxxl.jpg";
             $alt = '精選穿搭 Style ' . ($key + 1);
 
             $html .= $this->getImageTag($style->detail_url, $style->image_url, $largeImgUrl, $alt);
