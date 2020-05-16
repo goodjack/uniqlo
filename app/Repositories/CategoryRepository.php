@@ -3,7 +3,7 @@
 namespace App\Repositories;
 
 use App\Category;
-use Exception;
+use Throwable;
 use Yish\Generators\Foundation\Repository\Repository;
 
 use function Functional\each;
@@ -31,7 +31,7 @@ class CategoryRepository extends Repository
                 $model->parent_id = $category->parentId;
 
                 $model->save();
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
                 report($e);
             }
 

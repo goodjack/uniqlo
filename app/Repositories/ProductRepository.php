@@ -9,7 +9,7 @@ use App\MultiBuyHistory;
 use App\StyleDictionary;
 use App\Style;
 use Cache;
-use Exception;
+use Throwable;
 use Illuminate\Support\Facades\DB;
 use Yish\Generators\Foundation\Repository\Repository;
 
@@ -86,7 +86,7 @@ class ProductRepository extends Repository
                 $history = new ProductHistory;
                 $history->price = $model->price;
                 $model->histories()->save($history);
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
                 report($e);
             }
         });
@@ -124,7 +124,7 @@ class ProductRepository extends Repository
             $model->detail_url = "https://www.uniqlo.com/tw/stylingbook/detail.html#/detail/{$model->id}";
 
             $model->save();
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             report($e);
         }
 
@@ -133,7 +133,7 @@ class ProductRepository extends Repository
             try {
                 $products = Arr::pluck($person->products, 'pub');
                 $model->products()->syncWithoutDetaching($products);
-            } catch (Exception $e) {
+            } catch (Throwable $e) {
                 report($e);
             }
         });
@@ -152,14 +152,14 @@ class ProductRepository extends Repository
             $model->detail_url = "http://www.uniqlo.com/tw/stylingbook/sp/style/{$model->id}";
 
             $model->save();
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             report($e);
         }
 
         try {
             $productIds = data_get($result, 'coordinates.*.items.*.sku_code');
             $model->products()->syncWithoutDetaching($productIds);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             report($e);
         }
     }
