@@ -25,7 +25,7 @@ class SearchService extends Service
             config('uniqlo.api.search'),
             [
                 'headers' => [
-                    'User-Agent' => env('USER_AGENT_MOBILE')
+                    'User-Agent' => config('app.user_agent_mobile'),
                 ],
                 'query' => [
                     'limit' => '10',

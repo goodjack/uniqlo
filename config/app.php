@@ -230,7 +230,9 @@ return [
     ],
 
     'force_https' => env('APP_FORCE_HTTPS', true),
+    'ga_tracking_id' => env('GA_TRACKING_ID'),
     'pixel_tracking_id' => env('PIXEL_TRACKING_ID'),
     'sitemap_name' => env('SITEMAP_NAME'),
+    'user_agent_mobile' => env('USER_AGENT_MOBILE'),
 
 ];

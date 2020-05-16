@@ -21,10 +21,10 @@ class CategoryService extends Service
 
         $response = $client->request(
             'GET',
-            env('UQ_API_CATEGORY'),
+            config('uniqlo.api.category'),
             [
                 'headers' => [
-                    'User-Agent' => env('USER_AGENT_MOBILE')
+                    'User-Agent' => config('app.user_agent_mobile'),
                 ],
             ]
         );

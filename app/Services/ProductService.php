@@ -66,10 +66,10 @@ class ProductService extends Service
 
         $response = $client->request(
             'GET',
-            env('UQ_API_STATUS'),
+            config('uniqlo.api.status'),
             [
                 'headers' => [
-                    'User-Agent' => env('USER_AGENT_MOBILE')
+                    'User-Agent' => config('app.user_agent_mobile'),
                 ],
                 'query' => [
                     'client_id' => 'uqsp-tw',
@@ -107,10 +107,10 @@ class ProductService extends Service
         do {
             $response = $client->request(
                 'GET',
-                env('UQ_API_PRODUCTS'),
+                config('uniqlo.api.products'),
                 [
                     'headers' => [
-                        'User-Agent' => env('USER_AGENT_MOBILE')
+                        'User-Agent' => config('app.user_agent_mobile'),
                     ],
                     'query' => [
                         'order' => 'asc',
@@ -136,10 +136,10 @@ class ProductService extends Service
 
             $response = $client->request(
                 'GET',
-                env('UQ_API_PRODUCTS_FOR_MULTI_BUY'),
+                config('uniqlo.api.products_for_multy_buy'),
                 [
                     'headers' => [
-                        'User-Agent' => env('USER_AGENT_MOBILE')
+                        'User-Agent' => config('app.user_agent_mobile'),
                     ],
                     'query' => [
                         'format' => 'json',
@@ -164,10 +164,10 @@ class ProductService extends Service
 
         $response = $client->request(
             'GET',
-            env('UQ_API_STYLE_DICTIONARY_LIST'),
+            config('uniqlo.api.style_dictionary_list'),
             [
                 'headers' => [
-                    'User-Agent' => env('USER_AGENT_MOBILE')
+                    'User-Agent' => config('app.user_agent_mobile'),
                 ],
                 'query' => [
                     'date' => Carbon::today(),
@@ -186,10 +186,10 @@ class ProductService extends Service
 
             $response = $client->request(
                 'GET',
-                env('UQ_API_STYLE_DICTIONARY_DETAIL'),
+                config('uniqlo.api.style_dictionary_detail'),
                 [
                     'headers' => [
-                        'User-Agent' => env('USER_AGENT_MOBILE')
+                        'User-Agent' => config('app.user_agent_mobile'),
                     ],
                     'query' => [
                         'date' => Carbon::today()->toDateString(),
@@ -237,10 +237,10 @@ class ProductService extends Service
         do {
             $response = $client->request(
                 'GET',
-                env('UQ_API_STYLING_BOOK_LIST'),
+                config('uniqlo.api.style_book_list'),
                 [
                     'headers' => [
-                        'User-Agent' => env('USER_AGENT_MOBILE')
+                        'User-Agent' => config('app.user_agent_mobile'),
                     ],
                     'query' => [
                         'dptId' => $dptId,
@@ -271,10 +271,10 @@ class ProductService extends Service
 
             $response = $client->request(
                 'GET',
-                env('UQ_API_STYLING_BOOK_DETAIL'),
+                config('uniqlo.api.style_book_detail'),
                 [
                     'headers' => [
-                        'User-Agent' => env('USER_AGENT_MOBILE')
+                        'User-Agent' => config('app.user_agent_mobile'),
                     ],
                     'query' => [
                         'lang' => 'zh',
