@@ -190,23 +190,36 @@ class ProductPresenter
         return $html;
     }
 
-    public function getRating($product)
+    public function getSocialMediaDescription($product)
+    {
+        $description = "{$product->comment} | UNIQLO 比價 | UQ 搜尋";
+
+        $rating = $this->getRating($product, true);
+
+        if (! empty($rating)) {
+            $description = "{$rating} · {$description}";
+        }
+
+        return $description;
+    }
+
+    public function getRating($product, $plainText = false)
     {
         if (empty($product->review_count)) {
             return '';
         }
 
-        $html = '<i class="fitted star icon"></i> ';
+        $rating = $plainText ? '★ ' : '<i class="fitted star icon"></i> ';
 
         if ($product->review_rating) {
-            $html .= number_format($product->review_rating, 1, '.', '');
+            $rating .= number_format($product->review_rating, 1, '.', '');
         } else {
-            $html .= '?';
+            $rating .= '?';
         }
 
-        $html .= " ({$product->review_count})";
+        $rating .= " ({$product->review_count})";
 
-        return $html;
+        return $rating;
     }
 
     public function countProducts($products)

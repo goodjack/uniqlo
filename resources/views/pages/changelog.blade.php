@@ -25,6 +25,21 @@
             <div class="ts basic segment">
                 <!-- 標題 -->
                 <h2 class="ts dividing header">
+                    v1.32.0
+                </h2>
+                <!-- / 標題 -->
+                <div class="ts large compact basic fitted secondary message">
+                    <div class="header">新增功能</div>
+                    <ul>
+                        <li>社群網站上的描述可以看到評價資訊了</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- / 文章 -->
+            <!-- 文章 -->
+            <div class="ts basic segment">
+                <!-- 標題 -->
+                <h2 class="ts dividing header">
                     v1.31.0
                 </h2>
                 <!-- / 標題 -->

@@ -27,7 +27,7 @@
 
                 <a class="ts inverted basic circular very compact button" href="{{ route('pages.changelog') }}"
                     aria-label="changelog">
-                    v1.31.0 更新日誌
+                    v1.32.0 更新日誌
                 </a>
             </div>
         </div>

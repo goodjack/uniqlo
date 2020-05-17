@@ -62,12 +62,12 @@
 <meta property="og:type" content="og:product" />
 <meta property="og:title" content="{{ $product->name }} | UQ 搜尋" />
 <meta property="og:url" content="{{ route('products.show', ['product' => $product->id]) }}" />
-<meta property="og:description" content="{{ $product->comment }} | UNIQLO 比價 | UQ 搜尋" />
+<meta property="og:description" content="{!! $productPresenter->getSocialMediaDescription($product) !!}" />
 <meta property="og:image" content="{{ $product->main_image_url }}" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:creator" content="@littlegoodjack" />
 <meta name="twitter:title" content="{{ $product->name }} | UQ 搜尋" />
-<meta name="twitter:description" content="{{ $product->comment }} | UNIQLO 比價 | UQ 搜尋" />
+<meta name="twitter:description" content="{!! $productPresenter->getSocialMediaDescription($product) !!}" />
 <meta name="twitter:image" content="{{ $product->main_image_url }}" />
 <meta name="share:text" content="{{ $shareText }}" />
 <meta name="share:url" content="{{ $shareUrl['webShare'] }}" />
