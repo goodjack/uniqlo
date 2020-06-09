@@ -26,6 +26,9 @@ class SitemapService extends Service
             'products/multi-buys',
             'products/news',
             'products/stockouts',
+            'products/most-reviewed',
+            'pages/changelog',
+            'pages/privacy',
         ];
 
         foreach ($pages as $page) {

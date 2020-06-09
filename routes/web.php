@@ -36,6 +36,7 @@ Route::group(['prefix' => 'search'], function () {
 
 Route::group(['prefix' => 'pages'], function () {
     Route::get('/changelog', 'PageController@getChangelog')->name('pages.changelog');
+    Route::get('/privacy', 'PageController@getPrivacyPolicy')->name('pages.privacy-policy');
 });
 
 // Auth::routes();

@@ -10,4 +10,9 @@ class PageController extends Controller
     {
         return view('pages.changelog');
     }
+
+    public function getPrivacyPolicy()
+    {
+        return view('pages.privacy-policy');
+    }
 }
