@@ -2,23 +2,23 @@
 @extends('layouts.master')
 
 @php
-    $shareText = $product->name . " | UNIQLO 比價 | UQ 搜尋";
-    $shareTextEncode = urlencode($shareText);
+$shareText = $product->name . " | UNIQLO 比價 | UQ 搜尋";
+$shareTextEncode = urlencode($shareText);
 
-    $url = url()->current();
-    $shareUrl = [
-        'facebook' => urlencode($url . "?utm_source=uqs&utm_medium=fb&utm_campaign=share"),
-        'twitter' => urlencode($url . "?utm_source=uqs&utm_medium=twtr&utm_campaign=share"),
-        'line' => urlencode($url . "?utm_source=uqs&utm_medium=line&utm_campaign=share"),
-        'webShare' => $url . "?utm_source=uqs&utm_medium=webshare&utm_campaign=share"
-    ];
+$url = url()->current();
+$shareUrl = [
+'facebook' => urlencode($url . "?utm_source=uqs&utm_medium=fb&utm_campaign=share"),
+'twitter' => urlencode($url . "?utm_source=uqs&utm_medium=twtr&utm_campaign=share"),
+'line' => urlencode($url . "?utm_source=uqs&utm_medium=line&utm_campaign=share"),
+'webShare' => $url . "?utm_source=uqs&utm_medium=webshare&utm_campaign=share"
+];
 @endphp
 
 @section('title', "{$product->name}")
 
 @section('json-ld')
 <script type="application/ld+json">
-{
+    {
   "@context": "https://schema.org/",
   "@type": "Product",
   "sku": "{{ $product->id }}",
@@ -82,51 +82,51 @@
     }
 
     #facebook {
-        color: #145cbd;
+        color: #a0aec0;
     }
 
     #facebook:hover {
-        color: #ffffff;
-        border-color: #ffffff;
-        background-color: #1877f2;
+        color: #1877f2 !important;
     }
 
     #facebook:active {
-        color: #b6bcc7;
-        border-color: #ffffff;
-        background-color: #145cbd;
+        color: #145cbd !important;
     }
 
     #twitter {
-        color: #0d7bbf;
+        color: #a0aec0;
     }
 
     #twitter:hover {
-        color: #ffffff;
-        border-color: #ffffff;
-        background-color: #1d95e0;
+        color: #1d95e0 !important;
     }
 
     #twitter:active {
-        color: #b6bcc7;
-        border-color: #ffffff;
-        background-color: #0d7bbf;
+        color: #0d7bbf !important;
     }
 
     #line {
-        color: #05a52f;
+        color: #a0aec0;
     }
 
     #line:hover {
-        color: #ffffff;
-        border-color: #ffffff;
-        background-color: #06b833;
+        color: #06b833 !important;
     }
 
     #line:active {
-        color: #b6bcc7;
-        border-color: #ffffff;
-        background-color: #05a52f;
+        color: #05a52f !important;
+    }
+
+    #comment {
+        font-size: 1.14286rem;
+        line-height: 1.625;
+    }
+
+    @media (min-width: 991px) {
+        #comment {
+            height: 400px;
+            overflow: auto;
+        }
     }
 </style>
 
@@ -137,14 +137,16 @@
 @section('content')
 <div class="ts very padded horizontally fitted attached fluid segment">
     <div class="ts container relaxed grid">
-        <div class="nine wide computer nine wide tablet sixteen wide mobile column">
+        <div class="nine wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
             <div class="ts fluid container">
-                <a class="ts centered image" href="{{ $product->main_image_url }}" rel="nofollow noopener" data-lightbox="image" data-title="{{ $product->name }}">
-                    <img class="ts centered image lazyload" data-src="{{ $product->main_image_url }}" alt="{{ $product->name }}" loading="lazy">
+                <a class="ts centered image" href="{{ $product->main_image_url }}" rel="nofollow noopener"
+                    data-lightbox="image" data-title="{{ $product->name }}">
+                    <img class="ts centered image lazyload" data-src="{{ $product->main_image_url }}"
+                        alt="{{ $product->name }}" loading="lazy">
                 </a>
             </div>
         </div>
-        <div class="seven wide computer seven wide tablet sixteen wide mobile column">
+        <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
             <div class="ts fluid very narrow container grid">
                 <div class="sixteen wide column">
                     <h1 class="ts dividing big header">
@@ -152,6 +154,24 @@
                         <div class="sub header">
                             商品編號 {{ $product->id }}
                             {!! $productPresenter->getRatingForProductShow($product) !!}
+                            &middot;
+                            <div class="ts buttons">
+                                <a id="facebook" class="ts link button"
+                                    href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
+                                    target="_blank" rel="nofollow noopener" aria-label="Facebook">
+                                    <i class="facebook icon"></i>
+                                </a>
+                                <a id="twitter" class="ts link button"
+                                    href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
+                                    target="_blank" rel="nofollow noopener" aria-label="Twitter">
+                                    <i class="twitter icon"></i>
+                                </a>
+                                <a id="line" class="ts link button"
+                                    href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
+                                    target="_blank" rel="nofollow noopener" aria-label="Line">
+                                    <i class="chat icon"></i>
+                                </a>
+                            </div>
                         </div>
                     </h1>
                 </div>
@@ -162,68 +182,27 @@
                         </div>
                     </div>
                 </div>
-                <div class="eight wide column">
-                    <div class="ts tiny divided horizontal two statistics">
-                        <div class="statistic" style="width: 100%; justify-content: center;">
-                            <div class="value">{{ $product->max_price }}</div>
-                            <div class="label">歷史高價 <i class="fitted caret up icon"></i></div>
-                        </div>
-                        <div class="statistic" style="width: 100%; justify-content: center;">
-                            <div class="value">{{ $product->min_price }}</div>
-                            <div class="label">歷史低價 <i class="fitted caret down icon"></i></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="eight wide column">
-                    <div class="ts borderless card">
-                        <div class="center aligned content">
-                            <div class="ts small statistic">
-                                <div class="value">{{ $product->price }}</div>
-                                <div class="label">現在售價</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="ts flatted card">
-                <div class="image">
-                    <canvas id="priceChart" width="457" height="263"></canvas>
-                </div>
-            </div>
-            <div class="ts flatted vertically fitted segment">
-                <details class="ts accordion">
-                    <summary>
-                        <i class="dropdown icon"></i>商品介紹
-                    </summary>
-                    <div class="content">
+                <div class="sixteen wide column">
+                    <div class="ts basic horizontally fitted segment" id="comment">
                         <p>{!! $product->comment !!}</p>
                     </div>
-                </details>
+                </div>
             </div>
+            <div class="ts divider"></div>
             <div class="ts grid">
-                <div id="uniqlo-column" class="sixteen wide column">
-                    <a class="ts inverted fluid button" href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank" rel="nofollow noopener" aria-label="UNIQLO">前往 UNIQLO 官網</a>
+                <div class="four wide column">
+                    <h2>${{ $product->price }}</h2>
                 </div>
-                <div id="share-column-1" class="five wide column" style="display: none;">
-                    <a class="ts basic fluid button" id="share" target="_blank" rel="nofollow noopener" aria-label="Share"><i class="share icon"></i>分享</a>
-                </div>
-                <div id="share-column-2" class="sixteen wide column">
-                    <div class="ts fluid separated stackable buttons">
-                        <a id="facebook" class="ts mini basic fluid button"
-                            href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
-                            target="_blank" rel="nofollow noopener" aria-label="Facebook">
-                            <i class="facebook icon"></i>Facebook 分享
-                        </a>
-                        <a id="twitter" class="ts mini basic fluid button"
-                            href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
-                            target="_blank" rel="nofollow noopener" aria-label="Twitter">
-                            <i class="twitter icon"></i>Twitter 分享
-                        </a>
-                        <a id="line" class="ts mini basic fluid button"
-                            href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
-                            target="_blank" rel="nofollow noopener" aria-label="Line">
-                            <i class="chat icon"></i>LINE 分享
-                        </a>
+                <div class="twelve wide column">
+                    <div id="uniqlo-column">
+                        <div class="ts right floated separated stackable buttons">
+                            <a class="ts negative right labeled icon button"
+                                href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank"
+                                rel="nofollow noopener" aria-label="UNIQLO">前往 UNIQLO 官網<i
+                                    class="external icon"></i></a>
+                            <a class="ts basic button" id="share" target="_blank" rel="nofollow noopener"
+                                aria-label="Share" style="display: none;"><i class="share icon"></i>分享</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -235,6 +214,7 @@
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
     <div class="ts container">
         <h2 class="ts large dividing header">你可能也喜歡</h2>
+        <div class="ts hidden divider"></div>
         <div class="ts segmented selection items">
             @each('products.item', $suggestProducts, 'product')
         </div>
@@ -246,7 +226,7 @@
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
     <div class="ts container">
         <h2 class="ts large dividing header">延伸商品</h2>
-        <br>
+        <div class="ts hidden divider"></div>
         <div class="ts doubling link cards six">
             @each('products.card', $relatedProducts, 'product')
         </div>
@@ -258,7 +238,7 @@
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
     <div class="ts container">
         <h2 class="ts large dividing header">精選穿搭</h2>
-        <br>
+        <div class="ts hidden divider"></div>
         <div class="ts doubling four flatted cards">
             {!! $productPresenter->getStyles($styles) !!}
             {!! $productPresenter->getStyleDictionaries($styleDictionaries) !!}
@@ -271,7 +251,7 @@
 <div class="ts very padded horizontally fitted attached fluid tertiary segment">
     <div class="ts container">
         <h2 class="ts large dividing header">商品實照</h2>
-        <br>
+        <div class="ts hidden divider"></div>
         <div class="ts doubling four flatted cards">
             {!! $productPresenter->getSubImages($product) !!}
             {!! $productPresenter->getItemImages($product) !!}
@@ -279,6 +259,71 @@
     </div>
 </div>
 @endif
+
+<div class="ts very padded horizontally fitted attached fluid tertiary segment">
+    <div class="ts container">
+        <h2 class="ts large dividing header">歷史價格</h2>
+        <div class="ts hidden divider"></div>
+        <div class="ts fluid container grid">
+            <div class="four wide computer sixteen wide tablet sixteen wide mobile column">
+                <div class="ts grid">
+                    <div class="sixteen wide computer eight wide tablet eight wide mobile column">
+                        <div class="ts card">
+                            <div class="center aligned content">
+                                <div class="ts medium statistic">
+                                    <div class="value">{{ $product->max_price }}</div>
+                                    <div class="label">歷史高價</div>
+                                </div>
+                            </div>
+                            <div class="symbol">
+                                <i class="arrow up icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sixteen wide computer eight wide tablet eight wide mobile column">
+                        <div class="ts card">
+                            <div class="center aligned content">
+                                <div class="ts medium statistic">
+                                    <div class="value">{{ $product->min_price }}</div>
+                                    <div class="label">歷史低價</div>
+                                </div>
+                            </div>
+                            <div class="symbol">
+                                <i class="arrow down icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ts hidden divider"></div>
+            </div>
+            <div class="twelve wide computer sixteen wide tablet sixteen wide mobile column">
+                <div class="ts items">
+                    <div class="item">
+                        <div class="ts mini image">
+                            <img data-src="{{ $product->reco_image_url }}" class="lazyload" loading="lazy"
+                                alt="{{ $product->name }} {{ $product->id }}">
+                        </div>
+                        <div class="middle aligned content">
+                            <div class="header">
+                                {{ $product->name }}
+                            </div>
+                            <div class="inline middoted meta">
+                                <span>商品編號
+                                    {{ $product->id }}</span>{!!$productPresenter->getRatingForProductCardAndItem($product)
+                                !!}<span>NT${{ $product->price }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ts flatted card">
+                    <div class="image">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('javascript')
@@ -290,42 +335,81 @@
 <script>
     'use strict';
 
+    Chart.defaults.LineWithLine = Chart.defaults.line;
+        Chart.controllers.LineWithLine = Chart.controllers.line.extend({
+          draw: function(ease) {
+              Chart.controllers.line.prototype.draw.call(this, ease);
+              if (this.chart.tooltip._active && this.chart.tooltip._active.length) {
+                let activePoint = this.chart.tooltip._active[0],
+                    ctx = this.chart.ctx,
+                    x = activePoint.tooltipPosition().x,
+                    y = activePoint.tooltipPosition().y,
+                    topY = this.chart.scales['y-axis-0'].top,
+                    bottomY = this.chart.scales['y-axis-0'].bottom;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(x, topY-20);
+                ctx.lineTo(x, bottomY);
+                ctx.lineWidth = 35;
+                ctx.strokeStyle = 'rgba(206, 94, 87, 0.05)';
+                ctx.stroke();
+                ctx.restore();
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = 'rgba(206, 94, 87, 1.0)';
+                ctx.fill()
+                ctx.stroke();
+                ctx.restore();
+              }
+          }
+        });
+
     let ctx = document.getElementById("priceChart");
     let pointBackgroundColor = [];
     let pointRadius = [];
     let priceChart = new Chart(ctx, {
-        type: 'line',
+        type: 'LineWithLine',
         data: {
             labels: {!! $productPresenter->getPriceChartLabels($productHistories) !!},
             datasets: [{
                 label: '價格',
                 data: {!! $productPresenter->getPriceChartData($productHistories) !!},
-                radius: 1.5,
-                backgroundColor: 'rgba(206, 94, 87, 0.2)',
+                backgroundColor: 'rgba(255, 255, 255, 0)',
                 borderColor: 'rgba(206, 94, 87, 1.0)',
-                borderWidth: 1,
+                borderWidth: 2,
                 cubicInterpolationMode: 'monotone',
                 pointBackgroundColor: pointBackgroundColor,
-                pointRadius: pointRadius
+                pointRadius: pointRadius,
+                pointHoverBorderWidth: 13,
+                pointHoverBorderColor: 'rgba(206, 94, 87, 0.3)'
             }],
             multiBuyData: {!! $productPresenter->getPriceChartMultiBuyData($productHistories) !!}
         },
         options: {
             title: {
-                display: true,
-                lineHeight: 1,
-                text: '歷史價格折線圖'
+                display: false,
             },
             legend: {
                 display: false
             },
+            hover: {
+                mode: 'index',
+                intersect: false,
+                axis: 'x',
+                animationDuration: 0
+            },
             tooltips: {
+                mode: 'index',
+                intersect: false,
+                axis: 'x',
                 backgroundColor: 'rgba(0, 0, 0, 0.7)',
                 xPadding: 11,
                 yPadding: 8,
-                titleMarginBottom: 10,
                 titleFontSize: 14,
-                bodyFontSize: 15,
+                bodyFontSize: 14,
                 footerFontColor: 'rgba(218, 133, 128, 1.0)',
                 displayColors: false,
                 callbacks: {
@@ -340,7 +424,15 @@
                 }
             },
             scales: {
+                xAxes: [{
+                    gridLines: {
+                      drawOnChartArea: false,
+                    },
+                }],
                 yAxes: [{
+                    gridLines: {
+                        color: 'rgba(206, 94, 87, 0.1)',
+                    },
                     ticks: {
                         beginAtZero: true
                     }
@@ -352,10 +444,10 @@
     for (let i = 0; i < priceChart.data.datasets[0].data.length; i++) {
         if (priceChart.data.multiBuyData[i] === null) {
             pointBackgroundColor.push('rgba(206, 94, 87, 0.2)');
-            pointRadius.push(1.5);
+            pointRadius.push(0);
         } else {
-            pointBackgroundColor.push('rgba(206, 94, 87, 0.9)');
-            pointRadius.push(4);
+            pointBackgroundColor.push('rgba(255, 255, 0, 1)');
+            pointRadius.push(2);
         }
     }
 
@@ -386,11 +478,7 @@
 
     function onLoad() {
         if (navigator.share !== undefined) {
-            document.getElementById('share-column-1').style.display = 'block';
-            document.getElementById('share-column-2').style.display = 'none';
-
-            let uniqloColumn = document.getElementById('uniqlo-column');
-            uniqloColumn.className = uniqloColumn.className.replace('sixteen', 'eleven');
+            document.getElementById('share').style.display = 'block';
         }
 
         document.querySelector('#share').addEventListener('click', webShare);

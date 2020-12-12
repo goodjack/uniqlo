@@ -38,7 +38,7 @@ class ProductPresenter
 
         if ($html) {
             $html = '<div class="ts separated buttons">' . $html;
-            $html .= "</div><div class=\"ts hidden divider\"></div>";
+            $html .= "</div>";
         }
 
         return $html;
