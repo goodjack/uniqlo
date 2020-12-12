@@ -25,6 +25,29 @@
             <div class="ts basic segment">
                 <!-- 標題 -->
                 <h2 class="ts dividing header">
+                    v1.34.0
+                </h2>
+                <!-- / 標題 -->
+                <div class="ts large compact basic fitted secondary message">
+                    <div class="header">新增功能</div>
+                    <ul>
+                        <li>新增商品評論區，歡迎大家一起來討論</li>
+                    </ul>
+                </div>
+                <div class="ts large compact basic fitted secondary message">
+                    <div class="header">更新功能</div>
+                    <ul>
+                        <li>歷史價位全新升級！現在範圍更大更好讀了</li>
+                        <li>歷史價位對於手機版更友善，手指點選空白區域也可拖曳指標</li>
+                        <li>現在商品排序會針對熱門評論商品優先了</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- / 文章 -->
+            <!-- 文章 -->
+            <div class="ts basic segment">
+                <!-- 標題 -->
+                <h2 class="ts dividing header">
                     v1.32.0
                 </h2>
                 <!-- / 標題 -->

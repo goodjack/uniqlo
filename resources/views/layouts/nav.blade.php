@@ -48,7 +48,7 @@
                     </a>
                     <div class="divider"></div>
                     <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">
-                        v1.32.0 更新日誌
+                        v1.34.0 更新日誌
                     </a>
                 </div>
             </div>
