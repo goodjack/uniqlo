@@ -255,6 +255,8 @@ class ProductRepository extends Repository
             ->where('stockout', false)
             ->orderBy('limit_sales_end_msg')
             ->orderByRaw('price/max_price')
+            ->orderBy('review_count', 'desc')
+            ->orderBy('review_rating', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -285,6 +287,8 @@ class ProductRepository extends Repository
             ->whereNotNull('multi_buy')
             ->where('stockout', false)
             ->orderBy('multi_buy')
+            ->orderBy('review_count', 'desc')
+            ->orderBy('review_rating', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -315,6 +319,8 @@ class ProductRepository extends Repository
             ->where('sale', true)
             ->where('stockout', false)
             ->orderByRaw('price/max_price')
+            ->orderBy('review_count', 'desc')
+            ->orderBy('review_rating', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -345,6 +351,8 @@ class ProductRepository extends Repository
             ->where('new', true)
             ->where('stockout', false)
             ->orderByRaw('price/max_price')
+            ->orderBy('review_count', 'desc')
+            ->orderBy('review_rating', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
 
