@@ -156,7 +156,7 @@ class ProductPresenter
      */
     public function getProductUrl($product)
     {
-        return action('ProductController@show', ['product' => $product->id]);
+        return route('products.show', ['product' => $product->id]);
     }
 
     public function getProductAvailabilityForJsonLd($product)

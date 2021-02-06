@@ -196,7 +196,7 @@ class ProductController extends Controller
             'id' => ['required', 'numeric'],
         ]);
 
-        return redirect()->action('ProductController@show', ['product' => $request->id]);
+        return redirect()->route('products.show', ['product' => $request->id]);
     }
 
     public function getProductForApi(Product $product)
