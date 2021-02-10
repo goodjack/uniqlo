@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use App\Foundations\DivideProducts;
-use App\Product;
-use App\Repositories\ProductRepository;
+use App\Models\Product;
 use App\Repositories\ProductHistoryRepository;
+use App\Repositories\ProductRepository;
 use App\Repositories\StyleRepository;
 use Carbon\Carbon;
 use GuzzleHttp\Client;

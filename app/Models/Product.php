@@ -1,7 +1,12 @@
 <?php
 
-namespace App;
+namespace App\Models;
 
+use App\Models\Category;
+use App\Models\MultiBuyHistory;
+use App\Models\ProductHistory;
+use App\Models\Style;
+use App\Models\StyleDictionary;
 use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
@@ -12,27 +17,27 @@ class Product extends Model
 
     public function histories()
     {
-        return $this->hasMany('App\ProductHistory');
+        return $this->hasMany(ProductHistory::class);
     }
 
     public function multiBuys()
     {
-        return $this->hasMany('App\MultiBuyHistory');
+        return $this->hasMany(MultiBuyHistory::class);
     }
 
     public function category()
     {
-        return $this->belongsTo('App\Category');
+        return $this->belongsTo(Category::class);
     }
 
     public function styleDictionaries()
     {
-        return $this->belongsToMany('App\StyleDictionary');
+        return $this->belongsToMany(StyleDictionary::class);
     }
 
     public function styles()
     {
-        return $this->belongsToMany('App\Style');
+        return $this->belongsToMany(Style::class);
     }
 
     /**

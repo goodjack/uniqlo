@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Product;
+use App\Models\Product;
 use GuzzleHttp\Client;
 use App\Foundations\DivideProducts;
 use Yish\Generators\Foundation\Service\Service;

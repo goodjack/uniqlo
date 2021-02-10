@@ -2,11 +2,11 @@
 
 namespace App\Repositories;
 
-use App\MultiBuyHistory;
-use App\Product;
-use App\ProductHistory;
-use App\Style;
-use App\StyleDictionary;
+use App\Models\MultiBuyHistory;
+use App\Models\Product;
+use App\Models\ProductHistory;
+use App\Models\Style;
+use App\Models\StyleDictionary;
 use Cache;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;

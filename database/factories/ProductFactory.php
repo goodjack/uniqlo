@@ -1,8 +1,9 @@
 <?php
 
+use App\Models\Product;
 use Faker\Generator as Faker;
 
-$factory->define(App\Product::class, function (Faker $faker) {
+$factory->define(Product::class, function (Faker $faker) {
     $category1 = '00'.$faker->numberBetween(1, 4);
     $category2 = '00'.$faker->numberBetween(1, 9);
 

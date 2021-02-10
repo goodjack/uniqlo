@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Foundations\DivideProducts;
-use App\Product;
+use App\Models\Product;
 use App\Services\SearchService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Response;
@@ -42,15 +42,15 @@ class SearchServiceTest extends TestCase
      */
     public function test_getProducts($searchResults)
     {
-        factory(Product::class)->create([
+        Product::factory()->create([
             'id' => 409325,
         ]);
 
-        factory(Product::class)->create([
+        Product::factory()->create([
             'id' => 40932500001,
         ]);
 
-        factory(Product::class, 10)->create();
+        Product::factory()->count(10)->create();
 
         $service = app(SearchService::class);
         $products = $service->getProducts($searchResults);

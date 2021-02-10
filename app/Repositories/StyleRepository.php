@@ -2,9 +2,9 @@
 
 namespace App\Repositories;
 
+use App\Models\Style;
 use Illuminate\Support\Facades\DB;
 use Yish\Generators\Foundation\Repository\Repository;
-use App\Style;
 
 class StyleRepository
 {

@@ -2,8 +2,8 @@
 
 namespace Tests\Unit;
 
-use App\MultiBuyHistory;
-use App\Product;
+use App\Models\MultiBuyHistory;
+use App\Models\Product;
 use App\Repositories\ProductRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\TestCase;
@@ -28,11 +28,11 @@ class ProductTest extends TestCase
      */
     public function testMultiBuy()
     {
-        $productOne = factory(Product::class)->create();
-        $productOneMultiBuy = $productOne->multiBuys()->save(factory(MultiBuyHistory::class)->create());
+        $productOne = Product::factory()->create();
+        $productOneMultiBuy = $productOne->multiBuys()->save(MultiBuyHistory::factory()->create());
 
-        $productTwo = factory(Product::class)->create();
-        $productTwoMultiBuy = $productTwo->multiBuys()->save(factory(MultiBuyHistory::class)->create([
+        $productTwo = Product::factory()->create();
+        $productTwoMultiBuy = $productTwo->multiBuys()->save(MultiBuyHistory::factory()->create([
             'created_at' => \Carbon\Carbon::now()->subDay()
         ]));
 

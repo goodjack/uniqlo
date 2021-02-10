@@ -1,10 +1,11 @@
 <?php
 
-namespace App;
+namespace App\Models;
 
+use App\Models\Product;
 use Illuminate\Database\Eloquent\Model;
 
-class Style extends Model
+class StyleDictionary extends Model
 {
     protected $fillable = ['id'];
     public $incrementing = false;
@@ -12,6 +13,6 @@ class Style extends Model
 
     public function products()
     {
-        return $this->belongsToMany('App\Product');
+        return $this->belongsToMany(Product::class);
     }
 }
