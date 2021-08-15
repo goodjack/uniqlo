@@ -1,0 +1,14 @@
+includes:
+    - ./vendor/nunomaduro/larastan/extension.neon
+parameters:
+    paths:
+        - .
+    level: 8
+    excludePaths:
+        - ./node_modules/*
+        - ./public/hot/*
+        - ./public/storage/*｀
+        - ./storage/*
+        - ./vendor/*
+        - ./bootstrap/cache/*
+        - ./*.blade.php
