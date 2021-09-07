@@ -25,6 +25,21 @@
             <div class="ts basic segment">
                 <!-- 標題 -->
                 <h2 class="ts dividing header">
+                    v1.35.1
+                </h2>
+                <!-- / 標題 -->
+                <div class="ts large compact basic fitted secondary message">
+                    <div class="header">新增公告</div>
+                    <ul>
+                        <li>本站尚未支援新版 UNIQLO 官網，目前網站內容皆為過往資訊，部分功能亦受到限制，敬請見諒。</li>
+                    </ul>
+                </div>
+            </div>
+            <!-- / 文章 -->
+            <!-- 文章 -->
+            <div class="ts basic segment">
+                <!-- 標題 -->
+                <h2 class="ts dividing header">
                     v1.34.0
                 </h2>
                 <!-- / 標題 -->

@@ -37,6 +37,13 @@
 
 <body>
     @include('layouts.nav')
+    <div class="ts horizontally fitted attached fluid segment">
+        <div class="ts container">
+            <div class="ts mini center aligned borderless message">
+                本站尚未支援新版 UNIQLO 官網，目前網站內容皆為過往資訊，部分功能亦受到限制，敬請見諒。
+            </div>
+        </div>
+    </div>
     @yield('content')
     @include('layouts.footer')
 
