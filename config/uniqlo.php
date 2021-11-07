@@ -13,6 +13,15 @@ return [
         'style_dictionary_detail' => env('UQ_API_STYLE_DICTIONARY_DETAIL'),
         'style_book_list' => env('UQ_API_STYLING_BOOK_LIST'),
         'style_book_detail' => env('UQ_API_STYLING_BOOK_DETAIL'),
+
+        'hmall_search' => env('UQ_API_HMALL_SEARCH'),
+    ],
+
+    'data' => [
+        'hmall_search' => [
+            'url' => env('UQ_DATA_HMALL_SEARCH_URL'),
+            'description' => env('UQ_DATA_HMALL_SEARCH_DESCRIPTION'),
+        ],
     ],
 
 ];
