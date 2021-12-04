@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use Illuminate\Support\Facades\Http;
 use Throwable;
@@ -56,5 +57,35 @@ class HmallProductService extends Service
                 report($e);
             }
         } while ($productSum >= $page++ * $pageSize);
+    }
+
+    public function fetchAllHmallProductDescriptions($updateTimestamps = false)
+    {
+        $hmallProducts = HmallProduct::whereNull('instruction')->select(['id', 'product_code'])->get();
+
+        foreach ($hmallProducts as $hmallProduct) {
+            try {
+                $productCode = $hmallProduct->product_code;
+
+                $response = Http::withHeaders([
+                    'User-Agent' => config('app.user_agent_mobile'),
+                ])->get(config('uniqlo.api.spu') . "{$productCode}.json");
+
+                $responseBody = json_decode($response->getBody());
+                $instruction = $responseBody->desc->instruction;
+                $sizeChart = $responseBody->desc->sizeChart;
+
+                $this->repository->updateProductDescriptionsFromUniqloSpu(
+                    $hmallProduct,
+                    $instruction,
+                    $sizeChart,
+                    $updateTimestamps
+                );
+
+                sleep(1);
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
     }
 }

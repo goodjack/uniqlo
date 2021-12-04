@@ -73,6 +73,15 @@ class HmallProductRepository extends Repository
         });
     }
 
+    public function updateProductDescriptionsFromUniqloSpu(HmallProduct $hmallProduct, $instruction, $sizeChart, bool $updateTimestamps = false)
+    {
+        $hmallProduct->instruction = $instruction;
+        $hmallProduct->size_chart = $sizeChart;
+
+        $hmallProduct->timestamps = $updateTimestamps;
+        $hmallProduct->save();
+    }
+
     private function getLowestRecordPrice($model, $minPrice)
     {
         $lowestRecordPrice = $model->lowest_record_price;

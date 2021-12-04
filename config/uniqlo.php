@@ -15,6 +15,7 @@ return [
         'style_book_detail' => env('UQ_API_STYLING_BOOK_DETAIL'),
 
         'hmall_search' => env('UQ_API_HMALL_SEARCH'),
+        'spu' => env('UQ_API_SPU'),
     ],
 
     'data' => [
