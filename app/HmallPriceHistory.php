@@ -8,6 +8,6 @@ class HmallPriceHistory extends Model
 {
     public function hmallProduct()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(HmallProduct::class);
     }
 }

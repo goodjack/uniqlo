@@ -15,6 +15,7 @@ User-agent: Slackbot
 Disallow: /
 Allow: /$
 Allow: /products/
+Allow: /hmall-products/
 Allow: /sitemap
 Allow: /favicon.ico
 

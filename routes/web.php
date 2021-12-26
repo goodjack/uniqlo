@@ -29,6 +29,10 @@ Route::group(['prefix' => 'products'], function () {
     Route::get('/{product}', 'ProductController@show')->name('products.show');
 });
 
+Route::group(['prefix' => 'hmall-products'], function () {
+    Route::get('/{hmallProduct:product_code}', 'HmallProductController@show')->name('hmall-products.show');
+});
+
 Route::group(['prefix' => 'search'], function () {
     Route::get('/', 'SearchController@index');
     Route::get('/{query}', 'SearchController@search')->name('search');
