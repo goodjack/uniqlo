@@ -34,8 +34,8 @@ Route::group(['prefix' => 'hmall-products'], function () {
 });
 
 Route::group(['prefix' => 'search'], function () {
-    Route::get('/', 'SearchController@index');
-    Route::get('/{query}', 'SearchController@search')->name('search');
+    Route::get('/', 'SearchController@index')->name('search.index');
+    Route::get('/{query}', 'SearchController@show')->name('search.show');
 });
 
 Route::group(['prefix' => 'pages'], function () {

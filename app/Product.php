@@ -60,4 +60,14 @@ class Product extends Model
 
         return "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$color}_{$id}_middles.jpg";
     }
+
+    /**
+     * Get the product route url.
+     *
+     * @return string
+     */
+    public function getRouteUrlAttribute()
+    {
+        return route('products.show', ['product' => $this->id]);
+    }
 }

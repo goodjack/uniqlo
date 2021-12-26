@@ -152,4 +152,14 @@ class HmallProduct extends Model
     {
         return $this->stock === 'N';
     }
+
+    /**
+     * Get the product route url.
+     *
+     * @return string
+     */
+    public function getRouteUrlAttribute()
+    {
+        return route('hmall-products.show', ['hmallProduct' => $this->product_code]);
+    }
 }

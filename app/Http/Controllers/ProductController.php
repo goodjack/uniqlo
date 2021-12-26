@@ -137,7 +137,7 @@ class ProductController extends Controller
         $stockouts = $this->productService->getStockoutProducts();
 
         return view('products.stockouts', [
-            'stockouts' => $stockouts
+            'stockouts' => $stockouts,
         ]);
     }
 
@@ -146,7 +146,7 @@ class ProductController extends Controller
         $sales = $this->productService->getSaleProducts();
 
         return view('products.sales', [
-            'sales' => $sales
+            'sales' => $sales,
         ]);
     }
 
@@ -155,7 +155,7 @@ class ProductController extends Controller
         $limitedOffers = $this->productService->getLimitedOfferProducts();
 
         return view('products.limited-offers', [
-            'limitedOffers' => $limitedOffers
+            'limitedOffers' => $limitedOffers,
         ]);
     }
 
@@ -164,7 +164,7 @@ class ProductController extends Controller
         $multiBuys = $this->productService->getMultiBuyProducts();
 
         return view('products.multi-buys', [
-            'multiBuys' => $multiBuys
+            'multiBuys' => $multiBuys,
         ]);
     }
 
@@ -192,11 +192,7 @@ class ProductController extends Controller
 
     public function go(Request $request)
     {
-        $request->validate([
-            'id' => ['required', 'numeric'],
-        ]);
-
-        return redirect()->action('ProductController@show', ['product' => $request->id]);
+        return redirect()->route('search.index', ['id' => $request->id]);
     }
 
     public function getProductForApi(Product $product)
