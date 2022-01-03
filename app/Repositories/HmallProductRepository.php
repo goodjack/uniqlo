@@ -57,6 +57,14 @@ class HmallProductRepository extends Repository
                 $model->material = $product->material;
                 $model->stock = $product->stock;
 
+                if ($model->stock === 'Y' && $product->stock === 'N') {
+                    $model->stockout_at = now();
+                }
+
+                if ($model->stock === 'N' && $product->stock === 'Y') {
+                    $model->stockout_at = null;
+                }
+
                 $model->save();
 
                 if ($this->hasNotChangeThePrice($model)) {

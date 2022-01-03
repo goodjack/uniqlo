@@ -97,15 +97,10 @@ class HmallProductPresenter
             ];
         });
 
-        $lastHmallPriceHistories = $data->last();
-        /** @var \Carbon\Carbon $lastTime */
-        $lastDate = $lastHmallPriceHistories['t'];
+        $lastData = $this->getLastPriceChartData($hmallPriceHistories);
 
-        if (! today()->isSameDay($lastDate)) {
-            $data[] = [
-                't' => today()->toDateString(),
-                'y' => $lastHmallPriceHistories['y'],
-            ];
+        if ($lastData) {
+            $data[] = $lastData;
         }
 
         return json_encode($data);
@@ -179,5 +174,25 @@ class HmallProductPresenter
         $rating .= " ({$hmallProduct->evaluation_count})";
 
         return $rating;
+    }
+
+    private function getLastPriceChartData($hmallPriceHistories)
+    {
+        $lastHmallPriceHistories = $hmallPriceHistories->last();
+
+        /** @var \Carbon\Carbon $lastHistoryAt */
+        $lastHistoryAt = $lastHmallPriceHistories->created_at;
+
+        /** @var \Carbon\Carbon $lastAvailableAt */
+        $lastAvailableAt = $lastHmallPriceHistories->hmallProduct->last_available_at;
+
+        if ($lastAvailableAt->isSameDay($lastHistoryAt)) {
+            return null;
+        }
+
+        return [
+            't' => $lastAvailableAt->toDateString(),
+            'y' => $lastHmallPriceHistories->min_price,
+        ];
     }
 }

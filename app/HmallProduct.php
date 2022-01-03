@@ -8,6 +8,15 @@ class HmallProduct extends Model
 {
     protected $fillable = ['product_code'];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'stockout_at' => 'datetime',
+    ];
+
     public function hmallPriceHistories()
     {
         return $this->hasMany(HmallPriceHistory::class);
@@ -161,5 +170,14 @@ class HmallProduct extends Model
     public function getRouteUrlAttribute()
     {
         return route('hmall-products.show', ['hmallProduct' => $this->product_code]);
+    }
+
+    public function getLastAvailableAtAttribute()
+    {
+        if ($this->stockout_at) {
+            return $this->stockout_at->subDay();
+        }
+
+        return $this->updated_at;
     }
 }
