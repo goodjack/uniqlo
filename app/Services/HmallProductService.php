@@ -61,7 +61,10 @@ class HmallProductService extends Service
 
     public function fetchAllHmallProductDescriptions($updateTimestamps = false)
     {
-        $hmallProducts = HmallProduct::whereNull('instruction')->select(['id', 'product_code'])->get();
+        $hmallProducts = HmallProduct::whereNull('instruction')
+            ->select(['id', 'product_code'])
+            ->orderBy('id', 'desc')
+            ->get();
 
         foreach ($hmallProducts as $hmallProduct) {
             try {
@@ -72,8 +75,8 @@ class HmallProductService extends Service
                 ])->get(config('uniqlo.api.spu') . "{$productCode}.json");
 
                 $responseBody = json_decode($response->getBody());
-                $instruction = $responseBody->desc->instruction;
-                $sizeChart = $responseBody->desc->sizeChart;
+                $instruction = data_get($responseBody, 'desc.instruction');
+                $sizeChart = data_get($responseBody, 'desc.sizeChart');
 
                 $this->repository->updateProductDescriptionsFromUniqloSpu(
                     $hmallProduct,
