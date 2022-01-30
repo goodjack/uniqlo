@@ -93,6 +93,14 @@ class HmallProductRepository extends Repository
         $hmallProduct->save();
     }
 
+    public function getAllProductsForSitemap()
+    {
+        return $this->model
+            ->select(['id', 'product_code', 'updated_at'])
+            ->orderBy('id', 'desc')
+            ->get();
+    }
+
     private function getLowestRecordPrice($model, $minPrice)
     {
         $lowestRecordPrice = $model->lowest_record_price;

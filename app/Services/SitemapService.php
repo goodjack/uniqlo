@@ -11,6 +11,7 @@ use Yish\Generators\Foundation\Service\Service;
 class SitemapService extends Service
 {
     protected $productRepository;
+    protected $hmallProductRepository;
 
     public function __construct(ProductRepository $productRepository, HmallProductRepository $hmallProductRepository)
     {
