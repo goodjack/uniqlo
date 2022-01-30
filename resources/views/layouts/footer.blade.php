@@ -27,7 +27,7 @@
 
                 <a class="ts inverted basic circular very compact button" href="{{ route('pages.changelog') }}"
                     aria-label="changelog">
-                    v1.35.1 更新日誌
+                    v2.0.0 更新日誌
                 </a>
             </div>
         </div>
@@ -36,22 +36,24 @@
                 <a href="{{ route('home') }}" class="fitted item" aria-label="home">
                     <p><i class="home icon"></i> 首頁</p>
                 </a>
-                <a href="{{ route('products.limited-offers') }}" class="fitted item" aria-label="limited-offers">
+                <a href="{{ route('products.limited-offers') }}" class="fitted disabled item"
+                    aria-label="limited-offers">
                     <p><i class="certificate icon"></i> 期間限定特價商品</p>
                 </a>
-                <a href="{{ route('products.sales') }}" class="fitted item" aria-label="sales">
+                <a href="{{ route('products.sales') }}" class="fitted disabled item" aria-label="sales">
                     <p><i class="shopping basket icon"></i> 特價商品</p>
                 </a>
-                <a href="{{ route('products.most-reviewed') }}" class="fitted item" aria-label="most-reviewed">
+                <a href="{{ route('products.most-reviewed') }}" class="fitted disabled item"
+                    aria-label="most-reviewed">
                     <p><i class="comments outline icon"></i> 熱門評論商品</p>
                 </a>
-                <a href="{{ route('products.news') }}" class="fitted item" aria-label="news">
+                <a href="{{ route('products.news') }}" class="fitted disabled item" aria-label="news">
                     <p><i class="leaf icon"></i> 新品</p>
                 </a>
-                <a href="{{ route('products.multi-buys') }}" class="fitted item" aria-label="multi-buys">
+                <a href="{{ route('products.multi-buys') }}" class="fitted disabled item" aria-label="multi-buys">
                     <p><i class="cubes icon"></i> 合購優惠</p>
                 </a>
-                <a href="{{ route('products.stockouts') }}" class="fitted item" aria-label="stockouts">
+                <a href="{{ route('products.stockouts') }}" class="fitted disabled item" aria-label="stockouts">
                     <p><i class="archive icon"></i> 可能已經沒有庫存</p>
                 </a>
             </div>
