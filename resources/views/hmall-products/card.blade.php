@@ -15,14 +15,14 @@
     </div>
     <div class="center aligned extra content">
         @if ($hmallProduct->highest_record_price > $hmallProduct->price)
-            <small>${{ $hmallProduct->highest_record_price }} ⇢</small>
+            <small>${{ (int) $hmallProduct->highest_record_price }} ⇢</small>
             <strong>${{ $hmallProduct->price }}</strong>
         @else
             ${{ $hmallProduct->price }}
         @endif
 
         @if ($hmallProduct->price > $hmallProduct->lowest_record_price)
-            <span style="color: #8BB96E;">⇢ ${{ $hmallProduct->lowest_record_price }}</span>
+            <span style="color: #8BB96E;">⇢ ${{ (int) $hmallProduct->lowest_record_price }}</span>
         @endif
 
         @if ($hmallProduct->is_limit_sale)
