@@ -46,5 +46,7 @@ class FetchHmallProductDescriptions extends Command
         Log::debug('FetchHmallProductDescriptions start');
         $this->hmallProductService->fetchAllHmallProductDescriptions();
         Log::debug('FetchHmallProductDescriptions end');
+
+        $this->call('sitemap:generate');
     }
 }

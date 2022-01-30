@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use Spatie\Sitemap\Sitemap;
 use Spatie\Sitemap\Tags\Url;
@@ -11,9 +12,10 @@ class SitemapService extends Service
 {
     protected $productRepository;
 
-    public function __construct(ProductRepository $productRepository)
+    public function __construct(ProductRepository $productRepository, HmallProductRepository $hmallProductRepository)
     {
         $this->productRepository = $productRepository;
+        $this->hmallProductRepository = $hmallProductRepository;
     }
 
     public function make()
@@ -33,6 +35,15 @@ class SitemapService extends Service
 
         foreach ($pages as $page) {
             $sitemap->add($page);
+        }
+
+        $hmallProducts = $this->hmallProductRepository->getAllProductsForSitemap();
+
+        foreach ($hmallProducts as $hmallProduct) {
+            $sitemap->add(
+                Url::create("hmall-products/{$hmallProduct->product_code}")
+                    ->setLastModificationDate($hmallProduct->updated_at)
+            );
         }
 
         $products = $this->productRepository->getAllProductsForSitemap();
