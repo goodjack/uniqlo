@@ -25,9 +25,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         // TODO: Queues
-        $schedule->command('category:fetch')->dailyAt('09:01');
-        $schedule->command('product:fetch')->dailyAt('09:02');
-        $schedule->command('style:fetch')->dailyAt('09:07');
+        $schedule->command('hmall-product:fetch')->dailyAt('09:01');
     }
 
     /**

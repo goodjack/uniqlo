@@ -46,5 +46,7 @@ class FetchHmallProducts extends Command
         Log::debug('FetchHmallProducts start');
         $this->hmallProductService->fetchAllHmallProducts();
         Log::debug('FetchHmallProducts end');
+
+        $this->call('hmall-product-description:fetch');
     }
 }
