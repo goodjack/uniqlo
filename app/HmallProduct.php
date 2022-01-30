@@ -14,6 +14,8 @@ class HmallProduct extends Model
      * @var array
      */
     protected $casts = [
+        'time_limited_begin' => 'datetime',
+        'time_limited_end' => 'datetime',
         'stockout_at' => 'datetime',
     ];
 

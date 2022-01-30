@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\HmallPriceHistory;
 use App\HmallProduct;
+use Carbon\Carbon;
 use Throwable;
 use Yish\Generators\Foundation\Repository\Repository;
 
@@ -38,6 +39,8 @@ class HmallProductRepository extends Repository
                 $model->price_color = $product->priceColor;
                 $model->identity = json_encode($product->identity);
                 $model->label = $product->label;
+                $model->time_limited_begin = Carbon::createFromTimestampMs($product->timeLimitedBegin);
+                $model->time_limited_end = Carbon::createFromTimestampMs($product->timeLimitedEnd);
                 $model->score = $product->score;
                 $model->size_score = $product->sizeScore;
                 $model->evaluation_count = $product->evaluationCount;
