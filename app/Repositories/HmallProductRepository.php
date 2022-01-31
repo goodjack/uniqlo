@@ -39,8 +39,8 @@ class HmallProductRepository extends Repository
                 $model->price_color = $product->priceColor;
                 $model->identity = json_encode($product->identity);
                 $model->label = $product->label;
-                $model->time_limited_begin = Carbon::createFromTimestampMs($product->timeLimitedBegin);
-                $model->time_limited_end = Carbon::createFromTimestampMs($product->timeLimitedEnd);
+                $model->time_limited_begin = $this->getCarbonOrNull($product->timeLimitedBegin);
+                $model->time_limited_end = $this->getCarbonOrNull($product->timeLimitedEnd);
                 $model->score = $product->score;
                 $model->size_score = $product->sizeScore;
                 $model->evaluation_count = $product->evaluationCount;
@@ -121,6 +121,15 @@ class HmallProductRepository extends Repository
         }
 
         return max($highestRecordPrice, $maxPrice);
+    }
+
+    private function getCarbonOrNull($unixTimestampInMilliseconds)
+    {
+        if (empty($unixTimestampInMilliseconds)) {
+            return null;
+        }
+
+        return Carbon::createFromTimestampMs($unixTimestampInMilliseconds);
     }
 
     private function hasNotChangeThePrice($model)
