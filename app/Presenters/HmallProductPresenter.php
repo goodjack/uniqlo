@@ -36,8 +36,16 @@ class HmallProductPresenter
     {
         $html = '';
 
-        if ($hmallProduct->is_limit_sale) {
-            $html .= '<a class="ts circular mini very compact negative button"><i class="certificate icon"></i>期間限定特價</a>';
+        if ($hmallProduct->is_limited_offer) {
+            $date = $hmallProduct->limited_offer_end_date;
+
+            if (empty($date)) {
+                $html .= '<a class="ts circular mini very compact negative button"><i class="certificate icon"></i>期間限定特價</a>';
+            }
+
+            $html .= '<a class="ts circular mini very compact negative button"><i class="certificate icon"></i>截至 ';
+            $html .= $date->format('m/d');
+            $html .= ' 限定價格</a>';
         }
 
         if ($hmallProduct->is_multi_buy) {

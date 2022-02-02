@@ -107,15 +107,33 @@ class HmallProduct extends Model
     }
 
     /**
-     * Get whether the product is limit sale or not.
+     * Get whether the product is limited offer or not.
      *
      * @return bool
      */
-    public function getIsLimitSaleAttribute()
+    public function getIsLimitedOfferAttribute()
     {
         $identity = json_decode($this->identity);
 
         return in_array('time_doptimal', $identity);
+    }
+
+    /**
+     * Get the end date of the limited offer.
+     *
+     * @return bool
+     */
+    public function getLimitedOfferEndDateAttribute()
+    {
+        $now = now();
+
+        $condition = $now <= $this->time_limited_end && $now >= $this->time_limited_begin;
+
+        if (! $condition) {
+            return null;
+        }
+
+        return $this->time_limited_end->startOfDay();
     }
 
     /**

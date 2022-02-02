@@ -25,7 +25,7 @@
             <span style="color: #8BB96E;">⇢ ${{ (int) $hmallProduct->lowest_record_price }}</span>
         @endif
 
-        @if ($hmallProduct->is_limit_sale)
+        @if ($hmallProduct->is_limited_offer)
             <br><span style="color: #CE5F58;">期間限定特價</span>
         @endif
 
