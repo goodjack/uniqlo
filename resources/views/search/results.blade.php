@@ -10,5 +10,5 @@
         <i class="search faded icon"></i>
         <span class="header">商品編號 {{ $query }} 的搜尋結果</span>
     </div>
-    @include('hmall-products.cards', ['hmallProducts' => $hmallProducts, 'products' => $products])
+    @include('search.cards', ['hmallProducts' => $hmallProducts, 'products' => $products])
 @endsection
