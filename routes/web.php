@@ -43,6 +43,10 @@ Route::group(['prefix' => 'pages'], function () {
     Route::get('/privacy', 'PageController@getPrivacyPolicy')->name('pages.privacy-policy');
 });
 
+Route::group(['prefix' => 'lists'], function () {
+    Route::get('/limited-offers', 'ListController@getLimitedOffers')->name('lists.limited-offers');
+});
+
 // Auth::routes();
 
 // Route::get('/home', 'HomeController@index')->name('home');

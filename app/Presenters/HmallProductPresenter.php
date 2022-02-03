@@ -37,15 +37,11 @@ class HmallProductPresenter
         $html = '';
 
         if ($hmallProduct->is_limited_offer) {
-            $date = $hmallProduct->limited_offer_end_date;
+            $message = $this->getLimitedOfferMessage($hmallProduct);
 
-            if (empty($date)) {
-                $html .= '<a class="ts circular mini very compact negative button"><i class="certificate icon"></i>期間限定特價</a>';
-            }
-
-            $html .= '<a class="ts circular mini very compact negative button"><i class="certificate icon"></i>截至 ';
-            $html .= $date->format('m/d');
-            $html .= ' 限定價格</a>';
+            $html .= '<a class="ts circular mini very compact negative button"><i class="certificate icon"></i>';
+            $html .= $message;
+            $html .= '</a>';
         }
 
         if ($hmallProduct->is_multi_buy) {
@@ -94,6 +90,19 @@ class HmallProductPresenter
         }
 
         return $html;
+    }
+
+    public function getLimitedOfferMessage($hmallProduct)
+    {
+        $date = $hmallProduct->limited_offer_end_date;
+
+        if (empty($date)) {
+            return '期間限定特價';
+        }
+
+        $formattedDate = $date->format('m/d');
+
+        return "截至 ${formattedDate} 限定價格";
     }
 
     public function getPriceChartData($hmallPriceHistories)

@@ -30,6 +30,10 @@
             padding: 60px 0 0 0;
         }
 
+        .anchor {
+            scroll-margin-top: 75px;
+        }
+
     </style>
     @yield('css')
 

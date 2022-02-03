@@ -2,38 +2,36 @@
 
 namespace App\Console\Commands;
 
-use App\Services\HmallProductService;
+use App\Repositories\HmallProductRepository;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
-class FetchHmallProducts extends Command
+class SetHmallProductCaches extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'hmall-product:fetch';
+    protected $signature = 'hmall-product:cache';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Fetch all products from UNIQLO Hmall';
+    protected $description = 'Set Hmall product caches';
 
     /**
      * Create a new command instance.
      *
-     * @param HmallProductService $hmallProductService
-     *
      * @return void
      */
-    public function __construct(HmallProductService $hmallProductService)
+    public function __construct(HmallProductRepository $hmallProductRepository)
     {
         parent::__construct();
 
-        $this->hmallProductService = $hmallProductService;
+        $this->hmallProductRepository = $hmallProductRepository;
     }
 
     /**
@@ -43,9 +41,9 @@ class FetchHmallProducts extends Command
      */
     public function handle()
     {
-        Log::debug('FetchHmallProducts start');
-        $this->hmallProductService->fetchAllHmallProducts();
-        Log::debug('FetchHmallProducts end');
+        Log::debug('SetHmallProductCaches start');
+        $this->hmallProductRepository->setLimitedOfferHmallProductsCache();
+        Log::debug('SetHmallProductCaches end');
 
         return 0;
     }

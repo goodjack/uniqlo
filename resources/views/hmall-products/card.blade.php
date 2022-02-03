@@ -26,7 +26,9 @@
         @endif
 
         @if ($hmallProduct->is_limited_offer)
-            <br><span style="color: #CE5F58;">期間限定特價</span>
+            <br><span style="color: #CE5F58;">
+                {{ $hmallProductPresenter->getLimitedOfferMessage($hmallProduct) }}
+            </span>
         @endif
 
         @if ($hmallProduct->is_multi_buy)

@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\HmallPriceHistory;
 use App\HmallProduct;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 use Yish\Generators\Foundation\Repository\Repository;
 
@@ -12,10 +13,58 @@ class HmallProductRepository extends Repository
 {
     protected $model;
 
+    private const CACHE_KEY_LIMITED_OFFER = 'hmall_product:limited_offer';
+    private const SELECT_COLUMNS_FOR_LIST = [
+        'id',
+        'code',
+        'product_code',
+        'name',
+        'min_price',
+        'lowest_record_price',
+        'highest_record_price',
+        'identity',
+        'time_limited_begin',
+        'time_limited_end',
+        'score',
+        'evaluation_count',
+        'main_first_pic',
+        'gender',
+        'sex',
+        'stock',
+        'stockout_at',
+        'updated_at',
+    ];
+
     public function __construct(HmallProduct $model, HmallPriceHistory $hmallPriceHistory)
     {
         $this->model = $model;
         $this->hmallPriceHistory = $hmallPriceHistory;
+    }
+
+    public function getLimitedOfferHmallProducts()
+    {
+        if (! Cache::has(self::CACHE_KEY_LIMITED_OFFER)) {
+            $this->setLimitedOfferHmallProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_LIMITED_OFFER);
+    }
+
+    public function setLimitedOfferHmallProductsCache()
+    {
+        $hmallProducts = $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->where('time_limited_begin', '<=', now())
+            ->where('time_limited_end', '>=', now())
+            ->where('stock', 'Y')
+            ->orderBy('time_limited_end')
+            ->orderByRaw('min_price/highest_record_price')
+            ->orderBy('evaluation_count', 'desc')
+            ->orderBy('score', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        Cache::forever(self::CACHE_KEY_LIMITED_OFFER, $hmallProducts);
     }
 
     public function saveProductsFromUniqloHmall($products)

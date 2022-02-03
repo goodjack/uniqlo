@@ -24,6 +24,7 @@ class SitemapService extends Service
         $sitemap = Sitemap::create();
 
         $pages = [
+            'lists/limited-offers',
             'products/limited-offers',
             'products/sales',
             'products/multi-buys',

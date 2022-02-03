@@ -36,8 +36,7 @@
                 <a href="{{ route('home') }}" class="fitted item" aria-label="home">
                     <p><i class="home icon"></i> 首頁</p>
                 </a>
-                <a href="{{ route('products.limited-offers') }}" class="fitted disabled item"
-                    aria-label="limited-offers">
+                <a href="{{ route('lists.limited-offers') }}" class="fitted item" aria-label="limited-offers">
                     <p><i class="certificate icon"></i> 期間限定特價商品</p>
                 </a>
                 <a href="{{ route('products.sales') }}" class="fitted disabled item" aria-label="sales">

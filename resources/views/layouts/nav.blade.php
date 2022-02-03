@@ -11,6 +11,7 @@
         </div>
         <div class="tablet or large device only right menu">
             <a href="{{ route('home') }}" class="item" aria-label="home">首頁</a>
+            <a href="{{ route('lists.limited-offers') }}" class="item" aria-label="limited-offers">期間限定</a>
             <div class="divider"></div>
             <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">
                 v2.0.0 更新日誌
@@ -25,6 +26,9 @@
                 <div class="menu">
                     <a href="{{ route('home') }}" class="item" aria-label="home">
                         <i class="home icon"></i>首頁
+                    </a>
+                    <a href="{{ route('lists.limited-offers') }}" class="item" aria-label="limited-offers">
+                        <i class="certificate icon"></i>期間限定
                     </a>
                     <div class="divider"></div>
                     <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">
