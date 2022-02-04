@@ -51,8 +51,8 @@
                 <a href="{{ route('lists.coming-soon') }}" class="fitted item" aria-label="coming-soon">
                     <p><i class="checked calendar icon"></i> 即將上市商品</p>
                 </a>
-                <a href="{{ route('products.multi-buys') }}" class="fitted disabled item" aria-label="multi-buys">
-                    <p><i class="cubes icon"></i> 合購優惠</p>
+                <a href="{{ route('lists.multi-buy') }}" class="fitted item" aria-label="multi-buy">
+                    <p><i class="cubes icon"></i> 合購優惠商品</p>
                 </a>
                 <a href="{{ route('products.stockouts') }}" class="fitted disabled item" aria-label="stockouts">
                     <p><i class="archive icon"></i> 可能已經沒有庫存</p>

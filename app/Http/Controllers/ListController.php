@@ -92,4 +92,20 @@ class ListController extends Controller
             'typeIcon' => 'checked calendar',
         ]);
     }
+
+    public function getMultiBuy()
+    {
+        $hmallProducts = $this->service->getMultiBuyHmallProducts();
+        $count = count($hmallProducts);
+
+        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
+
+        return view('lists.list', [
+            'hmallProductList' => $hmallProductList,
+            'count' => $count,
+            'typeName' => '合購商品',
+            'typeStyle' => 'info',
+            'typeIcon' => 'cubes',
+        ]);
+    }
 }
