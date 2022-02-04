@@ -16,6 +16,9 @@ Disallow: /
 Allow: /$
 Allow: /products/
 Allow: /hmall-products/
+Allow: /search/
+Allow: /pages/
+Allow: /lists/
 Allow: /sitemap
 Allow: /favicon.ico
 
