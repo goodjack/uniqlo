@@ -25,13 +25,33 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v2.2.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">新增功能</div>
+                        <ul>
+                            <li>新增特價商品列表</li>
+                            <li>新增熱門評論商品列表</li>
+                            <li>新增新款商品列表</li>
+                            <li>新增即將上市商品列表</li>
+                            <li>新增合購優惠商品列表</li>
+                            <li>新增網路獨家販售商品列表</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v2.1.0
                     </h2>
                     <!-- / 標題 -->
                     <div class="ts large compact basic fitted secondary message">
                         <div class="header">新增功能</div>
                         <ul>
-                            <li>新增期間限定列表</li>
+                            <li>新增期間限定特價商品列表</li>
                         </ul>
                     </div>
                 </div>
