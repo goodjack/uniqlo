@@ -19,6 +19,11 @@ class ListService extends Service
         return $this->repository->getLimitedOfferHmallProducts();
     }
 
+    public function getSaleHmallProducts()
+    {
+        return $this->repository->getSaleHmallProducts();
+    }
+
     public function divideHmallProducts($hmallProducts)
     {
         $groupMapper = [

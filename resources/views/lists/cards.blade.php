@@ -1,21 +1,25 @@
 <div class="ts attached padded horizontally fitted fluid segment">
     <div class="ts container">
-        <div class="ts small evenly divided flatted menu anchor" id="gender_menu">
-            <a class="item" href="#men">
+        <div class="ts small horizontally scrollable evenly divided flatted menu anchor" id="gender_menu">
+            <a class="horizontally fitted item" href="#men">
                 男裝
-                <div class="ts mini label">{{ count($hmallProductList['men']) }}</div>
+                <div class="ts mini circular label" style="margin-left: 4px;">{{ count($hmallProductList['men']) }}
+                </div>
             </a>
-            <a class="item" href="#women">
+            <a class="horizontally fitted item" href="#women">
                 女裝
-                <div class="ts mini label">{{ count($hmallProductList['women']) }}</div>
+                <div class="ts mini circular label" style="margin-left: 4px;">{{ count($hmallProductList['women']) }}
+                </div>
             </a>
-            <a class="item" href="#kids">
+            <a class="horizontally fitted item" href="#kids">
                 童裝
-                <div class="ts mini label">{{ count($hmallProductList['kids']) }}</div>
+                <div class="ts mini circular label" style="margin-left: 4px;">{{ count($hmallProductList['kids']) }}
+                </div>
             </a>
-            <a class="item" href="#baby">
+            <a class="horizontally fitted item" href="#baby">
                 嬰幼兒
-                <div class="ts mini label">{{ count($hmallProductList['baby']) }}</div>
+                <div class="ts mini circular label" style="margin-left: 4px;">{{ count($hmallProductList['baby']) }}
+                </div>
             </a>
         </div>
         <div class="ts active basic horizontally fitted tab segment">

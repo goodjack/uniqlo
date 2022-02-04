@@ -39,7 +39,7 @@
                 <a href="{{ route('lists.limited-offers') }}" class="fitted item" aria-label="limited-offers">
                     <p><i class="certificate icon"></i> 期間限定特價商品</p>
                 </a>
-                <a href="{{ route('products.sales') }}" class="fitted disabled item" aria-label="sales">
+                <a href="{{ route('lists.sale') }}" class="fitted item" aria-label="sale">
                     <p><i class="shopping basket icon"></i> 特價商品</p>
                 </a>
                 <a href="{{ route('products.most-reviewed') }}" class="fitted disabled item"

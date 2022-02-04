@@ -45,6 +45,7 @@ Route::group(['prefix' => 'pages'], function () {
 
 Route::group(['prefix' => 'lists'], function () {
     Route::get('/limited-offers', 'ListController@getLimitedOffers')->name('lists.limited-offers');
+    Route::get('/sale', 'ListController@getSale')->name('lists.sale');
 });
 
 // Auth::routes();
