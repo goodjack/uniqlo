@@ -29,6 +29,10 @@ $title = "{$count} 件{$typeName}";
             color: #50723C !important;
         }
 
+        i.online-special.icon {
+            color: #F3A62B !important;
+        }
+
     </style>
 @endsection
 

@@ -19,6 +19,7 @@ class HmallProductRepository extends Repository
     private const CACHE_KEY_NEW = 'hmall_product:new';
     private const CACHE_KEY_COMING_SOON = 'hmall_product:coming_soon';
     private const CACHE_KEY_MULTI_BUY = 'hmall_product:multi_buy';
+    private const CACHE_KEY_ONLINE_SPECIAL = 'hmall_product:online_special';
     private const SELECT_COLUMNS_FOR_LIST = [
         'id',
         'code',
@@ -98,6 +99,15 @@ class HmallProductRepository extends Repository
         }
 
         return Cache::get(self::CACHE_KEY_MULTI_BUY);
+    }
+
+    public function getOnlineSpecialHmallProducts()
+    {
+        if (! Cache::has(self::CACHE_KEY_ONLINE_SPECIAL)) {
+            $this->setOnlineSpecialHmallProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_ONLINE_SPECIAL);
     }
 
     public function setLimitedOfferHmallProductsCache()
@@ -196,6 +206,21 @@ class HmallProductRepository extends Repository
             ->get();
 
         Cache::forever(self::CACHE_KEY_MULTI_BUY, $hmallProducts);
+    }
+
+    public function setOnlineSpecialHmallProductsCache()
+    {
+        $hmallProducts = $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->where('identity', 'like', '%ONLINE SPECIAL%')
+            ->where('stock', 'Y')
+            ->orderByRaw('min_price/highest_record_price')
+            ->orderBy('evaluation_count', 'desc')
+            ->orderBy('score', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        Cache::forever(self::CACHE_KEY_ONLINE_SPECIAL, $hmallProducts);
     }
 
     public function saveProductsFromUniqloHmall($products)

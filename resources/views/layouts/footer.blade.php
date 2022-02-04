@@ -54,8 +54,8 @@
                 <a href="{{ route('lists.multi-buy') }}" class="fitted item" aria-label="multi-buy">
                     <p><i class="cubes icon"></i> 合購優惠商品</p>
                 </a>
-                <a href="{{ route('products.stockouts') }}" class="fitted disabled item" aria-label="stockouts">
-                    <p><i class="archive icon"></i> 可能已經沒有庫存</p>
+                <a href="{{ route('lists.online-special') }}" class="fitted item" aria-label="online-special">
+                    <p><i class="tv icon"></i> 網路獨家販售商品</p>
                 </a>
             </div>
         </div>

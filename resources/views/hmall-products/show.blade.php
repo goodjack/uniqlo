@@ -130,6 +130,11 @@ $shareUrl = [
             background: #50723C;
         }
 
+        .ts.button.online-special.positive {
+            border-color: #F3A62B;
+            background: #F3A62B;
+        }
+
         @media (min-width: 991px) {
             #comment {
                 height: 400px;

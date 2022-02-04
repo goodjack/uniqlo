@@ -47,6 +47,10 @@
             <br><span style="color: #50723C;">即將上市</span>
         @endif
 
+        @if ($hmallProduct->is_online_special)
+            <br><span style="color: #F3A62B;">網路獨家販售</span>
+        @endif
+
         @if ($hmallProduct->is_stockout)
             <br><span style="color: #5A5A5A;">已售罄</span>
         @endif

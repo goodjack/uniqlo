@@ -61,7 +61,7 @@ class HmallProductPresenter
         }
 
         if ($hmallProduct->is_online_special) {
-            $html .= '<a class="ts circular mini very compact button"><i class="tv icon"></i>網路獨家販售</a>';
+            $html .= '<a class="ts circular mini very compact online-special positive button"><i class="tv icon"></i>網路獨家販售</a>';
         }
 
         if ($hmallProduct->is_extended_size) {

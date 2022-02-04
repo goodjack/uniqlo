@@ -44,6 +44,11 @@ class ListService extends Service
         return $this->repository->getMultiBuyHmallProducts();
     }
 
+    public function getOnlineSpecialHmallProducts()
+    {
+        return $this->repository->getOnlineSpecialHmallProducts();
+    }
+
     public function divideHmallProducts($hmallProducts)
     {
         $groupMapper = [

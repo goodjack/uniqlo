@@ -17,6 +17,7 @@
             <a href="{{ route('lists.new') }}" class="item" aria-label="new">新品</a>
             <a href="{{ route('lists.coming-soon') }}" class="item" aria-label="coming-soon">即將上市</a>
             <a href="{{ route('lists.multi-buy') }}" class="item" aria-label="multi-buy">合購</a>
+            <a href="{{ route('lists.online-special') }}" class="item" aria-label="online-special">網路獨家</a>
             <div class="divider"></div>
             <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">
                 v2.1.0 更新日誌
@@ -49,6 +50,9 @@
                     </a>
                     <a href="{{ route('lists.multi-buy') }}" class="item" aria-label="multi-buy">
                         <i class="cubes icon"></i>合購
+                    </a>
+                    <a href="{{ route('lists.online-special') }}" class="item" aria-label="online-special">
+                        <i class="tv icon"></i>網路獨家
                     </a>
                     <div class="divider"></div>
                     <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">

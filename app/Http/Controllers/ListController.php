@@ -108,4 +108,20 @@ class ListController extends Controller
             'typeIcon' => 'cubes',
         ]);
     }
+
+    public function getOnlineSpecial()
+    {
+        $hmallProducts = $this->service->getOnlineSpecialHmallProducts();
+        $count = count($hmallProducts);
+
+        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
+
+        return view('lists.list', [
+            'hmallProductList' => $hmallProductList,
+            'count' => $count,
+            'typeName' => '網路獨家販售商品',
+            'typeStyle' => 'online-special',
+            'typeIcon' => 'tv',
+        ]);
+    }
 }

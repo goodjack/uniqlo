@@ -30,6 +30,7 @@ class SitemapService extends Service
             'lists/new',
             'lists/coming-soon',
             'lists/multi-buy',
+            'lists/online-special',
             'products/limited-offers',
             'products/sales',
             'products/multi-buys',
