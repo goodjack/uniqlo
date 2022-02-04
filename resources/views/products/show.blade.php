@@ -29,7 +29,7 @@ $shareUrl = [
   ],
   "itemCondition": "http://schema.org/NewCondition",
   "brand": {
-    "@type": "Thing",
+    "@type": "Brand",
     "name": "UNIQLO"
   },
   "offers": {

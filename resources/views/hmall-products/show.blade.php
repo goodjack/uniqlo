@@ -25,13 +25,13 @@ $shareUrl = [
             "productID": "{{ $hmallProduct->code }}",
             "model": "{{ $hmallProduct->code }}",
             "name": "{{ $hmallProductPresenter->getFullName($hmallProduct) }} | UNIQLO 比價 | UQ 搜尋",
-            "description": {{ $hmallProductPresenter->getDescriptionForJsonLd($hmallProduct) }},
+            "description": {!! $hmallProductPresenter->getDescriptionForJsonLd($hmallProduct) !!},
             "image": [
                 "{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
             ],
             "itemCondition": "http://schema.org/NewCondition",
             "brand": {
-                "@type": "Thing",
+                "@type": "Brand",
                 "name": "UNIQLO"
             },
             "offers": {
