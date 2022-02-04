@@ -34,6 +34,11 @@ class ListService extends Service
         return $this->repository->getNewHmallProducts();
     }
 
+    public function getComingSoonHmallProducts()
+    {
+        return $this->repository->getComingSoonHmallProducts();
+    }
+
     public function divideHmallProducts($hmallProducts)
     {
         $groupMapper = [

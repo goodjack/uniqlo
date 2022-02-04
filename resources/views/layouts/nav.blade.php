@@ -15,6 +15,7 @@
             <a href="{{ route('lists.sale') }}" class="item" aria-label="sale">特價</a>
             <a href="{{ route('lists.most-reviewed') }}" class="item" aria-label="most-reviewed">熱門</a>
             <a href="{{ route('lists.new') }}" class="item" aria-label="new">新品</a>
+            <a href="{{ route('lists.coming-soon') }}" class="item" aria-label="coming-soon">即將上市</a>
             <div class="divider"></div>
             <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">
                 v2.1.0 更新日誌
@@ -41,6 +42,9 @@
                     </a>
                     <a href="{{ route('lists.new') }}" class="item" aria-label="new">
                         <i class="leaf icon"></i>新品
+                    </a>
+                    <a href="{{ route('lists.coming-soon') }}" class="item" aria-label="coming-soon">
+                        <i class="checked calendar icon"></i>即將上市
                     </a>
                     <div class="divider"></div>
                     <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">

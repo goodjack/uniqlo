@@ -25,6 +25,10 @@ $title = "{$count} 件{$typeName}";
             color: #885A89 !important;
         }
 
+        i.coming-soon.icon {
+            color: #50723C !important;
+        }
+
     </style>
 @endsection
 

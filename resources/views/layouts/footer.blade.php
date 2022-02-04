@@ -48,6 +48,9 @@
                 <a href="{{ route('lists.new') }}" class="fitted item" aria-label="new">
                     <p><i class="leaf icon"></i> 新款商品</p>
                 </a>
+                <a href="{{ route('lists.coming-soon') }}" class="fitted item" aria-label="coming-soon">
+                    <p><i class="checked calendar icon"></i> 即將上市商品</p>
+                </a>
                 <a href="{{ route('products.multi-buys') }}" class="fitted disabled item" aria-label="multi-buys">
                     <p><i class="cubes icon"></i> 合購優惠</p>
                 </a>

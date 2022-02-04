@@ -69,7 +69,7 @@ class HmallProductPresenter
         }
 
         if ($hmallProduct->is_coming_soon) {
-            $html .= '<a class="ts circular mini very compact positive button"><i class="leaf icon"></i>即將上市</a>';
+            $html .= '<a class="ts circular mini very compact coming-soon positive button"><i class="checked calendar icon"></i>即將上市</a>';
         }
 
         if ($hmallProduct->is_unisex) {

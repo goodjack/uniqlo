@@ -125,6 +125,11 @@ $shareUrl = [
             line-height: 1.625;
         }
 
+        .ts.button.coming-soon.positive {
+            border-color: #50723C;
+            background: #50723C;
+        }
+
         @media (min-width: 991px) {
             #comment {
                 height: 400px;

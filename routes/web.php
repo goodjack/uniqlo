@@ -48,6 +48,7 @@ Route::group(['prefix' => 'lists'], function () {
     Route::get('/sale', 'ListController@getSale')->name('lists.sale');
     Route::get('/most-reviewed', 'ListController@getMostReviewed')->name('lists.most-reviewed');
     Route::get('/new', 'ListController@getNew')->name('lists.new');
+    Route::get('/coming-soon', 'ListController@getComingSoon')->name('lists.coming-soon');
 });
 
 // Auth::routes();

@@ -43,6 +43,10 @@
             <br><span style="color: #8BB96E;">新款商品</span>
         @endif
 
+        @if ($hmallProduct->is_coming_soon)
+            <br><span style="color: #50723C;">即將上市</span>
+        @endif
+
         @if ($hmallProduct->is_stockout)
             <br><span style="color: #5A5A5A;">已售罄</span>
         @endif

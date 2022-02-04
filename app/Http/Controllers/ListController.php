@@ -76,4 +76,20 @@ class ListController extends Controller
             'typeIcon' => 'leaf',
         ]);
     }
+
+    public function getComingSoon()
+    {
+        $hmallProducts = $this->service->getComingSoonHmallProducts();
+        $count = count($hmallProducts);
+
+        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
+
+        return view('lists.list', [
+            'hmallProductList' => $hmallProductList,
+            'count' => $count,
+            'typeName' => '即將上市商品',
+            'typeStyle' => 'coming-soon',
+            'typeIcon' => 'checked calendar',
+        ]);
+    }
 }
