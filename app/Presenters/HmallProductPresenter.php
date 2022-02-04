@@ -44,32 +44,32 @@ class HmallProductPresenter
             $html .= '</a>';
         }
 
-        if ($hmallProduct->is_multi_buy) {
-            $html .= '<a class="ts circular mini very compact info button"><i class="cubes icon"></i>合購商品</a>';
+        if ($hmallProduct->is_sale) {
+            $html .= '<a class="ts circular mini very compact primary button"><i class="shopping basket icon"></i>特價商品</a>';
         }
 
         if ($hmallProduct->is_new) {
             $html .= '<a class="ts circular mini very compact positive button"><i class="leaf icon"></i>新款商品</a>';
         }
 
-        if ($hmallProduct->is_sale) {
-            $html .= '<a class="ts circular mini very compact primary button"><i class="shopping basket icon"></i>特價商品</a>';
+        if ($hmallProduct->is_coming_soon) {
+            $html .= '<a class="ts circular mini very compact coming-soon positive button"><i class="checked calendar icon"></i>即將上市</a>';
         }
 
-        if ($hmallProduct->is_stockout) {
-            $html .= '<a class="ts circular mini very compact button"><i class="archive icon"></i>已售罄</a>';
+        if ($hmallProduct->is_multi_buy) {
+            $html .= '<a class="ts circular mini very compact info button"><i class="cubes icon"></i>合購商品</a>';
         }
 
         if ($hmallProduct->is_online_special) {
             $html .= '<a class="ts circular mini very compact online-special positive button"><i class="tv icon"></i>網路獨家販售</a>';
         }
 
-        if ($hmallProduct->is_extended_size) {
-            $html .= '<a class="ts circular mini very compact button"><i class="external square icon"></i>豐富尺碼</a>';
+        if ($hmallProduct->is_stockout) {
+            $html .= '<a class="ts circular mini very compact button"><i class="archive icon"></i>已售罄</a>';
         }
 
-        if ($hmallProduct->is_coming_soon) {
-            $html .= '<a class="ts circular mini very compact coming-soon positive button"><i class="checked calendar icon"></i>即將上市</a>';
+        if ($hmallProduct->is_extended_size) {
+            $html .= '<a class="ts circular mini very compact button"><i class="external square icon"></i>豐富尺碼</a>';
         }
 
         if ($hmallProduct->is_unisex) {

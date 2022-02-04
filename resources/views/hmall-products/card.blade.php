@@ -31,10 +31,6 @@
             </span>
         @endif
 
-        @if ($hmallProduct->is_multi_buy)
-            <br><span style="color: #79A8B9;">合購商品</span>
-        @endif
-
         @if ($hmallProduct->is_sale)
             <br><span style="color: #00ADEA;">特價商品</span>
         @endif
@@ -45,6 +41,10 @@
 
         @if ($hmallProduct->is_coming_soon)
             <br><span style="color: #50723C;">即將上市</span>
+        @endif
+
+        @if ($hmallProduct->is_multi_buy)
+            <br><span style="color: #79A8B9;">合購商品</span>
         @endif
 
         @if ($hmallProduct->is_online_special)
