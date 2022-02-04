@@ -46,8 +46,8 @@
                     aria-label="most-reviewed">
                     <p><i class="comments outline icon"></i> 熱門評論商品</p>
                 </a>
-                <a href="{{ route('products.news') }}" class="fitted disabled item" aria-label="news">
-                    <p><i class="leaf icon"></i> 新品</p>
+                <a href="{{ route('lists.new') }}" class="fitted item" aria-label="new">
+                    <p><i class="leaf icon"></i> 新款商品</p>
                 </a>
                 <a href="{{ route('products.multi-buys') }}" class="fitted disabled item" aria-label="multi-buys">
                     <p><i class="cubes icon"></i> 合購優惠</p>

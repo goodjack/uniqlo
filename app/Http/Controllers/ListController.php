@@ -38,4 +38,17 @@ class ListController extends Controller
             'count' => $count,
         ]);
     }
+
+    public function getNew()
+    {
+        $hmallProducts = $this->service->getNewHmallProducts();
+        $count = count($hmallProducts);
+
+        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
+
+        return view('lists.new', [
+            'hmallProductList' => $hmallProductList,
+            'count' => $count,
+        ]);
+    }
 }

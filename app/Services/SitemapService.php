@@ -26,6 +26,7 @@ class SitemapService extends Service
         $pages = [
             'lists/limited-offers',
             'lists/sale',
+            'lists/new',
             'products/limited-offers',
             'products/sales',
             'products/multi-buys',

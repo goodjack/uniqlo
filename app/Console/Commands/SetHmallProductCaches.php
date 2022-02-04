@@ -44,6 +44,7 @@ class SetHmallProductCaches extends Command
         Log::debug('SetHmallProductCaches start');
         $this->hmallProductRepository->setLimitedOfferHmallProductsCache();
         $this->hmallProductRepository->setSaleHmallProductsCache();
+        $this->hmallProductRepository->setNewHmallProductsCache();
         Log::debug('SetHmallProductCaches end');
 
         return 0;
