@@ -7,7 +7,7 @@
         <div class="stretched item">
             @include('layouts.search-bar')
         </div>
-        <div class="large device only stretched item">
+        <div class="large screen only stretched item">
         </div>
         <div class="tablet or large device only right menu">
             <a href="{{ route('home') }}" class="item" aria-label="home">首頁</a>
