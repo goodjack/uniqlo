@@ -15,6 +15,7 @@ class HmallProductRepository extends Repository
 
     private const CACHE_KEY_LIMITED_OFFER = 'hmall_product:limited_offer';
     private const CACHE_KEY_SALE = 'hmall_product:sale';
+    private const CACHE_KEY_MOST_REVIEWED = 'hmall_product:most_reviewed';
     private const CACHE_KEY_NEW = 'hmall_product:new';
     private const SELECT_COLUMNS_FOR_LIST = [
         'id',
@@ -61,6 +62,15 @@ class HmallProductRepository extends Repository
         return Cache::get(self::CACHE_KEY_SALE);
     }
 
+    public function getMostReviewedHmallProducts()
+    {
+        if (! Cache::has(self::CACHE_KEY_MOST_REVIEWED)) {
+            $this->setMostReviewedHmallProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_MOST_REVIEWED);
+    }
+
     public function getNewHmallProducts()
     {
         if (! Cache::has(self::CACHE_KEY_NEW)) {
@@ -100,6 +110,28 @@ class HmallProductRepository extends Repository
             ->get();
 
         Cache::forever(self::CACHE_KEY_SALE, $hmallProducts);
+    }
+
+    public function setMostReviewedHmallProductsCache()
+    {
+        $hmallProducts = $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->where('evaluation_count', '>=', function ($query) {
+                $query->selectRaw('MAX(evaluation_count) as max_evaluation_count')
+                    ->from('hmall_products')
+                    ->where('stock', 'Y')
+                    ->whereIn('gender', ['男裝', '女裝', '童裝', '新生兒/嬰幼兒'])
+                    ->groupBy('gender')
+                    ->orderBy('max_evaluation_count')
+                    ->limit(1);
+            })
+            ->where('stock', 'Y')
+            ->orderBy('evaluation_count', 'desc')
+            ->orderBy('score', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        Cache::forever(self::CACHE_KEY_MOST_REVIEWED, $hmallProducts);
     }
 
     public function setNewHmallProductsCache()

@@ -24,6 +24,11 @@ class ListService extends Service
         return $this->repository->getSaleHmallProducts();
     }
 
+    public function getMostReviewedHmallProducts()
+    {
+        return $this->repository->getMostReviewedHmallProducts();
+    }
+
     public function getNewHmallProducts()
     {
         return $this->repository->getNewHmallProducts();

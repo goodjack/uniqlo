@@ -42,8 +42,7 @@
                 <a href="{{ route('lists.sale') }}" class="fitted item" aria-label="sale">
                     <p><i class="shopping basket icon"></i> 特價商品</p>
                 </a>
-                <a href="{{ route('products.most-reviewed') }}" class="fitted disabled item"
-                    aria-label="most-reviewed">
+                <a href="{{ route('lists.most-reviewed') }}" class="fitted item" aria-label="most-reviewed">
                     <p><i class="comments outline icon"></i> 熱門評論商品</p>
                 </a>
                 <a href="{{ route('lists.new') }}" class="fitted item" aria-label="new">

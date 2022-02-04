@@ -13,6 +13,7 @@
             <a href="{{ route('home') }}" class="item" aria-label="home">首頁</a>
             <a href="{{ route('lists.limited-offers') }}" class="item" aria-label="limited-offers">期間限定</a>
             <a href="{{ route('lists.sale') }}" class="item" aria-label="sale">特價</a>
+            <a href="{{ route('lists.most-reviewed') }}" class="item" aria-label="most-reviewed">熱門</a>
             <a href="{{ route('lists.new') }}" class="item" aria-label="new">新品</a>
             <div class="divider"></div>
             <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">
@@ -34,6 +35,9 @@
                     </a>
                     <a href="{{ route('lists.sale') }}" class="item" aria-label="sale">
                         <i class="shopping basket icon"></i>特價
+                    </a>
+                    <a href="{{ route('lists.most-reviewed') }}" class="item" aria-label="most-reviewed">
+                        <i class="comments outline icon"></i>熱門
                     </a>
                     <a href="{{ route('lists.new') }}" class="item" aria-label="new">
                         <i class="leaf icon"></i>新品

@@ -39,6 +39,22 @@ class ListController extends Controller
         ]);
     }
 
+    public function getMostReviewed()
+    {
+        $hmallProducts = $this->service->getMostReviewedHmallProducts();
+        $count = count($hmallProducts);
+
+        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
+
+        return view('lists.list', [
+            'hmallProductList' => $hmallProductList,
+            'count' => $count,
+            'typeName' => '熱門評論商品',
+            'typeStyle' => 'most-reviewed',
+            'typeIcon' => 'comments outline',
+        ]);
+    }
+
     public function getNew()
     {
         $hmallProducts = $this->service->getNewHmallProducts();
