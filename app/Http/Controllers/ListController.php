@@ -20,9 +20,12 @@ class ListController extends Controller
 
         $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
 
-        return view('lists.limited-offers', [
+        return view('lists.list', [
             'hmallProductList' => $hmallProductList,
             'count' => $count,
+            'typeName' => '商品期間限定特價中',
+            'typeStyle' => 'negative',
+            'typeIcon' => 'certificate',
         ]);
     }
 
@@ -33,9 +36,12 @@ class ListController extends Controller
 
         $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
 
-        return view('lists.sale', [
+        return view('lists.list', [
             'hmallProductList' => $hmallProductList,
             'count' => $count,
+            'typeName' => '商品特價中',
+            'typeStyle' => 'primary',
+            'typeIcon' => 'shopping basket',
         ]);
     }
 
@@ -62,9 +68,12 @@ class ListController extends Controller
 
         $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
 
-        return view('lists.new', [
+        return view('lists.list', [
             'hmallProductList' => $hmallProductList,
             'count' => $count,
+            'typeName' => '新款商品',
+            'typeStyle' => 'positive',
+            'typeIcon' => 'leaf',
         ]);
     }
 }
