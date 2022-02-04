@@ -38,30 +38,47 @@ class HmallProductPresenter
 
         if ($hmallProduct->is_limited_offer) {
             $message = $this->getLimitedOfferMessage($hmallProduct);
+            $route = route('lists.limited-offers');
 
-            $html .= '<a class="ts circular mini very compact negative button"><i class="certificate icon"></i>';
+            $html .= "<a href={$route} ";
+            $html .= 'class="ts circular mini very compact negative button"><i class="certificate icon"></i>';
             $html .= $message;
             $html .= '</a>';
         }
 
         if ($hmallProduct->is_sale) {
-            $html .= '<a class="ts circular mini very compact primary button"><i class="shopping basket icon"></i>特價商品</a>';
+            $route = route('lists.sale');
+
+            $html .= "<a href={$route} ";
+            $html .= 'class="ts circular mini very compact primary button"><i class="shopping basket icon"></i>特價商品</a>';
         }
 
         if ($hmallProduct->is_new) {
-            $html .= '<a class="ts circular mini very compact positive button"><i class="leaf icon"></i>新款商品</a>';
+            $route = route('lists.new');
+
+            $html .= "<a href={$route} ";
+            $html .= 'class="ts circular mini very compact positive button"><i class="leaf icon"></i>新款商品</a>';
         }
 
         if ($hmallProduct->is_coming_soon) {
-            $html .= '<a class="ts circular mini very compact coming-soon positive button"><i class="checked calendar icon"></i>即將上市</a>';
+            $route = route('lists.coming-soon');
+
+            $html .= "<a href={$route} ";
+            $html .= 'class="ts circular mini very compact coming-soon positive button"><i class="checked calendar icon"></i>即將上市</a>';
         }
 
         if ($hmallProduct->is_multi_buy) {
-            $html .= '<a class="ts circular mini very compact info button"><i class="cubes icon"></i>合購商品</a>';
+            $route = route('lists.multi-buy');
+
+            $html .= "<a href={$route} ";
+            $html .= 'class="ts circular mini very compact info button"><i class="cubes icon"></i>合購商品</a>';
         }
 
         if ($hmallProduct->is_online_special) {
-            $html .= '<a class="ts circular mini very compact online-special positive button"><i class="tv icon"></i>網路獨家販售</a>';
+            $route = route('lists.online-special');
+
+            $html .= "<a href={$route} ";
+            $html .= 'class="ts circular mini very compact online-special positive button"><i class="tv icon"></i>網路獨家販售</a>';
         }
 
         if ($hmallProduct->is_stockout) {
