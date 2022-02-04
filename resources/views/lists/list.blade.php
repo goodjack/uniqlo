@@ -30,7 +30,7 @@ $title = "{$count} 件{$typeName}";
         }
 
         i.online-special.icon {
-            color: #F3A62B !important;
+            color: #F29E18 !important;
         }
 
     </style>

@@ -48,7 +48,7 @@
         @endif
 
         @if ($hmallProduct->is_online_special)
-            <br><span style="color: #F3A62B;">網路獨家販售</span>
+            <br><span style="color: #F29E18;">網路獨家販售</span>
         @endif
 
         @if ($hmallProduct->is_stockout)

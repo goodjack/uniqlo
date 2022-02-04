@@ -130,9 +130,25 @@ $shareUrl = [
             background: #50723C;
         }
 
+        .ts.button.coming-soon.positive:not(.visible):not(.hidden):not(.active):not(:active):not(.opinion):hover {
+            background: #4B6B38;
+        }
+
+        .ts.button.coming-soon.positive:active:not(.opinion) {
+            background: #415E31;
+        }
+
         .ts.button.online-special.positive {
-            border-color: #F3A62B;
-            background: #F3A62B;
+            border-color: #F29E18;
+            background: #F29E18;
+        }
+
+        .ts.button.online-special.positive:not(.visible):not(.hidden):not(.active):not(:active):not(.opinion):hover {
+            background: #D4880C;
+        }
+
+        .ts.button.online-special.positive:active:not(.opinion) {
+            background: #AE6F0A;
         }
 
         @media (min-width: 991px) {
