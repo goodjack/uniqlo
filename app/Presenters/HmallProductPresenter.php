@@ -220,7 +220,7 @@ class HmallProductPresenter
         /** @var \Carbon\Carbon $lastAvailableAt */
         $lastAvailableAt = $lastHmallPriceHistories->hmallProduct->last_available_at;
 
-        if ($lastAvailableAt->isSameDay($lastHistoryAt)) {
+        if ($lastAvailableAt->lessThanOrEqualTo($lastHistoryAt)) {
             return null;
         }
 

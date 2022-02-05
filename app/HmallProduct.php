@@ -179,7 +179,7 @@ class HmallProduct extends Model
      */
     public function getIsStockoutAttribute()
     {
-        return $this->stock === 'N';
+        return $this->stock === 'N' || isset($this->stockout_at);
     }
 
     /**

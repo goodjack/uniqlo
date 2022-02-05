@@ -77,6 +77,8 @@ class HmallProductService extends Service
                 sleep(1);
             }
         } while ($productSum >= $page++ * $pageSize);
+
+        $this->repository->setStockoutHmallProducts();
     }
 
     public function fetchAllHmallProductDescriptions($updateTimestamps = false)

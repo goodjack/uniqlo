@@ -6,6 +6,7 @@ use App\HmallPriceHistory;
 use App\HmallProduct;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 use Yish\Generators\Foundation\Repository\Repository;
 
@@ -263,15 +264,9 @@ class HmallProductRepository extends Repository
                 $model->gender = $product->gender;
                 $model->sex = $product->sex;
                 $model->material = $product->material;
+
+                $model->stockout_at = $this->getStockoutAt($model, $product);
                 $model->stock = $product->stock;
-
-                if ($model->stock === 'Y' && $product->stock === 'N') {
-                    $model->stockout_at = now();
-                }
-
-                if ($model->stock === 'N' && $product->stock === 'Y') {
-                    $model->stockout_at = null;
-                }
 
                 $model->save();
 
@@ -287,6 +282,21 @@ class HmallProductRepository extends Repository
                 report($e);
             }
         });
+    }
+
+    public function setStockoutHmallProducts($updatedIsBefore = null)
+    {
+        if (is_null($updatedIsBefore)) {
+            $updatedIsBefore = today();
+        }
+
+        $this->model
+            ->whereNull('stockout_at')
+            ->where('updated_at', '<', $updatedIsBefore)
+            ->update([
+                'stockout_at' => now(),
+                'updated_at' => DB::raw('updated_at'),
+            ]);
     }
 
     public function updateProductDescriptionsFromUniqloSpu(HmallProduct $hmallProduct, $instruction, $sizeChart, bool $updateTimestamps = false)
@@ -335,6 +345,22 @@ class HmallProductRepository extends Repository
         }
 
         return Carbon::createFromTimestampMs($unixTimestampInMilliseconds);
+    }
+
+    private function getStockoutAt($model, $product)
+    {
+        // 有庫存，移除售罄時間
+        if ($product->stock === 'Y') {
+            return null;
+        }
+
+        // 這次才無庫存
+        if ($product->stock === 'N' && empty($model->stockout_at)) {
+            return now();
+        }
+
+        // 先前就無庫存
+        return $model->stockout_at;
     }
 
     private function hasNotChangeThePrice($model)
