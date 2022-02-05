@@ -5,6 +5,7 @@ namespace App\Services;
 use App\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 use Yish\Generators\Foundation\Service\Service;
 
@@ -23,6 +24,7 @@ class HmallProductService extends Service
         $pageSize = 24;
         $page = 1;
         $productSum = 0;
+        $retry = 0;
 
         do {
             try {
@@ -52,9 +54,27 @@ class HmallProductService extends Service
 
                 $productSum = $responseBody->resp[2]->productSum;
 
+                $retry = 0;
+
                 sleep(1);
             } catch (Throwable $e) {
+                Log::error('fetchAllHmallProducts error', [
+                    'retry' => $retry,
+                    'page' => $page,
+                    'pageSize' => $pageSize,
+                    'productSum' => $productSum,
+                ]);
                 report($e);
+
+                if ($retry >= 3) {
+                    $retry = 0;
+                    continue;
+                }
+
+                $retry++;
+                $page--;
+
+                sleep(1);
             }
         } while ($productSum >= $page++ * $pageSize);
     }
@@ -67,28 +87,41 @@ class HmallProductService extends Service
             ->get();
 
         foreach ($hmallProducts as $hmallProduct) {
-            try {
-                $productCode = $hmallProduct->product_code;
+            $productCode = $hmallProduct->product_code;
+            $retry = 0;
 
-                $response = Http::withHeaders([
-                    'User-Agent' => config('app.user_agent_mobile'),
-                ])->get(config('uniqlo.api.spu') . "{$productCode}.json");
+            do {
+                try {
+                    $response = Http::withHeaders([
+                        'User-Agent' => config('app.user_agent_mobile'),
+                    ])->get(config('uniqlo.api.spu') . "{$productCode}.json");
 
-                $responseBody = json_decode($response->getBody());
-                $instruction = data_get($responseBody, 'desc.instruction');
-                $sizeChart = data_get($responseBody, 'desc.sizeChart');
+                    $responseBody = json_decode($response->getBody());
+                    $instruction = data_get($responseBody, 'desc.instruction');
+                    $sizeChart = data_get($responseBody, 'desc.sizeChart');
 
-                $this->repository->updateProductDescriptionsFromUniqloSpu(
-                    $hmallProduct,
-                    $instruction,
-                    $sizeChart,
-                    $updateTimestamps
-                );
+                    $this->repository->updateProductDescriptionsFromUniqloSpu(
+                        $hmallProduct,
+                        $instruction,
+                        $sizeChart,
+                        $updateTimestamps
+                    );
 
-                sleep(1);
-            } catch (Throwable $e) {
-                report($e);
-            }
+                    $retry = 0;
+
+                    sleep(1);
+                } catch (Throwable $e) {
+                    Log::error('fetchAllHmallProductDescriptions error', [
+                        'retry' => $retry,
+                        'productCode' => $productCode,
+                    ]);
+                    report($e);
+
+                    $retry++;
+
+                    sleep(1);
+                }
+            } while ($retry > 0 && $retry <= 3);
         }
     }
 }
