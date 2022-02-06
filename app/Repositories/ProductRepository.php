@@ -8,22 +8,21 @@ use App\ProductHistory;
 use App\Style;
 use App\StyleDictionary;
 use Cache;
+use function Functional\each;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 use Yish\Generators\Foundation\Repository\Repository;
 
-use function Functional\each;
-
 class ProductRepository extends Repository
 {
-    const CACHE_KEY_LIMITED_OFFER = 'product:limited_offer';
-    const CACHE_KEY_MULTI_BUY = 'product:multi_buy';
-    const CACHE_KEY_SALE = 'product:sale';
-    const CACHE_KEY_STOCKOUT = 'product:stockout';
-    const CACHE_KEY_NEW = 'product:new';
-    const CACHE_KEY_MOST_REVIEWED = 'product:most_reviewed';
-    const SELECT_COLUMNS_FOR_PRODUCT_LIST = [
+    private const CACHE_KEY_LIMITED_OFFER = 'product:limited_offer';
+    private const CACHE_KEY_MULTI_BUY = 'product:multi_buy';
+    private const CACHE_KEY_SALE = 'product:sale';
+    private const CACHE_KEY_STOCKOUT = 'product:stockout';
+    private const CACHE_KEY_NEW = 'product:new';
+    private const CACHE_KEY_MOST_REVIEWED = 'product:most_reviewed';
+    private const SELECT_COLUMNS_FOR_PRODUCT_LIST = [
         'id',
         'name',
         'category_id',
@@ -36,7 +35,7 @@ class ProductRepository extends Repository
         'new',
         'sale',
         'review_count',
-        'review_rating'
+        'review_rating',
     ];
 
     protected $product;
@@ -82,7 +81,7 @@ class ProductRepository extends Repository
 
                 $model->save();
 
-                $history = new ProductHistory;
+                $history = new ProductHistory();
                 $history->price = $model->price;
                 $model->histories()->save($history);
             } catch (Throwable $e) {
@@ -194,7 +193,7 @@ class ProductRepository extends Repository
      */
     public function getStockoutProducts()
     {
-        if (!Cache::has(self::CACHE_KEY_STOCKOUT)) {
+        if (! Cache::has(self::CACHE_KEY_STOCKOUT)) {
             $this->setStockoutProductsCache();
         }
 
@@ -237,7 +236,7 @@ class ProductRepository extends Repository
      */
     public function getLimitedOfferProducts()
     {
-        if (!Cache::has(self::CACHE_KEY_LIMITED_OFFER)) {
+        if (! Cache::has(self::CACHE_KEY_LIMITED_OFFER)) {
             $this->setLimitedOfferProductsCache();
         }
 
@@ -270,7 +269,7 @@ class ProductRepository extends Repository
      */
     public function getMultiBuyProducts()
     {
-        if (!Cache::has(self::CACHE_KEY_MULTI_BUY)) {
+        if (! Cache::has(self::CACHE_KEY_MULTI_BUY)) {
             $this->setMultiBuyProductsCache();
         }
 
@@ -302,7 +301,7 @@ class ProductRepository extends Repository
      */
     public function getSaleProducts()
     {
-        if (!Cache::has(self::CACHE_KEY_SALE)) {
+        if (! Cache::has(self::CACHE_KEY_SALE)) {
             $this->setSaleProductsCache();
         }
 
@@ -334,7 +333,7 @@ class ProductRepository extends Repository
      */
     public function getNewProducts()
     {
-        if (!Cache::has(self::CACHE_KEY_NEW)) {
+        if (! Cache::has(self::CACHE_KEY_NEW)) {
             $this->setNewProductsCache();
         }
 
@@ -366,7 +365,7 @@ class ProductRepository extends Repository
      */
     public function getMostReviewedProducts()
     {
-        if (!Cache::has(self::CACHE_KEY_MOST_REVIEWED)) {
+        if (! Cache::has(self::CACHE_KEY_MOST_REVIEWED)) {
             $this->setMostReviewedProductsCache();
         }
 
@@ -408,7 +407,7 @@ class ProductRepository extends Repository
         $prices->each(function ($price) {
             $product = $this->product->find($price->product_id);
 
-            if (!empty($product)) {
+            if (! empty($product)) {
                 $product->min_price = $price->min_price;
                 $product->max_price = $price->max_price;
 
@@ -441,7 +440,7 @@ class ProductRepository extends Repository
      */
     public function saveMultiBuyPromo($id, $promo)
     {
-        $multiBuy = new MultiBuyHistory;
+        $multiBuy = new MultiBuyHistory();
         $multiBuy->product_id = $id;
         $multiBuy->multi_buy = $promo;
         $multiBuy->save();
