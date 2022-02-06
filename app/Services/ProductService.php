@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Foundations\DivideProducts;
 use App\Product;
+use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductHistoryRepository;
 use App\Repositories\ProductRepository;
 use App\Repositories\StyleRepository;
@@ -19,15 +20,18 @@ class ProductService extends Service
     use divideProducts;
 
     protected $repository;
+    protected $hmallProductRepository;
     protected $productRepository;
     protected $productHistoryRepository;
     protected $styleRepository;
 
     public function __construct(
+        HmallProductRepository $hmallProductRepository,
         ProductRepository $productRepository,
         ProductHistoryRepository $productHistoryRepository,
         StyleRepository $styleRepository
     ) {
+        $this->hmallProductRepository = $hmallProductRepository;
         $this->productRepository = $productRepository;
         $this->productHistoryRepository = $productHistoryRepository;
         $this->styleRepository = $styleRepository;
@@ -408,5 +412,10 @@ class ProductService extends Service
     public function getRelatedProducts($product)
     {
         return $this->productRepository->getRelatedProducts($product);
+    }
+
+    public function getRelatedHmallProducts($product)
+    {
+        return $this->hmallProductRepository->getRelatedHmallProductsForProduct($product);
     }
 }

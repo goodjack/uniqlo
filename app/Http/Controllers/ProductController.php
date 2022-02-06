@@ -88,13 +88,17 @@ class ProductController extends Controller
             return $productHistory;
         });
 
+        $relatedProducts = $this->productService->getRelatedProducts($product);
+        $relatedHmallProducts = $this->productService->getRelatedHmallProducts($product);
+
         return view('products.show', [
             'product' => $product,
             'productHistories' => $productHistories,
             'suggestProducts' => $suggestProducts,
             'styles' => $styles,
             'styleDictionaries' => $styleDictionaries,
-            'relatedProducts' => $this->productService->getRelatedProducts($product),
+            'relatedProducts' => $relatedProducts,
+            'relatedHmallProducts' => $relatedHmallProducts,
         ]);
     }
 

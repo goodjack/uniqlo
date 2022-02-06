@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\HmallPriceHistory;
 use App\HmallProduct;
+use App\Product;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +47,37 @@ class HmallProductRepository extends Repository
     {
         $this->model = $model;
         $this->hmallPriceHistory = $hmallPriceHistory;
+    }
+
+    public function getRelatedHmallProducts(HmallProduct $hmallProduct, $excludeItself = true)
+    {
+        $query = $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->where(function ($query) use ($hmallProduct) {
+                $query->where('code', $hmallProduct->code)
+                    ->orWhere('name', $hmallProduct->name);
+            });
+
+        if ($excludeItself) {
+            $query->where('id', '<>', $hmallProduct->id);
+        }
+
+        return $query->orderBy('min_price')
+                ->orderBy('id', 'desc')
+                ->get();
+    }
+
+    public function getRelatedHmallProductsForProduct(Product $product)
+    {
+        $relatedId = substr($product->id, 0, 6);
+
+        $hmallProduct = $this->model->where('code', $relatedId)->first();
+
+        if (empty($hmallProduct)) {
+            return collect([]);
+        }
+
+        return $this->getRelatedHmallProducts($hmallProduct, false);
     }
 
     public function getLimitedOfferHmallProducts()

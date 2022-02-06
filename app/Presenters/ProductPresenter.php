@@ -6,6 +6,17 @@ use App\Product;
 
 class ProductPresenter
 {
+    public function getProductMainImageUrl($product, $hmallProducts)
+    {
+        if ($hmallProducts->isEmpty()) {
+            return $product->main_image_url;
+        }
+
+        $hmallProductPresenter = app(HmallProductPresenter::class);
+
+        return $hmallProductPresenter->getMainFirstPic($hmallProducts[0]);
+    }
+
     public function getProductTag($product)
     {
         $html = '';

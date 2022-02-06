@@ -25,7 +25,7 @@ $shareUrl = [
             "name": "{{ $product->name }} | UNIQLO 比價 | UQ 搜尋",
             "description": {!! json_encode($product->comment) !!},
             "image": [
-                "{{ $product->main_image_url }}"
+                "{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
             ],
             "itemCondition": "http://schema.org/NewCondition",
             "brand": {
@@ -63,12 +63,14 @@ $shareUrl = [
     <meta property="og:title" content="{{ $product->name }} | UQ 搜尋" />
     <meta property="og:url" content="{{ route('products.show', ['product' => $product->id]) }}" />
     <meta property="og:description" content="{!! $productPresenter->getSocialMediaDescription($product) !!}" />
-    <meta property="og:image" content="{{ $product->main_image_url }}" />
+    <meta property="og:image"
+        content="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@littlegoodjack" />
     <meta name="twitter:title" content="{{ $product->name }} | UQ 搜尋" />
     <meta name="twitter:description" content="{!! $productPresenter->getSocialMediaDescription($product) !!}" />
-    <meta name="twitter:image" content="{{ $product->main_image_url }}" />
+    <meta name="twitter:image"
+        content="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}" />
     <meta name="share:text" content="{{ $shareText }}" />
     <meta name="share:url" content="{{ $shareUrl['webShare'] }}" />
 @endsection
@@ -137,13 +139,33 @@ $shareUrl = [
 @endsection
 
 @section('content')
+    <div class="ts padded horizontally fitted attached fluid tertiary segment">
+        <div class="ts container">
+            <div class="ts medium header">
+                <div class="content">
+                    <i class="notice circle icon"></i>您現在位於舊系統商品頁
+                    <div class="sub header">資料已過時或損毀，建議一併參考新系統的最新內容</div>
+                </div>
+            </div>
+            @if ($relatedHmallProducts->isNotEmpty())
+                <div class="ts fitted attached fluid segment">
+                    <div class="ts segmented selection single line items">
+                        @each('hmall-products.item', $relatedHmallProducts, 'hmallProduct')
+                    </div>
+                </div>
+            @endif
+        </div>
+    </div>
+
     <div class="ts very padded horizontally fitted attached fluid segment">
         <div class="ts container relaxed grid">
             <div class="nine wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
                 <div class="ts fluid container">
-                    <a class="ts centered image" href="{{ $product->main_image_url }}" rel="nofollow noopener"
-                        data-lightbox="image" data-title="{{ $product->name }}">
-                        <img class="ts centered image lazyload" data-src="{{ $product->main_image_url }}"
+                    <a class="ts centered image"
+                        href="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
+                        rel="nofollow noopener" data-lightbox="image" data-title="{{ $product->name }}">
+                        <img class="ts centered image lazyload"
+                            data-src="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
                             alt="{{ $product->name }}" loading="lazy">
                     </a>
                 </div>
@@ -154,7 +176,7 @@ $shareUrl = [
                         <h1 class="ts dividing big header">
                             {{ $product->name }}
                             <div class="sub header">
-                                商品編號 {{ $product->id }}
+                                舊系統 &middot; 商品編號 {{ $product->id }}
                                 {!! $productPresenter->getRatingForProductShow($product) !!}
                                 &middot;
                                 <div class="ts buttons">
@@ -198,9 +220,9 @@ $shareUrl = [
                     <div class="twelve wide column">
                         <div id="uniqlo-column">
                             <div class="ts right floated separated stackable buttons">
-                                <a class="ts negative right labeled icon button"
+                                <a class="ts negative right labeled icon disabled button"
                                     href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank"
-                                    rel="nofollow noopener" aria-label="UNIQLO">前往 UNIQLO 官網<i
+                                    rel="nofollow noopener" aria-label="UNIQLO">無法前往 UNIQLO 舊官網<i
                                         class="external icon"></i></a>
                                 <a class="ts basic button" id="share" target="_blank" rel="nofollow noopener"
                                     aria-label="Share" style="display: none;"><i class="share icon"></i>分享</a>
@@ -302,7 +324,8 @@ $shareUrl = [
                     <div class="ts items">
                         <div class="item">
                             <div class="ts mini image">
-                                <img data-src="{{ $product->reco_image_url }}" class="lazyload" loading="lazy"
+                                <img data-src="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
+                                    class="lazyload" loading="lazy"
                                     alt="{{ $product->name }} {{ $product->id }}">
                             </div>
                             <div class="middle aligned content">

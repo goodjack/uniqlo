@@ -7,9 +7,9 @@
             alt="{{ $hmallProductPresenter->getFullNameWithCode($hmallProduct) }} {{ $hmallProduct->product_code }}">
     </div>
     <div class="content">
-        <div class="smaller header">{{ $hmallProductPresenter->getFullName($hmallProduct) }}</div>
+        <div class="smaller header">{{ $hmallProductPresenter->getFullNameWithCode($hmallProduct) }}</div>
         <div class="middoted meta">
-            <span>{{ $hmallProduct->code }}</span>
+            <span>{{ $hmallProduct->product_code }}</span>
             {!! $hmallProductPresenter->getRatingForProductCardAndItem($hmallProduct) !!}
         </div>
     </div>

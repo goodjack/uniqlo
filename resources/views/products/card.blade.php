@@ -1,10 +1,10 @@
 @inject('productPresenter', 'App\Presenters\ProductPresenter')
 
 <a class="ts flatted card" href="{{ $productPresenter->getProductUrl($product) }}">
-    <div class="image">
+    {{-- <div class="image">
         <img data-src="{{ $product->main_image_url }}" class="lazyload" loading="lazy"
             alt="{{ $product->name }} {{ $product->id }}">
-    </div>
+    </div> --}}
     <div class="content">
         <div class="smaller header">{{ $product->name }}</div>
         <div class="middoted meta">
@@ -24,7 +24,11 @@
             <span style="color: #8BB96E;">⇢ ${{ $product->min_price }}</span>
         @endif
 
-        @if ($product->limit_sales_end_msg)
+        <div class="description">
+            舊系統
+        </div>
+
+        {{-- @if ($product->limit_sales_end_msg)
             <br><span style="color: #CE5F58;">{{ $product->limit_sales_end_msg }}</span>
         @endif
 
@@ -38,11 +42,11 @@
 
         @if ($product->new)
             <br><span style="color: #8BB96E;">新品</span>
-        @endif
+        @endif --}}
     </div>
-    @if ($product->price > $product->min_price)
+    {{-- @if ($product->price > $product->min_price)
         <div class="symbol">
             <i class="caution circle icon"></i>
         </div>
-    @endif
+    @endif --}}
 </a>
