@@ -3,10 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\HmallProduct;
+use App\Services\HmallProductService;
 use Illuminate\Http\Request;
 
 class HmallProductController extends Controller
 {
+    protected $service;
+
+    public function __construct(HmallProductService $service)
+    {
+        $this->service = $service;
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -46,10 +54,14 @@ class HmallProductController extends Controller
      */
     public function show(HmallProduct $hmallProduct)
     {
+        $relatedHmallProducts = $this->service->getRelatedHmallProducts($hmallProduct);
+        $relatedProducts = $this->service->getRelatedProducts($hmallProduct);
         $hmallPriceHistories = $hmallProduct->hmallPriceHistories()->get();
 
         return view('hmall-products.show', [
             'hmallProduct' => $hmallProduct,
+            'relatedHmallProducts' => $relatedHmallProducts,
+            'relatedProducts' => $relatedProducts,
             'hmallPriceHistories' => $hmallPriceHistories,
         ]);
     }

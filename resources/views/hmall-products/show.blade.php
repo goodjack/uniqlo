@@ -242,6 +242,18 @@ $shareUrl = [
         </div>
     </div>
 
+    @if ($relatedHmallProducts->isNotEmpty())
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+            <div class="ts container">
+                <h2 class="ts large dividing header">延伸商品</h2>
+                <div class="ts hidden divider"></div>
+                <div class="ts doubling link cards six">
+                    @each('hmall-products.card', $relatedHmallProducts, 'hmallProduct')
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="ts very padded horizontally fitted attached fluid tertiary segment">
         <div class="ts container">
             <h2 class="ts large dividing header">歷史價格</h2>
@@ -307,6 +319,19 @@ $shareUrl = [
             </div>
         </div>
     </div>
+
+    @if ($relatedProducts->isNotEmpty())
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+            <div class="ts container">
+                <h2 class="ts large dividing header">舊系統商品</h2>
+                <div class="ts hidden divider"></div>
+                <div class="ts doubling link cards six">
+                    @each('products.card', $relatedProducts, 'product')
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="ts very padded horizontally fitted attached fluid tertiary segment">
         <div class="ts container">
             <h2 class="ts large dividing header">商品評論</h2>

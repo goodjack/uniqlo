@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\HmallProduct;
 use App\MultiBuyHistory;
 use App\Product;
 use App\ProductHistory;
@@ -472,21 +473,44 @@ class ProductRepository extends Repository
         })->update(['multi_buy' => DB::raw('promo')]);
     }
 
-    public function getRelatedProducts($product)
+    public function getRelatedProducts(Product $product, $excludeItself = true)
     {
         $relatedId = substr($product->id, 0, 6);
 
-        return $this->product
+        $query = $this->product
             ->select(self::SELECT_COLUMNS_FOR_PRODUCT_LIST)
-            ->where('stockout', false)
             ->where(function ($query) use ($relatedId, $product) {
                 $query->where('id', 'like', "{$relatedId}%")
                     ->orWhere('name', $product->name);
-            })
-            ->where('id', '<>', $product->id)
-            ->orderBy('price')
+            });
+
+        if ($excludeItself) {
+            $query->where('id', '<>', $product->id);
+        }
+
+        return $query->orderBy('price')
             ->orderBy('id', 'desc')
             ->get();
+    }
+
+    public function getRelatedProductsForHmallProduct(HmallProduct $hmallProduct)
+    {
+        $product = $this->product->where('id', $hmallProduct->code)->first();
+
+        if (empty($product)) {
+            $relatedName = $hmallProduct->name;
+
+            $product = $this->product
+                ->where('name', 'like', "%${relatedName}%")
+                ->orderByRaw("CASE WHEN `name` LIKE '%{$hmallProduct->gender}%' THEN 0 WHEN `name` LIKE '%{$hmallProduct->sex}%' THEN 1 ELSE 2 END")
+                ->first();
+        }
+
+        if (empty($product)) {
+            return collect([]);
+        }
+
+        return $this->getRelatedProducts($product, false);
     }
 
     public function getAllProductsForSitemap()

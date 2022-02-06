@@ -40,7 +40,7 @@ class SearchController extends Controller
         ]);
 
         $hmallProducts = HmallProduct::where('code', $query)->get()->sortBy('min_price');
-        $products = Product::where('id', $query)->get();
+        $products = Product::where('id', 'like', "{$query}%")->get();
 
         return view('search.results', [
             'query' => $query,

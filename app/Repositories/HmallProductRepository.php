@@ -55,29 +55,89 @@ class HmallProductRepository extends Repository
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->where(function ($query) use ($hmallProduct) {
                 $query->where('code', $hmallProduct->code)
-                    ->orWhere('name', $hmallProduct->name);
+                    ->orWhere(function ($query) use ($hmallProduct) {
+                        $query->where('name', 'like', "%{$hmallProduct->name}%")
+                            ->where('gender', $hmallProduct->gender);
+                    });
             });
 
         if ($excludeItself) {
             $query->where('id', '<>', $hmallProduct->id);
         }
 
-        return $query->orderBy('min_price')
-                ->orderBy('id', 'desc')
-                ->get();
+        return $query->orderByRaw("CASE WHEN `id` = {$hmallProduct->id} THEN 0 ELSE 1 END")
+            ->orderByRaw("CASE WHEN `name` = '{$hmallProduct->name}' THEN 0 ELSE 1 END")
+            ->orderBy(DB::raw('ISNULL(`stockout_at`)'), 'desc')
+            ->orderByRaw('CHAR_LENGTH(`name`)')
+            ->orderBy('min_price')
+            ->orderBy('id', 'desc')
+            ->get();
     }
 
     public function getRelatedHmallProductsForProduct(Product $product)
     {
         $relatedId = substr($product->id, 0, 6);
 
-        $hmallProduct = $this->model->where('code', $relatedId)->first();
+        $hmallProduct = $this->model
+            ->where('code', $relatedId)
+            ->orderBy(DB::raw('ISNULL(`stockout_at`)'), 'desc')
+            ->orderBy('min_price')
+            ->orderBy('id', 'desc')
+            ->first();
 
-        if (empty($hmallProduct)) {
-            return collect([]);
+        if ($hmallProduct) {
+            return $this->getRelatedHmallProducts($hmallProduct, false);
         }
 
-        return $this->getRelatedHmallProducts($hmallProduct, false);
+        $similarHmallProducts = $this->getSimilarHmallProductsFromProduct($product);
+
+        if ($similarHmallProducts->isNotEmpty()) {
+            return $similarHmallProducts;
+        }
+
+        $sexTypes = ['男裝', '女裝', '童裝', '男童', '女童', '新生兒', '嬰幼兒'];
+        $sexTypesPattern = implode('|', $sexTypes);
+
+        preg_match("/({$sexTypesPattern})?(.*)/", $product->name, $matches);
+
+        $relatedName = trim($matches[2]);
+        $relatedSex = trim($matches[1]);
+
+        return $this->getRelatedHmallProductsByName($relatedName, $relatedSex);
+    }
+
+    public function getSimilarHmallProductsFromProduct(Product $product)
+    {
+        $productRepository = app(ProductRepository::class);
+
+        $relatedProducts = $productRepository->getRelatedProducts($product);
+        $relatedProductIds = $relatedProducts->pluck('id')->all();
+
+        return $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->whereIn('code', $relatedProductIds)
+            ->orderBy(DB::raw('ISNULL(`stockout_at`)'), 'desc')
+            ->orderBy('min_price')
+            ->orderBy('id', 'desc')
+            ->get();
+    }
+
+    public function getRelatedHmallProductsByName(string $name, string $sex = '')
+    {
+        return $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->where('product_name', 'like', "%{$name}%")
+            ->where(function ($query) use ($sex) {
+                $query->where('product_name', 'like', "%{$sex}%")
+                    ->orWhere('gender', 'like', "%{$sex}%");
+            })
+            ->orderByRaw("CASE WHEN `name` = '{$name}' THEN 0 ELSE 1 END")
+            ->orderBy(DB::raw('ISNULL(`stockout_at`)'), 'desc')
+            ->orderByRaw('CHAR_LENGTH(`name`)')
+            ->orderByRaw('CASE WHEN `gender` = "男裝" THEN 0 WHEN `gender` = "女裝" THEN 1 ELSE 2 END')
+            ->orderBy('min_price')
+            ->orderBy('id', 'desc')
+            ->get();
     }
 
     public function getLimitedOfferHmallProducts()

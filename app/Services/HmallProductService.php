@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\HmallProduct;
 use App\Repositories\HmallProductRepository;
+use App\Repositories\ProductRepository;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -13,10 +14,22 @@ class HmallProductService extends Service
 {
     /** @var HmallProductRepository */
     protected $repository;
+    protected $productRepository;
 
-    public function __construct(HmallProductRepository $repository)
+    public function __construct(HmallProductRepository $repository, ProductRepository $productRepository)
     {
         $this->repository = $repository;
+        $this->productRepository = $productRepository;
+    }
+
+    public function getRelatedHmallProducts(HmallProduct $hmallProduct)
+    {
+        return $this->repository->getRelatedHmallProducts($hmallProduct);
+    }
+
+    public function getRelatedProducts(HmallProduct $hmallProduct)
+    {
+        return $this->productRepository->getRelatedProductsForHmallProduct($hmallProduct);
     }
 
     public function fetchAllHmallProducts()

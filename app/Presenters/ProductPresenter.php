@@ -3,18 +3,26 @@
 namespace App\Presenters;
 
 use App\Product;
+use Illuminate\Support\Collection;
 
 class ProductPresenter
 {
-    public function getProductMainImageUrl($product, $hmallProducts)
+    public function getProductMainImageUrl($product, Collection $hmallProducts)
     {
         if ($hmallProducts->isEmpty()) {
             return $product->main_image_url;
         }
 
+        $relatedId = substr($product->id, 0, 6);
+        $hmallProduct = $hmallProducts->firstWhere('code', $relatedId);
+
+        if (empty($hmallProduct)) {
+            return $product->main_image_url;
+        }
+
         $hmallProductPresenter = app(HmallProductPresenter::class);
 
-        return $hmallProductPresenter->getMainFirstPic($hmallProducts[0]);
+        return $hmallProductPresenter->getMainFirstPic($hmallProduct);
     }
 
     public function getProductTag($product)
