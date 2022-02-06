@@ -4,17 +4,15 @@ namespace App\Services;
 
 use App\Foundations\DivideProducts;
 use App\Product;
-use App\Repositories\ProductRepository;
 use App\Repositories\ProductHistoryRepository;
+use App\Repositories\ProductRepository;
 use App\Repositories\StyleRepository;
 use Carbon\Carbon;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
-use Yish\Generators\Foundation\Service\Service;
-
 use function Functional\each;
 use function Functional\flat_map;
 use function Functional\map;
+use GuzzleHttp\Client;
+use Yish\Generators\Foundation\Service\Service;
 
 class ProductService extends Service
 {
@@ -74,8 +72,8 @@ class ProductService extends Service
                 'query' => [
                     'client_id' => 'uqsp-tw',
                     'sku_code' => $productID,
-                    'store_id' => '10400044,10400002'
-                ]
+                    'store_id' => '10400044,10400002',
+                ],
             ]
         );
 
@@ -89,7 +87,7 @@ class ProductService extends Service
                 return [
                     'store_id' => $storeID,
                     'sku_code' => $item->sku_code,
-                    'stock_status' => $item->stock_status
+                    'stock_status' => $item->stock_status,
                 ];
             });
         });
@@ -115,8 +113,8 @@ class ProductService extends Service
                     'query' => [
                         'order' => 'asc',
                         'limit' => $limit,
-                        'page' => $page
-                    ]
+                        'page' => $page,
+                    ],
                 ]
             );
 
@@ -144,13 +142,13 @@ class ProductService extends Service
                     'query' => [
                         'format' => 'json',
                         'product_cd' => $id,
-                    ]
+                    ],
                 ]
             );
 
             $productInfo = json_decode($response->getBody());
             $promo = data_get($productInfo, 'l2_goods_list.0.promo_rule_info');
-            if (!empty($promo)) {
+            if (! empty($promo)) {
                 $this->productRepository->saveMultiBuyPromo($id, $promo);
             }
 
@@ -173,8 +171,8 @@ class ProductService extends Service
                     'date' => Carbon::today(),
                     'at' => 'include_uq_plugin',
                     't' => 3,
-                    'id' => 0
-                ]
+                    'id' => 0,
+                ],
             ]
         );
 
@@ -195,8 +193,8 @@ class ProductService extends Service
                         'date' => Carbon::today()->toDateString(),
                         'at' => 'include_uq_plugin',
                         't' => 'd',
-                        'id' => $styleDictionary->id
-                    ]
+                        'id' => $styleDictionary->id,
+                    ],
                 ]
             );
 
@@ -398,7 +396,7 @@ class ProductService extends Service
     /**
      * Set the min price and the max price to the products.
      *
-     * @param boolean $today
+     * @param bool $today
      * @return void
      */
     public function setMinPricesAndMaxPrices(bool $today = false)

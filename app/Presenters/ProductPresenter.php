@@ -38,7 +38,7 @@ class ProductPresenter
 
         if ($html) {
             $html = '<div class="ts separated buttons">' . $html;
-            $html .= "</div>";
+            $html .= '</div>';
         }
 
         return $html;
@@ -49,7 +49,7 @@ class ProductPresenter
         $html = '';
         $colors = json_decode($product->colors);
 
-        if (!empty($colors)) {
+        if (! empty($colors)) {
             foreach ($colors as $color) {
                 $colorHeader = "{$color->code} {$color->name}";
                 $alt = "商品顏色 {$colorHeader}";
@@ -128,7 +128,7 @@ class ProductPresenter
             $html .= "<div class=\"overlapped content color-header\">{$colorHeader}</div>";
         }
 
-        $html .= "</a>";
+        $html .= '</a>';
 
         return $html;
     }
@@ -162,10 +162,10 @@ class ProductPresenter
     public function getProductAvailabilityForJsonLd($product)
     {
         if ($product->stockout) {
-            return "https://schema.org/OutOfStock";
+            return 'https://schema.org/OutOfStock';
         }
 
-        return "https://schema.org/InStock";
+        return 'https://schema.org/InStock';
     }
 
     public function getRatingForProductShow($product)
