@@ -60,8 +60,7 @@ $shareUrl = [
 
 @section('metadata')
     <link rel="canonical" href="{{ $currentUrl }}" />
-    <meta name="description"
-        content="{{ $hmallProductPresenter->getSocialMediaDescription($hmallProduct) }} | UNIQLO 比價 | UQ 搜尋" />
+    <meta name="description" content="{{ $hmallProductPresenter->getSocialMediaDescription($hmallProduct) }}" />
     <meta property="og:type" content="og:product" />
     <meta property="og:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} | UQ 搜尋" />
     <meta property="og:url" content="{{ $currentUrl }}" />

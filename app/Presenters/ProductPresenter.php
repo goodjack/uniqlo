@@ -203,7 +203,10 @@ class ProductPresenter
 
     public function getSocialMediaDescription($product)
     {
-        $description = "{$product->comment} | UNIQLO 比價 | UQ 搜尋";
+        $description = strip_tags($product->comment);
+        $description = trim(preg_replace('/\s+/', ' ', $description));
+
+        $description = "{$description} | UNIQLO 比價 | UQ 搜尋";
 
         $rating = $this->getRating($product, true);
 
