@@ -65,8 +65,8 @@ class HmallProductRepository extends Repository
             $query->where('id', '<>', $hmallProduct->id);
         }
 
-        return $query->orderByRaw("CASE WHEN `id` = {$hmallProduct->id} THEN 0 ELSE 1 END")
-            ->orderByRaw("CASE WHEN `name` = '{$hmallProduct->name}' THEN 0 ELSE 1 END")
+        return $query->orderByRaw('CASE WHEN `id` = ? THEN 0 ELSE 1 END', [$hmallProduct->id])
+            ->orderByRaw('CASE WHEN `name` = ? THEN 0 ELSE 1 END', [$hmallProduct->name])
             ->orderBy(DB::raw('ISNULL(`stockout_at`)'), 'desc')
             ->orderByRaw('CHAR_LENGTH(`name`)')
             ->orderBy('min_price')
@@ -131,7 +131,7 @@ class HmallProductRepository extends Repository
                 $query->where('product_name', 'like', "%{$sex}%")
                     ->orWhere('gender', 'like', "%{$sex}%");
             })
-            ->orderByRaw("CASE WHEN `name` = '{$name}' THEN 0 ELSE 1 END")
+            ->orderByRaw('CASE WHEN `name` = ? THEN 0 ELSE 1 END', [$name])
             ->orderBy(DB::raw('ISNULL(`stockout_at`)'), 'desc')
             ->orderByRaw('CHAR_LENGTH(`name`)')
             ->orderByRaw('CASE WHEN `gender` = "男裝" THEN 0 WHEN `gender` = "女裝" THEN 1 ELSE 2 END')
