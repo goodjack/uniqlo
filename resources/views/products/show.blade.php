@@ -164,9 +164,9 @@ $shareUrl = [
                     <a class="ts centered image"
                         href="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
                         rel="nofollow noopener" data-lightbox="image" data-title="{{ $product->name }}">
-                        <img class="ts centered image lazyload"
-                            data-src="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
-                            alt="{{ $product->name }}" loading="lazy">
+                        <x-lazy-load-image class="ts centered image"
+                            src="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
+                            alt="{{ $product->name }}" />
                     </a>
                 </div>
             </div>
@@ -324,9 +324,9 @@ $shareUrl = [
                     <div class="ts items">
                         <div class="item">
                             <div class="ts mini image">
-                                <img data-src="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
-                                    class="lazyload" loading="lazy"
-                                    alt="{{ $product->name }} {{ $product->id }}">
+                                <x-lazy-load-image
+                                    src="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
+                                    alt="{{ $product->name }} {{ $product->id }}" />
                             </div>
                             <div class="middle aligned content">
                                 <div class="header">

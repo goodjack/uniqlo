@@ -2,9 +2,8 @@
 
 <a class="ts flatted card" href="{{ $hmallProduct->route_url }}">
     <div class="image">
-        <img data-src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" class="lazyload"
-            loading="lazy"
-            alt="{{ $hmallProductPresenter->getFullNameWithCode($hmallProduct) }} {{ $hmallProduct->product_code }}">
+        <x-lazy-load-image src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
+            alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
     </div>
     <div class="content">
         <div class="smaller header">{{ $hmallProductPresenter->getFullNameWithCode($hmallProduct) }}</div>

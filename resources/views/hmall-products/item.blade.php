@@ -2,9 +2,8 @@
 
 <a class="item" href="{{ $hmallProduct->route_url }}">
     <div class="ts tiny image">
-        <img data-src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" class="lazyload"
-            loading="lazy"
-            alt="{{ $hmallProductPresenter->getFullNameWithCode($hmallProduct) }} {{ $hmallProduct->product_code }}">
+        <x-lazy-load-image src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
+            alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
     </div>
     <div class="middle aligned content">
         <div class="header">

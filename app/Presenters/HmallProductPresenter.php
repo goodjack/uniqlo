@@ -18,6 +18,13 @@ class HmallProductPresenter
         return "{$fullName} {$hmallProduct->code}";
     }
 
+    public function getFullNameWithCodeAndProductCode($hmallProduct)
+    {
+        $fullNameWithCode = $this->getFullNameWithCode($hmallProduct);
+
+        return "{$fullNameWithCode} {$hmallProduct->product_code}";
+    }
+
     public function getDescription($hmallProduct)
     {
         $description = strip_tags($hmallProduct->instruction, '<br>');
