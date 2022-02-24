@@ -27,12 +27,23 @@
         integrity="sha512-D41DQHff3/kvdRtWlfJ69BltxL2ovJ2hRFiQopYGGiSFgJE4i5Un3qaqlKCAuo+00yaMzdcw7aVRl11taevIdw=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
+        html {
+            height: 100%;
+        }
+
         body {
+            height: 100%;
             padding: 60px 0 0 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .anchor {
             scroll-margin-top: 75px;
+        }
+
+        .wrapper {
+            flex-grow: 1;
         }
 
     </style>
@@ -43,7 +54,9 @@
 
 <body>
     @include('layouts.nav')
-    @yield('content')
+    <div class="wrapper">
+        @yield('content')
+    </div>
     @include('layouts.footer')
 
     <!-- Tocas JS：模塊與 JavaScript 函式 -->
