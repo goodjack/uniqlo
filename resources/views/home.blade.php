@@ -22,6 +22,9 @@
                     <button class="ts button" type="submit">查看商品</button>
                 </center>
             </form>
+            <div class="ts hidden divider"></div>
+            <div class="ts hidden divider"></div>
+            <div class="ts hidden divider"></div>
         </div>
     </div>
 @endsection
