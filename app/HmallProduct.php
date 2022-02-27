@@ -119,6 +119,18 @@ class HmallProduct extends Model
     }
 
     /**
+     * Get whether the product is app offer or not.
+     *
+     * @return bool
+     */
+    public function getIsAppOfferAttribute()
+    {
+        $identity = json_decode($this->identity);
+
+        return in_array('APP', $identity);
+    }
+
+    /**
      * Get the end date of the limited offer.
      *
      * @return bool

@@ -43,7 +43,7 @@ class HmallProductPresenter
     {
         $html = '';
 
-        if ($hmallProduct->is_limited_offer) {
+        if ($hmallProduct->is_limited_offer || $hmallProduct->is_app_offer) {
             $message = $this->getLimitedOfferMessage($hmallProduct);
             $route = route('lists.limited-offers');
 
@@ -51,6 +51,13 @@ class HmallProductPresenter
             $html .= 'class="ts circular mini very compact negative button"><i class="certificate icon"></i>';
             $html .= $message;
             $html .= '</a>';
+        }
+
+        if ($hmallProduct->is_app_offer) {
+            $route = route('lists.limited-offers');
+
+            $html .= "<a href={$route} ";
+            $html .= 'class="ts circular mini very compact negative button"><i class="certificate icon"></i>APP 限定特價</a>';
         }
 
         if ($hmallProduct->is_sale) {
