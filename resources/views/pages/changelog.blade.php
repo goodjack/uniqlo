@@ -25,6 +25,28 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v2.4.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">新增功能</div>
+                        <ul>
+                            <li>商品頁新增精選穿搭區塊</li>
+                            <li>新增「APP 限定特價」標籤</li>
+                            <li>網站開放支援 Discord 與 Pinterest 取得資料</li>
+                        </ul>
+                        <div class="header">更新功能</div>
+                        <ul>
+                            <li>首頁的 footer 現在會置底了（終於！特別感謝 Wama 貢獻）</li>
+                            <li>提升商品頁載入速度與體驗</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v2.3.0
                     </h2>
                     <!-- / 標題 -->
@@ -34,6 +56,9 @@
                             <li>舊系統商品頁新增提示，並盡可能引導至新系統的最新內容</li>
                             <li>新系統商品頁提供舊系統商品列表，以便比較價格</li>
                             <li>搜尋頁現在會顯示更完整的舊系統延伸商品</li>
+                        </ul>
+                        <div class="header">更新功能</div>
+                        <ul>
                             <li>舊系統卡片不顯示圖片，以因應 UNIQLO 移除舊系統商品圖</li>
                             <li>若商品同時存在於新舊系統，則舊系統商品頁大圖替換成新系統的商品圖</li>
                             <li>修正部分頁面爆版問題</li>
