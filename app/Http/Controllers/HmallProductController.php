@@ -56,12 +56,14 @@ class HmallProductController extends Controller
     {
         $relatedHmallProducts = $this->service->getRelatedHmallProducts($hmallProduct);
         $relatedProducts = $this->service->getRelatedProducts($hmallProduct);
+        $styles = $this->service->getStyles($hmallProduct);
         $hmallPriceHistories = $hmallProduct->hmallPriceHistories()->get();
 
         return view('hmall-products.show', [
             'hmallProduct' => $hmallProduct,
             'relatedHmallProducts' => $relatedHmallProducts,
             'relatedProducts' => $relatedProducts,
+            'styles' => $styles,
             'hmallPriceHistories' => $hmallPriceHistories,
         ]);
     }

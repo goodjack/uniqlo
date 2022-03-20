@@ -32,6 +32,11 @@ class HmallProductService extends Service
         return $this->productRepository->getRelatedProductsForHmallProduct($hmallProduct);
     }
 
+    public function getStyles(HmallProduct $hmallProduct)
+    {
+        return $this->repository->getStyles($hmallProduct);
+    }
+
     public function fetchAllHmallProducts()
     {
         $pageSize = 24;

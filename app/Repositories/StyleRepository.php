@@ -2,9 +2,10 @@
 
 namespace App\Repositories;
 
-use Illuminate\Support\Facades\DB;
-use Yish\Generators\Foundation\Repository\Repository;
 use App\Style;
+use Illuminate\Support\Facades\DB;
+use Throwable;
+use Yish\Generators\Foundation\Repository\Repository;
 
 class StyleRepository
 {
@@ -27,5 +28,40 @@ class StyleRepository
             ->orderBy('product_count', 'desc')
             ->get()
             ->pluck('product_id');
+    }
+
+    public function saveStyleFromUniqloStyleBook($result)
+    {
+        try {
+            $model = $this->model->firstOrNew(['id' => $result->photo->styleId]);
+            $firstItem = $result->coordinates[0]->items[0];
+
+            $model->id = $result->photo->styleId;
+            $model->dpt_id = $result->photo->dptId;
+            $model->image_path = $firstItem->image_path;
+            $model->image_url = "https://im.uniqlo.com/style/{$model->image_path}-xxm.jpg";
+            $model->detail_url = "https://www.uniqlo.com/tw/stylingbook/sp/style/{$model->id}";
+
+            $model->save();
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        try {
+            $itemDetailUrls = collect(data_get($result, 'coordinates.*.items.*.item_detail_url'));
+            $productCodes = $itemDetailUrls->map(function ($url) {
+                parse_str(parse_url($url, PHP_URL_QUERY), $urlQueries);
+
+                return $urlQueries['productCode'];
+            })->all();
+
+            /** @var HmallProductRepository */
+            $hmallProductRepository = app(HmallProductRepository::class);
+            $hmallProductIds = $hmallProductRepository->getIdsFromProductCodes($productCodes);
+
+            $model->hmallProducts()->syncWithoutDetaching($hmallProductIds);
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 }

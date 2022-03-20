@@ -74,6 +74,11 @@ class HmallProductRepository extends Repository
             ->get();
     }
 
+    public function getStyles(HmallProduct $hmallProduct)
+    {
+        return $hmallProduct->styles;
+    }
+
     public function getRelatedHmallProductsForProduct(Product $product)
     {
         $relatedId = substr($product->id, 0, 6);
@@ -405,6 +410,14 @@ class HmallProductRepository extends Repository
         return $this->model
             ->select(['id', 'product_code', 'updated_at'])
             ->orderBy('id', 'desc')
+            ->get();
+    }
+
+    public function getIdsFromProductCodes(array $productCodes)
+    {
+        return $this->model
+            ->select(['id'])
+            ->whereIn('product_code', $productCodes)
             ->get();
     }
 

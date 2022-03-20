@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Services\ProductService;
+use App\Services\StyleService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -27,11 +27,11 @@ class FetchStyles extends Command
      *
      * @return void
      */
-    public function __construct(ProductService $productService)
+    public function __construct(StyleService $styleService)
     {
         parent::__construct();
 
-        $this->productService = $productService;
+        $this->styleService = $styleService;
     }
 
     /**
@@ -43,7 +43,7 @@ class FetchStyles extends Command
     {
         Log::debug('FetchStyles start');
 
-        $this->productService->fetchAllStyles();
+        $this->styleService->fetchAllStyles();
 
         Log::debug('FetchStyles end');
     }

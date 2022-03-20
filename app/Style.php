@@ -14,4 +14,14 @@ class Style extends Model
     {
         return $this->belongsToMany('App\Product');
     }
+
+    public function hmallProducts()
+    {
+        return $this->belongsToMany(HmallProduct::class);
+    }
+
+    public function getLargeImageUrlAttribute()
+    {
+        return "https://im.uniqlo.com/style/{$this->image_path}-xxxl.jpg";
+    }
 }

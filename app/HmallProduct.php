@@ -2,6 +2,7 @@
 
 namespace App;
 
+use App\Style;
 use Illuminate\Database\Eloquent\Model;
 
 class HmallProduct extends Model
@@ -22,6 +23,11 @@ class HmallProduct extends Model
     public function hmallPriceHistories()
     {
         return $this->hasMany(HmallPriceHistory::class);
+    }
+
+    public function styles()
+    {
+        return $this->belongsToMany(Style::class);
     }
 
     /**
