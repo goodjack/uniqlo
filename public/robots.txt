@@ -12,6 +12,8 @@ User-agent: LinkedInBot
 User-agent: Linespider
 User-agent: TelegramBot
 User-agent: Slackbot
+User-agent: Pinterestbot
+User-agent: Discordbot
 Disallow: /
 Allow: /$
 Allow: /products/
