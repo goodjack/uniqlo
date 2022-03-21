@@ -54,12 +54,26 @@ class StyleRepository
         }
 
         try {
-            $itemDetailUrls = collect(data_get($result, 'coordinates.*.items.*.item_detail_url'));
-            $productCodes = $itemDetailUrls->map(function ($url) {
+            $items = collect(data_get($result, 'coordinates.*.items.*'));
+            $productCodes = $items->map(function ($item) {
+                $url = $item->item_detail_url;
                 parse_str(parse_url($url, PHP_URL_QUERY), $urlQueries);
 
-                return $urlQueries['productCode'];
-            })->all();
+                $productCode = $urlQueries['productCode'] ?? null;
+
+                if (is_null($productCode)) {
+                    preg_match("/(u[0-9]+)/", $item->img_url_pc, $matches);
+                    $productCode = $matches[1] ?? null;
+                }
+
+                if (is_null($productCode)) {
+                    Log::error('saveStyleFromUniqloStyleBook productCode not found', [
+                        'item' => $item,
+                    ]);
+                }
+
+                return $productCode;
+            })->filter()->all();
 
             /** @var HmallProductRepository */
             $hmallProductRepository = app(HmallProductRepository::class);
