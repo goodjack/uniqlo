@@ -29,9 +29,9 @@ class AppSchedule extends Command
     {
         $this->call('hmall-product:fetch');
         $this->call('hmall-product-description:fetch');
-        $this->call('style:fetch');
         $this->call('hmall-product:cache');
         $this->call('sitemap:generate');
+        $this->call('style:fetch');
 
         return 0;
     }
