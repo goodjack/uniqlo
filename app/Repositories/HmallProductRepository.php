@@ -8,6 +8,7 @@ use App\Product;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 use Yish\Generators\Foundation\Repository\Repository;
 
@@ -376,6 +377,10 @@ class HmallProductRepository extends Repository
                 $hmallPriceHistory->max_price = $model->max_price;
                 $model->hmallPriceHistories()->save($hmallPriceHistory);
             } catch (Throwable $e) {
+                Log::error('saveProductsFromUniqloHmall error', [
+                    'product_code' => $product->productCode,
+                ]);
+
                 report($e);
             }
         });

@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Style;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 use Yish\Generators\Foundation\Repository\Repository;
 
@@ -32,8 +33,9 @@ class StyleRepository
 
     public function saveStyleFromUniqloStyleBook($result)
     {
+        $model = $this->model->firstOrNew(['id' => $result->photo->styleId]);
+
         try {
-            $model = $this->model->firstOrNew(['id' => $result->photo->styleId]);
             $firstItem = $result->coordinates[0]->items[0];
 
             $model->id = $result->photo->styleId;
@@ -44,6 +46,10 @@ class StyleRepository
 
             $model->save();
         } catch (Throwable $e) {
+            Log::error('saveStyleFromUniqloStyleBook save error', [
+                'result' => $result,
+            ]);
+
             report($e);
         }
 
@@ -61,6 +67,10 @@ class StyleRepository
 
             $model->hmallProducts()->syncWithoutDetaching($hmallProductIds);
         } catch (Throwable $e) {
+            Log::error('saveStyleFromUniqloStyleBook sync error', [
+                'result' => $result,
+            ]);
+
             report($e);
         }
     }
