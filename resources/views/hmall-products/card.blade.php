@@ -24,7 +24,7 @@
             <span style="color: #8BB96E;">⇢ ${{ (int) $hmallProduct->lowest_record_price }}</span>
         @endif
 
-        @if ($hmallProduct->is_limited_offer || $hmallProduct->is_app_offer)
+        @if ($hmallProduct->is_limited_offer || $hmallProduct->is_app_offer || $hmallProduct->is_ec_only)
             <br><span style="color: #CE5F58;">
                 {{ $hmallProductPresenter->getLimitedOfferMessage($hmallProduct) }}
             </span>
@@ -32,6 +32,10 @@
 
         @if ($hmallProduct->is_app_offer)
             <br><span style="color: #CE5F58;">APP 限定特價</span>
+        @endif
+
+        @if ($hmallProduct->is_ec_only)
+            <br><span style="color: #CE5F58;">網路限定特價</span>
         @endif
 
         @if ($hmallProduct->is_sale)

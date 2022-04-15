@@ -65,6 +65,18 @@ class HmallProduct extends Model
     }
 
     /**
+     * Get whether the product is ec only or not.
+     *
+     * @return bool
+     */
+    public function getIsEcOnlyAttribute()
+    {
+        $identity = json_decode($this->identity);
+
+        return in_array('ECONLY', $identity);
+    }
+
+    /**
      * Get whether the product is extended size or not.
      *
      * @return bool
