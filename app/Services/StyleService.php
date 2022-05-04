@@ -89,6 +89,8 @@ class StyleService extends Service
         $styles->each(function ($style) {
             $retry = 0;
 
+            $styleId = $style->styleId;
+
             do {
                 try {
                     $response = Http::withHeaders([
@@ -97,11 +99,11 @@ class StyleService extends Service
                         'lang' => 'zh',
                         'limit' => 4,
                         'locale' => 'tw',
-                        'styleId' => $style->styleId,
+                        'styleId' => $styleId,
                     ]);
 
                     $result = json_decode($response->getBody())->result;
-                    $this->repository->saveStyleFromUniqloStyleBook($result);
+                    $this->repository->saveStyleFromUniqloStyleBook($styleId, $result);
 
                     $retry = 0;
 
@@ -109,7 +111,7 @@ class StyleService extends Service
                 } catch (Throwable $e) {
                     Log::error('fetchStyleDetails error', [
                         'retry' => $retry,
-                        'styleId' => $style->styleId,
+                        'styleId' => $styleId,
                     ]);
                     report($e);
 

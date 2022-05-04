@@ -31,8 +31,14 @@ class StyleRepository
             ->pluck('product_id');
     }
 
-    public function saveStyleFromUniqloStyleBook($result)
+    public function saveStyleFromUniqloStyleBook($styleId, $result)
     {
+        if ($result->error === 'expired' && empty($result->photo)) {
+            Log::info("Expired style ID: {$styleId}");
+
+            return;
+        }
+
         $model = $this->model->firstOrNew(['id' => $result->photo->styleId]);
 
         try {
@@ -47,6 +53,7 @@ class StyleRepository
             $model->save();
         } catch (Throwable $e) {
             Log::error('saveStyleFromUniqloStyleBook save error', [
+                'styleId' => $styleId,
                 'result' => $result,
             ]);
 
@@ -82,6 +89,7 @@ class StyleRepository
             $model->hmallProducts()->syncWithoutDetaching($hmallProductIds);
         } catch (Throwable $e) {
             Log::error('saveStyleFromUniqloStyleBook sync error', [
+                'styleId' => $styleId,
                 'result' => $result,
             ]);
 
