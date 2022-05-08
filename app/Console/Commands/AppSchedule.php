@@ -27,8 +27,10 @@ class AppSchedule extends Command
      */
     public function handle()
     {
-        $this->call('hmall-product:fetch');
-        $this->call('hmall-product-description:fetch');
+        $this->call('hmall-product:fetch-uniqlo');
+        $this->call('hmall-product:fetch-gu');
+        $this->call('hmall-product-description:fetch-uniqlo');
+        $this->call('hmall-product-description:fetch-gu');
         $this->call('hmall-product:cache');
         $this->call('sitemap:generate');
         $this->call('style:fetch');

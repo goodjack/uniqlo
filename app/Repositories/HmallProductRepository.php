@@ -280,9 +280,12 @@ class HmallProductRepository extends Repository
 
     public function setComingSoonHmallProductsCache()
     {
+        // UNIQLO: COMING SOON
+        // GU: COMING
+
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
-            ->where('identity', 'like', '%COMING SOON%')
+            ->where('identity', 'like', '%COMING%')
             ->where('stock', 'Y')
             ->orderByRaw('min_price/highest_record_price')
             ->orderBy('evaluation_count', 'desc')
@@ -309,9 +312,15 @@ class HmallProductRepository extends Repository
 
     public function setOnlineSpecialHmallProductsCache()
     {
+        // UNIQLO: ONLINE SPECIAL
+        // GU: ECONLY
+
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
-            ->where('identity', 'like', '%ONLINE SPECIAL%')
+            ->where(function ($query) {
+                $query->where('identity', 'like', '%ONLINE SPECIAL%')
+                    ->orWhere('identity', 'like', '%ECONLY%');
+            })
             ->where('stock', 'Y')
             ->orderByRaw('min_price/highest_record_price')
             ->orderBy('evaluation_count', 'desc')
@@ -322,14 +331,18 @@ class HmallProductRepository extends Repository
         Cache::forever(self::CACHE_KEY_ONLINE_SPECIAL, $hmallProducts);
     }
 
-    public function saveProductsFromUniqloHmall($products)
+    public function saveProductsFromHmall($products, $brand = 'UNIQLO')
     {
-        collect($products)->each(function ($product) {
+        collect($products)->each(function ($product) use ($brand) {
             try {
                 /** @var HmallProduct $model */
-                $model = $this->model->firstOrNew(['product_code' => $product->productCode]);
+                $model = $this->model->firstOrNew([
+                    'brand' => $brand,
+                    'product_code' => $product->productCode,
+                ]);
 
                 $model->code = $product->code;
+                $model->brand = $brand;
                 $model->product_code = $product->productCode;
                 $model->oms_product_code = $product->omsProductCode;
                 $model->name = $product->name;
@@ -377,7 +390,8 @@ class HmallProductRepository extends Repository
                 $hmallPriceHistory->max_price = $model->max_price;
                 $model->hmallPriceHistories()->save($hmallPriceHistory);
             } catch (Throwable $e) {
-                Log::error('saveProductsFromUniqloHmall error', [
+                Log::error('saveProductsFromHmall error', [
+                    'brand' => $brand,
                     'product_code' => $product->productCode,
                 ]);
 
@@ -386,7 +400,7 @@ class HmallProductRepository extends Repository
         });
     }
 
-    public function setStockoutHmallProducts($updatedIsBefore = null)
+    public function setStockoutHmallProducts($brand = 'UNIQLO', $updatedIsBefore = null)
     {
         if (is_null($updatedIsBefore)) {
             $updatedIsBefore = today();
@@ -394,6 +408,7 @@ class HmallProductRepository extends Repository
 
         $this->model
             ->whereNull('stockout_at')
+            ->where('brand', $brand)
             ->where('updated_at', '<', $updatedIsBefore)
             ->update([
                 'stockout_at' => now(),
@@ -401,7 +416,7 @@ class HmallProductRepository extends Repository
             ]);
     }
 
-    public function updateProductDescriptionsFromUniqloSpu(HmallProduct $hmallProduct, $instruction, $sizeChart, bool $updateTimestamps = false)
+    public function updateProductDescriptionsFromSpu(HmallProduct $hmallProduct, $instruction, $sizeChart, bool $updateTimestamps = false)
     {
         $hmallProduct->instruction = $instruction;
         $hmallProduct->size_chart = $sizeChart;

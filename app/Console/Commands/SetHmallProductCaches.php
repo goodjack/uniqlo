@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Log;
 
 class SetHmallProductCaches extends Command
 {
+    private $hmallProductRepository;
+
     /**
      * The name and signature of the console command.
      *

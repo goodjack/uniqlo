@@ -6,21 +6,23 @@ use App\Services\HmallProductService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
-class FetchHmallProducts extends Command
+class FetchGuHmallProducts extends Command
 {
+    private $hmallProductService;
+
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'hmall-product:fetch';
+    protected $signature = 'hmall-product:fetch-gu';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Fetch all products from UNIQLO Hmall';
+    protected $description = 'Fetch all products from GU Hmall';
 
     /**
      * Create a new command instance.
@@ -43,9 +45,9 @@ class FetchHmallProducts extends Command
      */
     public function handle()
     {
-        Log::debug('FetchHmallProducts start');
-        $this->hmallProductService->fetchAllHmallProducts();
-        Log::debug('FetchHmallProducts end');
+        Log::debug('FetchGuHmallProducts start');
+        $this->hmallProductService->fetchAllHmallProducts('GU');
+        Log::debug('FetchGuHmallProducts end');
 
         return 0;
     }
