@@ -214,8 +214,12 @@ class HmallProductRepository extends Repository
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
-            ->where('time_limited_begin', '<=', now())
-            ->where('time_limited_end', '>=', now())
+            ->where(function ($query) {
+                $query->where(function ($query) {
+                    $query->where('time_limited_begin', '<=', now())
+                        ->where('time_limited_end', '>=', now());
+                })->orWhere('identity', 'like', '%time_doptimal%');
+            })
             ->where('stock', 'Y')
             ->orderBy('time_limited_end')
             ->orderByRaw('min_price/highest_record_price')
