@@ -26,6 +26,7 @@ class HmallProductRepository extends Repository
     private const SELECT_COLUMNS_FOR_LIST = [
         'id',
         'code',
+        'brand',
         'product_code',
         'name',
         'min_price',

@@ -6,7 +6,7 @@
                 <div class="content">
                     UQ 搜尋
                     <div class="sub header">
-                        UNIQLO 價格查詢比價網
+                        UNIQLO 與 GU 價格查詢比價網
                     </div>
                 </div>
             </h4>
@@ -19,7 +19,7 @@
                     </a>
                     製作。
                 </p>
-                <p>與 FAST RETAILING 或 UNIQLO 無關。</p>
+                <p>與 FAST RETAILING、UNIQLO 或 GU 無關。</p>
                 <p>不保證本網站內容正確無誤。</p>
                 <p>本網站所有提及之商標與名稱皆屬該公司所有。</p>
 

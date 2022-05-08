@@ -10,7 +10,7 @@
             {{ $hmallProductPresenter->getFullNameWithCode($hmallProduct) }}
         </div>
         <div class="middoted meta">
-            <span>{{ $hmallProduct->product_code }}</span>
+            <span>{{ $hmallProduct->short_product_code }}</span>
             {!! $hmallProductPresenter->getRatingForProductCardAndItem($hmallProduct) !!}
         </div>
         @if ($hmallProduct->is_stockout)

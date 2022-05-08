@@ -32,7 +32,7 @@ $shareUrl = [
             "itemCondition": "http://schema.org/NewCondition",
             "brand": {
                 "@type": "Brand",
-                "name": "UNIQLO"
+                "name": "{{ $hmallProduct->brand }}"
             },
             "offers": {
                 "@type": "AggregateOffer",
@@ -45,7 +45,7 @@ $shareUrl = [
                 "url": "{{ $currentUrl }}",
                 "seller": {
                     "@type": "Organization",
-                    "name": "UNIQLO"
+                    "name": "{{ $hmallProduct->brand }}"
                 }
             }
             @if ($hmallProduct->evaluation_count > 0 && !empty($hmallProduct->score))
@@ -228,10 +228,17 @@ $shareUrl = [
                     <div class="twelve wide column">
                         <div id="uniqlo-column">
                             <div class="ts right floated separated stackable buttons">
-                                <a class="ts negative right labeled icon button"
-                                    href="https://www.uniqlo.com/tw/zh_TW/product-detail.html?productCode={{ $hmallProduct->product_code }}"
-                                    target="_blank" rel="nofollow noopener" aria-label="UNIQLO">前往 UNIQLO 官網<i
-                                        class="external icon"></i></a>
+                                @if ($hmallProduct->brand === 'GU')
+                                    <a class="ts info right labeled icon button"
+                                        href="https://www.gu-global.com/tw/zh_TW/product-detail.html?productCode={{ $hmallProduct->product_code }}"
+                                        target="_blank" rel="nofollow noopener" aria-label="GU">前往 GU 官網<i
+                                            class="external icon"></i></a>
+                                @else
+                                    <a class="ts negative right labeled icon button"
+                                        href="https://www.uniqlo.com/tw/zh_TW/product-detail.html?productCode={{ $hmallProduct->product_code }}"
+                                        target="_blank" rel="nofollow noopener" aria-label="UNIQLO">前往 UNIQLO 官網<i
+                                            class="external icon"></i></a>
+                                @endif
                                 <a class="ts basic button" id="share" target="_blank" rel="nofollow noopener"
                                     aria-label="Share" style="display: none;"><i class="share icon"></i>分享</a>
                             </div>

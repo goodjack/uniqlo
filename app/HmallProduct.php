@@ -47,9 +47,12 @@ class HmallProduct extends Model
      */
     public function getIsOnlineSpecialAttribute()
     {
+        // UNIQLO: ONLINE SPECIAL
+        // GU: ECONLY
+
         $identity = json_decode($this->identity);
 
-        return in_array('ONLINE SPECIAL', $identity);
+        return in_array('ONLINE SPECIAL', $identity) || in_array('ECONLY', $identity);
     }
 
     /**
@@ -95,9 +98,12 @@ class HmallProduct extends Model
      */
     public function getIsComingSoonAttribute()
     {
+        // UNIQLO: COMING SOON
+        // GU: COMING
+
         $identity = json_decode($this->identity);
 
-        return in_array('COMING SOON', $identity);
+        return in_array('COMING SOON', $identity) || in_array('COMING', $identity);
     }
 
     /**
@@ -119,9 +125,39 @@ class HmallProduct extends Model
      */
     public function getIsSuperLargeAttribute()
     {
+        // UNIQLO: 旗艦店款
+
         $identity = json_decode($this->identity);
 
         return in_array('SUPERLARGE', $identity);
+    }
+
+    /**
+     * Get whether the product is EC Big or not.
+     *
+     * @return bool
+     */
+    public function getIsEcBigAttribute()
+    {
+        // GU: 大型店商品
+
+        $identity = json_decode($this->identity);
+
+        return in_array('ECBIG', $identity);
+    }
+
+    /**
+     * Get whether the product is EC Selected or not.
+     *
+     * @return bool
+     */
+    public function getIsEcSelectedAttribute()
+    {
+        // GU: 特定店商品
+
+        $identity = json_decode($this->identity);
+
+        return in_array('ECSELECTED', $identity);
     }
 
     /**
@@ -219,7 +255,11 @@ class HmallProduct extends Model
      */
     public function getRouteUrlAttribute()
     {
-        return route('hmall-products.show', ['hmallProduct' => $this->product_code]);
+        if ($this->brand === 'GU') {
+            return route('gu-hmall-products.show', ['gu_product_code' => $this->product_code]);
+        }
+
+        return route('uniqlo-hmall-products.show', ['uniqlo_product_code' => $this->product_code]);
     }
 
     public function getLastAvailableAtAttribute()
@@ -229,5 +269,12 @@ class HmallProduct extends Model
         }
 
         return $this->updated_at;
+    }
+
+    public function getShortProductCodeAttribute()
+    {
+        $shortCodeNumber = substr($this->product_code, -7);
+
+        return "u{$shortCodeNumber}";
     }
 }

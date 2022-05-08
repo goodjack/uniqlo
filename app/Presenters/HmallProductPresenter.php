@@ -36,6 +36,10 @@ class HmallProductPresenter
 
     public function getMainFirstPic($hmallProduct)
     {
+        if ($hmallProduct->brand === 'GU') {
+            return "https://www.gu-global.com/tw{$hmallProduct->main_first_pic}";
+        }
+
         return "https://www.uniqlo.com/tw{$hmallProduct->main_first_pic}";
     }
 
@@ -116,6 +120,14 @@ class HmallProductPresenter
 
         if ($hmallProduct->is_super_large) {
             $html .= '<a class="ts circular mini very compact button"><i class="diamond icon"></i>旗艦店款</a>';
+        }
+
+        if ($hmallProduct->is_ec_big) {
+            $html .= '<a class="ts circular mini very compact button"><i class="diamond icon"></i>大型店商品</a>';
+        }
+
+        if ($hmallProduct->is_ec_selected) {
+            $html .= '<a class="ts circular mini very compact button"><i class="diamond icon"></i>特定店商品</a>';
         }
 
         if ($hmallProduct->is_revision) {

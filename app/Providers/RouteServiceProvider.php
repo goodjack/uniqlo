@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\HmallProduct;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Route;
 
@@ -30,7 +31,19 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        Route::bind('uniqlo_product_code', function ($value) {
+            return HmallProduct::query()
+                ->where('brand', 'UNIQLO')
+                ->where('product_code', $value)
+                ->firstOrFail();
+        });
+
+        Route::bind('gu_product_code', function ($value) {
+            return HmallProduct::query()
+                ->where('brand', 'GU')
+                ->where('product_code', $value)
+                ->firstOrFail();
+        });
 
         parent::boot();
     }

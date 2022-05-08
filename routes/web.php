@@ -30,7 +30,11 @@ Route::group(['prefix' => 'products'], function () {
 });
 
 Route::group(['prefix' => 'hmall-products'], function () {
-    Route::get('/{hmallProduct:product_code}', 'HmallProductController@show')->name('hmall-products.show');
+    Route::get('/{uniqlo_product_code}', 'HmallProductController@show')->name('uniqlo-hmall-products.show');
+});
+
+Route::group(['prefix' => 'gu-products'], function () {
+    Route::get('/{gu_product_code}', 'HmallProductController@show')->name('gu-hmall-products.show');
 });
 
 Route::group(['prefix' => 'search'], function () {
