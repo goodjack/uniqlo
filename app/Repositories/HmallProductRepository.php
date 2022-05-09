@@ -433,7 +433,7 @@ class HmallProductRepository extends Repository
     public function getAllProductsForSitemap()
     {
         return $this->model
-            ->select(['id', 'product_code', 'updated_at'])
+            ->select(['id', 'brand', 'product_code', 'updated_at'])
             ->orderBy('id', 'desc')
             ->get();
     }

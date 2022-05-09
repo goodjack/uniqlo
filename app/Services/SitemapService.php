@@ -48,8 +48,10 @@ class SitemapService extends Service
         $hmallProducts = $this->hmallProductRepository->getAllProductsForSitemap();
 
         foreach ($hmallProducts as $hmallProduct) {
+            $prefix = $hmallProduct->brand === 'GU' ? 'gu-products' : 'hmall-products';
+
             $sitemap->add(
-                Url::create("hmall-products/{$hmallProduct->product_code}")
+                Url::create("{$prefix}/{$hmallProduct->product_code}")
                     ->setLastModificationDate($hmallProduct->updated_at)
             );
         }
