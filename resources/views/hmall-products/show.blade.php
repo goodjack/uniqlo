@@ -184,7 +184,7 @@ $shareUrl = [
                         <h1 class="ts dividing big header">
                             {{ $hmallProductPresenter->getFullName($hmallProduct) }}
                             <div class="sub header">
-                                商品編號 {{ $hmallProduct->code }}
+                                {{ $hmallProduct->brand }} 商品編號 {{ $hmallProduct->code }}
                                 {!! $hmallProductPresenter->getRatingForProductShow($hmallProduct) !!}
                                 &middot;
                                 <div class="ts buttons">
@@ -325,7 +325,8 @@ $shareUrl = [
                                     {{ $hmallProductPresenter->getFullName($hmallProduct) }}
                                 </div>
                                 <div class="inline middoted meta">
-                                    <span>商品編號 {{ $hmallProduct->code }} {{ $hmallProduct->product_code }}</span>
+                                    <span>{{ $hmallProduct->brand }} 商品編號 {{ $hmallProduct->code }}
+                                        {{ $hmallProduct->product_code }}</span>
                                     {!! $hmallProductPresenter->getRatingForProductCardAndItem($hmallProduct) !!}
                                     <span>NT${{ $hmallProduct->price }}</span>
                                 </div>
