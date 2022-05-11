@@ -50,23 +50,25 @@ class HmallProductService extends Service
             try {
                 $response = Http::withHeaders([
                     'User-Agent' => config('app.user_agent_mobile'),
-                ])->post($hmallSearchApiUrl, [
-                    'url' => config('uniqlo.data.hmall_search.url') . $page,
-                    'pageInfo' => ['page' => $page, 'pageSize' => $pageSize, 'withSideBar' => 'Y'],
-                    'belongTo' => 'pc',
-                    'rank' => 'overall',
-                    'priceRange' => ['low' => 0, 'high' => 0],
-                    'color' => [],
-                    'size' => [],
-                    'season' => [],
-                    'material' => [],
-                    'sex' => [],
-                    'identity' => [],
-                    'insiteDescription' => '',
-                    'exist' => [],
-                    'searchFlag' => true,
-                    'description' => config('uniqlo.data.hmall_search.description'),
-                ]);
+                ])
+                    ->retry(3, 1000)
+                    ->post($hmallSearchApiUrl, [
+                        'url' => config('uniqlo.data.hmall_search.url') . $page,
+                        'pageInfo' => ['page' => $page, 'pageSize' => $pageSize, 'withSideBar' => 'Y'],
+                        'belongTo' => 'pc',
+                        'rank' => 'overall',
+                        'priceRange' => ['low' => 0, 'high' => 0],
+                        'color' => [],
+                        'size' => [],
+                        'season' => [],
+                        'material' => [],
+                        'sex' => [],
+                        'identity' => [],
+                        'insiteDescription' => '',
+                        'exist' => [],
+                        'searchFlag' => true,
+                        'description' => config('uniqlo.data.hmall_search.description'),
+                    ]);
 
                 $responseBody = json_decode($response->getBody());
                 $products = $responseBody->resp[1];
@@ -129,7 +131,9 @@ class HmallProductService extends Service
                 try {
                     $response = Http::withHeaders([
                         'User-Agent' => config('app.user_agent_mobile'),
-                    ])->get("{$spuApiUrl}{$productCode}.json");
+                    ])
+                        ->retry(3, 1000)
+                        ->get("{$spuApiUrl}{$productCode}.json");
 
                     $responseBody = json_decode($response->getBody());
                     $instruction = data_get($responseBody, 'desc.instruction');

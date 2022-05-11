@@ -42,13 +42,15 @@ class StyleService extends Service
             try {
                 $response = Http::withHeaders([
                     'User-Agent' => config('app.user_agent_mobile'),
-                ])->get(config('uniqlo.api.style_book_list'), [
-                    'dptId' => $dptId,
-                    'lang' => 'zh',
-                    'limit' => $limit,
-                    'locale' => 'tw',
-                    'offset' => $offset,
-                ]);
+                ])
+                    ->retry(3, 1000)
+                    ->get(config('uniqlo.api.style_book_list'), [
+                        'dptId' => $dptId,
+                        'lang' => 'zh',
+                        'limit' => $limit,
+                        'locale' => 'tw',
+                        'offset' => $offset,
+                    ]);
 
                 $responseBody = json_decode($response->getBody());
 
@@ -95,12 +97,14 @@ class StyleService extends Service
                 try {
                     $response = Http::withHeaders([
                         'User-Agent' => config('app.user_agent_mobile'),
-                    ])->get(config('uniqlo.api.style_book_detail'), [
-                        'lang' => 'zh',
-                        'limit' => 4,
-                        'locale' => 'tw',
-                        'styleId' => $styleId,
-                    ]);
+                    ])
+                        ->retry(3, 1000)
+                        ->get(config('uniqlo.api.style_book_detail'), [
+                            'lang' => 'zh',
+                            'limit' => 4,
+                            'locale' => 'tw',
+                            'styleId' => $styleId,
+                        ]);
 
                     $result = json_decode($response->getBody())->result;
                     $this->repository->saveStyleFromUniqloStyleBook($styleId, $result);
