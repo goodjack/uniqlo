@@ -18,6 +18,7 @@ Disallow: /
 Allow: /$
 Allow: /products/
 Allow: /hmall-products/
+Allow: /gu-products/
 Allow: /search/
 Allow: /pages/
 Allow: /lists/
