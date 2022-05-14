@@ -15,11 +15,11 @@
             </h1>
             <div class="ts hidden divider"></div>
             <div class="ts hidden divider"></div>
-            <form class="ts big form" action="{{ route('products.go') }}">
-                <input name="id" class="ts fluid input" type="number" placeholder="輸入 UNIQLO/GU 商品編號比價...">
+            <form class="ts big form" action="{{ route('search.index') }}">
+                <input name="query" class="ts fluid input" type="search" placeholder="輸入關鍵字，或 UNIQLO/GU 商品編號">
                 <div class="ts hidden divider"></div>
                 <center>
-                    <button class="ts button" type="submit">查看商品</button>
+                    <button class="ts button" type="submit">搜尋</button>
                 </center>
             </form>
             <div class="ts hidden divider"></div>

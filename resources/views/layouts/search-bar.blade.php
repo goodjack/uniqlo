@@ -1,6 +1,6 @@
-<form class="ts fluid action input" action="{{ route('products.go') }}">
-    <input name="id" type="number" placeholder="輸入商品編號 ..." required>
+<form class="ts fluid action input" action="{{ route('search.index') }}">
+    <input name="query" type="search" placeholder="輸入關鍵字或編號 ..." required>
     <button class="ts basic icon button" type="submit" aria-label="Search">
-        <i class="arrow right icon"></i>
+        <i class="search icon"></i>
     </button>
 </form>

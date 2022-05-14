@@ -25,7 +25,6 @@ Route::group(['prefix' => 'products'], function () {
     Route::permanentRedirect('/multi-buys', '/lists/multi-buy')->name('products.multi-buys');
     Route::permanentRedirect('/news', '/lists/new')->name('products.news');
     Route::permanentRedirect('/most-reviewed', '/lists/most-reviewed')->name('products.most-reviewed');
-    Route::get('/go', 'ProductController@go')->name('products.go');
     Route::get('/{product}', 'ProductController@show')->name('products.show');
 });
 
@@ -39,6 +38,7 @@ Route::group(['prefix' => 'gu-products'], function () {
 
 Route::group(['prefix' => 'search'], function () {
     Route::get('/', 'SearchController@index')->name('search.index');
+    Route::get('/keywords', 'SearchController@searchByGoogleCse')->name('search.google-cse');
     Route::get('/{query}', 'SearchController@show')->name('search.show');
 });
 

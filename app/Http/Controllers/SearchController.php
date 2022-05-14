@@ -18,11 +18,17 @@ class SearchController extends Controller
     public function index(Request $request)
     {
         $request->validate([
-            'id' => ['required', 'numeric'],
+            'query' => ['required'],
         ]);
 
-        $hmallProducts = HmallProduct::where('code', $request->id)->get();
-        $product = Product::where('id', $request->id)->get();
+        $query = $request->query('query');
+
+        if (! is_numeric($query)) {
+            return redirect()->route('search.google-cse', ['query' => $query]);
+        }
+
+        $hmallProducts = HmallProduct::select('product_code')->where('code', $query)->get();
+        $product = Product::select('id')->where('id', $query)->get();
 
         $results = $hmallProducts->merge($product);
 
@@ -30,7 +36,7 @@ class SearchController extends Controller
             return redirect($results->first()->route_url);
         }
 
-        return redirect()->route('search.show', ['query' => $request->id]);
+        return redirect()->route('search.show', ['query' => $query]);
     }
 
     public function show($query)
@@ -39,7 +45,7 @@ class SearchController extends Controller
             'query' => ['required', 'numeric'],
         ]);
 
-        $hmallProducts = HmallProduct::where('code', $query)->get()->sortBy('min_price');
+        $hmallProducts = HmallProduct::where('code', $query)->orderBy('min_price')->get();
         $products = Product::where('id', 'like', "{$query}%")->get();
 
         return view('search.results', [
@@ -59,5 +65,10 @@ class SearchController extends Controller
             'query' => $query,
             'products' => $products,
         ]);
+    }
+
+    public function searchByGoogleCse()
+    {
+        return view('search.google-cse');
     }
 }

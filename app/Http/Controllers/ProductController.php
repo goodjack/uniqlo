@@ -194,11 +194,6 @@ class ProductController extends Controller
         ]);
     }
 
-    public function go(Request $request)
-    {
-        return redirect()->route('search.index', ['id' => $request->id]);
-    }
-
     public function getProductForApi(Product $product)
     {
         return response()->json($product->only([
