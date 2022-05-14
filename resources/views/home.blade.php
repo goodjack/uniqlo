@@ -16,7 +16,7 @@
             <div class="ts hidden divider"></div>
             <div class="ts hidden divider"></div>
             <form class="ts big form" action="{{ route('search.index') }}">
-                <input name="query" class="ts fluid input" type="search" placeholder="輸入關鍵字，或 UNIQLO/GU 商品編號">
+                <input name="query" class="ts fluid input" inputmode="search" placeholder="輸入關鍵字，或 UNIQLO/GU 商品編號">
                 <div class="ts hidden divider"></div>
                 <center>
                     <button class="ts button" type="submit">搜尋</button>
