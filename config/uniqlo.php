@@ -16,6 +16,15 @@ return [
 
         'hmall_search' => env('UQ_API_HMALL_SEARCH'),
         'spu' => env('UQ_API_SPU'),
+
+        'style_hint_list' => [
+            'jp' => env('UQ_API_STYLE_HINT_LIST_JP'),
+            'us' => env('UQ_API_STYLE_HINT_LIST_US'),
+        ],
+        'style_hint_detail' => [
+            'jp' => env('UQ_API_STYLE_HINT_DETAIL_JP'),
+            'us' => env('UQ_API_STYLE_HINT_DETAIL_US'),
+        ],
     ],
 
     'data' => [
