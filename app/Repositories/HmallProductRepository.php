@@ -310,7 +310,10 @@ class HmallProductRepository extends Repository
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
-            ->where('identity', 'like', '%SET%')
+            ->where(function ($query) {
+                $query->where('identity', 'like', '%multi_buy%')
+                    ->orWhere('identity', 'like', '%SET%');
+            })
             ->where('stock', 'Y')
             ->orderBy('evaluation_count', 'desc')
             ->orderBy('score', 'desc')

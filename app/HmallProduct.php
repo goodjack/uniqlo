@@ -75,7 +75,7 @@ class HmallProduct extends Model
     {
         $identity = json_decode($this->identity);
 
-        return in_array('SET', $identity);
+        return in_array('multi_buy', $identity) || in_array('SET', $identity);
     }
 
     /**
