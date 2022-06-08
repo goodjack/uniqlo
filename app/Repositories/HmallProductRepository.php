@@ -81,6 +81,11 @@ class HmallProductRepository extends Repository
         return $hmallProduct->styles;
     }
 
+    public function getStyleHints(HmallProduct $hmallProduct, int $limit)
+    {
+        return $hmallProduct->styleHints()->orderBy('id', 'desc')->limit($limit)->get();
+    }
+
     public function getRelatedHmallProductsForProduct(Product $product)
     {
         $relatedId = substr($product->id, 0, 6);

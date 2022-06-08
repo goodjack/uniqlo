@@ -49,9 +49,9 @@ $shareUrl = [
                 }
             }
             @if ($hmallProduct->evaluation_count > 0 && !empty($hmallProduct->score))
-                ,"aggregateRating": {
-                "ratingValue": "{{ $hmallProduct->score }}",
-                "ratingCount": "{{ $hmallProduct->evaluation_count }}"
+                , "aggregateRating": {
+                    "ratingValue": "{{ $hmallProduct->score }}",
+                    "ratingCount": "{{ $hmallProduct->evaluation_count }}"
                 }
             @endif
         }
@@ -156,7 +156,6 @@ $shareUrl = [
                 overflow: auto;
             }
         }
-
     </style>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css"
@@ -258,6 +257,23 @@ $shareUrl = [
                     @foreach ($styles as $key => $style)
                         <x-image-card link="{{ $style->detail_url }}" imageUrl="{{ $style->image_url }}"
                             largeImageUrl="{{ $style->large_image_url }}" alt="精選穿搭 {{ $key + 1 }}" width="720"
+                            height="960" />
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($styleHints->isNotEmpty())
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+            <div class="ts container">
+                <h2 class="ts large dividing header">網友穿搭</h2>
+                <div class="ts hidden divider"></div>
+                <div class="ts doubling four flatted cards">
+                    @foreach ($styleHints as $key => $styleHint)
+                        <x-image-card link="{{ $styleHint->original_source_url }}"
+                            imageUrl="{{ $styleHint->image_url }}" largeImageUrl="{{ $styleHint->large_image_url }}"
+                            alt="網友穿搭 {{ $key + 1 }} ({{ $styleHint->user_info['name'] }})" width="720"
                             height="960" />
                     @endforeach
                 </div>

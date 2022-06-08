@@ -29,8 +29,8 @@ class StyleHintRepository extends Repository
             $model->department_id = data_get($styleHintSummary, 'departmentId');
 
             $model->model_height = data_get($result, 'modelHeight');
-            $model->user_info = json_encode(data_get($result, 'userInfo'));
-            $model->hashtags = json_encode(data_get($result, 'hashtags'));
+            $model->user_info = data_get($result, 'userInfo');
+            $model->hashtags = data_get($result, 'hashtags');
             $model->gender = data_get($result, 'gender');
 
             $publishedAt = data_get($result, 'publishedAt');

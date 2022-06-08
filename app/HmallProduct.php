@@ -30,6 +30,17 @@ class HmallProduct extends Model
         return $this->belongsToMany(Style::class);
     }
 
+    public function styleHints()
+    {
+        return $this->belongsToMany(
+            StyleHint::class,
+            'style_hint_items',
+            'code',
+            'style_hint_id',
+            'code'
+        );
+    }
+
     /**
      * Get the price of the product.
      *

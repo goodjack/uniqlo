@@ -9,6 +9,11 @@ class StyleHint extends Model
 {
     protected $fillable = ['country', 'outfit_id'];
 
+    protected $casts = [
+        'user_info' => 'array',
+        'hashtags' => 'array',
+    ];
+
     public function getStyleImageUrlAttribute($value)
     {
         if (Str::startsWith($value, 'http')) {
@@ -35,6 +40,16 @@ class StyleHint extends Model
         }
 
         return "https://www.stylehint.com/jp/ja/outfit/{$value}";
+    }
+
+    public function getImageUrlAttribute()
+    {
+        return "{$this->style_image_url}_r-600-800";
+    }
+
+    public function getLargeImageUrlAttribute()
+    {
+        return "{$this->style_image_url}_r-1000-1333";
     }
 
     public function setStyleImageUrlAttribute($value)
