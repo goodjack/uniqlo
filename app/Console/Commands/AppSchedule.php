@@ -34,8 +34,12 @@ class AppSchedule extends Command
         $this->call('hmall-product:cache');
         $this->call('sitemap:generate');
         $this->call('style:fetch');
-        $this->call('style-hint:fetch jp');
-        $this->call('style-hint:fetch us');
+        $this->call('style-hint:fetch', [
+            'country' => 'us'
+        ]);
+        $this->call('style-hint:fetch', [
+            'country' => 'jp'
+        ]);
 
         return 0;
     }
