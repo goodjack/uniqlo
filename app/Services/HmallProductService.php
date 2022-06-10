@@ -56,7 +56,7 @@ class HmallProductService extends Service
                 $response = Http::withHeaders([
                     'User-Agent' => config('app.user_agent_mobile'),
                 ])
-                    ->retry(3, 1000)
+                    ->retry(5, 1000)
                     ->post($hmallSearchApiUrl, [
                         'url' => config('uniqlo.data.hmall_search.url') . $page,
                         'pageInfo' => ['page' => $page, 'pageSize' => $pageSize, 'withSideBar' => 'Y'],
@@ -94,7 +94,7 @@ class HmallProductService extends Service
                 ]);
                 report($e);
 
-                if ($retry >= 3) {
+                if ($retry >= 5) {
                     $retry = 0;
                     continue;
                 }
@@ -137,7 +137,7 @@ class HmallProductService extends Service
                     $response = Http::withHeaders([
                         'User-Agent' => config('app.user_agent_mobile'),
                     ])
-                        ->retry(3, 1000)
+                        ->retry(5, 1000)
                         ->get("{$spuApiUrl}{$productCode}.json");
 
                     $responseBody = json_decode($response->getBody());
@@ -166,7 +166,7 @@ class HmallProductService extends Service
 
                     sleep(1);
                 }
-            } while ($retry > 0 && $retry <= 3);
+            } while ($retry > 0 && $retry <= 5);
         }
     }
 

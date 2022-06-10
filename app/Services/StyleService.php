@@ -43,7 +43,7 @@ class StyleService extends Service
                 $response = Http::withHeaders([
                     'User-Agent' => config('app.user_agent_mobile'),
                 ])
-                    ->retry(3, 1000)
+                    ->retry(5, 1000)
                     ->get(config('uniqlo.api.style_book_list'), [
                         'dptId' => $dptId,
                         'lang' => 'zh',
@@ -73,7 +73,7 @@ class StyleService extends Service
                 ]);
                 report($e);
 
-                if ($retry >= 3) {
+                if ($retry >= 5) {
                     $retry = 0;
                     continue;
                 }
@@ -98,7 +98,7 @@ class StyleService extends Service
                     $response = Http::withHeaders([
                         'User-Agent' => config('app.user_agent_mobile'),
                     ])
-                        ->retry(3, 1000)
+                        ->retry(5, 1000)
                         ->get(config('uniqlo.api.style_book_detail'), [
                             'lang' => 'zh',
                             'limit' => 4,
@@ -123,7 +123,7 @@ class StyleService extends Service
 
                     sleep(1);
                 }
-            } while ($retry > 0 && $retry <= 3);
+            } while ($retry > 0 && $retry <= 5);
         });
     }
 }
