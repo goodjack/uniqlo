@@ -24,7 +24,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // TODO: Queues
+        // TODO: 等現有排程結束後再開啟
+        // $schedule->command('app:style-hint-schedule')->dailyAt('01:01')->withoutOverlapping(2880);
         $schedule->command('app:schedule')->dailyAt('09:01');
     }
 
