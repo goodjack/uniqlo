@@ -16,11 +16,11 @@ class StyleHint extends Model
 
     public function getStyleImageUrlAttribute($value)
     {
-        if (Str::startsWith($value, 'http')) {
+        preg_match('/([a-z]+)([0-9]+)/', $value, $matches);
+
+        if (count($matches) !== 3) {
             return $value;
         }
-
-        preg_match('/([a-z]+)([0-9]+)/', $value, $matches);
 
         $country = $matches[1];
         $number = $matches[2];
@@ -54,13 +54,19 @@ class StyleHint extends Model
 
     public function setStyleImageUrlAttribute($value)
     {
+        $styleImageUrl = $value;
+
         preg_match(
             '|https://api.fastretailing.com/ugc/v1/uq/([a-z]+)/SR_IMAGES/ugc_stylehint_uq_[a-z]+_photo_([0-9]+)_[0-9]+$|',
             $value,
             $matches
         );
 
-        $this->attributes['style_image_url'] = "{$matches[1]}{$matches[2]}" ?? $value;
+        if (count($matches) === 3) {
+            $styleImageUrl = "{$matches[1]}{$matches[2]}";
+        }
+
+        $this->attributes['style_image_url'] = $styleImageUrl;
     }
 
     public function setOriginalSourceUrlAttribute($value)
