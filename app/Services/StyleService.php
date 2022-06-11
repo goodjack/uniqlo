@@ -65,15 +65,15 @@ class StyleService extends Service
 
                 sleep(1);
             } catch (Throwable $e) {
-                Log::error('fetchStylesByDptId error', [
-                    'retry' => $retry,
-                    'dptId' => $dptId,
-                    'limit' => $limit,
-                    'offset' => $offset,
-                ]);
-                report($e);
-
                 if ($retry >= 5) {
+                    Log::error('fetchStylesByDptId error', [
+                        'retry' => $retry,
+                        'dptId' => $dptId,
+                        'limit' => $limit,
+                        'offset' => $offset,
+                    ]);
+                    report($e);
+
                     $retry = 0;
                     continue;
                 }
@@ -113,11 +113,13 @@ class StyleService extends Service
 
                     sleep(1);
                 } catch (Throwable $e) {
-                    Log::error('fetchStyleDetails error', [
-                        'retry' => $retry,
-                        'styleId' => $styleId,
-                    ]);
-                    report($e);
+                    if ($retry >= 5) {
+                        Log::error('fetchStyleDetails error', [
+                            'retry' => $retry,
+                            'styleId' => $styleId,
+                        ]);
+                        report($e);
+                    }
 
                     $retry++;
 

@@ -85,16 +85,16 @@ class HmallProductService extends Service
 
                 sleep(1);
             } catch (Throwable $e) {
-                Log::error('fetchAllHmallProducts error', [
-                    'brand' => $brand,
-                    'retry' => $retry,
-                    'page' => $page,
-                    'pageSize' => $pageSize,
-                    'productSum' => $productSum,
-                ]);
-                report($e);
-
                 if ($retry >= 5) {
+                    Log::error('fetchAllHmallProducts error', [
+                        'brand' => $brand,
+                        'retry' => $retry,
+                        'page' => $page,
+                        'pageSize' => $pageSize,
+                        'productSum' => $productSum,
+                    ]);
+                    report($e);
+
                     $retry = 0;
                     continue;
                 }
@@ -155,12 +155,14 @@ class HmallProductService extends Service
 
                     sleep(1);
                 } catch (Throwable $e) {
-                    Log::error('fetchAllHmallProductDescriptions error', [
-                        'brand' => $brand,
-                        'retry' => $retry,
-                        'productCode' => $productCode,
-                    ]);
-                    report($e);
+                    if ($retry >= 5) {
+                        Log::error('fetchAllHmallProductDescriptions error', [
+                            'brand' => $brand,
+                            'retry' => $retry,
+                            'productCode' => $productCode,
+                        ]);
+                        report($e);
+                    }
 
                     $retry++;
 

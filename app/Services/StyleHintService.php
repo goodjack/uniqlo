@@ -49,15 +49,15 @@ class StyleHintService extends Service
 
                 sleep(1);
             } catch (Throwable $e) {
-                Log::error('fetchAllStyleHints error', [
-                    'retry' => $retry,
-                    'country' => $country,
-                    'limit' => $limit,
-                    'offset' => $offset,
-                ]);
-                report($e);
-
                 if ($retry >= 5) {
+                    Log::error('fetchAllStyleHints error', [
+                        'retry' => $retry,
+                        'country' => $country,
+                        'limit' => $limit,
+                        'offset' => $offset,
+                    ]);
+                    report($e);
+
                     $retry = 0;
                     continue;
                 }
@@ -99,12 +99,14 @@ class StyleHintService extends Service
 
                     sleep(1);
                 } catch (Throwable $e) {
-                    Log::error('fetchStyleHintsDetails error', [
-                        'retry' => $retry,
-                        'country' => $country,
-                        'styleHintSummary' => $styleHintSummary,
-                    ]);
-                    report($e);
+                    if ($retry >= 5) {
+                        Log::error('fetchStyleHintsDetails error', [
+                            'retry' => $retry,
+                            'country' => $country,
+                            'styleHintSummary' => $styleHintSummary,
+                        ]);
+                        report($e);
+                    }
 
                     $retry++;
 
