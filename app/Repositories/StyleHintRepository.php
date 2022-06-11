@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\StyleHint;
 use App\StyleHintItem;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 use Yish\Generators\Foundation\Repository\Repository;
@@ -16,6 +17,17 @@ class StyleHintRepository extends Repository
     public function __construct(StyleHint $styleHint)
     {
         $this->model = $styleHint;
+    }
+
+    public function getExistStyleHintOutfitIds(string $country, Collection $outfitIds): array
+    {
+        return $this->model
+            ->select('outfit_id')
+            ->where('country', $country)
+            ->whereIn('outfit_id', $outfitIds)
+            ->get()
+            ->pluck('outfit_id')
+            ->toArray();
     }
 
     public function saveStyleHints($country, $styleHintSummary, $result)

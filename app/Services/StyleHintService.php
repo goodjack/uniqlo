@@ -38,7 +38,7 @@ class StyleHintService extends Service
                         'order' => 'published_at:desc',
                     ]);
 
-                $responseBody = json_decode($response->getBody());
+                $responseBody = json_decode($response->body());
                 $styleHintSummaries = $responseBody->result->images;
                 $this->fetchStyleHintsDetails($country, $styleHintSummaries);
 
@@ -73,6 +73,18 @@ class StyleHintService extends Service
     private function fetchStyleHintsDetails($country, $styleHintSummaries)
     {
         $styleHintSummaries = collect($styleHintSummaries);
+
+        $existOutfitIds = $this->repository->getExistStyleHintOutfitIds(
+            $country,
+            $styleHintSummaries->pluck('outfitId')
+        );
+
+        $styleHintSummaries = $styleHintSummaries->reject(function ($styleHintSummary) use ($existOutfitIds) {
+            $outfitId = $styleHintSummary->outfitId;
+
+            return in_array($outfitId, $existOutfitIds);
+        });
+
         $styleHintSummaries->each(function ($styleHintSummary) use ($country) {
             $retry = 0;
 
