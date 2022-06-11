@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Repositories\StyleHintRepository;
+use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -88,7 +89,14 @@ class StyleHintService extends Service
                             'type' => 'sh',
                         ]);
 
-                    $result = json_decode($response->getBody())->result;
+                    $responseBody = json_decode($response->body());
+                    $result = optional($responseBody)->result;
+
+                    if (is_null($result)) {
+                        sleep(1);
+                        throw new Exception("Result does not exist. {$response->body()}");
+                    }
+
                     $this->repository->saveStyleHints(
                         $country,
                         $styleHintSummary,
@@ -103,7 +111,7 @@ class StyleHintService extends Service
                         Log::error('fetchStyleHintsDetails error', [
                             'retry' => $retry,
                             'country' => $country,
-                            'styleHintSummary' => $styleHintSummary,
+                            'outfitId' => $outfitId,
                         ]);
                         report($e);
                     }
