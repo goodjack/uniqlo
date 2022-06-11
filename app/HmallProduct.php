@@ -2,7 +2,6 @@
 
 namespace App;
 
-use App\Style;
 use Illuminate\Database\Eloquent\Model;
 
 class HmallProduct extends Model

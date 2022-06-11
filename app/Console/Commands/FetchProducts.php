@@ -55,7 +55,7 @@ class FetchProducts extends Command
 
         Log::debug('price:set start');
         $this->call('price:set', [
-            '--today' => true
+            '--today' => true,
         ]);
         Log::debug('price:set end');
 

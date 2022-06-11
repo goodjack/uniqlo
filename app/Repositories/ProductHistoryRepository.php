@@ -38,7 +38,7 @@ class ProductHistoryRepository extends Repository
     /**
      * Get the min price and the max price from the products table.
      *
-     * @param boolean $today
+     * @param bool $today
      * @return array prices
      */
     public function getMinPricesAndMaxPrices(bool $today = false)

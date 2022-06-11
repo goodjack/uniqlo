@@ -3,13 +3,13 @@
 use Faker\Generator as Faker;
 
 $factory->define(App\Product::class, function (Faker $faker) {
-    $category1 = '00'.$faker->numberBetween(1, 4);
-    $category2 = '00'.$faker->numberBetween(1, 9);
+    $category1 = '00' . $faker->numberBetween(1, 4);
+    $category2 = '00' . $faker->numberBetween(1, 9);
 
     return [
         'id' => $faker->randomNumber(6, true),
         'name' => $faker->sentence,
-        'category_id' => $category = $category1.$category2.$faker->randomNumber(3, true),
+        'category_id' => $category = $category1 . $category2 . $faker->randomNumber(3, true),
         'categories' => "[\"{$category}\"]",
         'ancestors' => "[\"{$category1}\",\"{$category1}{$category2}\",\"{$category}\"]",
         'main_image_url' => $faker->imageUrl,
@@ -26,7 +26,7 @@ $factory->define(App\Product::class, function (Faker $faker) {
         'stockout' => $faker->boolean,
         'review_count' => $faker->randomNumber(1),
         'colors' => "[{\"name\":\"{$faker->colorName}\",\"code\":\"{$faker->randomNumber(2, true)}\"},{\"name\":\"{$faker->colorName}\",\"code\":\"{$faker->randomNumber(2, true)}\"}]",
-        'sub_images' => "[\"182500_sub5\"]",
+        'sub_images' => '["182500_sub5"]',
         'style_dictionary_images' => null,
     ];
 });

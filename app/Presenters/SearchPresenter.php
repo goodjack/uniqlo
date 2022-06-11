@@ -2,8 +2,6 @@
 
 namespace App\Presenters;
 
-use App\Presenters\ProductPresenter;
-
 class SearchPresenter
 {
     public function __construct(ProductPresenter $productPresenter)

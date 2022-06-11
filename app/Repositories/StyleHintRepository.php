@@ -2,7 +2,6 @@
 
 namespace App\Repositories;
 
-use App\Repositories\HmallProductRepository;
 use App\StyleHint;
 use App\StyleHintItem;
 use Carbon\Carbon;
@@ -51,7 +50,7 @@ class StyleHintRepository extends Repository
 
         $originalProductIds->each(function ($originalProductId) use ($model) {
             try {
-                preg_match("/E([0-9]+)/", $originalProductId, $matches);
+                preg_match('/E([0-9]+)/', $originalProductId, $matches);
                 $code = $matches[1] ?? null;
 
                 if (is_null($code)) {
@@ -63,7 +62,7 @@ class StyleHintRepository extends Repository
                 StyleHintItem::firstOrCreate([
                     'style_hint_id' => $model->id,
                     'code' => $code,
-                    'original_product_id' => $originalProductId
+                    'original_product_id' => $originalProductId,
                 ]);
             } catch (Throwable $e) {
                 Log::error('saveStyleHints StyleHintItem firstOrCreate error', [

@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\Foundations\DivideProducts;
 use App\Product;
 use GuzzleHttp\Client;
-use App\Foundations\DivideProducts;
 use Yish\Generators\Foundation\Service\Service;
 
 class SearchService extends Service

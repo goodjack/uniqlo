@@ -22,7 +22,6 @@ class FetchStyleHints extends Command
      */
     protected $description = 'Fetch all style hints from UNIQLO';
 
-
     /**
      * Create a new command instance.
      *

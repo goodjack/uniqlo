@@ -3,10 +3,9 @@
 namespace App\Repositories;
 
 use App\Category;
+use function Functional\each;
 use Throwable;
 use Yish\Generators\Foundation\Repository\Repository;
-
-use function Functional\each;
 
 class CategoryRepository extends Repository
 {

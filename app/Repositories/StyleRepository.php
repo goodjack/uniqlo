@@ -69,7 +69,7 @@ class StyleRepository extends Repository
                 $productCode = $urlQueries['productCode'] ?? null;
 
                 if (is_null($productCode)) {
-                    preg_match("/(u[0-9]+)/", $item->img_url_pc, $matches);
+                    preg_match('/(u[0-9]+)/', $item->img_url_pc, $matches);
                     $productCode = $matches[1] ?? null;
                 }
 

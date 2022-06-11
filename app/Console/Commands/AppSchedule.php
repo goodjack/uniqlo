@@ -35,10 +35,10 @@ class AppSchedule extends Command
         $this->call('sitemap:generate');
         $this->call('style:fetch');
         $this->call('style-hint:fetch', [
-            'country' => 'us'
+            'country' => 'us',
         ]);
         $this->call('style-hint:fetch', [
-            'country' => 'jp'
+            'country' => 'jp',
         ]);
 
         return 0;
