@@ -63,7 +63,7 @@ class StyleService extends Service
 
                 $retry = 0;
 
-                sleep(1);
+                usleep(500000);
             } catch (Throwable $e) {
                 if ($retry >= 5) {
                     Log::error('fetchStylesByDptId error', [
@@ -111,7 +111,7 @@ class StyleService extends Service
 
                     $retry = 0;
 
-                    sleep(1);
+                    usleep(500000);
                 } catch (Throwable $e) {
                     if ($retry >= 5) {
                         Log::error('fetchStyleDetails error', [

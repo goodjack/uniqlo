@@ -47,7 +47,7 @@ class StyleHintService extends Service
 
                 $retry = 0;
 
-                sleep(1);
+                usleep(500000);
             } catch (Throwable $e) {
                 if ($retry >= 5) {
                     Log::error('fetchAllStyleHints error', [
@@ -85,7 +85,7 @@ class StyleHintService extends Service
                     ])
                         ->retry(5, 1000)
                         ->get($url, [
-                            'type' => 'sh'
+                            'type' => 'sh',
                         ]);
 
                     $result = json_decode($response->getBody())->result;
@@ -97,7 +97,7 @@ class StyleHintService extends Service
 
                     $retry = 0;
 
-                    sleep(1);
+                    usleep(500000);
                 } catch (Throwable $e) {
                     if ($retry >= 5) {
                         Log::error('fetchStyleHintsDetails error', [
