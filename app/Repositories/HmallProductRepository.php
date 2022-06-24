@@ -226,7 +226,6 @@ class HmallProductRepository extends Repository
                 })->orWhere('identity', 'like', '%time_doptimal%');
             })
             ->where('stock', 'Y')
-            ->orderBy('time_limited_end')
             ->orderByRaw('min_price/highest_record_price')
             ->orderBy('evaluation_count', 'desc')
             ->orderBy('score', 'desc')
