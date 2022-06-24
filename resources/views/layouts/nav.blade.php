@@ -20,7 +20,7 @@
             <a href="{{ route('lists.online-special') }}" class="item" aria-label="online-special">網路獨家</a>
             <div class="divider"></div>
             <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">
-                v2.8.0 更新日誌
+                v2.9.0 更新日誌
             </a>
         </div>
         <div class="mobile only right menu">
@@ -56,7 +56,7 @@
                     </a>
                     <div class="divider"></div>
                     <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">
-                        v2.8.0 更新日誌
+                        v2.9.0 更新日誌
                     </a>
                 </div>
             </div>

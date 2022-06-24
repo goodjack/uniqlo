@@ -25,6 +25,21 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v2.9.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">更新功能</div>
+                        <ul>
+                            <li>調整期間限定特價排序方式為：降價幅度多至少 → 評論人數多至少 → 評分高至低 → 商品新至舊</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v2.8.0
                     </h2>
                     <!-- / 標題 -->
