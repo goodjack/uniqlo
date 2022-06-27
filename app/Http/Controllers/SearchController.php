@@ -27,7 +27,7 @@ class SearchController extends Controller
             return redirect()->route('search.google-cse', ['query' => $query]);
         }
 
-        $hmallProducts = HmallProduct::select('product_code')->where('code', $query)->get();
+        $hmallProducts = HmallProduct::select(['brand', 'product_code'])->where('code', $query)->get();
         $product = Product::select('id')->where('id', $query)->get();
 
         $results = $hmallProducts->merge($product);
