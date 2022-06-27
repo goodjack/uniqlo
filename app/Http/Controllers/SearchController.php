@@ -30,7 +30,7 @@ class SearchController extends Controller
         $hmallProducts = HmallProduct::select(['brand', 'product_code'])->where('code', $query)->get();
         $product = Product::select('id')->where('id', $query)->get();
 
-        $results = $hmallProducts->merge($product);
+        $results = $hmallProducts->concat($product);
 
         if ($results->count() === 1) {
             return redirect($results->first()->route_url);
