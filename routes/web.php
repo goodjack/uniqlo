@@ -36,6 +36,10 @@ Route::group(['prefix' => 'gu-products'], function () {
     Route::get('/{gu_product_code}', 'HmallProductController@show')->name('gu-hmall-products.show');
 });
 
+Route::group(['prefix' => 'style-hints'], function () {
+    Route::get('/{uniqlo_product_code}', 'StyleHintController@show')->name('style-hints.show');
+});
+
 Route::group(['prefix' => 'search'], function () {
     Route::get('/', 'SearchController@index')->name('search.index');
     Route::get('/keywords', 'SearchController@searchByGoogleCse')->name('search.google-cse');
