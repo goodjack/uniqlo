@@ -57,7 +57,8 @@ class HmallProductController extends Controller
         $relatedHmallProducts = $this->service->getRelatedHmallProducts($hmallProduct);
         $relatedProducts = $this->service->getRelatedProducts($hmallProduct);
         $styles = $this->service->getStyles($hmallProduct);
-        $styleHints = $this->service->getStyleHints($hmallProduct, 20);
+        $styleHints = $this->service->getStyleHints($hmallProduct, 12);
+        $styleHintCount = $this->service->getStyleHintCount($hmallProduct);
         $hmallPriceHistories = $hmallProduct->hmallPriceHistories()->get();
 
         return view('hmall-products.show', [
@@ -66,6 +67,7 @@ class HmallProductController extends Controller
             'relatedProducts' => $relatedProducts,
             'styles' => $styles,
             'styleHints' => $styleHints,
+            'styleHintCount' => $styleHintCount,
             'hmallPriceHistories' => $hmallPriceHistories,
         ]);
     }

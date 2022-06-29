@@ -42,6 +42,11 @@ class HmallProductService extends Service
         return $this->repository->getStyleHints($hmallProduct, $limit);
     }
 
+    public function getStyleHintCount(HmallProduct $hmallProduct)
+    {
+        return $this->repository->getStyleHintCount($hmallProduct);
+    }
+
     public function fetchAllHmallProducts($brand = 'UNIQLO')
     {
         $hmallSearchApiUrl = $this->getHmallSearchApiUrl($brand);

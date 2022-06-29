@@ -256,8 +256,8 @@ $shareUrl = [
                 <div class="ts doubling four flatted cards">
                     @foreach ($styles as $key => $style)
                         <x-image-card link="{{ $style->detail_url }}" imageUrl="{{ $style->image_url }}"
-                            largeImageUrl="{{ $style->large_image_url }}" alt="精選穿搭 {{ $key + 1 }}" width="720"
-                            height="960" />
+                            largeImageUrl="{{ $style->large_image_url }}" alt="精選穿搭 {{ $key + 1 }}"
+                            width="720" height="960" />
                     @endforeach
                 </div>
             </div>
@@ -267,7 +267,15 @@ $shareUrl = [
     @if ($styleHints->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
-                <h2 class="ts large dividing header">網友穿搭</h2>
+                <h2 class="ts large dividing header">
+                    網友穿搭
+                    <div class="inline sub header">共 {{ $styleHintCount }} 張</div>
+                    <a class="ts right floated icon labeled button" style="font-size: 0.9rem;"
+                        href="{{ route('style-hints.show', ['uniqlo_product_code' => $hmallProduct->product_code]) }}">
+                        <i class="camera retro icon"></i>
+                        查看列表
+                    </a>
+                </h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
                     @foreach ($styleHints as $key => $styleHint)
