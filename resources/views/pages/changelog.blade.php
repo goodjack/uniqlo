@@ -25,6 +25,26 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v2.10.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">新增功能</div>
+                        <ul>
+                            <li>網友穿搭頁全新登場！</li>
+                        </ul>
+                        <div class="header">修復錯誤</div>
+                        <ul>
+                            <li>修正 GU 商品編號無法搜尋的問題</li>
+                            <li>修正多個商品編號無法正確顯示搜尋結果的問題</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v2.9.0
                     </h2>
                     <!-- / 標題 -->
