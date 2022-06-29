@@ -1,9 +1,26 @@
 @inject('hmallProductPresenter', 'App\Presenters\HmallProductPresenter')
 @extends('layouts.master')
 
+@php
+$shareText = $hmallProductPresenter->getFullName($hmallProduct) . ' | UNIQLO 比價 | UQ 搜尋';
+$currentUrl = url()->current();
+@endphp
+
 @section('title', "{$hmallProductPresenter->getFullName($hmallProduct)} 的網友穿搭")
 
 @section('metadata')
+    <link rel="canonical" href="{{ $currentUrl }}" />
+    <meta name="description" content="共 {{ $styleHints->total() }} 張網友穿搭" />
+    <meta property="og:type" content="og:product" />
+    <meta property="og:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的網友穿搭 | UQ 搜尋" />
+    <meta property="og:url" content="{{ $currentUrl }}" />
+    <meta property="og:description" content="共 {{ $styleHints->total() }} 張網友穿搭" />
+    <meta property="og:image" content="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:creator" content="@littlegoodjack" />
+    <meta name="twitter:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的網友穿搭 | UQ 搜尋" />
+    <meta name="twitter:description" content="共 {{ $styleHints->total() }} 張網友穿搭" />
+    <meta name="twitter:image" content="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" />
 @endsection
 
 @section('css')
@@ -15,11 +32,31 @@
 @section('content')
     <div class="ts fluid slate">
         <i class="camera retro faded icon"></i>
-        <span class="header">{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的網友穿搭</span>
-        <span class="description">共 {{ $styleHints->total() }} 張</span>
+        <h1 class="header">{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的網友穿搭</h1>
+        <span class="description">共 {{ $styleHints->total() }} 張網友穿搭</span>
+        <div class="action">
+            <a class="ts mini basic button" href="{{ $hmallProduct->route_url }}">返回商品頁</a>
+        </div>
     </div>
     <div class="ts very padded horizontally fitted attached fluid secondary segment">
         <div class="ts container">
+            <div class="ts items">
+                <div class="item">
+                    <div class="ts mini image">
+                        <x-lazy-load-image src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
+                            alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
+                    </div>
+                    <div class="middle aligned content">
+                        <div class="header">
+                            {{ $hmallProductPresenter->getFullName($hmallProduct) }}
+                        </div>
+                        <div class="inline middoted meta">
+                            <span>{{ $hmallProduct->brand }} 商品編號 {{ $hmallProduct->code }}
+                                {{ $hmallProduct->product_code }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="ts doubling four flatted cards">
                 @foreach ($styleHints as $key => $styleHint)
                     <x-image-card link="{{ $styleHint->original_source_url }}" imageUrl="{{ $styleHint->image_url }}"
@@ -34,11 +71,12 @@
         <div class="ts small buttons">
             {{-- Previous Page Link --}}
             @if ($styleHints->onFirstPage())
-                <a class="ts disable icon button">
+                <a class="ts icon disabled button" aria-disabled="true" aria-label="@lang('pagination.previous')">
                     <i class="left chevron icon"></i>
                 </a>
             @else
-                <a class="ts icon button" href="{{ $styleHints->previousPageUrl() }}">
+                <a class="ts icon button" href="{{ $styleHints->previousPageUrl() }}" rel="prev"
+                    aria-label="@lang('pagination.previous')">
                     <i class="left chevron icon"></i>
                 </a>
             @endif
