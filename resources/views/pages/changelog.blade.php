@@ -25,6 +25,21 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v2.11.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">新增功能</div>
+                        <ul>
+                            <li>新增熱門穿搭列表，來看看最多人穿搭的商品有哪些吧！</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v2.10.0
                     </h2>
                     <!-- / 標題 -->
