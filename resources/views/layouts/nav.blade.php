@@ -13,11 +13,24 @@
             <a href="{{ route('home') }}" class="item" aria-label="home">首頁</a>
             <a href="{{ route('lists.limited-offers') }}" class="item" aria-label="limited-offers">期間限定</a>
             <a href="{{ route('lists.sale') }}" class="item" aria-label="sale">特價</a>
-            <a href="{{ route('lists.most-reviewed') }}" class="item" aria-label="most-reviewed">熱門</a>
+            <a href="{{ route('lists.most-reviewed') }}" class="item" aria-label="most-reviewed">熱門評論</a>
+            <a href="{{ route('lists.top-wearing') }}" class="item" aria-label="top-wearing">熱門穿搭</a>
             <a href="{{ route('lists.new') }}" class="item" aria-label="new">新品</a>
             <a href="{{ route('lists.coming-soon') }}" class="item" aria-label="coming-soon">即將上市</a>
-            <a href="{{ route('lists.multi-buy') }}" class="item" aria-label="multi-buy">合購</a>
-            <a href="{{ route('lists.online-special') }}" class="item" aria-label="online-special">網路獨家</a>
+            <div class="ts item dropdown">
+                <div class="text">
+                    更多
+                </div>
+                <i class="dropdown icon"></i>
+                <div class="menu">
+                    <a href="{{ route('lists.multi-buy') }}" class="item" aria-label="multi-buy">
+                        <i class="cubes icon"></i>合購
+                    </a>
+                    <a href="{{ route('lists.online-special') }}" class="item" aria-label="online-special">
+                        <i class="tv icon"></i>網路獨家
+                    </a>
+                </div>
+            </div>
             <div class="divider"></div>
             <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">
                 v2.10.0 更新日誌
@@ -40,7 +53,10 @@
                         <i class="shopping basket icon"></i>特價
                     </a>
                     <a href="{{ route('lists.most-reviewed') }}" class="item" aria-label="most-reviewed">
-                        <i class="comments outline icon"></i>熱門
+                        <i class="comments outline icon"></i>熱門評論
+                    </a>
+                    <a href="{{ route('lists.top-wearing') }}" class="item" aria-label="top-wearing">
+                        <i class="camera retro icon"></i>熱門穿搭
                     </a>
                     <a href="{{ route('lists.new') }}" class="item" aria-label="new">
                         <i class="leaf icon"></i>新品

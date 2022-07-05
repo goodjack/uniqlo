@@ -61,6 +61,22 @@ class ListController extends Controller
         ]);
     }
 
+    public function getTopWearing()
+    {
+        $hmallProducts = $this->service->getTopWearingHmallProducts();
+        $count = count($hmallProducts);
+
+        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
+
+        return view('lists.list', [
+            'hmallProductList' => $hmallProductList,
+            'count' => $count,
+            'typeName' => '熱門穿搭商品',
+            'typeStyle' => 'top-wearing',
+            'typeIcon' => 'camera retro',
+        ]);
+    }
+
     public function getNew()
     {
         $hmallProducts = $this->service->getNewHmallProducts();

@@ -25,6 +25,10 @@ $title = "{$count} 件{$typeName}";
             color: #885A89 !important;
         }
 
+        i.top-wearing.icon {
+            color: #F0C8AF !important;
+        }
+
         i.coming-soon.icon {
             color: #50723C !important;
         }
@@ -32,7 +36,6 @@ $title = "{$count} 件{$typeName}";
         i.online-special.icon {
             color: #F29E18 !important;
         }
-
     </style>
 @endsection
 

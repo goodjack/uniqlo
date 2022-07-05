@@ -7,6 +7,7 @@ use Yish\Generators\Foundation\Service\Service;
 
 class ListService extends Service
 {
+    /** @var HmallProductRepository */
     protected $repository;
 
     public function __construct(HmallProductRepository $repository)
@@ -27,6 +28,11 @@ class ListService extends Service
     public function getMostReviewedHmallProducts()
     {
         return $this->repository->getMostReviewedHmallProducts();
+    }
+
+    public function getTopWearingHmallProducts()
+    {
+        return $this->repository->getTopWearingHmallProducts();
     }
 
     public function getNewHmallProducts()
