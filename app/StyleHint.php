@@ -15,6 +15,18 @@ class StyleHint extends Model
         'hashtags' => 'array',
     ];
 
+    public function hmallProducts(Type $var = null)
+    {
+        return $this->belongsToMany(
+            HmallProduct::class,
+            'style_hint_items',
+            'style_hint_id',
+            'code',
+            'id',
+            'code'
+        );
+    }
+
     public function getStyleImageUrlAttribute($value)
     {
         preg_match('/^([a-z]+)([0-9]+)(gu)?(Igbiz|Olapic)?([0-9]*)$/', $value, $matches);

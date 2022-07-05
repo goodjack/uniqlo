@@ -19,30 +19,31 @@ class HmallProductRepository extends Repository
     private const CACHE_KEY_LIMITED_OFFER = 'hmall_product:limited_offer';
     private const CACHE_KEY_SALE = 'hmall_product:sale';
     private const CACHE_KEY_MOST_REVIEWED = 'hmall_product:most_reviewed';
+    private const CACHE_KEY_TOP_WEARING = 'hmall_product:top_wearing';
     private const CACHE_KEY_NEW = 'hmall_product:new';
     private const CACHE_KEY_COMING_SOON = 'hmall_product:coming_soon';
     private const CACHE_KEY_MULTI_BUY = 'hmall_product:multi_buy';
     private const CACHE_KEY_ONLINE_SPECIAL = 'hmall_product:online_special';
     private const SELECT_COLUMNS_FOR_LIST = [
-        'id',
-        'code',
-        'brand',
-        'product_code',
-        'name',
-        'min_price',
-        'lowest_record_price',
-        'highest_record_price',
-        'identity',
-        'time_limited_begin',
-        'time_limited_end',
-        'score',
-        'evaluation_count',
-        'main_first_pic',
-        'gender',
-        'sex',
-        'stock',
-        'stockout_at',
-        'updated_at',
+        'hmall_products.id',
+        'hmall_products.code',
+        'hmall_products.brand',
+        'hmall_products.product_code',
+        'hmall_products.name',
+        'hmall_products.min_price',
+        'hmall_products.lowest_record_price',
+        'hmall_products.highest_record_price',
+        'hmall_products.identity',
+        'hmall_products.time_limited_begin',
+        'hmall_products.time_limited_end',
+        'hmall_products.score',
+        'hmall_products.evaluation_count',
+        'hmall_products.main_first_pic',
+        'hmall_products.gender',
+        'hmall_products.sex',
+        'hmall_products.stock',
+        'hmall_products.stockout_at',
+        'hmall_products.updated_at',
     ];
 
     public function __construct(HmallProduct $model, HmallPriceHistory $hmallPriceHistory)
@@ -184,6 +185,15 @@ class HmallProductRepository extends Repository
         return Cache::get(self::CACHE_KEY_MOST_REVIEWED);
     }
 
+    public function getTopWearingHmallProducts()
+    {
+        if (! Cache::has(self::CACHE_KEY_TOP_WEARING)) {
+            $this->setTopWearingHmallProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_TOP_WEARING);
+    }
+
     public function getNewHmallProducts()
     {
         if (! Cache::has(self::CACHE_KEY_NEW)) {
@@ -275,6 +285,32 @@ class HmallProductRepository extends Repository
             ->get();
 
         Cache::forever(self::CACHE_KEY_MOST_REVIEWED, $hmallProducts);
+    }
+
+    public function setTopWearingHmallProductsCache()
+    {
+        $styleHintItems = DB::table('style_hint_items')
+            ->select('style_hint_items.code')
+            ->selectRaw('count(*) AS count')
+            ->groupBy('style_hint_items.code')
+            ->having('count', '>', 200)
+            ->orderBy('count', 'desc');
+
+        $hmallProducts = $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->addSelect('count')
+            ->leftJoinSub($styleHintItems, 'style_hint_items', function ($join) {
+                $join->on('hmall_products.code', '=', 'style_hint_items.code');
+            })
+            ->whereNotNull('count')
+            ->where('stock', 'Y')
+            ->orderBy('count', 'desc')
+            ->orderBy('evaluation_count', 'desc')
+            ->orderBy('score', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        Cache::forever(self::CACHE_KEY_TOP_WEARING, $hmallProducts);
     }
 
     public function setNewHmallProductsCache()
