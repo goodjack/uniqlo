@@ -6,20 +6,22 @@ $shareText = $hmallProductPresenter->getFullName($hmallProduct) . ' | UNIQLO 比
 $currentUrl = url()->current();
 @endphp
 
-@section('title', "{$hmallProductPresenter->getFullName($hmallProduct)} 的網友穿搭")
+@section('title', "{$hmallProductPresenter->getFullName($hmallProduct)} 的 StyleHint 網友穿搭靈感")
 
 @section('metadata')
     <link rel="canonical" href="{{ $currentUrl }}" />
-    <meta name="description" content="共 {{ $styleHints->total() }} 張網友穿搭" />
+    <meta name="description" content="共 {{ $styleHints->total() }} 張 StyleHint 網友穿搭靈感" />
     <meta property="og:type" content="og:product" />
-    <meta property="og:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的網友穿搭 | UQ 搜尋" />
+    <meta property="og:title"
+        content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的 StyleHint 網友穿搭靈感 | UQ 搜尋" />
     <meta property="og:url" content="{{ $currentUrl }}" />
-    <meta property="og:description" content="共 {{ $styleHints->total() }} 張網友穿搭" />
+    <meta property="og:description" content="共 {{ $styleHints->total() }} 張 StyleHint 網友穿搭靈感" />
     <meta property="og:image" content="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@littlegoodjack" />
-    <meta name="twitter:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的網友穿搭 | UQ 搜尋" />
-    <meta name="twitter:description" content="共 {{ $styleHints->total() }} 張網友穿搭" />
+    <meta name="twitter:title"
+        content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的 StyleHint 網友穿搭靈感 | UQ 搜尋" />
+    <meta name="twitter:description" content="共 {{ $styleHints->total() }} 張 StyleHint 網友穿搭靈感" />
     <meta name="twitter:image" content="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" />
 @endsection
 
@@ -32,8 +34,8 @@ $currentUrl = url()->current();
 @section('content')
     <div class="ts fluid slate">
         <i class="camera retro faded icon"></i>
-        <h1 class="header">{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的網友穿搭</h1>
-        <span class="description">共 {{ $styleHints->total() }} 張網友穿搭</span>
+        <h1 class="header">{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的 StyleHint 網友穿搭靈感</h1>
+        <span class="description">共 {{ $styleHints->total() }} 張 StyleHint 網友穿搭靈感</span>
         <div class="action">
             <a class="ts mini basic button" href="{{ $hmallProduct->route_url }}">返回商品頁</a>
         </div>
@@ -61,7 +63,7 @@ $currentUrl = url()->current();
                 @foreach ($styleHints as $key => $styleHint)
                     <x-image-card link="{{ $styleHint->original_source_url }}" imageUrl="{{ $styleHint->image_url }}"
                         largeImageUrl="{{ $styleHint->large_image_url }}"
-                        alt="網友穿搭 {{ $styleHints->firstItem() + $key }} ({{ $styleHint->user_info['name'] }})"
+                        alt="StyleHint 網友穿搭靈感 {{ $styleHints->firstItem() + $key }} ({{ $styleHint->user_info['name'] }})"
                         width="720" height="960" />
                 @endforeach
             </div>

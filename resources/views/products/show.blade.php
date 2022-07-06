@@ -47,9 +47,9 @@ $shareUrl = [
                 }
             }
             @if ($product->review_count > 0 && !empty($product->review_rating))
-                ,"aggregateRating": {
-                "ratingValue": "{{ $product->review_rating }}",
-                "ratingCount": "{{ $product->review_count }}"
+                , "aggregateRating": {
+                    "ratingValue": "{{ $product->review_rating }}",
+                    "ratingCount": "{{ $product->review_count }}"
                 }
             @endif
         }
@@ -130,7 +130,6 @@ $shareUrl = [
                 overflow: auto;
             }
         }
-
     </style>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css"
@@ -261,7 +260,7 @@ $shareUrl = [
     @if (count($styles) > 0 || count($styleDictionaries) > 0)
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
-                <h2 class="ts large dividing header">精選穿搭</h2>
+                <h2 class="ts large dividing header">Official Styling 官方精選穿搭</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
                     {!! $productPresenter->getStyles($styles) !!}
