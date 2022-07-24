@@ -43,6 +43,15 @@ class HmallProductPresenter
         return "https://www.uniqlo.com/tw{$hmallProduct->main_first_pic}";
     }
 
+    public function getSkuPic($hmallProduct, $colorNum)
+    {
+        if ($hmallProduct->brand === 'GU') {
+            return "https://www.gu-global.com/tw/hmall/test/{$hmallProduct->product_code}/sku/561/{$colorNum}.jpg";
+        }
+
+        return "https://www.uniqlo.com/tw/hmall/test/{$hmallProduct->product_code}/sku/561/{$colorNum}.jpg";
+    }
+
     public function getHmallProductTag($hmallProduct)
     {
         $html = '';

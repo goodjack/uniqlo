@@ -12,6 +12,8 @@ $shareUrl = [
     'line' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
     'webShare' => $currentUrl . '?utm_source=uqs&utm_medium=webshare&utm_campaign=share',
 ];
+
+$colorNums = json_decode($hmallProduct->color_nums, true);
 @endphp
 
 @section('title', $hmallProductPresenter->getFullName($hmallProduct))
@@ -251,6 +253,22 @@ $shareUrl = [
             </div>
         </div>
     </div>
+
+    @isset($colorNums)
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+            <div class="ts container">
+                <h2 class="ts large dividing header">商品實照</h2>
+                <div class="ts hidden divider"></div>
+                <div class="ts doubling four flatted cards">
+                    @foreach ($colorNums as $key => $colorNum)
+                        <x-image-card imageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
+                            largeImageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}" link=""
+                            alt="商品實照 {{ $key + 1 }}" width="561" height="561" />
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endisset
 
     @if ($styles->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">

@@ -1,5 +1,6 @@
 <a class="ts card" href="{{ $largeImageUrl }}" rel="nofollow noopener" data-lightbox="image"
-    data-title="<a href='{{ $link }}' target='_blank' rel='nofollow noopener'>{{ $alt }}</a>">
+    @if (!empty($link)) data-title="<a href='{{ $link }}' target='_blank' rel='nofollow noopener'>{{ $alt }}</a>"
+    @else data-title="{{ $alt }}" @endif>
     <div class="image">
         <x-lazy-load-image src="{{ $imageUrl }}" alt="{{ $alt }}" width="{{ $width }}"
             height="{{ $height }}" />
