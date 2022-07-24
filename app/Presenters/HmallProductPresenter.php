@@ -27,9 +27,31 @@ class HmallProductPresenter
 
     public function getDescription($hmallProduct)
     {
-        $description = strip_tags($hmallProduct->instruction, '<br>');
+        $description = $hmallProduct->instruction;
 
-        $description .= "<br>網路商店編號：{$hmallProduct->product_code}";
+        // 去除 GU 產品標示
+        $description = preg_replace('/<div class="desc-item">\X*<\/div>/U', '', $description);
+
+        // 去除特殊標示
+        $description = preg_replace('/<span class">\X*<\/span>/U', '', $description);
+
+        // 去除 HTML br 以外的 tag
+        $description = strip_tags($description, '<br>');
+
+        // 整理中間換行
+        $description = preg_replace('/\n/', '', $description);
+        $description = preg_replace('/<br\s*\/?>/', '<br>', $description);
+        $description = preg_replace('/(<br>){3,}/', '<br><br>', $description);
+        $description = preg_replace('/※.*(<br>|$)/U', '', $description);
+
+        // 去除 UNIQLO 產品標示
+        $description = preg_replace('/(商品材質|物料組成|網路商店退貨須知)\X*/', '', $description);
+
+        // 整理前後換行
+        $description = trim($description);
+        $description = preg_replace('/^(<br>)+|(<br>)+$/', '', $description);
+
+        $description .= "<br><br>網路商店編號：{$hmallProduct->product_code}";
 
         return $description;
     }
