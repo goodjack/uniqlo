@@ -9,19 +9,11 @@
         </div>
     </div>
     <div class="center aligned extra content">
-        @if ($product->max_price > $product->price)
-            <small>${{ $product->max_price }} ⇢</small>
-            <strong>${{ $product->price }}</strong>
-        @else
-            ${{ $product->price }}
-        @endif
-
-        @if ($product->price > $product->min_price)
-            <span style="color: #8BB96E;">⇢ ${{ $product->min_price }}</span>
-        @endif
-
         <div class="description">
-            舊系統
+            <p>
+                ${{ $product->max_price }} - ${{ $product->min_price }}
+            </p>
+            <div class="ts horizontal basic circular label">舊系統</div>
         </div>
 
         {{-- @if ($product->limit_sales_end_msg)
