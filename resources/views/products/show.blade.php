@@ -63,8 +63,7 @@ $shareUrl = [
     <meta property="og:title" content="{{ $product->name }} | UQ 搜尋" />
     <meta property="og:url" content="{{ route('products.show', ['product' => $product->id]) }}" />
     <meta property="og:description" content="{{ $productPresenter->getSocialMediaDescription($product) }}" />
-    <meta property="og:image"
-        content="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}" />
+    <meta property="og:image" content="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@littlegoodjack" />
     <meta name="twitter:title" content="{{ $product->name }} | UQ 搜尋" />
