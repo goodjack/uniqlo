@@ -347,3 +347,11 @@
         </div>
     </div>
 @endsection
+
+@section('css')
+    <style>
+        #disqus_thread>iframe[sandbox] {
+            display: none !important
+        }
+    </style>
+@endsection
