@@ -25,6 +25,30 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v2.12.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">新增功能</div>
+                        <ul>
+                            <li>產品頁新增商品實照區塊，目前先增加同商品的各種顏色實照</li>
+                        </ul>
+                        <div class="header">更新功能</div>
+                        <ul>
+                            <li>列表中卡片價目現在更清晰了</li>
+                            <li>改善產品敘述的內容呈現，去除了一些雜訊</li>
+                        </ul>
+                        <div class="header">修復功能</div>
+                        <ul>
+                            <li>隱藏 DISQUS 噁心的廣告</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v2.11.0
                     </h2>
                     <!-- / 標題 -->
