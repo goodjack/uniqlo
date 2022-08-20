@@ -45,7 +45,6 @@ class StyleHintService extends Service
                 $total = $responseBody->result->pagination->total;
 
                 $offset += $limit;
-
                 $retry = 0;
 
                 usleep(500000);
@@ -56,10 +55,13 @@ class StyleHintService extends Service
                         'country' => $country,
                         'limit' => $limit,
                         'offset' => $offset,
+                        'response_body' => $response->body() ?? null,
                     ]);
                     report($e);
 
+                    $offset += $limit;
                     $retry = 0;
+
                     continue;
                 }
 

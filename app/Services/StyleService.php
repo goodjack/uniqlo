@@ -60,7 +60,6 @@ class StyleService extends Service
                 $styleCount = $responseBody->result->styleCount;
 
                 $offset += $limit;
-
                 $retry = 0;
 
                 usleep(500000);
@@ -74,7 +73,9 @@ class StyleService extends Service
                     ]);
                     report($e);
 
+                    $offset += $limit;
                     $retry = 0;
+
                     continue;
                 }
 
