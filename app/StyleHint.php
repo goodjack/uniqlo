@@ -15,7 +15,7 @@ class StyleHint extends Model
         'hashtags' => 'array',
     ];
 
-    public function hmallProducts(Type $var = null)
+    public function hmallProducts()
     {
         return $this->belongsToMany(
             HmallProduct::class,
@@ -45,6 +45,34 @@ class StyleHint extends Model
         return "https://api.fastretailing.com/ugc/v1/{$brand}/{$country}/SR_IMAGES/ugc_{$type}_{$brand}_{$country}_photo_{$number}_{$originalOutfitId}";
     }
 
+    public function getUserImageAttribute($value)
+    {
+        switch ($value) {
+            case 'Stylehint':
+                return 'https://api.fastretailing.com/ugc/SR_NETWORK_IMAGES/stylehint.png';
+            case 'Olapic':
+                return 'https://api.fastretailing.com/ugc/SR_NETWORK_IMAGES/olapic.png';
+            case 'CdnIgbiz':
+                return 'https://static.shuttlerock-cdn.com/images/social-user-icons/instagram_business.png';
+            case 'Igbiz':
+                return 'https://api.fastretailing.com/ugc/SR_NETWORK_IMAGES/instagram_business.png';
+        }
+
+        preg_match('/^([a-z]+)([0-9]+)(gu)?$/', $value, $matches);
+
+        if (count($matches) < 3) {
+            return $value;
+        }
+
+        $matches = collect($matches);
+
+        $country = $matches->get(1);
+        $number = $matches->get(2);
+        $brand = $matches->get(3) ?: 'uq';
+
+        return "https://api.fastretailing.com/ugc/v1/{$brand}/{$country}/SR_IMAGES/ugc_stylehint_user_{$number}";
+    }
+
     public function getOriginalSourceUrlAttribute($value)
     {
         if (Str::startsWith($value, 'http')) {
@@ -58,6 +86,21 @@ class StyleHint extends Model
         return "https://www.stylehint.com/jp/ja/outfit/{$value}";
     }
 
+    public function getOfficialSiteUrlAttribute()
+    {
+        $outfitId = $this->outfit_id;
+
+        if ($this->country === 'tw') {
+            return "https://www.uniqlo.com/tw/zh_TW/staff-styling-detail.html?ugcId={$outfitId}";
+        }
+
+        if ($this->country === 'us') {
+            return "https://www.uniqlo.com/us/en/stylehint/{$outfitId}";
+        }
+
+        return "https://www.uniqlo.com/jp/ja/stylehint/{$outfitId}";
+    }
+
     public function getImageUrlAttribute()
     {
         return "{$this->style_image_url}_r-600-800";
@@ -66,6 +109,11 @@ class StyleHint extends Model
     public function getLargeImageUrlAttribute()
     {
         return "{$this->style_image_url}_r-1000-1333";
+    }
+
+    public function getUserNameAttribute($value)
+    {
+        return $value ?? data_get($this->user_info, 'name');
     }
 
     public function setStyleImageUrlAttribute($value)
@@ -87,6 +135,48 @@ class StyleHint extends Model
         }
 
         $this->attributes['style_image_url'] = $styleImageUrl;
+    }
+
+    public function setUserImageAttribute($value)
+    {
+        switch ($value) {
+            case 'https://api.fastretailing.com/ugc/SR_NETWORK_IMAGES/stylehint.png':
+            case 'https:\/\/api.fastretailing.com\/ugc\/SR_NETWORK_IMAGES\/stylehint.png':
+                $this->attributes['user_image_url'] = 'Stylehint';
+
+                return;
+            case 'https://api.fastretailing.com/ugc/SR_NETWORK_IMAGES/olapic.png':
+            case 'https:\/\/api.fastretailing.com\/ugc\/SR_NETWORK_IMAGES\/olapic.png':
+                $this->attributes['user_image_url'] = 'Olapic';
+
+                return;
+            case '//static.shuttlerock-cdn.com/images/social-user-icons/instagram_business.png':
+            case '\/\/static.shuttlerock-cdn.com\/images\/social-user-icons\/instagram_business.png':
+                $this->attributes['user_image_url'] = 'CdnIgbiz';
+
+                return;
+            case 'https://api.fastretailing.com/ugc/SR_NETWORK_IMAGES/instagram_business.png':
+            case 'https:\/\/api.fastretailing.com\/ugc\/SR_NETWORK_IMAGES\/instagram_business.png':
+                $this->attributes['user_image_url'] = 'Igbiz';
+
+                return;
+        }
+
+        $styleImageUrl = $value;
+
+        preg_match(
+            '/https:\/\/api.fastretailing.com\/ugc\/v1\/(uq|gu)\/([a-z]+)\/SR_IMAGES\/ugc_stylehint_user_([0-9]+)$/',
+            $value,
+            $matches
+        );
+
+        if (count($matches) === 4) {
+            $suffix = $matches[1] === 'uq' ? '' : 'gu';
+
+            $styleImageUrl = "{$matches[2]}{$matches[3]}{$suffix}";
+        }
+
+        $this->attributes['user_image_url'] = $styleImageUrl;
     }
 
     public function setOriginalSourceUrlAttribute($value)

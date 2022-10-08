@@ -12,8 +12,7 @@ $currentUrl = url()->current();
     <link rel="canonical" href="{{ $currentUrl }}" />
     <meta name="description" content="共 {{ $styleHints->total() }} 張 StyleHint 網友穿搭靈感" />
     <meta property="og:type" content="og:product" />
-    <meta property="og:title"
-        content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的 StyleHint 網友穿搭靈感 | UQ 搜尋" />
+    <meta property="og:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的 StyleHint 網友穿搭靈感 | UQ 搜尋" />
     <meta property="og:url" content="{{ $currentUrl }}" />
     <meta property="og:description" content="共 {{ $styleHints->total() }} 張 StyleHint 網友穿搭靈感" />
     <meta property="og:image" content="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" />
@@ -61,9 +60,9 @@ $currentUrl = url()->current();
             </div>
             <div class="ts doubling four flatted cards">
                 @foreach ($styleHints as $key => $styleHint)
-                    <x-image-card link="{{ $styleHint->original_source_url }}" imageUrl="{{ $styleHint->image_url }}"
+                    <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
                         largeImageUrl="{{ $styleHint->large_image_url }}"
-                        alt="StyleHint 網友穿搭靈感 {{ $styleHints->firstItem() + $key }} ({{ $styleHint->user_info['name'] }})"
+                        alt="StyleHint 網友穿搭靈感 {{ $styleHints->firstItem() + $key }} ({{ $styleHint->user_name }})"
                         width="720" height="960" />
                 @endforeach
             </div>

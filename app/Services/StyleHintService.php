@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\HmallProduct;
 use App\Repositories\StyleHintRepository;
 use Exception;
 use Illuminate\Support\Facades\Http;
@@ -11,6 +12,7 @@ use Yish\Generators\Foundation\Service\Service;
 
 class StyleHintService extends Service
 {
+    /** @var StyleHintRepository */
     protected $repository;
 
     public function __construct(StyleHintRepository $repository)
@@ -70,6 +72,20 @@ class StyleHintService extends Service
                 sleep(1);
             }
         } while ($total >= $offset);
+    }
+
+    public function fetchAllStyleHintsFromUgc(string $country = 'tw')
+    {
+        $codes = HmallProduct::select('code')
+            ->where('brand', 'UNIQLO')
+            ->groupBy('code')
+            ->orderBy('code', 'desc')
+            ->get()
+            ->pluck('code');
+
+        $codes->each(function ($code) use ($country) {
+            $this->fetchStyleHintsFromUgcByCode($country, $code);
+        });
     }
 
     private function fetchStyleHintsDetails($country, $styleHintSummaries)
@@ -136,5 +152,54 @@ class StyleHintService extends Service
                 }
             } while ($retry > 0 && $retry <= 5);
         });
+    }
+
+    private function fetchStyleHintsFromUgcByCode($country, $code)
+    {
+        $retry = 0;
+
+        do {
+            try {
+                $response = Http::withHeaders([
+                    'User-Agent' => config('app.user_agent_mobile'),
+                ])
+                    ->retry(5, 1000)
+                    ->post(config("uniqlo.api.ugc_product_id_contents.{$country}"), [
+                        'product_id' => [$code],
+                    ]);
+
+                $responseBody = json_decode($response->body());
+                $contentList = data_get($responseBody, 'resp.0.content_list');
+
+                if (is_null($contentList)) {
+                    sleep(1);
+                    throw new Exception("Result does not exist. {$response->body()}");
+                }
+
+                collect($contentList)->each(function ($content) use ($country) {
+                    $this->repository->saveStyleHintsFromUgc(
+                        $country,
+                        $content
+                    );
+                });
+
+                $retry = 0;
+
+                usleep(500000);
+            } catch (Throwable $e) {
+                if ($retry >= 5) {
+                    Log::error('fetchStyleHintsDetails error', [
+                        'retry' => $retry,
+                        'country' => $country,
+                        'product_id' => $code,
+                    ]);
+                    report($e);
+                }
+
+                $retry++;
+
+                sleep(1);
+            }
+        } while ($retry > 0 && $retry <= 5);
     }
 }

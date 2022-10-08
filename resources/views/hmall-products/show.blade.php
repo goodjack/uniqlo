@@ -301,10 +301,10 @@ $colorNums = json_decode($hmallProduct->color_nums, true);
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
                     @foreach ($styleHints as $key => $styleHint)
-                        <x-image-card link="{{ $styleHint->original_source_url }}"
-                            imageUrl="{{ $styleHint->image_url }}" largeImageUrl="{{ $styleHint->large_image_url }}"
-                            alt="StyleHint 網友穿搭靈感 {{ $key + 1 }} ({{ $styleHint->user_info['name'] }})"
-                            width="720" height="960" />
+                        <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
+                            largeImageUrl="{{ $styleHint->large_image_url }}"
+                            alt="StyleHint 網友穿搭靈感 {{ $key + 1 }} ({{ $styleHint->user_name }})" width="720"
+                            height="960" />
                     @endforeach
                 </div>
             </div>
