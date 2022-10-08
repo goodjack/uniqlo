@@ -25,6 +25,22 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v2.13.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">更新功能</div>
+                        <ul>
+                            <li>StyleHint 陸續加入台灣店員穿搭照</li>
+                            <li>StyleHint 超連結改指向官網，而不是 stylehint.com</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v2.12.0
                     </h2>
                     <!-- / 標題 -->
