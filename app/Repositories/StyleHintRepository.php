@@ -40,8 +40,15 @@ class StyleHintRepository extends Repository
             $model->department_id = data_get($styleHintSummary, 'departmentId');
 
             $model->model_height = data_get($result, 'modelHeight');
-            $model->user_info = data_get($result, 'userInfo');
-            $model->hashtags = data_get($result, 'hashtags');
+            $model->user_id = data_get($result, 'userInfo.id');
+            $model->user_name = data_get($result, 'userInfo.name');
+            $model->user_image = data_get($result, 'userInfo.image');
+            $model->user_type = data_get($result, 'userInfo.userType');
+            $model->store_region = data_get($result, 'userInfo.region');
+            $model->store_name = data_get($result, 'userInfo.storeName');
+            $model->comment = data_get($result, 'userInfo.content');
+            $model->user_info = null;
+            $model->hashtags = null;
             $model->gender = data_get($result, 'gender');
 
             $publishedAt = data_get($result, 'publishedAt');
