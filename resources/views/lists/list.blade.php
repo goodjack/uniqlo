@@ -1,8 +1,8 @@
 @extends('layouts.master')
 
 @php
-$currentUrl = url()->current();
-$title = "{$count} 件{$typeName}";
+    $currentUrl = url()->current();
+    $title = "{$count} 件{$typeName}";
 @endphp
 
 @section('title', $title)
@@ -43,6 +43,9 @@ $title = "{$count} 件{$typeName}";
     <div class="ts fluid slate">
         <i class="{{ $typeStyle }} {{ $typeIcon }} icon"></i>
         <span class="header">{{ $count }} 件{{ $typeName }}</span>
+        @isset($description)
+            <span class="description">{{ $description }}</span>
+        @endisset
     </div>
 
     @include('lists.cards', ['hmallProductList' => $hmallProductList])
