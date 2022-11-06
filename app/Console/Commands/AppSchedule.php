@@ -40,6 +40,9 @@ class AppSchedule extends Command
         $this->call('style-hint:fetch', [
             'country' => 'jp',
         ]);
+        $this->call('style-hint-ugc:fetch', [
+            'country' => 'tw',
+        ]);
 
         return 0;
     }
