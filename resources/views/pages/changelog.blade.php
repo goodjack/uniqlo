@@ -25,6 +25,27 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v2.14.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">新增功能</div>
+                        <ul>
+                            <li>新增回到頁首的按鈕</li>
+                            <li>列表頁加上如何排序的描述</li>
+                        </ul>
+                        <div class="header">更新功能</div>
+                        <ul>
+                            <li>調整熱門評論、熱門穿搭列表呈現的商品數量</li>
+                            <li>StyleHint 陸續加入台灣店員穿搭照</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v2.13.0
                     </h2>
                     <!-- / 標題 -->
