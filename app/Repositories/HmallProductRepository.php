@@ -270,12 +270,12 @@ class HmallProductRepository extends Repository
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->where('evaluation_count', '>=', function ($query) {
-                $query->selectRaw('MAX(evaluation_count) as max_evaluation_count')
+                $query->select('evaluation_count')
                     ->from('hmall_products')
                     ->where('stock', 'Y')
-                    ->whereIn('gender', ['男裝', '女裝', '童裝', '新生兒/嬰幼兒'])
-                    ->groupBy('gender')
-                    ->orderBy('max_evaluation_count')
+                    ->where('gender', '新生兒/嬰幼兒')
+                    ->orderBy('evaluation_count', 'desc')
+                    ->offset(1)
                     ->limit(1);
             })
             ->where('stock', 'Y')
@@ -293,7 +293,7 @@ class HmallProductRepository extends Repository
             ->select('style_hint_items.code')
             ->selectRaw('count(*) AS count')
             ->groupBy('style_hint_items.code')
-            ->having('count', '>', 200)
+            ->having('count', '>', 100)
             ->orderBy('count', 'desc');
 
         $hmallProducts = $this->model
