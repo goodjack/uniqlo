@@ -1,6 +1,6 @@
 <div class="ts attached padded horizontally fitted fluid segment">
     <div class="ts container">
-        <div class="ts small horizontally scrollable evenly divided flatted menu anchor" id="gender_menu">
+        <div class="ts small horizontally scrollable evenly divided flatted menu" id="gender_menu">
             <a class="horizontally fitted item" href="#men">
                 男裝
                 <div class="ts mini circular label" style="margin-left: 4px;">{{ count($hmallProductList['men']) }}
@@ -23,7 +23,7 @@
             </a>
         </div>
         <div class="ts active basic horizontally fitted tab segment">
-            <h2 class="ts large header anchor" id="men">
+            <h2 class="ts large header" id="men">
                 男裝
                 <div class="inline sub header">共 {{ count($hmallProductList['men']) }} 件</div>
             </h2>
@@ -43,7 +43,7 @@
 
             <div class="ts hidden section divider"></div>
 
-            <h2 class="ts large header anchor" id="women">
+            <h2 class="ts large header" id="women">
                 女裝
                 <div class="inline sub header">共 {{ count($hmallProductList['women']) }} 件</div>
             </h2>
@@ -63,7 +63,7 @@
 
             <div class="ts hidden section divider"></div>
 
-            <h2 class="ts large header anchor" id="kids">
+            <h2 class="ts large header" id="kids">
                 童裝
                 <div class="inline sub header">共 {{ count($hmallProductList['kids']) }} 件</div>
             </h2>
@@ -83,7 +83,7 @@
 
             <div class="ts hidden section divider"></div>
 
-            <h2 class="ts large header anchor" id="baby">
+            <h2 class="ts large header" id="baby">
                 嬰幼兒
                 <div class="inline sub header">共 {{ count($hmallProductList['baby']) }} 件</div>
             </h2>

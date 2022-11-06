@@ -29,6 +29,8 @@
     <style>
         html {
             height: 100%;
+            scroll-behavior: smooth;
+            scroll-padding-top: 75px;
         }
 
         body {
@@ -38,14 +40,22 @@
             flex-direction: column;
         }
 
-        .anchor {
-            scroll-margin-top: 75px;
-        }
-
         .wrapper {
             flex-grow: 1;
         }
 
+        .back-to-top {
+            position: fixed;
+            right: 2rem;
+            bottom: 2rem;
+            z-index: 20;
+            opacity: 100%;
+            transition: opacity 0.2s;
+        }
+
+        .hidden {
+            opacity: 0%;
+        }
     </style>
     @yield('css')
 
@@ -58,6 +68,12 @@
         @yield('content')
     </div>
     @include('layouts.footer')
+
+    <span class="back-to-top hidden">
+        <button class="ts circular secondary opinion icon button">
+            <i class="arrow up icon"></i>
+        </button>
+    </span>
 
     <!-- Tocas JS：模塊與 JavaScript 函式 -->
     <script src="{{ asset('js/tocas.js') }}"></script>
@@ -83,6 +99,28 @@
     </script>
     <script>
         ts('.ts.dropdown:not(.basic)').dropdown();
+    </script>
+    <script>
+        const showOnPx = 100;
+        const backToTopButton = document.querySelector(".back-to-top")
+
+        const scrollContainer = () => {
+            return document.documentElement || document.body;
+        };
+
+        document.addEventListener("scroll", () => {
+            if (scrollContainer().scrollTop > showOnPx) {
+                backToTopButton.classList.remove("hidden")
+            } else {
+                backToTopButton.classList.add("hidden")
+            }
+        })
+
+        const goToTop = () => {
+            document.body.scrollIntoView();
+        };
+
+        backToTopButton.addEventListener("click", goToTop)
     </script>
 
     @yield('javascript')
