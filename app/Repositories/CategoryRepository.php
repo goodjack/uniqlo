@@ -2,8 +2,10 @@
 
 namespace App\Repositories;
 
-use App\Category;
+use App\Models\Category;
+
 use function Functional\each;
+
 use Throwable;
 use Yish\Generators\Foundation\Repository\Repository;
 

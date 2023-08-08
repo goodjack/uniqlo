@@ -1,12 +1,23 @@
 <?php
 
-use Faker\Generator as Faker;
+namespace Database\Factories;
 
-$factory->define(App\MultiBuyHistory::class, function (Faker $faker) {
-    return [
-        'product_id' => function () {
-            return factory(App\Product::class)->create()->id;
-        },
-        'multi_buy' => "購買{$faker->randomNumber(1)}件NT\${$faker->randomNumber(2)}0.00",
-    ];
-});
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+class MultiBuyHistoryFactory extends Factory
+{
+    /**
+     * Define the model's default state.
+     *
+     * @return array
+     */
+    public function definition()
+    {
+        return [
+            'product_id' => function () {
+                return factory(App\Models\Product::class)->create()->id;
+            },
+            'multi_buy' => "購買{$faker->randomNumber(1)}件NT\${$faker->randomNumber(2)}0.00",
+        ];
+    }
+}

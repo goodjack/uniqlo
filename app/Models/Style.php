@@ -1,18 +1,21 @@
 <?php
 
-namespace App;
+namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Style extends Model
 {
+    use HasFactory;
+
     protected $fillable = ['id'];
     public $incrementing = false;
     protected $keyType = 'string';
 
     public function products()
     {
-        return $this->belongsToMany('App\Product');
+        return $this->belongsToMany('App\Models\Product');
     }
 
     public function hmallProducts()

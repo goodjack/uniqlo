@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\HmallProduct;
+use App\Models\HmallProduct;
 use App\Services\HmallProductService;
 use Illuminate\Http\Request;
 
@@ -49,7 +49,7 @@ class HmallProductController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  \App\HmallProduct  $hmallProduct
+     * @param  \App\Models\HmallProduct  $hmallProduct
      * @return \Illuminate\Http\Response
      */
     public function show(HmallProduct $hmallProduct)
@@ -75,7 +75,7 @@ class HmallProductController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  \App\HmallProduct  $hmallProduct
+     * @param  \App\Models\HmallProduct  $hmallProduct
      * @return \Illuminate\Http\Response
      */
     public function edit(HmallProduct $hmallProduct)
@@ -87,7 +87,7 @@ class HmallProductController extends Controller
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \App\HmallProduct  $hmallProduct
+     * @param  \App\Models\HmallProduct  $hmallProduct
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, HmallProduct $hmallProduct)
@@ -98,7 +98,7 @@ class HmallProductController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\HmallProduct  $hmallProduct
+     * @param  \App\Models\HmallProduct  $hmallProduct
      * @return \Illuminate\Http\Response
      */
     public function destroy(HmallProduct $hmallProduct)

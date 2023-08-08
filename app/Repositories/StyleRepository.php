@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-use App\Style;
+use App\Models\Style;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;

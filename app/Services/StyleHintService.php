@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\HmallProduct;
+use App\Models\HmallProduct;
 use App\Repositories\StyleHintRepository;
 use Exception;
 use Illuminate\Support\Facades\Http;

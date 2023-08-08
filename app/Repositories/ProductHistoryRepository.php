@@ -2,8 +2,8 @@
 
 namespace App\Repositories;
 
-use App\Product;
-use App\ProductHistory;
+use App\Models\Product;
+use App\Models\ProductHistory;
 use Illuminate\Support\Facades\DB;
 use Yish\Generators\Foundation\Repository\Repository;
 

@@ -2,9 +2,9 @@
 
 namespace App\Repositories;
 
-use App\HmallPriceHistory;
-use App\HmallProduct;
-use App\Product;
+use App\Models\HmallPriceHistory;
+use App\Models\HmallProduct;
+use App\Models\Product;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
