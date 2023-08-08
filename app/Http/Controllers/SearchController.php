@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\HmallProduct;
-use App\Product;
+use App\Models\HmallProduct;
+use App\Models\Product;
 use App\Services\SearchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;

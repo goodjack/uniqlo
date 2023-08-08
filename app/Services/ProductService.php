@@ -3,15 +3,17 @@
 namespace App\Services;
 
 use App\Foundations\DivideProducts;
-use App\Product;
+use App\Models\Product;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductHistoryRepository;
 use App\Repositories\ProductRepository;
 use App\Repositories\StyleRepository;
 use Carbon\Carbon;
+
 use function Functional\each;
 use function Functional\flat_map;
 use function Functional\map;
+
 use GuzzleHttp\Client;
 use Yish\Generators\Foundation\Service\Service;
 

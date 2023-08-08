@@ -2,7 +2,7 @@
 
 namespace App\Presenters;
 
-use App\HmallPriceHistory;
+use App\Models\HmallPriceHistory;
 
 class HmallProductPresenter
 {

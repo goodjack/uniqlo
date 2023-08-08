@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Product;
+use App\Models\Product;
 use App\Services\ProductService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -55,7 +55,7 @@ class ProductController extends Controller
      */
     public function show($value)
     {
-        $product = \App\Product::find($value);
+        $product = \App\Models\Product::find($value);
 
         if (! $product) {
             // return redirect()->route('search', ['query' => $value])->send();

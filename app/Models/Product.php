@@ -1,38 +1,41 @@
 <?php
 
-namespace App;
+namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
+    use HasFactory;
+
     protected $fillable = ['id'];
     public $incrementing = false;
     protected $keyType = 'string';
 
     public function histories()
     {
-        return $this->hasMany('App\ProductHistory');
+        return $this->hasMany('App\Models\ProductHistory');
     }
 
     public function multiBuys()
     {
-        return $this->hasMany('App\MultiBuyHistory');
+        return $this->hasMany('App\Models\MultiBuyHistory');
     }
 
     public function category()
     {
-        return $this->belongsTo('App\Category');
+        return $this->belongsTo('App\Models\Category');
     }
 
     public function styleDictionaries()
     {
-        return $this->belongsToMany('App\StyleDictionary');
+        return $this->belongsToMany('App\Models\StyleDictionary');
     }
 
     public function styles()
     {
-        return $this->belongsToMany('App\Style');
+        return $this->belongsToMany('App\Models\Style');
     }
 
     /**

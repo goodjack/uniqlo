@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\HmallProduct;
+use App\Models\HmallProduct;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\UrlWindow;
 

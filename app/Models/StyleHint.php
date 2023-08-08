@@ -1,13 +1,16 @@
 <?php
 
-namespace App;
+namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class StyleHint extends Model
 {
+    use HasFactory;
+
     protected $fillable = ['country', 'outfit_id'];
 
     protected $casts = [

@@ -2,8 +2,8 @@
 
 namespace App\Repositories;
 
-use App\StyleHint;
-use App\StyleHintItem;
+use App\Models\StyleHint;
+use App\Models\StyleHintItem;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
