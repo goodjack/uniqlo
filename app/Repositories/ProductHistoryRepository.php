@@ -5,7 +5,6 @@ namespace App\Repositories;
 use App\Models\Product;
 use App\Models\ProductHistory;
 use Illuminate\Support\Facades\DB;
-use Yish\Generators\Foundation\Repository\Repository;
 
 class ProductHistoryRepository extends Repository
 {

@@ -15,7 +15,6 @@ use function Functional\each;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Throwable;
-use Yish\Generators\Foundation\Repository\Repository;
 
 class ProductRepository extends Repository
 {

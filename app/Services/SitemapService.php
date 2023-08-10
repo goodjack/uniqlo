@@ -6,7 +6,6 @@ use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use Spatie\Sitemap\Sitemap;
 use Spatie\Sitemap\Tags\Url;
-use Yish\Generators\Foundation\Service\Service;
 
 class SitemapService extends Service
 {

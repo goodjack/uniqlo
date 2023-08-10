@@ -15,7 +15,6 @@ use function Functional\flat_map;
 use function Functional\map;
 
 use GuzzleHttp\Client;
-use Yish\Generators\Foundation\Service\Service;
 
 class ProductService extends Service
 {
