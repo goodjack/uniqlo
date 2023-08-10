@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Repositories\HmallProductRepository;
-use Yish\Generators\Foundation\Service\Service;
 
 class ListService extends Service
 {

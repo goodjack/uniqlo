@@ -8,7 +8,6 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-use Yish\Generators\Foundation\Repository\Repository;
 
 class StyleHintRepository extends Repository
 {

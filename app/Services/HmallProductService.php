@@ -8,7 +8,6 @@ use App\Repositories\ProductRepository;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-use Yish\Generators\Foundation\Service\Service;
 
 class HmallProductService extends Service
 {

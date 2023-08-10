@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Foundations\DivideProducts;
 use App\Models\Product;
 use GuzzleHttp\Client;
-use Yish\Generators\Foundation\Service\Service;
 
 class SearchService extends Service
 {

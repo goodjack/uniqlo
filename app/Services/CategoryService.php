@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Repositories\CategoryRepository;
 use GuzzleHttp\Client;
-use Yish\Generators\Foundation\Service\Service;
 
 class CategoryService extends Service
 {
