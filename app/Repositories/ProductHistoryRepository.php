@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 class ProductHistoryRepository extends Repository
 {
     protected $model;
+
     protected $product;
 
     public function __construct(Product $product, ProductHistory $productHistory)
@@ -37,7 +38,6 @@ class ProductHistoryRepository extends Repository
     /**
      * Get the min price and the max price from the products table.
      *
-     * @param bool $today
      * @return array prices
      */
     public function getMinPricesAndMaxPrices(bool $today = false)

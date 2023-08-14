@@ -10,6 +10,7 @@ use Spatie\Sitemap\Tags\Url;
 class SitemapService extends Service
 {
     protected $productRepository;
+
     protected $hmallProductRepository;
 
     public function __construct(ProductRepository $productRepository, HmallProductRepository $hmallProductRepository)

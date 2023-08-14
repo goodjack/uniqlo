@@ -25,8 +25,6 @@ class FetchProducts extends Command
     /**
      * Create a new command instance.
      *
-     * @param ProductService $productService
-     *
      * @return void
      */
     public function __construct(ProductService $productService)

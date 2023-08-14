@@ -9,21 +9,24 @@ use App\Repositories\ProductHistoryRepository;
 use App\Repositories\ProductRepository;
 use App\Repositories\StyleRepository;
 use Carbon\Carbon;
+use GuzzleHttp\Client;
 
 use function Functional\each;
 use function Functional\flat_map;
 use function Functional\map;
-
-use GuzzleHttp\Client;
 
 class ProductService extends Service
 {
     use divideProducts;
 
     protected $repository;
+
     protected $hmallProductRepository;
+
     protected $productRepository;
+
     protected $productHistoryRepository;
+
     protected $styleRepository;
 
     public function __construct(
@@ -401,7 +404,6 @@ class ProductService extends Service
     /**
      * Set the min price and the max price to the products.
      *
-     * @param bool $today
      * @return void
      */
     public function setMinPricesAndMaxPrices(bool $today = false)

@@ -27,8 +27,8 @@ return [
         ],
 
         'ugc_product_id_contents' => [
-            'tw' => env('UQ_API_UGC_PRODUCT_ID_CONTENTS_TW')
-        ]
+            'tw' => env('UQ_API_UGC_PRODUCT_ID_CONTENTS_TW'),
+        ],
     ],
 
     'data' => [

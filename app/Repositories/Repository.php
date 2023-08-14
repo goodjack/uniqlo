@@ -11,6 +11,7 @@ abstract class Repository
 
     /**
      * @param array $columns
+     *
      * @return \Illuminate\Database\Eloquent\Collection|static[]
      */
     public function all($columns = ['*'])
@@ -19,7 +20,6 @@ abstract class Repository
     }
 
     /**
-     * @param $attributes
      * @return \Illuminate\Database\Eloquent\Model
      */
     public function create($attributes)
@@ -28,9 +28,6 @@ abstract class Repository
     }
 
     /**
-     * @param $id
-     * @param array $attributes
-     * @param array $options
      * @return bool
      */
     public function update($id, array $attributes, array $options = [])
@@ -41,10 +38,6 @@ abstract class Repository
     }
 
     /**
-     * @param $column
-     * @param $value
-     * @param array $attributes
-     * @param array $options
      * @return bool
      */
     public function updateBy($column, $value, array $attributes = [], array $options = [])
@@ -54,6 +47,7 @@ abstract class Repository
 
     /**
      * @param array $columns
+     *
      * @return mixed
      */
     public function first($columns = ['*'])
@@ -62,9 +56,8 @@ abstract class Repository
     }
 
     /**
-     * @param $column
-     * @param $value
      * @param array $columns
+     *
      * @return mixed
      */
     public function firstBy($column, $value, $columns = ['*'])
@@ -73,8 +66,8 @@ abstract class Repository
     }
 
     /**
-     * @param $id
      * @param array $columns
+     *
      * @return \Illuminate\Database\Eloquent\Collection|\Illuminate\Database\Eloquent\Model
      */
     public function find($id, $columns = ['*'])
@@ -83,9 +76,8 @@ abstract class Repository
     }
 
     /**
-     * @param $column
-     * @param $value
      * @param array $columns
+     *
      * @return mixed
      */
     public function findBy($column, $value, $columns = ['*'])
@@ -95,6 +87,7 @@ abstract class Repository
 
     /**
      * @param array $columns
+     *
      * @return \Illuminate\Database\Eloquent\Collection|static[]
      */
     public function get($columns = ['*'])
@@ -103,9 +96,8 @@ abstract class Repository
     }
 
     /**
-     * @param $column
-     * @param $value
      * @param array $columns
+     *
      * @return \Illuminate\Database\Eloquent\Collection|static[]
      */
     public function getBy($column, $value, $columns = ['*'])
@@ -114,8 +106,8 @@ abstract class Repository
     }
 
     /**
-     * @param $ids
      * @return int
+     *
      * @internal param $id
      */
     public function destroy($ids)
@@ -124,8 +116,6 @@ abstract class Repository
     }
 
     /**
-     * @param $column
-     * @param $value
      * @return bool|null
      */
     public function destroyBy($column, $value)
@@ -138,6 +128,7 @@ abstract class Repository
      * @param array $columns
      * @param string $pageName
      * @param int $page
+     *
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function paginate($perPage = null, $columns = ['*'], $pageName = 'page', $page = null)
@@ -146,12 +137,11 @@ abstract class Repository
     }
 
     /**
-     * @param $column
-     * @param $value
      * @param null $perPage
      * @param array $columns
      * @param string $pageName
      * @param int $page
+     *
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function paginateBy($column, $value, $perPage = null, $columns = ['*'], $pageName = 'page', $page = null)

@@ -27,8 +27,6 @@ class FetchGuHmallProductDescriptions extends Command
     /**
      * Create a new command instance.
      *
-     * @param HmallProductService $hmallProductService
-     *
      * @return void
      */
     public function __construct(HmallProductService $hmallProductService)

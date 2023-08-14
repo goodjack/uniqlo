@@ -18,7 +18,6 @@ abstract class Service
     }
 
     /**
-     * @param $attributes
      * @return \Illuminate\Database\Eloquent\Model
      */
     public function create($attributes)
@@ -35,8 +34,6 @@ abstract class Service
     }
 
     /**
-     * @param $column
-     * @param $value
      * @return mixed
      */
     public function firstBy($column, $value)
@@ -45,7 +42,6 @@ abstract class Service
     }
 
     /**
-     * @param $id
      * @return \Illuminate\Database\Eloquent\Collection|\Illuminate\Database\Eloquent\Model
      */
     public function find($id)
@@ -54,8 +50,6 @@ abstract class Service
     }
 
     /**
-     * @param $column
-     * @param $value
      * @return mixed
      */
     public function findBy($column, $value)
@@ -72,8 +66,6 @@ abstract class Service
     }
 
     /**
-     * @param $column
-     * @param $value
      * @return \Illuminate\Database\Eloquent\Collection|static[]
      */
     public function getBy($column, $value)
@@ -82,8 +74,6 @@ abstract class Service
     }
 
     /**
-     * @param $id
-     * @param $attributes
      * @return bool|int
      */
     public function update($id, $attributes)
@@ -92,9 +82,6 @@ abstract class Service
     }
 
     /**
-     * @param $column
-     * @param $value
-     * @param $attributes
      * @return bool
      */
     public function updateBy($column, $value, $attributes)
@@ -103,7 +90,6 @@ abstract class Service
     }
 
     /**
-     * @param $id
      * @return bool|int|null
      */
     public function destroy($id)
@@ -112,8 +98,6 @@ abstract class Service
     }
 
     /**
-     * @param $column
-     * @param $value
      * @return bool|null
      */
     public function destroyBy($column, $value)
@@ -123,9 +107,10 @@ abstract class Service
 
     /**
      * @param string $column
-     * @param $value
      * @param int $page
+     *
      * @return mixed
+     *
      * @internal param $id
      */
     public function paginateBy($column, $value, $page = 12)
@@ -135,6 +120,7 @@ abstract class Service
 
     /**
      * @param int $page
+     *
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function paginate($page = 12)

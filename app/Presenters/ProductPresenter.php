@@ -171,6 +171,7 @@ class ProductPresenter
      * Get the URL of the specified product.
      *
      * @param Product $product
+     *
      * @return void
      */
     public function getProductUrl($product)

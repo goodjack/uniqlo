@@ -10,7 +10,9 @@ class Category extends Model
     use HasFactory;
 
     protected $fillable = ['id'];
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     public function products()
