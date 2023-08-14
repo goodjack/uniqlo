@@ -3,10 +3,9 @@
 namespace App\Repositories;
 
 use App\Models\Category;
+use Throwable;
 
 use function Functional\each;
-
-use Throwable;
 
 class CategoryRepository extends Repository
 {

@@ -9,21 +9,26 @@ use App\Models\ProductHistory;
 use App\Models\Style;
 use App\Models\StyleDictionary;
 use Cache;
-
-use function Functional\each;
-
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
+use function Functional\each;
+
 class ProductRepository extends Repository
 {
     private const CACHE_KEY_LIMITED_OFFER = 'product:limited_offer';
+
     private const CACHE_KEY_MULTI_BUY = 'product:multi_buy';
+
     private const CACHE_KEY_SALE = 'product:sale';
+
     private const CACHE_KEY_STOCKOUT = 'product:stockout';
+
     private const CACHE_KEY_NEW = 'product:new';
+
     private const CACHE_KEY_MOST_REVIEWED = 'product:most_reviewed';
+
     private const SELECT_COLUMNS_FOR_PRODUCT_LIST = [
         'id',
         'name',
@@ -41,7 +46,9 @@ class ProductRepository extends Repository
     ];
 
     protected $product;
+
     protected $styleDictionary;
+
     protected $style;
 
     public function __construct(
@@ -402,6 +409,7 @@ class ProductRepository extends Repository
      * Get the min price and the max price from the products table.
      *
      * @param array $prices
+     *
      * @return void
      */
     public function setMinPricesAndMaxPrices($prices)
@@ -438,6 +446,7 @@ class ProductRepository extends Repository
      *
      * @param string $id
      * @param string $promo
+     *
      * @return void
      */
     public function saveMultiBuyPromo($id, $promo)

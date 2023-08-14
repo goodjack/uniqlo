@@ -13,6 +13,7 @@ class HmallProductService extends Service
 {
     /** @var HmallProductRepository */
     protected $repository;
+
     protected $productRepository;
 
     public function __construct(HmallProductRepository $repository, ProductRepository $productRepository)
@@ -100,6 +101,7 @@ class HmallProductService extends Service
                     report($e);
 
                     $retry = 0;
+
                     continue;
                 }
 
