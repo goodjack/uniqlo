@@ -331,7 +331,7 @@ class ProductRepository extends Repository
             $relatedName = $hmallProduct->name;
 
             $product = $this->product
-                ->where('name', 'like', "%${relatedName}%")
+                ->where('name', 'like', "%{$relatedName}%")
                 ->orderByRaw('CASE WHEN `name` LIKE ? THEN 0 WHEN `name` LIKE ? THEN 1 ELSE 2 END', ["%{$hmallProduct->gender}%", "%{$hmallProduct->sex}%"])
                 ->first();
         }
