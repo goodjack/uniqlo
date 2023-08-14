@@ -183,7 +183,7 @@ class HmallProductPresenter
 
         $formattedDate = $date->format('m/d');
 
-        return "截至 ${formattedDate} 限定價格";
+        return "截至 {$formattedDate} 限定價格";
     }
 
     public function getPriceChartData($hmallPriceHistories)
