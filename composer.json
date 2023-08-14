@@ -16,7 +16,6 @@
         "laravel/sanctum": "^2.11",
         "laravel/tinker": "^2.5",
         "laravel/ui": "^3.0",
-        "lstrojny/functional-php": "^1.14",
         "spatie/laravel-sitemap": "^5.8"
     },
     "require-dev": {

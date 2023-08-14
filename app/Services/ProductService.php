@@ -5,15 +5,9 @@ namespace App\Services;
 use App\Foundations\DivideProducts;
 use App\Models\Product;
 use App\Repositories\HmallProductRepository;
-use App\Repositories\ProductHistoryRepository;
 use App\Repositories\ProductRepository;
 use App\Repositories\StyleRepository;
-use Carbon\Carbon;
 use GuzzleHttp\Client;
-
-use function Functional\each;
-use function Functional\flat_map;
-use function Functional\map;
 
 class ProductService extends Service
 {
@@ -25,19 +19,15 @@ class ProductService extends Service
 
     protected $productRepository;
 
-    protected $productHistoryRepository;
-
     protected $styleRepository;
 
     public function __construct(
         HmallProductRepository $hmallProductRepository,
         ProductRepository $productRepository,
-        ProductHistoryRepository $productHistoryRepository,
         StyleRepository $styleRepository
     ) {
         $this->hmallProductRepository = $hmallProductRepository;
         $this->productRepository = $productRepository;
-        $this->productHistoryRepository = $productHistoryRepository;
         $this->styleRepository = $styleRepository;
     }
 
@@ -64,153 +54,6 @@ class ProductService extends Service
         }
 
         return $this->productRepository->getProductsByIds($productIds);
-    }
-
-    public function getStock($productID)
-    {
-        $client = new Client();
-
-        $response = $client->request(
-            'GET',
-            config('uniqlo.api.status'),
-            [
-                'headers' => [
-                    'User-Agent' => config('app.user_agent_mobile'),
-                ],
-                'query' => [
-                    'client_id' => 'uqsp-tw',
-                    'sku_code' => $productID,
-                    'store_id' => '10400044,10400002',
-                ],
-            ]
-        );
-
-        $apiResult = json_decode($response->getBody());
-
-        $stock = flat_map($apiResult->statuses, function ($store) {
-            $storeID = key($store);
-            $items = $store->$storeID->items;
-
-            return map($items, function ($item) use ($storeID) {
-                return [
-                    'store_id' => $storeID,
-                    'sku_code' => $item->sku_code,
-                    'stock_status' => $item->stock_status,
-                ];
-            });
-        });
-
-        return $stock;
-    }
-
-    public function fetchAllProducts()
-    {
-        $client = new Client();
-        $limit = 20;
-        $page = 1;
-        $total = 0;
-
-        do {
-            $response = $client->request(
-                'GET',
-                config('uniqlo.api.products'),
-                [
-                    'headers' => [
-                        'User-Agent' => config('app.user_agent_mobile'),
-                    ],
-                    'query' => [
-                        'order' => 'asc',
-                        'limit' => $limit,
-                        'page' => $page,
-                    ],
-                ]
-            );
-
-            $products = json_decode($response->getBody());
-            $this->productRepository->saveProductsFromUniqlo($products->records);
-
-            $total = $products->total;
-            sleep(1);
-        } while ($total >= $page++ * $limit);
-    }
-
-    public function fetchMultiBuyProducts()
-    {
-        $ids = $this->productRepository->getMultiBuyProductIds();
-        $ids->each(function ($id) {
-            $client = new Client();
-
-            $response = $client->request(
-                'GET',
-                config('uniqlo.api.products_for_multy_buy'),
-                [
-                    'headers' => [
-                        'User-Agent' => config('app.user_agent_mobile'),
-                    ],
-                    'query' => [
-                        'format' => 'json',
-                        'product_cd' => $id,
-                    ],
-                ]
-            );
-
-            $productInfo = json_decode($response->getBody());
-            $promo = data_get($productInfo, 'l2_goods_list.0.promo_rule_info');
-            if (! empty($promo)) {
-                $this->productRepository->saveMultiBuyPromo($id, $promo);
-            }
-
-            sleep(1);
-        });
-    }
-
-    public function fetchAllStyleDictionaries()
-    {
-        $client = new Client();
-
-        $response = $client->request(
-            'GET',
-            config('uniqlo.api.style_dictionary_list'),
-            [
-                'headers' => [
-                    'User-Agent' => config('app.user_agent_mobile'),
-                ],
-                'query' => [
-                    'date' => Carbon::today(),
-                    'at' => 'include_uq_plugin',
-                    't' => 3,
-                    'id' => 0,
-                ],
-            ]
-        );
-
-        $styleDictionaries = json_decode($response->getBody());
-        $imgDir = $styleDictionaries->imgdir;
-
-        each($styleDictionaries->imgs, function ($styleDictionary) use ($imgDir) {
-            $client = new Client();
-
-            $response = $client->request(
-                'GET',
-                config('uniqlo.api.style_dictionary_detail'),
-                [
-                    'headers' => [
-                        'User-Agent' => config('app.user_agent_mobile'),
-                    ],
-                    'query' => [
-                        'date' => Carbon::today()->toDateString(),
-                        'at' => 'include_uq_plugin',
-                        't' => 'd',
-                        'id' => $styleDictionary->id,
-                    ],
-                ]
-            );
-
-            $detail = json_decode($response->getBody());
-            $this->productRepository->saveStyleDictionaryFromUniqlo($detail, $imgDir);
-
-            sleep(1);
-        });
     }
 
     public function fetchAllStyles()
@@ -299,16 +142,6 @@ class ProductService extends Service
     }
 
     /**
-     * Set stockout status to the products.
-     *
-     * @return void
-     */
-    public function setStockoutProductTags()
-    {
-        $this->productRepository->setStockoutProductTags();
-    }
-
-    /**
      * Get all of the stockout products.
      *
      * @return array|null Array of Product models
@@ -327,27 +160,6 @@ class ProductService extends Service
      */
     public function getSaleProducts()
     {
-        // $productHistoryPrices = $this->productHistoryRepository->getProductHistoryPricesForHiddenSale();
-
-        // $saleProductIds = $productHistoryPrices
-        //     ->reduce(function ($carry, $productPrices) {
-        //         $productId = $productPrices->first()->product_id;
-
-        //         $medianPrice = collect($productPrices->map(function ($product) {
-        //             return $product->price;
-        //         }))->median();
-
-        //         $lastPrice = $productPrices->last()->price;
-
-        //         if ($medianPrice > $lastPrice) {
-        //             $carry[] = $productId;
-        //         }
-
-        //         return $carry;
-        //     }, []);
-
-        // $products = $this->productRepository->getProductsByIds($saleProductIds);
-
         $products = $this->productRepository->getSaleProducts();
 
         return $this->divideProducts($products);
@@ -399,17 +211,6 @@ class ProductService extends Service
         $products = $this->productRepository->getMostReviewedProducts();
 
         return $this->divideProducts($products);
-    }
-
-    /**
-     * Set the min price and the max price to the products.
-     *
-     * @return void
-     */
-    public function setMinPricesAndMaxPrices(bool $today = false)
-    {
-        $prices = $this->productHistoryRepository->getMinPricesAndMaxPrices($today);
-        $this->productRepository->setMinPricesAndMaxPrices($prices);
     }
 
     public function getRelatedProducts($product)
