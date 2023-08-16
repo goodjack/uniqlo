@@ -13,29 +13,29 @@ class ProductFactory extends Factory
      */
     public function definition()
     {
-        $category1 = '00' . $this->faker->numberBetween(1, 4);
-        $category2 = '00' . $this->faker->numberBetween(1, 9);
+        $category1 = '00' . fake()->numberBetween(1, 4);
+        $category2 = '00' . fake()->numberBetween(1, 9);
 
         return [
-            'id' => $this->faker->randomNumber(6, true),
-            'name' => $this->faker->sentence,
-            'category_id' => $category = $category1 . $category2 . $this->faker->randomNumber(3, true),
+            'id' => fake()->randomNumber(6, true),
+            'name' => fake()->sentence,
+            'category_id' => $category = $category1 . $category2 . fake()->randomNumber(3, true),
             'categories' => "[\"{$category}\"]",
             'ancestors' => "[\"{$category1}\",\"{$category1}{$category2}\",\"{$category}\"]",
-            'main_image_url' => $this->faker->imageUrl,
-            'comment' => $this->faker->paragraph,
-            'min_price' => $minPrice = $this->faker->numberBetween(39, 6990),
-            'max_price' => $maxPrice = $this->faker->numberBetween($minPrice, 6990),
-            'price' => $this->faker->numberBetween($minPrice, $maxPrice),
+            'main_image_url' => fake()->imageUrl,
+            'comment' => fake()->paragraph,
+            'min_price' => $minPrice = fake()->numberBetween(39, 6990),
+            'max_price' => $maxPrice = fake()->numberBetween($minPrice, 6990),
+            'price' => fake()->numberBetween($minPrice, $maxPrice),
             'flags' => '[{"name":"ONLINE_ONLY_LIMITED_OFFER","value":"ONLINE_ONLY_LIMITED_OFFER"}]',
             'representative_sku_flags' => '[{"name":"ONLINE_ONLY_LIMITED_OFFER","value":"ONLINE_ONLY_LIMITED_OFFER"}]',
-            'limit_sales_end_msg' => $this->faker->sentence,
-            'multi_buy' => $this->faker->sentence,
-            'new' => $this->faker->boolean,
-            'sale' => $this->faker->boolean,
-            'stockout' => $this->faker->boolean,
-            'review_count' => $this->faker->randomNumber(1),
-            'colors' => "[{\"name\":\"{$this->faker->colorName}\",\"code\":\"{$this->faker->randomNumber(2, true)}\"},{\"name\":\"{$this->faker->colorName}\",\"code\":\"{$this->faker->randomNumber(2, true)}\"}]",
+            'limit_sales_end_msg' => fake()->sentence,
+            'multi_buy' => fake()->sentence,
+            'new' => fake()->boolean,
+            'sale' => fake()->boolean,
+            'stockout' => fake()->boolean,
+            'review_count' => fake()->randomNumber(1),
+            'colors' => '[{"name":"{fake()->colorName}","code":"{fake()->randomNumber(2, true)}"},{"name":"{fake()->colorName}","code":"{fake()->randomNumber(2, true)}"}]',
             'sub_images' => '["182500_sub5"]',
             'style_dictionary_images' => null,
         ];

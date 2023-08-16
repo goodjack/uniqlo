@@ -124,7 +124,6 @@ abstract class Repository
     }
 
     /**
-     * @param null $perPage
      * @param array $columns
      * @param string $pageName
      * @param int $page
@@ -137,7 +136,6 @@ abstract class Repository
     }
 
     /**
-     * @param null $perPage
      * @param array $columns
      * @param string $pageName
      * @param int $page
