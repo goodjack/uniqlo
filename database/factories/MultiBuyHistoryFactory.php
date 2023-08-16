@@ -17,7 +17,7 @@ class MultiBuyHistoryFactory extends Factory
             'product_id' => function () {
                 return factory(App\Models\Product::class)->create()->id;
             },
-            'multi_buy' => "購買{$this->faker->randomNumber(1)}件NT\${$this->faker->randomNumber(2)}0.00",
+            'multi_buy' => '購買{fake()->randomNumber(1)}件NT${fake()->randomNumber(2)}0.00',
         ];
     }
 }

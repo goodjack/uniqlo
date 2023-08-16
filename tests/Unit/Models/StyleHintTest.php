@@ -25,7 +25,7 @@ class StyleHintTest extends TestCase
         $model = new StyleHint();
 
         $model->country = $country;
-        $model->outfit_id = $this->faker->randomNumber(7, false);
+        $model->outfit_id = fake()->randomNumber(7, false);
         $model->style_image_url = $styleImageUrlFromApi;
         $model->original_source_url = $originalSourceUrlFromApi;
 
