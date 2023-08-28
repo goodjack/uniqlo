@@ -21,7 +21,7 @@ class StyleHintTest extends TestCase
         $styleImageUrlFromDb,
         $originalSourceUrlFromApi,
         $originalSourceUrlFromDb
-    ) {
+    ): void {
         $model = new StyleHint();
 
         $model->country = $country;
