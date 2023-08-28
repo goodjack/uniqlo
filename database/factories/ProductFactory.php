@@ -8,10 +8,8 @@ class ProductFactory extends Factory
 {
     /**
      * Define the model's default state.
-     *
-     * @return array
      */
-    public function definition()
+    public function definition(): array
     {
         $category1 = '00' . fake()->numberBetween(1, 4);
         $category2 = '00' . fake()->numberBetween(1, 9);

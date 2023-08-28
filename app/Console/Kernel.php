@@ -9,10 +9,8 @@ class Kernel extends ConsoleKernel
 {
     /**
      * Define the application's command schedule.
-     *
-     * @return void
      */
-    protected function schedule(Schedule $schedule)
+    protected function schedule(Schedule $schedule): void
     {
         // TODO: 等現有排程結束後再開啟
         // $schedule->command('app:style-hint-schedule')->dailyAt('01:01')->withoutOverlapping(2880);
@@ -21,10 +19,8 @@ class Kernel extends ConsoleKernel
 
     /**
      * Register the commands for the application.
-     *
-     * @return void
      */
-    protected function commands()
+    protected function commands(): void
     {
         $this->load(__DIR__ . '/Commands');
 
