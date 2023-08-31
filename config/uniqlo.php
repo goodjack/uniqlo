@@ -20,6 +20,10 @@ return [
         'ugc_product_id_contents' => [
             'tw' => env('UQ_API_UGC_PRODUCT_ID_CONTENTS_TW'),
         ],
+
+        'ugc_style_hint_list' => [
+            'tw' => env('UQ_API_UGC_STYLE_HINT_LIST_TW'),
+        ],
     ],
 
     'data' => [

@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\HmallProduct;
 use App\Repositories\StyleHintRepository;
 use Exception;
 use Illuminate\Support\Facades\Http;
@@ -75,15 +74,16 @@ class StyleHintService extends Service
 
     public function fetchAllStyleHintsFromUgc(string $country = 'tw')
     {
-        $codes = HmallProduct::select('code')
-            ->where('brand', 'UNIQLO')
-            ->groupBy('code')
-            ->orderBy('code', 'desc')
-            ->get()
-            ->pluck('code');
+        $genders = collect([
+            '1', // MEN
+            '2', // WOMEN
+            '3', // KIDS
+            '4', // BABY
+            '5',
+        ]);
 
-        $codes->each(function ($code) use ($country) {
-            $this->fetchStyleHintsFromUgcByCode($country, $code);
+        $genders->each(function ($gender) use ($country) {
+            return $this->fetchStyleHintsFromUgcByGender($country, $gender);
         });
     }
 
@@ -153,26 +153,34 @@ class StyleHintService extends Service
         });
     }
 
-    private function fetchStyleHintsFromUgcByCode($country, $code)
+    private function fetchStyleHintsFromUgcByGender($country, $gender)
     {
+        $resultLimit = 50;
+        $page = 1;
+        $totalResultCount = 0;
         $retry = 0;
 
         do {
             try {
                 $response = Http::withHeaders([
                     'User-Agent' => config('app.user_agent_mobile'),
+                    'x-fr-clientid' => 'uqtw-sth-sb-proxy',
                 ])
                     ->retry(5, 1000)
-                    ->post(config("uniqlo.api.ugc_product_id_contents.{$country}"), [
-                        'product_id' => [$code],
+                    ->get(config("uniqlo.api.ugc_style_hint_list.{$country}"), [
+                        'style_gender' => [$gender],
+                        'order' => 'published_at:desc',
+                        'result_limit' => $resultLimit,
+                        'page' => $page,
+                        'brand' => 'uq',
                     ]);
 
-                $responseBody = json_decode($response->body());
-                $contentList = data_get($responseBody, 'resp.0.content_list');
+                $responseBody = json_decode($response->getBody());
+                $contentList = optional($responseBody)->content_list;
 
                 if (is_null($contentList)) {
                     sleep(1);
-                    throw new Exception("Result does not exist. {$response->body()}");
+                    throw new Exception("Content list does not exist. {$response->body()}");
                 }
 
                 collect($contentList)->each(function ($content) use ($country) {
@@ -182,23 +190,33 @@ class StyleHintService extends Service
                     );
                 });
 
+                $totalResultCount = $responseBody->total_result_count;
+
                 $retry = 0;
 
                 usleep(500000);
             } catch (Throwable $e) {
                 if ($retry >= 5) {
-                    Log::error('fetchStyleHintsDetails error', [
+                    Log::error('fetchStyleHintsFromUgcByGender error', [
                         'retry' => $retry,
                         'country' => $country,
-                        'product_id' => $code,
+                        'style_gender' => $gender,
+                        'page' => $page,
+                        'totalResultCount' => $totalResultCount,
+                        'resultLimit' => $resultLimit,
                     ]);
                     report($e);
+
+                    $retry = 0;
+
+                    continue;
                 }
 
                 $retry++;
+                $page--;
 
                 sleep(1);
             }
-        } while ($retry > 0 && $retry <= 5);
+        } while ($totalResultCount >= $page++ * $resultLimit);
     }
 }
