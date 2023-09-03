@@ -29,7 +29,7 @@ class HmallProduct extends Model
 
     public function styles()
     {
-        return $this->belongsToMany(Style::class);
+        return $this->belongsToMany(Style::class)->orderByDesc('created_at');
     }
 
     public function styleHints()
@@ -40,7 +40,7 @@ class HmallProduct extends Model
             'code',
             'style_hint_id',
             'code'
-        );
+        )->orderByDesc('id');
     }
 
     /**

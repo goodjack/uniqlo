@@ -24,6 +24,10 @@ return [
         'ugc_style_hint_list' => [
             'tw' => env('UQ_API_UGC_STYLE_HINT_LIST_TW'),
         ],
+
+        'ugc_official_style_list' => [
+            'tw' => env('UQ_API_UGC_OFFICIAL_STYLE_LIST_TW'),
+        ],
     ],
 
     'data' => [

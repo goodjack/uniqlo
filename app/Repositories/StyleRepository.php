@@ -30,66 +30,56 @@ class StyleRepository extends Repository
             ->pluck('product_id');
     }
 
-    public function saveStyleFromUniqloStyleBook($styleId, $result)
+    public function saveStyleFromOfficialStyling($styleId, $result, $brand = 'uq')
     {
-        if ($result->error === 'expired' && empty($result->photo)) {
-            Log::info("Expired style ID: {$styleId}");
+        if (isset($result->error) || empty($result->style)) {
+            Log::info("Error style ID: {$styleId}");
 
             return;
         }
 
-        $model = $this->model->firstOrNew(['id' => $result->photo->styleId]);
+        $model = $this->model->firstOrNew(['id' => $result->style->style_id]);
 
         try {
-            $firstItem = $result->coordinates[0]->items[0];
+            $imageOriginal = $result->style->image_original;
 
-            $model->id = $result->photo->styleId;
-            $model->dpt_id = $result->photo->dptId;
-            $model->image_path = $firstItem->image_path;
-            $model->image_url = "https://im.uniqlo.com/style/{$model->image_path}-xxm.jpg";
-            $model->detail_url = "https://www.uniqlo.com/tw/stylingbook/sp/style/{$model->id}";
+            preg_match(
+                '/https:\/\/api.fastretailing.com\/ugc\/v1\/(uq|gu)\/gl\/OFFICIAL_IMAGES\/(.*)/',
+                $imageOriginal,
+                $matches
+            );
+
+            $model->id = $result->style->style_id;
+            $model->type = $brand;
+            $model->dpt_id = $result->style->gender_id;
+            $model->image_path = ($matches[2] ?? $imageOriginal);
+            $model->image_url = null;
+            $model->detail_url = null;
 
             $model->save();
         } catch (Throwable $e) {
-            Log::error('saveStyleFromUniqloStyleBook save error', [
+            Log::error('saveStyleFromOfficialStyling Style save error', [
                 'styleId' => $styleId,
                 'result' => $result,
+                'brand' => $brand,
             ]);
 
             report($e);
         }
 
         try {
-            $items = collect(data_get($result, 'coordinates.*.items.*'));
-            $productCodes = $items->map(function ($item) {
-                $url = $item->item_detail_url;
-                parse_str(parse_url($url, PHP_URL_QUERY), $urlQueries);
-
-                $productCode = $urlQueries['productCode'] ?? null;
-
-                if (is_null($productCode)) {
-                    preg_match('/(u[0-9]+)/', $item->img_url_pc, $matches);
-                    $productCode = $matches[1] ?? null;
-                }
-
-                if (is_null($productCode)) {
-                    Log::error('saveStyleFromUniqloStyleBook productCode not found', [
-                        'item' => $item,
-                    ]);
-                }
-
-                return $productCode;
-            })->filter()->all();
+            $codes = collect(data_get($result, 'coordinate.*.products.*.product_id'))->all();
 
             /** @var HmallProductRepository */
             $hmallProductRepository = app(HmallProductRepository::class);
-            $hmallProductIds = $hmallProductRepository->getIdsFromProductCodes($productCodes);
+            $hmallProductIds = $hmallProductRepository->getIdsFromCodes($codes);
 
             $model->hmallProducts()->syncWithoutDetaching($hmallProductIds);
         } catch (Throwable $e) {
-            Log::error('saveStyleFromUniqloStyleBook sync error', [
+            Log::error('saveStyleFromOfficialStyling HmallProduct sync error', [
                 'styleId' => $styleId,
                 'result' => $result,
+                'brand' => $brand,
             ]);
 
             report($e);

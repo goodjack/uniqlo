@@ -504,11 +504,11 @@ class HmallProductRepository extends Repository
             ->get();
     }
 
-    public function getIdsFromProductCodes(array $productCodes)
+    public function getIdsFromCodes(array $codes)
     {
         return $this->model
             ->select(['id'])
-            ->whereIn('product_code', $productCodes)
+            ->whereIn('code', $codes)
             ->get();
     }
 
