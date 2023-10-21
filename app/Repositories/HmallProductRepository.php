@@ -269,13 +269,13 @@ class HmallProductRepository extends Repository
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
-            ->where('evaluation_count', '>=', function ($query) {
+            ->where('evaluation_count', '>', function ($query) {
                 $query->select('evaluation_count')
                     ->from('hmall_products')
                     ->where('stock', 'Y')
                     ->where('gender', '新生兒/嬰幼兒')
                     ->orderBy('evaluation_count', 'desc')
-                    ->offset(1)
+                    ->offset(4)
                     ->limit(1);
             })
             ->where('stock', 'Y')
