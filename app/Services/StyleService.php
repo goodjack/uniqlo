@@ -6,7 +6,6 @@ use App\Repositories\StyleRepository;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-use Yish\Generators\Foundation\Service\Service;
 
 class StyleService extends Service
 {

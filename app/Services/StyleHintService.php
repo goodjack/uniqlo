@@ -2,13 +2,12 @@
 
 namespace App\Services;
 
-use App\HmallProduct;
+use App\Models\HmallProduct;
 use App\Repositories\StyleHintRepository;
 use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-use Yish\Generators\Foundation\Service\Service;
 
 class StyleHintService extends Service
 {

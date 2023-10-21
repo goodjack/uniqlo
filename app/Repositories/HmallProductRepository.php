@@ -2,28 +2,35 @@
 
 namespace App\Repositories;
 
-use App\HmallPriceHistory;
-use App\HmallProduct;
-use App\Product;
+use App\Models\HmallPriceHistory;
+use App\Models\HmallProduct;
+use App\Models\Product;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-use Yish\Generators\Foundation\Repository\Repository;
 
 class HmallProductRepository extends Repository
 {
     protected $model;
 
     private const CACHE_KEY_LIMITED_OFFER = 'hmall_product:limited_offer';
+
     private const CACHE_KEY_SALE = 'hmall_product:sale';
+
     private const CACHE_KEY_MOST_REVIEWED = 'hmall_product:most_reviewed';
+
     private const CACHE_KEY_TOP_WEARING = 'hmall_product:top_wearing';
+
     private const CACHE_KEY_NEW = 'hmall_product:new';
+
     private const CACHE_KEY_COMING_SOON = 'hmall_product:coming_soon';
+
     private const CACHE_KEY_MULTI_BUY = 'hmall_product:multi_buy';
+
     private const CACHE_KEY_ONLINE_SPECIAL = 'hmall_product:online_special';
+
     private const SELECT_COLUMNS_FOR_LIST = [
         'hmall_products.id',
         'hmall_products.code',

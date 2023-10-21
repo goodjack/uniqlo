@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Models;
 
-use App\StyleHint;
+use App\Models\StyleHint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
@@ -21,11 +21,11 @@ class StyleHintTest extends TestCase
         $styleImageUrlFromDb,
         $originalSourceUrlFromApi,
         $originalSourceUrlFromDb
-    ) {
+    ): void {
         $model = new StyleHint();
 
         $model->country = $country;
-        $model->outfit_id = $this->faker->randomNumber(7, false);
+        $model->outfit_id = fake()->randomNumber(7, false);
         $model->style_image_url = $styleImageUrlFromApi;
         $model->original_source_url = $originalSourceUrlFromApi;
 

@@ -2,7 +2,7 @@
 
 namespace App\Presenters;
 
-use App\Product;
+use App\Models\Product;
 use Illuminate\Support\Collection;
 
 class ProductPresenter
@@ -171,6 +171,7 @@ class ProductPresenter
      * Get the URL of the specified product.
      *
      * @param Product $product
+     *
      * @return void
      */
     public function getProductUrl($product)
