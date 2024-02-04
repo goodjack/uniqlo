@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ListRequest;
 use App\Services\ListService;
 
 class ListController extends Controller
@@ -13,139 +14,136 @@ class ListController extends Controller
         $this->service = $service;
     }
 
-    public function getLimitedOffers()
+    public function getLimitedOffers(ListRequest $listRequest)
     {
         $hmallProducts = $this->service->getLimitedOfferHmallProducts();
-        $count = count($hmallProducts);
 
-        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
-
-        return view('lists.list', [
-            'hmallProductList' => $hmallProductList,
-            'count' => $count,
-            'typeName' => '商品期間限定特價中',
-            'typeStyle' => 'negative',
-            'typeIcon' => 'certificate',
-            'description' => '排序依據：特價幅度 > 評論數 > 評分 > 上架時間',
-        ]);
+        return $this->getList(
+            $hmallProducts,
+            $listRequest,
+            '商品期間限定特價中',
+            'negative',
+            'certificate',
+            '排序依據：特價幅度 > 評論數 > 評分 > 上架時間'
+        );
     }
 
-    public function getSale()
+    public function getSale(ListRequest $listRequest)
     {
         $hmallProducts = $this->service->getSaleHmallProducts();
-        $count = count($hmallProducts);
 
-        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
-
-        return view('lists.list', [
-            'hmallProductList' => $hmallProductList,
-            'count' => $count,
-            'typeName' => '商品特價中',
-            'typeStyle' => 'primary',
-            'typeIcon' => 'shopping basket',
-            'description' => '排序依據：特價幅度 > 評論數 > 評分 > 上架時間',
-        ]);
+        return $this->getList(
+            $hmallProducts,
+            $listRequest,
+            '商品特價中',
+            'primary',
+            'shopping basket',
+            '排序依據：特價幅度 > 評論數 > 評分 > 上架時間'
+        );
     }
 
-    public function getMostReviewed()
+    public function getMostReviewed(ListRequest $listRequest)
     {
         $hmallProducts = $this->service->getMostReviewedHmallProducts();
-        $count = count($hmallProducts);
 
-        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
-
-        return view('lists.list', [
-            'hmallProductList' => $hmallProductList,
-            'count' => $count,
-            'typeName' => '熱門評論商品',
-            'typeStyle' => 'most-reviewed',
-            'typeIcon' => 'comments outline',
-            'description' => '排序依據：評論數 > 評分 > 上架時間',
-        ]);
+        return $this->getList(
+            $hmallProducts,
+            $listRequest,
+            '熱門評論商品',
+            'most-reviewed',
+            'comments outline',
+            '排序依據：評論數 > 評分 > 上架時間'
+        );
     }
 
-    public function getTopWearing()
+    public function getTopWearing(ListRequest $listRequest)
     {
         $hmallProducts = $this->service->getTopWearingHmallProducts();
-        $count = count($hmallProducts);
 
-        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
-
-        return view('lists.list', [
-            'hmallProductList' => $hmallProductList,
-            'count' => $count,
-            'typeName' => '熱門穿搭商品',
-            'typeStyle' => 'top-wearing',
-            'typeIcon' => 'camera retro',
-            'description' => '排序依據：網友穿搭數 > 評論數 > 評分 > 上架時間',
-        ]);
+        return $this->getList(
+            $hmallProducts,
+            $listRequest,
+            '熱門穿搭商品',
+            'top-wearing',
+            'camera retro',
+            '排序依據：網友穿搭數 > 評論數 > 評分 > 上架時間'
+        );
     }
 
-    public function getNew()
+    public function getNew(ListRequest $listRequest)
     {
         $hmallProducts = $this->service->getNewHmallProducts();
-        $count = count($hmallProducts);
 
-        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
-
-        return view('lists.list', [
-            'hmallProductList' => $hmallProductList,
-            'count' => $count,
-            'typeName' => '新款商品',
-            'typeStyle' => 'positive',
-            'typeIcon' => 'leaf',
-            'description' => '排序依據：特價幅度 > 評論數 > 評分 > 上架時間',
-        ]);
+        return $this->getList(
+            $hmallProducts,
+            $listRequest,
+            '新款商品',
+            'positive',
+            'leaf',
+            '排序依據：特價幅度 > 評論數 > 評分 > 上架時間'
+        );
     }
 
-    public function getComingSoon()
+    public function getComingSoon(ListRequest $listRequest)
     {
         $hmallProducts = $this->service->getComingSoonHmallProducts();
-        $count = count($hmallProducts);
 
-        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
-
-        return view('lists.list', [
-            'hmallProductList' => $hmallProductList,
-            'count' => $count,
-            'typeName' => '即將上市商品',
-            'typeStyle' => 'coming-soon',
-            'typeIcon' => 'checked calendar',
-            'description' => '排序依據：特價幅度 > 評論數 > 評分 > 上架時間',
-        ]);
+        return $this->getList(
+            $hmallProducts,
+            $listRequest,
+            '即將上市商品',
+            'coming-soon',
+            'checked calendar',
+            '排序依據：特價幅度 > 評論數 > 評分 > 上架時間'
+        );
     }
 
-    public function getMultiBuy()
+    public function getMultiBuy(ListRequest $listRequest)
     {
         $hmallProducts = $this->service->getMultiBuyHmallProducts();
-        $count = count($hmallProducts);
 
-        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
-
-        return view('lists.list', [
-            'hmallProductList' => $hmallProductList,
-            'count' => $count,
-            'typeName' => '合購商品',
-            'typeStyle' => 'info',
-            'typeIcon' => 'cubes',
-            'description' => '排序依據：評論數 > 評分 > 上架時間',
-        ]);
+        return $this->getList(
+            $hmallProducts,
+            $listRequest,
+            '合購商品',
+            'info',
+            'cubes',
+            '排序依據：評論數 > 評分 > 上架時間'
+        );
     }
 
-    public function getOnlineSpecial()
+    public function getOnlineSpecial(ListRequest $listRequest)
     {
         $hmallProducts = $this->service->getOnlineSpecialHmallProducts();
-        $count = count($hmallProducts);
 
-        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
+        return $this->getList(
+            $hmallProducts,
+            $listRequest,
+            '網路獨家販售商品',
+            'online-special',
+            'tv',
+            '排序依據：特價幅度 > 評論數 > 評分 > 上架時間'
+        );
+    }
+
+    private function getList(
+        $hmallProducts,
+        $listRequest,
+        $typeName,
+        $typeStyle,
+        $typeIcon,
+        $description
+    ) {
+        $count = count($hmallProducts);
+        $hmallProductList = $this->service->divideHmallProducts($hmallProducts, $listRequest->brand);
 
         return view('lists.list', [
             'hmallProductList' => $hmallProductList,
             'count' => $count,
-            'typeName' => '網路獨家販售商品',
-            'typeStyle' => 'online-special',
-            'typeIcon' => 'tv',
-            'description' => '排序依據：特價幅度 > 評論數 > 評分 > 上架時間',
+            'typeName' => $typeName,
+            'typeStyle' => $typeStyle,
+            'typeIcon' => $typeIcon,
+            'description' => $description,
         ]);
     }
 }

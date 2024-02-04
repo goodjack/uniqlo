@@ -55,28 +55,30 @@ class ListService extends Service
         return $this->repository->getOnlineSpecialHmallProducts();
     }
 
-    public function divideHmallProducts($hmallProducts)
+    public function divideHmallProducts($hmallProducts, $brand = null)
     {
         $groupMapper = [
-            ['group' => 'men', 'gender' => '男裝'],
-            ['group' => 'men', 'gender' => '男女適用'],
-            ['group' => 'women', 'gender' => '女裝'],
-            ['group' => 'women', 'gender' => '男女適用'],
-            ['group' => 'kids', 'gender' => '童裝'],
-            ['group' => 'kids', 'gender' => '女童'],
-            ['group' => 'baby', 'gender' => '新生兒/嬰幼兒'],
+            ['group' => 'men', 'genders' => ['男裝', '男女適用']],
+            ['group' => 'women', 'genders' => ['女裝', '男女適用']],
+            ['group' => 'kids', 'genders' => ['童裝', '女童']],
+            ['group' => 'baby', 'genders' => ['新生兒/嬰幼兒']],
         ];
 
-        $groupedHmallProducts = $hmallProducts->groupBy(function ($hmallProduct) {
-            return $hmallProduct->gender;
-        });
+        if ($brand === 'UNIQLO' || $brand === 'GU') {
+            $hmallProducts = $hmallProducts->where('brand', $brand);
+        }
+
+        $groupedHmallProducts = $hmallProducts->groupBy('gender');
 
         $result = collect($groupMapper)->reduce(function ($carry, $item) use ($groupedHmallProducts) {
-            if (! isset($carry[$item['group']])) {
-                $carry[$item['group']] = collect([]);
-            }
+            $group = $item['group'];
+            $genders = $item['genders'];
 
-            $carry[$item['group']] = $carry[$item['group']]->merge($groupedHmallProducts->get($item['gender']));
+            $filteredProducts = $groupedHmallProducts->filter(function ($value, $key) use ($genders) {
+                return in_array($key, $genders);
+            })->flatten();
+
+            $carry[$group] = $filteredProducts;
 
             return $carry;
         }, []);
