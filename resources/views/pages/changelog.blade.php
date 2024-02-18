@@ -32,6 +32,7 @@
                         <div class="header">更新功能</div>
                         <ul>
                             <li>列表頁現在會排除已售罄的商品了</li>
+                            <li>商品頁最多顯示六個延伸商品，以提升瀏覽體驗</li>
                         </ul>
                         <div class="header">修復錯誤</div>
                         <ul>
