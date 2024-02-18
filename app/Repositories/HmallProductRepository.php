@@ -68,13 +68,15 @@ class HmallProductRepository extends Repository
             $query->where('id', '<>', $hmallProduct->id);
         }
 
-        return $query->orderByRaw('CASE WHEN `id` = ? THEN 0 ELSE 1 END', [$hmallProduct->id])
+        $query->orderByRaw('CASE WHEN `id` = ? THEN 0 ELSE 1 END', [$hmallProduct->id])
             ->orderByRaw('CASE WHEN `name` = ? THEN 0 ELSE 1 END', [$hmallProduct->name])
             ->orderBy(DB::raw('ISNULL(`stockout_at`)'), 'desc')
             ->orderByRaw('CHAR_LENGTH(`name`)')
             ->orderBy('min_price')
             ->orderBy('id', 'desc')
-            ->get();
+            ->take(6);
+
+        return $query->get();
     }
 
     public function getStyles(HmallProduct $hmallProduct)
