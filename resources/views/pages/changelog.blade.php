@@ -25,6 +25,40 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v2.16.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">更新功能</div>
+                        <ul>
+                            <li>列表頁現在會排除已售罄的商品了</li>
+                        </ul>
+                        <div class="header">修復錯誤</div>
+                        <ul>
+                            <li>修正全站圖片因 lazy loading 造成滾動時版面配置位移的問題</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
+                        v2.15.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">更新功能</div>
+                        <ul>
+                            <li>調整熱門評論列表的商品數量</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v2.14.0
                     </h2>
                     <!-- / 標題 -->
