@@ -43,6 +43,11 @@ class HmallProduct extends Model
         )->orderByDesc('id');
     }
 
+    public function japanProduct()
+    {
+        return $this->hasOne(JapanProduct::class, 'l1Id', 'code');
+    }
+
     /**
      * Get the price of the product.
      *

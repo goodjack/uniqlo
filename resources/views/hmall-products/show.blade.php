@@ -2,18 +2,18 @@
 @extends('layouts.master')
 
 @php
-$shareText = $hmallProductPresenter->getFullName($hmallProduct) . ' | UNIQLO 比價 | UQ 搜尋';
-$shareTextEncode = urlencode($shareText);
+    $shareText = $hmallProductPresenter->getFullName($hmallProduct) . ' | UNIQLO 比價 | UQ 搜尋';
+    $shareTextEncode = urlencode($shareText);
 
-$currentUrl = url()->current();
-$shareUrl = [
-    'facebook' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=fb&utm_campaign=share'),
-    'twitter' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=twtr&utm_campaign=share'),
-    'line' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
-    'webShare' => $currentUrl . '?utm_source=uqs&utm_medium=webshare&utm_campaign=share',
-];
+    $currentUrl = url()->current();
+    $shareUrl = [
+        'facebook' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=fb&utm_campaign=share'),
+        'twitter' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=twtr&utm_campaign=share'),
+        'line' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
+        'webShare' => $currentUrl . '?utm_source=uqs&utm_medium=webshare&utm_campaign=share',
+    ];
 
-$colorNums = json_decode($hmallProduct->color_nums, true);
+    $colorNums = json_decode($hmallProduct->color_nums, true);
 @endphp
 
 @section('title', $hmallProductPresenter->getFullName($hmallProduct))
@@ -254,6 +254,25 @@ $colorNums = json_decode($hmallProduct->color_nums, true);
         </div>
     </div>
 
+    @if ($hmallProduct->japanProduct && $hmallProduct->japanProduct->sub_videos)
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+            <div class="ts container">
+                <h2 class="ts large dividing header">日本版商品影片</h2>
+                <div class="ts hidden divider"></div>
+                <div class="ts doubling four flatted cards">
+                    @foreach ($hmallProduct->japanProduct->sub_videos as $key => $subVideo)
+                        <div class="ts card">
+                            <div class="video">
+                                <video preload="metadata" src="{{ $subVideo }}" muted loop controls
+                                    playsinline></video>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+
     @isset($colorNums)
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
@@ -265,6 +284,18 @@ $colorNums = json_decode($hmallProduct->color_nums, true);
                             largeImageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}" link=""
                             alt="商品實照 {{ $key + 1 }}" width="561" height="561" />
                     @endforeach
+                    @if ($hmallProduct->japanProduct && $hmallProduct->japanProduct->main_images)
+                        @foreach ($hmallProduct->japanProduct->main_images as $key => $mainImage)
+                            <x-image-card imageUrl="{{ $mainImage }}" largeImageUrl="{{ $mainImage }}" link=""
+                                alt="日本版商品穿搭照 {{ $key + 1 }}" width="561" height="561" />
+                        @endforeach
+                    @endif
+                    @if ($hmallProduct->japanProduct && $hmallProduct->japanProduct->sub_images)
+                        @foreach ($hmallProduct->japanProduct->sub_images as $key => $subImage)
+                            <x-image-card imageUrl="{{ $subImage }}" largeImageUrl="{{ $subImage }}" link=""
+                                alt="日本版商品實照 {{ $key + 1 }}" width="561" height="561" />
+                        @endforeach
+                    @endif
                 </div>
             </div>
         </div>

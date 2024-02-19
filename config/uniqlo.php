@@ -16,6 +16,9 @@ return [
             'jp' => env('UQ_API_STYLE_HINT_DETAIL_JP'),
             'us' => env('UQ_API_STYLE_HINT_DETAIL_US'),
         ],
+        'product_list' => [
+            'jp' => env('UQ_API_PRODUCT_LIST_JP'),
+        ],
 
         'ugc_product_id_contents' => [
             'tw' => env('UQ_API_UGC_PRODUCT_ID_CONTENTS_TW'),
