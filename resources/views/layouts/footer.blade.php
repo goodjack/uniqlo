@@ -45,6 +45,9 @@
                 <a href="{{ route('lists.most-reviewed') }}" class="fitted item" aria-label="most-reviewed">
                     <p><i class="comments outline icon"></i> 熱門評論商品</p>
                 </a>
+                <a href="{{ route('lists.japan-most-reviewed') }}" class="fitted item" aria-label="japan-most-reviewed">
+                    <p><i class="comments outline icon"></i> 日本熱門評論商品</p>
+                </a>
                 <a href="{{ route('lists.top-wearing') }}" class="fitted item" aria-label="top-wearing">
                     <p><i class="camera retro icon"></i> 熱門穿搭商品</p>
                 </a>

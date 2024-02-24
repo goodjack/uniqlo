@@ -56,6 +56,20 @@ class ListController extends Controller
         );
     }
 
+    public function getJapanMostReviewed(ListRequest $listRequest)
+    {
+        $hmallProducts = $this->service->getJapanMostReviewedHmallProducts();
+
+        return $this->getList(
+            $hmallProducts,
+            $listRequest,
+            '日本熱門評論商品',
+            'most-reviewed',
+            'comments outline',
+            '排序依據：日本評論數 > 日本評分 > 台灣評論數 > 台灣評分 > 台灣上架時間'
+        );
+    }
+
     public function getTopWearing(ListRequest $listRequest)
     {
         $hmallProducts = $this->service->getTopWearingHmallProducts();

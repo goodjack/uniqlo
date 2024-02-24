@@ -63,6 +63,8 @@ Route::group(['prefix' => 'lists'], function () {
     Route::get('/limited-offers', [ListController::class, 'getLimitedOffers'])->name('lists.limited-offers');
     Route::get('/sale', [ListController::class, 'getSale'])->name('lists.sale');
     Route::get('/most-reviewed', [ListController::class, 'getMostReviewed'])->name('lists.most-reviewed');
+    Route::get('/japan-most-reviewed', [ListController::class, 'getJapanMostReviewed'])
+        ->name('lists.japan-most-reviewed');
     Route::get('/top-wearing', [ListController::class, 'getTopWearing'])->name('lists.top-wearing');
     Route::get('/new', [ListController::class, 'getNew'])->name('lists.new');
     Route::get('/coming-soon', [ListController::class, 'getComingSoon'])->name('lists.coming-soon');

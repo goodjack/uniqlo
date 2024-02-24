@@ -30,6 +30,11 @@ class ListService extends Service
         return $this->repository->getMostReviewedHmallProducts();
     }
 
+    public function getJapanMostReviewedHmallProducts()
+    {
+        return $this->repository->getJapanMostReviewedHmallProducts();
+    }
+
     public function getTopWearingHmallProducts()
     {
         return $this->repository->getTopWearingHmallProducts();
