@@ -44,7 +44,7 @@
         <i class="{{ $typeStyle }} {{ $typeIcon }} icon"></i>
         <span class="header">{{ $count }} 件{{ $typeName }}</span>
         @isset($description)
-            <span class="description">{{ $description }}</span>
+            <span class="description">{!! $description !!}</span>
         @endisset
     </div>
 

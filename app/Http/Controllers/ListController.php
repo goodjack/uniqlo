@@ -66,7 +66,8 @@ class ListController extends Controller
             '日本熱門評論商品',
             'most-reviewed',
             'comments outline',
-            '排序依據：日本評論數 > 日本評分 > 台灣評論數 > 台灣評分 > 台灣上架時間'
+            '排序依據：日本評論數 > 日本評分 > 評論數 > 評分 > 上架時間<br>以下顯示日本評論數據',
+            true,
         );
     }
 
@@ -146,7 +147,8 @@ class ListController extends Controller
         $typeName,
         $typeStyle,
         $typeIcon,
-        $description
+        $description,
+        $useJapanRating = false
     ) {
         $hmallProducts = $this->service->filterHmallProducts($hmallProducts, $listRequest);
         $count = count($hmallProducts);
@@ -160,6 +162,7 @@ class ListController extends Controller
             'typeStyle' => $typeStyle,
             'typeIcon' => $typeIcon,
             'description' => $description,
+            'useJapanRating' => $useJapanRating,
         ]);
     }
 }

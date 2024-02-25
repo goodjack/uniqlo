@@ -231,9 +231,9 @@ class HmallProductPresenter
         return $html;
     }
 
-    public function getRatingForProductCardAndItem($hmallProduct)
+    public function getRatingForProductCardAndItem($hmallProduct, $useJapanRating = false)
     {
-        $html = $this->getRating($hmallProduct);
+        $html = $useJapanRating ? $this->getJapanRating($hmallProduct) : $this->getRating($hmallProduct);
 
         if (! empty($html)) {
             $html = "<span>{$html}</span>";
@@ -270,6 +270,21 @@ class HmallProductPresenter
         $rating .= number_format($hmallProduct->score, 1);
 
         $rating .= " ({$hmallProduct->evaluation_count})";
+
+        return $rating;
+    }
+
+    public function getJapanRating($hmallProduct, $plainText = false)
+    {
+        if (empty(optional($hmallProduct->japanProduct)->rating_count)) {
+            return '';
+        }
+
+        $rating = $plainText ? '★ ' : '<i class="fitted star icon"></i> ';
+
+        $rating .= number_format($hmallProduct->japanProduct->rating_average, 1);
+
+        $rating .= " ({$hmallProduct->japanProduct->rating_count})";
 
         return $rating;
     }
