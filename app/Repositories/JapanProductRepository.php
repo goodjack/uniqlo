@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\JapanProduct;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -46,6 +47,22 @@ class JapanProductRepository
                 report($e);
             }
         });
+    }
+
+    public function setStockoutProducts($brand = 'UNIQLO', $updatedIsBefore = null)
+    {
+        if (is_null($updatedIsBefore)) {
+            $updatedIsBefore = today();
+        }
+
+        $this->model
+            ->whereNull('stockout_at')
+            ->where('brand', $brand)
+            ->where('updated_at', '<', $updatedIsBefore)
+            ->update([
+                'stockout_at' => now(),
+                'updated_at' => DB::raw('updated_at'),
+            ]);
     }
 
     private function getPrices($model, $product)

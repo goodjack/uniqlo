@@ -75,6 +75,8 @@ class JapanProductService
                 sleep(1);
             }
         } while ($total >= $offset);
+
+        $this->repository->setStockoutProducts($brand);
     }
 
     private function getJapanProductListApiUrl($brand = 'UNIQLO')

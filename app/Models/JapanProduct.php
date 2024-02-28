@@ -56,6 +56,13 @@ class JapanProduct extends Model
         );
     }
 
+    public function isStockout(): Attribute
+    {
+        return Attribute::make(
+            get: fn (mixed $value, array $attributes) => isset($attributes['stockout_at']),
+        );
+    }
+
     private function transformMedias(array $medias, string $type = 'image'): string
     {
         $result = [];
