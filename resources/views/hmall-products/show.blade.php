@@ -427,34 +427,101 @@
             <div class="ts container">
                 <h2 class="ts large dividing header">日本版商品資訊</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts large stackable relaxed list">
+                <div class="ts items">
                     <div class="item">
-                        <i class="bookmark icon"></i>
-                        <div class="top aligned content">
-                            <div class="header">商品名稱</div>
-                            <div class="description">{{ $japanProduct->name }}</div>
+                        <div class="ts tiny image">
+                            <x-lazy-load-image src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
+                                alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
+                        </div>
+                        <div class="content">
+                            <a class="header">{{ $japanProduct->name }}</a>
+                            <div class="meta">
+                                <span>{{ $japanProduct->brand }} 日本商品編號 {{ $japanProduct->l1Id }}
+                                    ({{ $japanProduct->product_id }})</span>
+                            </div>
+                            <div class="extra">
+                                @if ($japanProduct->is_stockout)
+                                    <div class="ts circular horizontal label"><i class="archive icon"></i>已售罄</div>
+                                @else
+                                    <div class="ts circular horizontal label"><i class="check icon"></i>発売中</div>
+                                @endif
+                                資訊日期：{!! $japanProduct->updated_at->format('Y/m/d') !!}
+                            </div>
                         </div>
                     </div>
-                    <div class="item">
-                        <i class="asterisk icon"></i>
-                        <div class="top aligned content">
-                            <div class="header">商品編號</div>
-                            <div class="description">{{ $japanProduct->l1Id }} ({{ $japanProduct->product_id }})</div>
+                </div>
+                <div class="ts doubling four column grid">
+                    <div class="column">
+                        <div class="ts card">
+                            <div class="center aligned content">
+                                <div class="ts small statistic">
+                                    <div class="value">{!! $hmallProductPresenter->getJapanRating($hmallProduct, true) !!}</div>
+                                    <div class="label">日本評價</div>
+                                </div>
+                            </div>
+                            <div class="symbol">
+                                <i class="comments icon"></i>
+                            </div>
                         </div>
                     </div>
-                    <div class="item">
-                        <i class="comments icon"></i>
-                        <div class="top aligned content">
-                            <div class="header">日本評價</div>
-                            <div class="description">{!! $hmallProductPresenter->getJapanRating($hmallProduct) !!}</div>
+                    <div class="column">
+                        <div class="ts card">
+                            <div class="center aligned content">
+                                <div class="ts small statistic">
+                                    <div class="value">¥{{ (int) collect($japanProduct->prices)->first() }}</div>
+                                    <div class="label">當前價格</div>
+                                </div>
+                            </div>
+                            <div class="symbol">
+                                <i class="yen icon"></i>
+                            </div>
                         </div>
                     </div>
-                    <div class="item">
-                        <i class="cloud icon"></i>
-                        <div class="top aligned content">
-                            <div class="header">資訊日期</div>
-                            <div class="description">{!! $japanProduct->updated_at->format('Y/m/d') !!}</div>
+                    <div class="column">
+                        <div class="ts card">
+                            <div class="center aligned content">
+                                <div class="ts small statistic">
+                                    <div class="value">¥{{ (int) $japanProduct->highest_record_price }}</div>
+                                    <div class="label">歷史高價</div>
+                                </div>
+                            </div>
+                            <div class="symbol">
+                                <i class="arrow up icon"></i>
+                            </div>
                         </div>
+                    </div>
+                    <div class="column">
+                        <div class="ts card">
+                            <div class="center aligned content">
+                                <div class="ts small statistic">
+                                    <div class="value">¥{{ (int) $japanProduct->lowest_record_price }}</div>
+                                    <div class="label">歷史低價</div>
+                                </div>
+                            </div>
+                            <div class="symbol">
+                                <i class="arrow down icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="right floated column">
+                        @if ($japanProduct->brand === 'GU' && collect($japanProduct->prices)->count() >= 2)
+                            <a class="ts right floated tiny basic info right labeled icon button"
+                                href="https://www.gu-global.com/jp/ja/search?q={{ $japanProduct->l1Id }}" target="_blank"
+                                rel="nofollow noopener" aria-label="GU">前往日本 GU 官網<i class="external icon"></i></a>
+                        @elseif ($japanProduct->brand === 'GU' && collect($japanProduct->prices)->count() <= 1)
+                            <a class="ts right floated tiny basic info right labeled icon button"
+                                href="https://www.gu-global.com/jp/ja/products/{{ $japanProduct->product_id }}"
+                                target="_blank" rel="nofollow noopener" aria-label="GU">前往日本 GU 官網<i
+                                    class="external icon"></i></a>
+                        @elseif ($japanProduct->brand === 'UNIQLO' && collect($japanProduct->prices)->count() >= 2)
+                            <a class="ts right floated tiny basic negative right labeled icon button"
+                                href="https://www.uniqlo.com/jp/ja/search?q={{ $japanProduct->l1Id }}" target="_blank"
+                                rel="nofollow noopener" aria-label="UNIQLO">前往日本 UNIQLO 官網<i class="external icon"></i></a>
+                        @elseif ($japanProduct->brand === 'UNIQLO' && collect($japanProduct->prices)->count() <= 1)
+                            <a class="ts right floated tiny basic negative right labeled icon button"
+                                href="https://www.uniqlo.com/jp/ja/products/{{ $japanProduct->product_id }}" target="_blank"
+                                rel="nofollow noopener" aria-label="UNIQLO">前往日本 UNIQLO 官網<i class="external icon"></i></a>
+                        @endif
                     </div>
                 </div>
             </div>
