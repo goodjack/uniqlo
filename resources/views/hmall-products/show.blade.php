@@ -254,13 +254,13 @@
         </div>
     </div>
 
-    @if ($hmallProduct->japanProduct && $hmallProduct->japanProduct->sub_videos)
+    @if (optional($japanProduct)->sub_videos)
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 <h2 class="ts large dividing header">日本版商品影片</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
-                    @foreach ($hmallProduct->japanProduct->sub_videos as $key => $subVideo)
+                    @foreach ($japanProduct->sub_videos as $key => $subVideo)
                         <div class="ts card">
                             <div class="video">
                                 <video preload="metadata" src="{{ $subVideo }}" muted loop controls
@@ -273,33 +273,35 @@
         </div>
     @endif
 
-    @isset($colorNums)
+    @if ($colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images)
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 <h2 class="ts large dividing header">商品實照</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
-                    @foreach ($colorNums as $key => $colorNum)
-                        <x-image-card imageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
-                            largeImageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}" link=""
-                            alt="商品實照 {{ $key + 1 }}" width="561" height="561" />
-                    @endforeach
-                    @if ($hmallProduct->japanProduct && $hmallProduct->japanProduct->main_images)
-                        @foreach ($hmallProduct->japanProduct->main_images as $key => $mainImage)
-                            <x-image-card imageUrl="{{ $mainImage }}" largeImageUrl="{{ $mainImage }}" link=""
-                                alt="日本版商品穿搭照 {{ $key + 1 }}" width="561" height="561" />
+                    @if ($colorNums)
+                        @foreach ($colorNums as $key => $colorNum)
+                            <x-image-card imageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
+                                largeImageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
+                                link="" alt="商品實照 {{ $key + 1 }}" width="561" height="561" />
                         @endforeach
                     @endif
-                    @if ($hmallProduct->japanProduct && $hmallProduct->japanProduct->sub_images)
-                        @foreach ($hmallProduct->japanProduct->sub_images as $key => $subImage)
-                            <x-image-card imageUrl="{{ $subImage }}" largeImageUrl="{{ $subImage }}" link=""
-                                alt="日本版商品實照 {{ $key + 1 }}" width="561" height="561" />
+                    @if (optional($japanProduct)->main_images)
+                        @foreach ($japanProduct->main_images as $key => $mainImage)
+                            <x-image-card imageUrl="{{ $mainImage }}" largeImageUrl="{{ $mainImage }}"
+                                link="" alt="日本版商品穿搭照 {{ $key + 1 }}" width="561" height="561" />
+                        @endforeach
+                    @endif
+                    @if (optional($japanProduct)->sub_images)
+                        @foreach ($japanProduct->sub_images as $key => $subImage)
+                            <x-image-card imageUrl="{{ $subImage }}" largeImageUrl="{{ $subImage }}"
+                                link="" alt="日本版商品實照 {{ $key + 1 }}" width="561" height="561" />
                         @endforeach
                     @endif
                 </div>
             </div>
         </div>
-    @endisset
+    @endif
 
     @if ($styles->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
@@ -419,6 +421,45 @@
             </div>
         </div>
     </div>
+
+    @isset($japanProduct)
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+            <div class="ts container">
+                <h2 class="ts large dividing header">日本版商品資訊</h2>
+                <div class="ts hidden divider"></div>
+                <div class="ts large stackable relaxed list">
+                    <div class="item">
+                        <i class="bookmark icon"></i>
+                        <div class="top aligned content">
+                            <div class="header">商品名稱</div>
+                            <div class="description">{{ $japanProduct->name }}</div>
+                        </div>
+                    </div>
+                    <div class="item">
+                        <i class="asterisk icon"></i>
+                        <div class="top aligned content">
+                            <div class="header">商品編號</div>
+                            <div class="description">{{ $japanProduct->l1Id }} ({{ $japanProduct->product_id }})</div>
+                        </div>
+                    </div>
+                    <div class="item">
+                        <i class="comments icon"></i>
+                        <div class="top aligned content">
+                            <div class="header">日本評價</div>
+                            <div class="description">{!! $hmallProductPresenter->getJapanRating($hmallProduct) !!}</div>
+                        </div>
+                    </div>
+                    <div class="item">
+                        <i class="cloud icon"></i>
+                        <div class="top aligned content">
+                            <div class="header">資訊日期</div>
+                            <div class="description">{!! $japanProduct->updated_at->format('Y/m/d') !!}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endisset
 
     @if ($relatedProducts->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">

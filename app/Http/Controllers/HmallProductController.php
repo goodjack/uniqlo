@@ -67,6 +67,7 @@ class HmallProductController extends Controller
             'styleHints' => $styleHints,
             'styleHintCount' => $styleHintCount,
             'hmallPriceHistories' => $hmallPriceHistories,
+            'japanProduct' => $hmallProduct->japanProduct,
         ]);
     }
 
