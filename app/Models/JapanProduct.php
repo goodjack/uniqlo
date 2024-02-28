@@ -23,6 +23,10 @@ class JapanProduct extends Model
         'sub_videos',
     ];
 
+    protected $casts = [
+        'prices' => 'array',
+    ];
+
     public function hmallProduct()
     {
         return $this->belongsTo(HmallProduct::class, 'l1Id', 'code');

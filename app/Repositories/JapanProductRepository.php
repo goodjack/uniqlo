@@ -17,7 +17,7 @@ class JapanProductRepository
         collect($products)->each(function ($product) use ($brand) {
             try {
                 /** @var JapanProduct $model */
-                $model = JapanProduct::firstOrNew([
+                $model = $this->model->firstOrNew([
                     'brand' => $brand,
                     'l1Id' => $product->l1Id,
                 ]);
@@ -27,6 +27,10 @@ class JapanProductRepository
                 $model->gender_category = $product->genderCategory;
                 $model->rating_average = $product->rating->average;
                 $model->rating_count = $product->rating->count;
+
+                $model->prices = $this->getPrices($model, $product);
+                $model->lowest_record_price = $this->getLowestRecordPrice($model, $product->prices->base->value);
+                $model->highest_record_price = $this->getHighestRecordPrice($model, $product->prices->base->value);
 
                 $model->main_images = json_decode(json_encode($product->images->main), true);
                 $model->sub_images = json_decode(json_encode($product->images->sub), true);
@@ -42,5 +46,36 @@ class JapanProductRepository
                 report($e);
             }
         });
+    }
+
+    private function getPrices($model, $product)
+    {
+        $prices = $model->prices ?? [];
+
+        $prices[$product->priceGroup] = $product->prices->base->value;
+
+        return $prices;
+    }
+
+    private function getLowestRecordPrice($model, $price)
+    {
+        $lowestRecordPrice = $model->lowest_record_price;
+
+        if (empty($lowestRecordPrice)) {
+            return $price;
+        }
+
+        return min($lowestRecordPrice, $price);
+    }
+
+    private function getHighestRecordPrice($model, $price)
+    {
+        $highestRecordPrice = $model->highest_record_price;
+
+        if (empty($highestRecordPrice)) {
+            return $price;
+        }
+
+        return max($highestRecordPrice, $price);
     }
 }
