@@ -263,7 +263,7 @@
                     @foreach ($japanProduct->sub_videos as $key => $subVideo)
                         <div class="ts card">
                             <div class="video">
-                                <video preload="metadata" src="{{ $subVideo }}" muted loop controls
+                                <video preload="metadata" src="{{ $subVideo }}" autoplay muted loop controls
                                     playsinline></video>
                             </div>
                         </div>
