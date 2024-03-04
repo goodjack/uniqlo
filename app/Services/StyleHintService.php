@@ -194,7 +194,7 @@ class StyleHintService extends Service
 
                 $retry = 0;
 
-                usleep(500000);
+                usleep(100000);
             } catch (Throwable $e) {
                 if ($retry >= 5) {
                     Log::error('fetchStyleHintsFromUgcByGender error', [
