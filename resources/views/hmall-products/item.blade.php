@@ -12,6 +12,7 @@
         <div class="middoted meta">
             <span>{{ $hmallProduct->short_product_code }}</span>
             {!! $hmallProductPresenter->getRatingForProductCardAndItem($hmallProduct) !!}
+            {!! $hmallProductPresenter->getVideoIconForProductCardAndItem($hmallProduct) !!}
         </div>
         @if ($hmallProduct->is_stockout)
             <div class="extra">已售罄</div>

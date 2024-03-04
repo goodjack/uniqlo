@@ -254,10 +254,13 @@
         </div>
     </div>
 
-    @if (optional($japanProduct)->sub_videos)
+    @if (optional($japanProduct)->has_videos)
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
-                <h2 class="ts large dividing header">日本版商品影片</h2>
+                <h2 class="ts large dividing header">
+                    商品影片
+                    <div class="inline sub header">日本版</div>
+                </h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
                     @foreach ($japanProduct->sub_videos as $key => $subVideo)

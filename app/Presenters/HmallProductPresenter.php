@@ -242,6 +242,17 @@ class HmallProductPresenter
         return $html;
     }
 
+    public function getVideoIconForProductCardAndItem($hmallProduct)
+    {
+        $hasVideos = optional($hmallProduct->japanProduct)->has_videos;
+
+        if ($hasVideos) {
+            return '<span><i class="video camera icon"></i></span>';
+        }
+
+        return '';
+    }
+
     public function getSocialMediaDescription($hmallProduct)
     {
         $description = $this->getDescription($hmallProduct);

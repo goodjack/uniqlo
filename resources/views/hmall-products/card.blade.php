@@ -16,6 +16,7 @@
         <div class="middoted meta">
             <span>{{ $hmallProduct->short_product_code }}</span>
             {!! $hmallProductPresenter->getRatingForProductCardAndItem($hmallProduct, $useJapanRating) !!}
+            {!! $hmallProductPresenter->getVideoIconForProductCardAndItem($hmallProduct) !!}
         </div>
     </div>
     <div class="center aligned extra content">

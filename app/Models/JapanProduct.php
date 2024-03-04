@@ -63,6 +63,13 @@ class JapanProduct extends Model
         );
     }
 
+    public function hasVideos(): Attribute
+    {
+        return Attribute::make(
+            get: fn (mixed $value, array $attributes) => count(json_decode($attributes['sub_videos'], true)) > 0,
+        );
+    }
+
     private function transformMedias(array $medias, string $type = 'image'): string
     {
         $result = [];
