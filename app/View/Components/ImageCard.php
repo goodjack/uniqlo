@@ -56,6 +56,13 @@ class ImageCard extends Component
     public $colorHeader;
 
     /**
+     * The country from which the image was fetched.
+     *
+     * @var string
+     */
+    public $country;
+
+    /**
      * Create a new component instance.
      *
      * @return void
@@ -67,7 +74,8 @@ class ImageCard extends Component
         $alt,
         $width = 1,
         $height = 1,
-        $colorHeader = null
+        $colorHeader = null,
+        $country = null
     ) {
         $this->link = $link;
         $this->imageUrl = $imageUrl;
@@ -76,6 +84,7 @@ class ImageCard extends Component
         $this->width = $width;
         $this->height = $height;
         $this->colorHeader = $colorHeader;
+        $this->country = $country;
     }
 
     /**

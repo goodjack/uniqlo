@@ -292,13 +292,15 @@
                     @if (optional($japanProduct)->main_images)
                         @foreach ($japanProduct->main_images as $key => $mainImage)
                             <x-image-card imageUrl="{{ $mainImage }}" largeImageUrl="{{ $mainImage }}"
-                                link="" alt="日本版商品穿搭照 {{ $key + 1 }}" width="561" height="561" />
+                                country="jp" link="" alt="日本版商品穿搭照 {{ $key + 1 }}" width="561"
+                                height="561" />
                         @endforeach
                     @endif
                     @if (optional($japanProduct)->sub_images)
                         @foreach ($japanProduct->sub_images as $key => $subImage)
                             <x-image-card imageUrl="{{ $subImage }}" largeImageUrl="{{ $subImage }}"
-                                link="" alt="日本版商品實照 {{ $key + 1 }}" width="561" height="561" />
+                                country="jp" link="" alt="日本版商品實照 {{ $key + 1 }}" width="561"
+                                height="561" />
                         @endforeach
                     @endif
                 </div>
@@ -338,7 +340,7 @@
                 <div class="ts doubling four flatted cards">
                     @foreach ($styleHints as $key => $styleHint)
                         <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
-                            largeImageUrl="{{ $styleHint->large_image_url }}"
+                            largeImageUrl="{{ $styleHint->large_image_url }}" country="{{ $styleHint->country }}"
                             alt="StyleHint 網友穿搭靈感 {{ $key + 1 }} ({{ $styleHint->user_name }})" width="720"
                             height="960" />
                     @endforeach
