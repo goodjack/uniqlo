@@ -72,7 +72,7 @@ class StyleHintService extends Service
         } while ($total >= $offset);
     }
 
-    public function fetchAllStyleHintsFromUgc(string $country = 'tw', bool $onlyRecent = true): void
+    public function fetchAllStyleHintsFromUgc(string $brand = 'UNIQLO', bool $onlyRecent = true): void
     {
         $genders = collect([
             '1', // MEN
@@ -82,8 +82,8 @@ class StyleHintService extends Service
             '5',
         ]);
 
-        $genders->each(function ($gender) use ($country, $onlyRecent) {
-            return $this->fetchStyleHintsFromUgcByGender($country, $gender, $onlyRecent);
+        $genders->each(function ($gender) use ($brand, $onlyRecent) {
+            return $this->fetchStyleHintsFromUgcByGender($gender, $brand, $onlyRecent);
         });
     }
 
@@ -153,8 +153,13 @@ class StyleHintService extends Service
         });
     }
 
-    private function fetchStyleHintsFromUgcByGender(string $country, string $gender, bool $onlyRecent = true): void
-    {
+    private function fetchStyleHintsFromUgcByGender(
+        string $gender,
+        string $brand = 'UNIQLO',
+        bool $onlyRecent = true,
+    ): void {
+        $ugcStyleHintListApiUrl = $this->getUgcStyleHintListApiUrl($brand);
+
         $resultLimit = 50;
         $page = 1;
         $totalResultCount = 0;
@@ -164,15 +169,16 @@ class StyleHintService extends Service
             try {
                 $response = Http::withHeaders([
                     'User-Agent' => config('app.user_agent_mobile'),
-                    'x-fr-clientid' => 'uqtw-sth-sb-proxy',
+                    'x-fr-clientid' => $this->getClientId($brand),
                 ])
                     ->retry(5, 1000)
-                    ->get(config("uniqlo.api.ugc_style_hint_list.{$country}"), [
+                    ->get($ugcStyleHintListApiUrl, [
                         'style_gender' => [$gender],
                         'order' => 'published_at:desc',
                         'result_limit' => $resultLimit,
                         'page' => $page,
-                        'brand' => 'uq',
+                        'priority_flag' => 'true',
+                        'brand' => $brand === 'GU' ? 'gu' : 'uq',
                     ]);
 
                 $responseBody = json_decode($response->getBody());
@@ -222,5 +228,23 @@ class StyleHintService extends Service
                 sleep(1);
             }
         } while ($totalResultCount >= $page++ * $resultLimit);
+    }
+
+    private function getUgcStyleHintListApiUrl(string $brand = 'UNIQLO')
+    {
+        if ($brand === 'GU') {
+            return config('gu.api.ugc_style_hint_list.tw');
+        }
+
+        return config('uniqlo.api.ugc_style_hint_list.tw');
+    }
+
+    private function getClientId($brand = 'UNIQLO')
+    {
+        if ($brand === 'GU') {
+            return 'gutw-sth-sb-proxy';
+        }
+
+        return 'uqtw-sth-sb-proxy';
     }
 }

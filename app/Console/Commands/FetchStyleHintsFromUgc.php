@@ -14,14 +14,14 @@ class FetchStyleHintsFromUgc extends Command
      *
      * @var string
      */
-    protected $signature = 'style-hint-ugc:fetch {country}';
+    protected $signature = 'style-hint-ugc:fetch {brand=UNIQLO : The brand of the products}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Fetch all style hints from UNIQLO UGC service';
+    protected $description = 'Fetch all style hints from UGC service';
 
     /**
      * Execute the console command.
@@ -30,15 +30,15 @@ class FetchStyleHintsFromUgc extends Command
      */
     public function handle(StyleHintService $styleHintService)
     {
-        $country = $this->argument('country');
+        $brand = $this->argument('brand');
 
-        $this->info("Fetching style hints for {$country}...");
-        AppTaskStarting::dispatch(class_basename(__CLASS__), null, $country);
+        $this->info("Fetching style hints for {$brand}...");
+        AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $styleHintService->fetchAllStyleHintsFromUgc($country, true);
+        $styleHintService->fetchAllStyleHintsFromUgc($brand, true);
 
-        AppTaskFinished::dispatch(class_basename(__CLASS__), null, $country);
-        $this->info("Fetched style hints for {$country}");
+        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        $this->info("Fetched style hints for {$brand}");
 
         return 0;
     }

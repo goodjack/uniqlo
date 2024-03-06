@@ -60,7 +60,7 @@ class AppSchedule extends Command
             'country' => 'jp',
         ]);
         $this->call('style-hint-ugc:fetch', [
-            'country' => 'tw',
+            'brand' => 'UNIQLO',
         ]);
 
         return 0;
