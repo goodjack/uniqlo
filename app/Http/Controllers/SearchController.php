@@ -2,19 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\HmallProduct;
-use App\Product;
-use App\Services\SearchService;
+use App\Models\HmallProduct;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class SearchController extends Controller
 {
-    public function __construct(SearchService $searchService)
-    {
-        $this->searchService = $searchService;
-    }
-
     public function index(Request $request)
     {
         $request->validate([
@@ -51,18 +45,6 @@ class SearchController extends Controller
         return view('search.results', [
             'query' => $query,
             'hmallProducts' => $hmallProducts,
-            'products' => $products,
-        ]);
-    }
-
-    public function search($query)
-    {
-        // FIXME: 已棄用
-        $searchResults = $this->searchService->getSearchResults($query);
-        $products = $this->searchService->getProducts($searchResults);
-
-        return view('search.results', [
-            'query' => $query,
             'products' => $products,
         ]);
     }

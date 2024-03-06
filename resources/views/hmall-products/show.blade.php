@@ -2,18 +2,18 @@
 @extends('layouts.master')
 
 @php
-$shareText = $hmallProductPresenter->getFullName($hmallProduct) . ' | UNIQLO 比價 | UQ 搜尋';
-$shareTextEncode = urlencode($shareText);
+    $shareText = $hmallProductPresenter->getFullName($hmallProduct) . ' | UNIQLO 比價 | UQ 搜尋';
+    $shareTextEncode = urlencode($shareText);
 
-$currentUrl = url()->current();
-$shareUrl = [
-    'facebook' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=fb&utm_campaign=share'),
-    'twitter' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=twtr&utm_campaign=share'),
-    'line' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
-    'webShare' => $currentUrl . '?utm_source=uqs&utm_medium=webshare&utm_campaign=share',
-];
+    $currentUrl = url()->current();
+    $shareUrl = [
+        'facebook' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=fb&utm_campaign=share'),
+        'twitter' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=twtr&utm_campaign=share'),
+        'line' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
+        'webShare' => $currentUrl . '?utm_source=uqs&utm_medium=webshare&utm_campaign=share',
+    ];
 
-$colorNums = json_decode($hmallProduct->color_nums, true);
+    $colorNums = json_decode($hmallProduct->color_nums, true);
 @endphp
 
 @section('title', $hmallProductPresenter->getFullName($hmallProduct))
@@ -254,21 +254,59 @@ $colorNums = json_decode($hmallProduct->color_nums, true);
         </div>
     </div>
 
-    @isset($colorNums)
+    @if (optional($japanProduct)->has_videos)
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+            <div class="ts container">
+                <h2 class="ts large dividing header">
+                    商品影片
+                    <div class="inline sub header">日本版</div>
+                </h2>
+                <div class="ts hidden divider"></div>
+                <div class="ts doubling four flatted cards">
+                    @foreach ($japanProduct->sub_videos as $key => $subVideo)
+                        <div class="ts card">
+                            <div class="video">
+                                <video preload="metadata" src="{{ $subVideo }}" autoplay muted loop controls
+                                    playsinline></video>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images)
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 <h2 class="ts large dividing header">商品實照</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
-                    @foreach ($colorNums as $key => $colorNum)
-                        <x-image-card imageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
-                            largeImageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}" link=""
-                            alt="商品實照 {{ $key + 1 }}" width="561" height="561" />
-                    @endforeach
+                    @if ($colorNums)
+                        @foreach ($colorNums as $key => $colorNum)
+                            <x-image-card imageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
+                                largeImageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
+                                link="" alt="商品實照 {{ $key + 1 }}" width="561" height="561" />
+                        @endforeach
+                    @endif
+                    @if (optional($japanProduct)->main_images)
+                        @foreach ($japanProduct->main_images as $key => $mainImage)
+                            <x-image-card imageUrl="{{ $mainImage }}" largeImageUrl="{{ $mainImage }}"
+                                country="jp" link="" alt="日本版商品穿搭照 {{ $key + 1 }}" width="561"
+                                height="561" />
+                        @endforeach
+                    @endif
+                    @if (optional($japanProduct)->sub_images)
+                        @foreach ($japanProduct->sub_images as $key => $subImage)
+                            <x-image-card imageUrl="{{ $subImage }}" largeImageUrl="{{ $subImage }}"
+                                country="jp" link="" alt="日本版商品實照 {{ $key + 1 }}" width="561"
+                                height="561" />
+                        @endforeach
+                    @endif
                 </div>
             </div>
         </div>
-    @endisset
+    @endif
 
     @if ($styles->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
@@ -302,7 +340,7 @@ $colorNums = json_decode($hmallProduct->color_nums, true);
                 <div class="ts doubling four flatted cards">
                     @foreach ($styleHints as $key => $styleHint)
                         <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
-                            largeImageUrl="{{ $styleHint->large_image_url }}"
+                            largeImageUrl="{{ $styleHint->large_image_url }}" country="{{ $styleHint->country }}"
                             alt="StyleHint 網友穿搭靈感 {{ $key + 1 }} ({{ $styleHint->user_name }})" width="720"
                             height="960" />
                     @endforeach
@@ -388,6 +426,112 @@ $colorNums = json_decode($hmallProduct->color_nums, true);
             </div>
         </div>
     </div>
+
+    @isset($japanProduct)
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+            <div class="ts container">
+                <h2 class="ts large dividing header">日本版商品資訊</h2>
+                <div class="ts hidden divider"></div>
+                <div class="ts items">
+                    <div class="item">
+                        <div class="ts tiny image">
+                            <x-lazy-load-image src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
+                                alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
+                        </div>
+                        <div class="content">
+                            <a class="header">{{ $japanProduct->name }}</a>
+                            <div class="meta">
+                                <span>{{ $japanProduct->brand }} 日本商品編號 {{ $japanProduct->l1Id }}
+                                    ({{ $japanProduct->product_id }})</span>
+                            </div>
+                            <div class="extra">
+                                @if ($japanProduct->is_stockout)
+                                    <div class="ts circular horizontal label"><i class="archive icon"></i>已售罄</div>
+                                @else
+                                    <div class="ts circular horizontal label"><i class="check icon"></i>発売中</div>
+                                @endif
+                                資訊日期：{!! $japanProduct->updated_at->format('Y/m/d') !!}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ts doubling four column grid">
+                    <div class="column">
+                        <div class="ts card">
+                            <div class="center aligned content">
+                                <div class="ts small statistic">
+                                    <div class="value">{!! $hmallProductPresenter->getJapanRating($hmallProduct, true) !!}</div>
+                                    <div class="label">日本評價</div>
+                                </div>
+                            </div>
+                            <div class="symbol">
+                                <i class="comments icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="ts card">
+                            <div class="center aligned content">
+                                <div class="ts small statistic">
+                                    <div class="value">¥{{ (int) collect($japanProduct->prices)->first() }}</div>
+                                    <div class="label">當前價格</div>
+                                </div>
+                            </div>
+                            <div class="symbol">
+                                <i class="yen icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="ts card">
+                            <div class="center aligned content">
+                                <div class="ts small statistic">
+                                    <div class="value">¥{{ (int) $japanProduct->highest_record_price }}</div>
+                                    <div class="label">歷史高價</div>
+                                </div>
+                            </div>
+                            <div class="symbol">
+                                <i class="arrow up icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="ts card">
+                            <div class="center aligned content">
+                                <div class="ts small statistic">
+                                    <div class="value">¥{{ (int) $japanProduct->lowest_record_price }}</div>
+                                    <div class="label">歷史低價</div>
+                                </div>
+                            </div>
+                            <div class="symbol">
+                                <i class="arrow down icon"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="right floated column">
+                        @if ($japanProduct->brand === 'GU' && collect($japanProduct->prices)->count() >= 2)
+                            <a class="ts right floated tiny basic info right labeled icon button"
+                                href="https://www.gu-global.com/jp/ja/search?q={{ $japanProduct->l1Id }}" target="_blank"
+                                rel="nofollow noopener" aria-label="GU">前往日本 GU 官網<i class="external icon"></i></a>
+                        @elseif ($japanProduct->brand === 'GU' && collect($japanProduct->prices)->count() <= 1)
+                            <a class="ts right floated tiny basic info right labeled icon button"
+                                href="https://www.gu-global.com/jp/ja/products/{{ $japanProduct->product_id }}"
+                                target="_blank" rel="nofollow noopener" aria-label="GU">前往日本 GU 官網<i
+                                    class="external icon"></i></a>
+                        @elseif ($japanProduct->brand === 'UNIQLO' && collect($japanProduct->prices)->count() >= 2)
+                            <a class="ts right floated tiny basic negative right labeled icon button"
+                                href="https://www.uniqlo.com/jp/ja/search?q={{ $japanProduct->l1Id }}" target="_blank"
+                                rel="nofollow noopener" aria-label="UNIQLO">前往日本 UNIQLO 官網<i class="external icon"></i></a>
+                        @elseif ($japanProduct->brand === 'UNIQLO' && collect($japanProduct->prices)->count() <= 1)
+                            <a class="ts right floated tiny basic negative right labeled icon button"
+                                href="https://www.uniqlo.com/jp/ja/products/{{ $japanProduct->product_id }}" target="_blank"
+                                rel="nofollow noopener" aria-label="UNIQLO">前往日本 UNIQLO 官網<i class="external icon"></i></a>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endisset
 
     @if ($relatedProducts->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">

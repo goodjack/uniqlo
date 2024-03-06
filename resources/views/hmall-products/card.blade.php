@@ -1,5 +1,9 @@
 @inject('hmallProductPresenter', 'App\Presenters\HmallProductPresenter')
 
+@php
+    $useJapanRating ??= false;
+@endphp
+
 <a class="ts flatted card" href="{{ $hmallProduct->route_url }}">
     <div class="image">
         <x-lazy-load-image src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
@@ -11,7 +15,8 @@
         <div class="smaller header">{{ $hmallProductPresenter->getFullNameWithCode($hmallProduct) }}</div>
         <div class="middoted meta">
             <span>{{ $hmallProduct->short_product_code }}</span>
-            {!! $hmallProductPresenter->getRatingForProductCardAndItem($hmallProduct) !!}
+            {!! $hmallProductPresenter->getRatingForProductCardAndItem($hmallProduct, $useJapanRating) !!}
+            {!! $hmallProductPresenter->getVideoIconForProductCardAndItem($hmallProduct) !!}
         </div>
     </div>
     <div class="center aligned extra content">

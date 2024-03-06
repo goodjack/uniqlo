@@ -2,18 +2,18 @@
 
 namespace App\Services;
 
-use App\HmallProduct;
+use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-use Yish\Generators\Foundation\Service\Service;
 
 class HmallProductService extends Service
 {
     /** @var HmallProductRepository */
     protected $repository;
+
     protected $productRepository;
 
     public function __construct(HmallProductRepository $repository, ProductRepository $productRepository)
@@ -101,6 +101,7 @@ class HmallProductService extends Service
                     report($e);
 
                     $retry = 0;
+
                     continue;
                 }
 

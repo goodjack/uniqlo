@@ -25,6 +25,26 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v3.0.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">新增功能</div>
+                        <ul>
+                            <li>新增日本熱門評論商品列表</li>
+                            <li>商品頁顯示日本商品相關資訊、圖片、影片</li>
+                        </ul>
+                        <div class="header">更新功能</div>
+                        <ul>
+                            <li>StyleHint 卡片明確標示日本版與美國版</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v2.16.0
                     </h2>
                     <!-- / 標題 -->

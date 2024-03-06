@@ -2,13 +2,12 @@
 
 namespace App\Repositories;
 
-use App\StyleHint;
-use App\StyleHintItem;
+use App\Models\StyleHint;
+use App\Models\StyleHintItem;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-use Yish\Generators\Foundation\Repository\Repository;
 
 class StyleHintRepository extends Repository
 {
@@ -63,6 +62,10 @@ class StyleHintRepository extends Repository
             ]);
 
             report($e);
+
+            if (is_null($model->id)) {
+                return;
+            }
         }
 
         $originalProductIds = collect(data_get($result, 'models.*.products.*.productId'));
@@ -120,12 +123,16 @@ class StyleHintRepository extends Repository
 
             $model->save();
         } catch (Throwable $e) {
-            Log::error('saveStyleHints save error', [
+            Log::error('saveStyleHintsFromUgc save error', [
                 'country' => $country,
                 'content' => $content,
             ]);
 
             report($e);
+
+            if (is_null($model->id)) {
+                return;
+            }
         }
 
         $originalProductIds = collect(data_get($content, 'products.*.ugc_item.product_id'));
@@ -136,7 +143,7 @@ class StyleHintRepository extends Repository
                 $code = $matches[1] ?? null;
 
                 if (is_null($code)) {
-                    Log::error('saveStyleHints code not found', [
+                    Log::error('saveStyleHintsFromUgc code not found', [
                         'original_product_id' => $originalProductId,
                     ]);
                 }
@@ -147,7 +154,7 @@ class StyleHintRepository extends Repository
                     'original_product_id' => $originalProductId,
                 ]);
             } catch (Throwable $e) {
-                Log::error('saveStyleHints StyleHintItem firstOrCreate error', [
+                Log::error('saveStyleHintsFromUgc StyleHintItem firstOrCreate error', [
                     'style_hint_id' => $model->id,
                     'original_product_id' => $originalProductId,
                 ]);

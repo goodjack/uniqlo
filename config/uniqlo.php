@@ -3,17 +3,8 @@
 return [
 
     'api' => [
-        'search' => env('UQ_API_SEARCH'),
-        'status' => env('UQ_API_STATUS'),
-        'store_list' => env('UQ_API_STORE_LIST'),
-        'category' => env('UQ_API_CATEGORY'),
-        'products' => env('UQ_API_PRODUCTS'),
-        'products_for_multy_buy' => env('UQ_API_PRODUCTS_FOR_MULTI_BUY'),
-        'style_dictionary_list' => env('UQ_API_STYLE_DICTIONARY_LIST'),
-        'style_dictionary_detail' => env('UQ_API_STYLE_DICTIONARY_DETAIL'),
         'style_book_list' => env('UQ_API_STYLING_BOOK_LIST'),
         'style_book_detail' => env('UQ_API_STYLING_BOOK_DETAIL'),
-
         'hmall_search' => env('UQ_API_HMALL_SEARCH'),
         'spu' => env('UQ_API_SPU'),
 
@@ -25,10 +16,21 @@ return [
             'jp' => env('UQ_API_STYLE_HINT_DETAIL_JP'),
             'us' => env('UQ_API_STYLE_HINT_DETAIL_US'),
         ],
+        'product_list' => [
+            'jp' => env('UQ_API_PRODUCT_LIST_JP'),
+        ],
 
         'ugc_product_id_contents' => [
-            'tw' => env('UQ_API_UGC_PRODUCT_ID_CONTENTS_TW')
-        ]
+            'tw' => env('UQ_API_UGC_PRODUCT_ID_CONTENTS_TW'),
+        ],
+
+        'ugc_style_hint_list' => [
+            'tw' => env('UQ_API_UGC_STYLE_HINT_LIST_TW'),
+        ],
+
+        'ugc_official_style_list' => [
+            'tw' => env('UQ_API_UGC_OFFICIAL_STYLE_LIST_TW'),
+        ],
     ],
 
     'data' => [

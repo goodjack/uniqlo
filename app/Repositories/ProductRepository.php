@@ -2,27 +2,28 @@
 
 namespace App\Repositories;
 
-use App\HmallProduct;
-use App\MultiBuyHistory;
-use App\Product;
-use App\ProductHistory;
-use App\Style;
-use App\StyleDictionary;
+use App\Models\HmallProduct;
+use App\Models\Product;
+use App\Models\ProductHistory;
+use App\Models\Style;
+use App\Models\StyleDictionary;
 use Cache;
-use function Functional\each;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\DB;
 use Throwable;
-use Yish\Generators\Foundation\Repository\Repository;
 
 class ProductRepository extends Repository
 {
     private const CACHE_KEY_LIMITED_OFFER = 'product:limited_offer';
+
     private const CACHE_KEY_MULTI_BUY = 'product:multi_buy';
+
     private const CACHE_KEY_SALE = 'product:sale';
+
     private const CACHE_KEY_STOCKOUT = 'product:stockout';
+
     private const CACHE_KEY_NEW = 'product:new';
+
     private const CACHE_KEY_MOST_REVIEWED = 'product:most_reviewed';
+
     private const SELECT_COLUMNS_FOR_PRODUCT_LIST = [
         'id',
         'name',
@@ -40,7 +41,9 @@ class ProductRepository extends Repository
     ];
 
     protected $product;
+
     protected $styleDictionary;
+
     protected $style;
 
     public function __construct(
@@ -53,89 +56,6 @@ class ProductRepository extends Repository
         $this->productHistory = $productHistory;
         $this->styleDictionary = $styleDictionary;
         $this->style = $style;
-    }
-
-    public function saveProductsFromUniqlo($products)
-    {
-        each($products, function ($product) {
-            try {
-                $model = Product::firstOrNew(['id' => $product->id]);
-
-                $model->id = $product->id;
-                $model->name = $product->name;
-                $model->category_id = $product->parentCategoryId;
-                $model->categories = json_encode($product->categories);
-                $model->ancestors = json_encode($product->ancestors);
-                $model->main_image_url = $this->getProductMainImageUrl($product);
-                $model->main_color = $product->representativeSKU->color;
-                $model->comment = $product->catchCopy;
-                $model->price = $product->representativeSKU->salePrice;
-                $model->flags = json_encode($product->flags);
-                $model->representative_sku_flags = json_encode($product->representativeSKU->flags);
-                $model->limit_sales_end_msg = $product->representativeSKU->limitSalesEndMsg;
-                $model->new = $product->new;
-                $model->sale = $this->getSaleStatus($product);
-                $model->sub_images = json_encode($product->subImages);
-                $model->colors = json_encode($product->colors);
-                $model->review_count = $product->reviewCount;
-                $model->review_rating = $product->reviewRating;
-
-                $model->save();
-
-                $history = new ProductHistory();
-                $history->price = $model->price;
-                $model->histories()->save($history);
-            } catch (Throwable $e) {
-                report($e);
-            }
-        });
-    }
-
-    public function getProductMainImageUrl($product)
-    {
-        $color = $product->representativeSKU->color;
-        $id = $product->id;
-
-        return "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$color}_{$id}.jpg";
-    }
-
-    public function getSaleStatus($product)
-    {
-        $flags = $product->representativeSKU->flags;
-
-        foreach ($flags as $flag) {
-            if ($flag->name == 'SALE') {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public function saveStyleDictionaryFromUniqlo($detail, $imgDir)
-    {
-        try {
-            $model = StyleDictionary::firstOrNew(['id' => $detail->id]);
-
-            $model->id = $detail->id;
-            $model->fnm = $detail->fnm;
-            $model->image_url = "https://www.uniqlo.com/{$imgDir}{$model->fnm}-xl.jpg";
-            $model->detail_url = "https://www.uniqlo.com/tw/stylingbook/detail.html#/detail/{$model->id}";
-
-            $model->save();
-        } catch (Throwable $e) {
-            report($e);
-        }
-
-        // TODO: Replace Functional\each and Arr::pluck
-        each($detail->list, function ($person) use ($model) {
-            try {
-                $products = Arr::pluck($person->products, 'pub');
-                $model->products()->syncWithoutDetaching($products);
-            } catch (Throwable $e) {
-                report($e);
-            }
-        });
     }
 
     public function saveStyleFromUniqloStyleBook($result)
@@ -171,20 +91,6 @@ class ProductRepository extends Repository
     public function getStyles(Product $product)
     {
         return $product->styles;
-    }
-
-    /**
-     * Set stockout status to the products.
-     */
-    public function setStockoutProductTags()
-    {
-        $this->product->whereDoesntHave('histories', function ($query) {
-            $query->whereDate('created_at', today()->toDateString());
-        })->update(['stockout' => true]);
-
-        $this->product->whereHas('histories', function ($query) {
-            $query->whereDate('created_at', today()->toDateString());
-        })->update(['stockout' => false]);
     }
 
     /**
@@ -397,82 +303,6 @@ class ProductRepository extends Repository
         Cache::forever(self::CACHE_KEY_MOST_REVIEWED, $products);
     }
 
-    /**
-     * Get the min price and the max price from the products table.
-     *
-     * @param array $prices
-     * @return void
-     */
-    public function setMinPricesAndMaxPrices($prices)
-    {
-        $prices->each(function ($price) {
-            $product = $this->product->find($price->product_id);
-
-            if (! empty($product)) {
-                $product->min_price = $price->min_price;
-                $product->max_price = $price->max_price;
-
-                $product->save();
-            }
-        });
-    }
-
-    /**
-     * Get all of the MULTI_BUY Products.
-     *
-     * @return array
-     */
-    public function getMultiBuyProductIds()
-    {
-        $ids = $this->product->select('id')
-            ->where('stockout', false)
-            ->where('representative_sku_flags', 'like', '%MULTI_BUY%')
-            ->pluck('id');
-
-        return $ids;
-    }
-
-    /**
-     * Save the MULTI_BUY promo.
-     *
-     * @param string $id
-     * @param string $promo
-     * @return void
-     */
-    public function saveMultiBuyPromo($id, $promo)
-    {
-        $multiBuy = new MultiBuyHistory();
-        $multiBuy->product_id = $id;
-        $multiBuy->multi_buy = $promo;
-        $multiBuy->save();
-    }
-
-    /**
-     * Set MULTI_BUY to the products.
-     *
-     * @return void
-     */
-    public function setMultiBuyProducts()
-    {
-        $this->product->whereNotNull('multi_buy')
-            ->whereDoesntHave('multiBuys', function ($query) {
-                $query->whereDate('created_at', today()->toDateString());
-            })->update(['multi_buy' => null]);
-
-        $multiBuyHistories = DB::table('multi_buy_histories')
-            ->select('product_id', DB::raw('multi_buy as promo'))
-            ->whereIn('id', function ($query) {
-                $query->selectRaw('MAX(id)')
-                    ->from('multi_buy_histories')
-                    ->whereDate('created_at', today()->toDateString())
-                    ->groupBy('product_id');
-            });
-
-        $this->product->joinSub($multiBuyHistories, 'multi_buy_histories', function ($join) {
-            $join->on('products.id', '=', 'multi_buy_histories.product_id');
-        })->update(['multi_buy' => DB::raw('promo')]);
-    }
-
     public function getRelatedProducts(Product $product, $excludeItself = true)
     {
         $relatedId = substr($product->id, 0, 6);
@@ -501,7 +331,7 @@ class ProductRepository extends Repository
             $relatedName = $hmallProduct->name;
 
             $product = $this->product
-                ->where('name', 'like', "%${relatedName}%")
+                ->where('name', 'like', "%{$relatedName}%")
                 ->orderByRaw('CASE WHEN `name` LIKE ? THEN 0 WHEN `name` LIKE ? THEN 1 ELSE 2 END', ["%{$hmallProduct->gender}%", "%{$hmallProduct->sex}%"])
                 ->first();
         }

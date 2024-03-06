@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Http\Requests\ListRequest;
 use App\Repositories\HmallProductRepository;
-use Yish\Generators\Foundation\Service\Service;
 
 class ListService extends Service
 {
@@ -28,6 +28,11 @@ class ListService extends Service
     public function getMostReviewedHmallProducts()
     {
         return $this->repository->getMostReviewedHmallProducts();
+    }
+
+    public function getJapanMostReviewedHmallProducts()
+    {
+        return $this->repository->getJapanMostReviewedHmallProducts();
     }
 
     public function getTopWearingHmallProducts()
@@ -55,7 +60,57 @@ class ListService extends Service
         return $this->repository->getOnlineSpecialHmallProducts();
     }
 
-    public function divideHmallProducts($hmallProducts, $brand = null)
+    public function filterHmallProducts($hmallProducts, ListRequest $listRequest)
+    {
+        $brand = $listRequest->input('brand');
+        $tags = $listRequest->input('tags') ?? [];
+
+        if ($brand === 'UNIQLO' || $brand === 'GU') {
+            $hmallProducts = $hmallProducts->where('brand', $brand);
+        }
+
+        if (empty($tags)) {
+            return $hmallProducts;
+        }
+
+        $tagMappings = [
+            'limited-offer' => ['is_limited_offer', 'is_app_offer', 'is_ec_only'],
+            'app-offer' => ['is_app_offer'],
+            'ec-only' => ['is_ec_only'],
+            'sale' => ['is_sale'],
+            'new' => ['is_new'],
+            'coming-soon' => ['is_coming_soon'],
+            'multi-buy' => ['is_multi_buy'],
+            'online-special' => ['is_online_special'],
+            'stockout' => ['is_stockout'],
+        ];
+
+        $hmallProducts = $hmallProducts->filter(function ($hmallProduct) use ($tags, $tagMappings) {
+            foreach ($tags as $tag) {
+                if (isset($tagMappings[$tag])) {
+                    $conditions = $tagMappings[$tag];
+                    $match = true;
+
+                    foreach ($conditions as $condition) {
+                        if (! $hmallProduct->$condition) {
+                            $match = false;
+                            break;
+                        }
+                    }
+
+                    if ($match) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        });
+
+        return $hmallProducts;
+    }
+
+    public function divideHmallProducts($hmallProducts)
     {
         $groupMapper = [
             ['group' => 'men', 'genders' => ['男裝', '男女適用']],
@@ -64,13 +119,11 @@ class ListService extends Service
             ['group' => 'baby', 'genders' => ['新生兒/嬰幼兒']],
         ];
 
-        if ($brand === 'UNIQLO' || $brand === 'GU') {
-            $hmallProducts = $hmallProducts->where('brand', $brand);
-        }
-
         $groupedHmallProducts = $hmallProducts->groupBy('gender');
 
-        $result = collect($groupMapper)->reduce(function ($carry, $item) use ($groupedHmallProducts) {
+        $result = [];
+
+        foreach ($groupMapper as $item) {
             $group = $item['group'];
             $genders = $item['genders'];
 
@@ -78,10 +131,8 @@ class ListService extends Service
                 return in_array($key, $genders);
             })->flatten();
 
-            $carry[$group] = $filteredProducts;
-
-            return $carry;
-        }, []);
+            $result[$group] = $filteredProducts;
+        }
 
         return $result;
     }

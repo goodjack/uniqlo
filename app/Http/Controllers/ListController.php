@@ -56,6 +56,21 @@ class ListController extends Controller
         );
     }
 
+    public function getJapanMostReviewed(ListRequest $listRequest)
+    {
+        $hmallProducts = $this->service->getJapanMostReviewedHmallProducts();
+
+        return $this->getList(
+            $hmallProducts,
+            $listRequest,
+            '日本熱門評論商品',
+            'most-reviewed',
+            'comments outline',
+            '排序依據：日本評論數 > 日本評分 > 評論數 > 評分 > 上架時間<br>以下顯示日本評論數據',
+            true,
+        );
+    }
+
     public function getTopWearing(ListRequest $listRequest)
     {
         $hmallProducts = $this->service->getTopWearingHmallProducts();
@@ -132,10 +147,13 @@ class ListController extends Controller
         $typeName,
         $typeStyle,
         $typeIcon,
-        $description
+        $description,
+        $useJapanRating = false
     ) {
+        $hmallProducts = $this->service->filterHmallProducts($hmallProducts, $listRequest);
         $count = count($hmallProducts);
-        $hmallProductList = $this->service->divideHmallProducts($hmallProducts, $listRequest->brand);
+
+        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
 
         return view('lists.list', [
             'hmallProductList' => $hmallProductList,
@@ -144,6 +162,7 @@ class ListController extends Controller
             'typeStyle' => $typeStyle,
             'typeIcon' => $typeIcon,
             'description' => $description,
+            'useJapanRating' => $useJapanRating,
         ]);
     }
 }

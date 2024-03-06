@@ -2,7 +2,7 @@
 
 namespace App\Presenters;
 
-use App\HmallPriceHistory;
+use App\Models\HmallPriceHistory;
 
 class HmallProductPresenter
 {
@@ -183,7 +183,7 @@ class HmallProductPresenter
 
         $formattedDate = $date->format('m/d');
 
-        return "截至 ${formattedDate} 限定價格";
+        return "截至 {$formattedDate} 限定價格";
     }
 
     public function getPriceChartData($hmallPriceHistories)
@@ -231,15 +231,26 @@ class HmallProductPresenter
         return $html;
     }
 
-    public function getRatingForProductCardAndItem($hmallProduct)
+    public function getRatingForProductCardAndItem($hmallProduct, $useJapanRating = false)
     {
-        $html = $this->getRating($hmallProduct);
+        $html = $useJapanRating ? $this->getJapanRating($hmallProduct) : $this->getRating($hmallProduct);
 
         if (! empty($html)) {
             $html = "<span>{$html}</span>";
         }
 
         return $html;
+    }
+
+    public function getVideoIconForProductCardAndItem($hmallProduct)
+    {
+        $hasVideos = optional($hmallProduct->japanProduct)->has_videos;
+
+        if ($hasVideos) {
+            return '<span><i class="video camera icon"></i></span>';
+        }
+
+        return '';
     }
 
     public function getSocialMediaDescription($hmallProduct)
@@ -270,6 +281,21 @@ class HmallProductPresenter
         $rating .= number_format($hmallProduct->score, 1);
 
         $rating .= " ({$hmallProduct->evaluation_count})";
+
+        return $rating;
+    }
+
+    public function getJapanRating($hmallProduct, $plainText = false)
+    {
+        if (empty(optional($hmallProduct->japanProduct)->rating_count)) {
+            return '';
+        }
+
+        $rating = $plainText ? '★ ' : '<i class="fitted star icon"></i> ';
+
+        $rating .= number_format($hmallProduct->japanProduct->rating_average, 1);
+
+        $rating .= " ({$hmallProduct->japanProduct->rating_count})";
 
         return $rating;
     }

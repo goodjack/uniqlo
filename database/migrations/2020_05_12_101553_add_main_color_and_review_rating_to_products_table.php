@@ -28,8 +28,8 @@ class AddMainColorAndReviewRatingToProductsTable extends Migration
                 $mainColor = $matches[1];
 
                 DB::table('products')
-                        ->where('id', $product->id)
-                        ->update(['main_color' => $mainColor]);
+                    ->where('id', $product->id)
+                    ->update(['main_color' => $mainColor]);
             }
         });
     }

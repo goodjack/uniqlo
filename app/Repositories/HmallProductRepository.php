@@ -2,28 +2,38 @@
 
 namespace App\Repositories;
 
-use App\HmallPriceHistory;
-use App\HmallProduct;
-use App\Product;
+use App\Models\HmallPriceHistory;
+use App\Models\HmallProduct;
+use App\Models\Product;
 use Carbon\Carbon;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-use Yish\Generators\Foundation\Repository\Repository;
 
 class HmallProductRepository extends Repository
 {
     protected $model;
 
     private const CACHE_KEY_LIMITED_OFFER = 'hmall_product:limited_offer';
+
     private const CACHE_KEY_SALE = 'hmall_product:sale';
+
+    private const CACHE_KEY_JAPAN_MOST_REVIEWED = 'hmall_product:japan_most_reviewed';
+
     private const CACHE_KEY_MOST_REVIEWED = 'hmall_product:most_reviewed';
+
     private const CACHE_KEY_TOP_WEARING = 'hmall_product:top_wearing';
+
     private const CACHE_KEY_NEW = 'hmall_product:new';
+
     private const CACHE_KEY_COMING_SOON = 'hmall_product:coming_soon';
+
     private const CACHE_KEY_MULTI_BUY = 'hmall_product:multi_buy';
+
     private const CACHE_KEY_ONLINE_SPECIAL = 'hmall_product:online_special';
+
     private const SELECT_COLUMNS_FOR_LIST = [
         'hmall_products.id',
         'hmall_products.code',
@@ -187,6 +197,15 @@ class HmallProductRepository extends Repository
         return Cache::get(self::CACHE_KEY_MOST_REVIEWED);
     }
 
+    public function getJapanMostReviewedHmallProducts()
+    {
+        if (! Cache::has(self::CACHE_KEY_JAPAN_MOST_REVIEWED)) {
+            $this->setJapanMostReviewedHmallProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_JAPAN_MOST_REVIEWED);
+    }
+
     public function getTopWearingHmallProducts()
     {
         if (! Cache::has(self::CACHE_KEY_TOP_WEARING)) {
@@ -291,6 +310,35 @@ class HmallProductRepository extends Repository
             ->get();
 
         Cache::forever(self::CACHE_KEY_MOST_REVIEWED, $hmallProducts);
+    }
+
+    public function setJapanMostReviewedHmallProductsCache()
+    {
+        $hmallProducts = $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->join('japan_products', 'hmall_products.code', '=', 'japan_products.l1id')
+            ->where('rating_count', '>', function ($query) {
+                $query->select('rating_count')
+                    ->from('hmall_products')
+                    ->join('japan_products', function (JoinClause $join) {
+                        $join->on('hmall_products.code', '=', 'japan_products.l1id')
+                            ->where('hmall_products.brand', '=', 'GU')
+                            ->where('hmall_products.gender', '=', '新生兒/嬰幼兒');
+                    })
+                    ->orderBy('japan_products.rating_count', 'desc')
+                    ->offset(1)
+                    ->limit(1);
+            })
+            ->where('hmall_products.stock', 'Y')
+            ->whereNull('hmall_products.stockout_at')
+            ->orderBy('japan_products.rating_count', 'desc')
+            ->orderBy('japan_products.rating_average', 'desc')
+            ->orderBy('hmall_products.evaluation_count', 'desc')
+            ->orderBy('hmall_products.score', 'desc')
+            ->orderBy('hmall_products.created_at', 'desc')
+            ->get();
+
+        Cache::forever(self::CACHE_KEY_JAPAN_MOST_REVIEWED, $hmallProducts);
     }
 
     public function setTopWearingHmallProductsCache()
@@ -497,11 +545,11 @@ class HmallProductRepository extends Repository
             ->get();
     }
 
-    public function getIdsFromProductCodes(array $productCodes)
+    public function getIdsFromCodes(array $codes)
     {
         return $this->model
             ->select(['id'])
-            ->whereIn('product_code', $productCodes)
+            ->whereIn('code', $codes)
             ->get();
     }
 

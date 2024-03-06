@@ -4,6 +4,11 @@
     <div class="image">
         <x-lazy-load-image src="{{ $imageUrl }}" alt="{{ $alt }}" width="{{ $width }}"
             height="{{ $height }}" />
+        @if ($country === 'jp')
+            <div class="ts mini top right attached label">日本版</div>
+        @elseif ($country === 'us')
+            <div class="ts mini top right attached label">美國版</div>
+        @endif
     </div>
 
     @if (isset($colorHeader))

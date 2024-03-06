@@ -3,13 +3,14 @@
 namespace App\Services;
 
 use App\Repositories\StyleRepository;
+use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-use Yish\Generators\Foundation\Service\Service;
 
 class StyleService extends Service
 {
+    /** @var StyleRepository */
     protected $repository;
 
     public function __construct(StyleRepository $repository)
@@ -19,96 +20,102 @@ class StyleService extends Service
 
     public function fetchAllStyles()
     {
-        $dptIds = collect([
-            'men',
-            'women',
-            'kids',
-            'baby',
+        $genderIds = collect([
+            '1', // MEN
+            '2', // WOMEN
+            '3', // KIDS
+            '4', // BABY
         ]);
 
-        $dptIds->each(function ($dptId) {
-            return $this->fetchStylesByDptId($dptId);
+        $genderIds->each(function ($genderId) {
+            return $this->fetchStylesByGenderId($genderId);
         });
     }
 
-    private function fetchStylesByDptId(string $dptId)
+    private function fetchStylesByGenderId(string $genderId)
     {
-        $limit = 50;
-        $offset = 0;
-        $styleCount = 0;
+        $pageSize = 50;
+        $page = 1;
+        $totalStyles = 0;
         $retry = 0;
 
         do {
             try {
                 $response = Http::withHeaders([
                     'User-Agent' => config('app.user_agent_mobile'),
+                    'x-fr-clientid' => 'uqtw-sth-sb-proxy',
                 ])
                     ->retry(5, 1000)
-                    ->get(config('uniqlo.api.style_book_list'), [
-                        'dptId' => $dptId,
-                        'lang' => 'zh',
-                        'limit' => $limit,
-                        'locale' => 'tw',
-                        'offset' => $offset,
+                    ->get(config('uniqlo.api.ugc_official_style_list.tw'), [
+                        'gender_id' => $genderId,
+                        'order' => 'display_start_at:desc',
+                        'page_size' => $pageSize,
+                        'page' => $page,
+                        'brand' => 'uq',
                     ]);
 
                 $responseBody = json_decode($response->getBody());
+                $styles = data_get($responseBody, 'result.styles');
 
-                $styles = $responseBody->result->styles;
+                if (is_null($styles)) {
+                    sleep(1);
+                    throw new Exception("Styles does not exist. {$response->body()}");
+                }
+
                 $this->fetchStyleDetails($styles);
 
-                $styleCount = $responseBody->result->styleCount;
+                $totalStyles = data_get($responseBody, 'result.total_styles');
 
-                $offset += $limit;
                 $retry = 0;
 
                 usleep(500000);
             } catch (Throwable $e) {
                 if ($retry >= 5) {
-                    Log::error('fetchStylesByDptId error', [
+                    Log::error('fetchStyleHintsFromUgcByGender error', [
                         'retry' => $retry,
-                        'dptId' => $dptId,
-                        'limit' => $limit,
-                        'offset' => $offset,
+                        'gender_id' => $genderId,
+                        'page' => $page,
+                        'total_styles' => $totalStyles,
+                        'page_size' => $pageSize,
                     ]);
                     report($e);
 
-                    $offset += $limit;
                     $retry = 0;
 
                     continue;
                 }
 
                 $retry++;
+                $page--;
 
                 sleep(1);
             }
-        } while ($styleCount >= $offset);
+        } while ($totalStyles >= $page++ * $pageSize);
     }
 
     private function fetchStyleDetails($styles)
     {
         $styles = collect($styles);
+
         $styles->each(function ($style) {
             $retry = 0;
 
-            $styleId = $style->styleId;
+            $styleId = $style->style_id;
 
             do {
                 try {
                     $response = Http::withHeaders([
                         'User-Agent' => config('app.user_agent_mobile'),
+                        'x-fr-clientid' => 'uqtw-sth-sb-proxy',
                     ])
                         ->retry(5, 1000)
-                        ->get(config('uniqlo.api.style_book_detail'), [
-                            'lang' => 'zh',
-                            'limit' => 4,
-                            'locale' => 'tw',
-                            'styleId' => $styleId,
+                        ->get(config('uniqlo.api.ugc_official_style_list.tw') . "/{$styleId}", [
+                            'content_language' => 'zh-TW',
+                            'brand' => 'uq',
                         ]);
 
                     $result = json_decode($response->getBody())->result;
-                    $this->repository->saveStyleFromUniqloStyleBook($styleId, $result);
+                    $this->repository->saveStyleFromOfficialStyling($styleId, $result);
 
                     $retry = 0;
 

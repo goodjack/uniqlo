@@ -29,7 +29,9 @@
             </h2>
             @if (count($hmallProductList['men']) > 0)
                 <div class="ts doubling link cards four">
-                    @each('hmall-products.card', $hmallProductList['men'], 'hmallProduct')
+                    @foreach ($hmallProductList['men'] as $hmallProduct)
+                        @include('hmall-products.card', $hmallProduct)
+                    @endforeach
                 </div>
             @else
                 沒有商品
@@ -49,7 +51,9 @@
             </h2>
             @if (count($hmallProductList['women']) > 0)
                 <div class="ts doubling link cards four">
-                    @each('hmall-products.card', $hmallProductList['women'], 'hmallProduct')
+                    @foreach ($hmallProductList['women'] as $hmallProduct)
+                        @include('hmall-products.card', $hmallProduct)
+                    @endforeach
                 </div>
             @else
                 沒有商品
@@ -69,7 +73,9 @@
             </h2>
             @if (count($hmallProductList['kids']) > 0)
                 <div class="ts doubling link cards four">
-                    @each('hmall-products.card', $hmallProductList['kids'], 'hmallProduct')
+                    @foreach ($hmallProductList['kids'] as $hmallProduct)
+                        @include('hmall-products.card', $hmallProduct)
+                    @endforeach
                 </div>
             @else
                 沒有商品
@@ -89,7 +95,9 @@
             </h2>
             @if (count($hmallProductList['baby']) > 0)
                 <div class="ts doubling link cards four">
-                    @each('hmall-products.card', $hmallProductList['baby'], 'hmallProduct')
+                    @foreach ($hmallProductList['baby'] as $hmallProduct)
+                        @include('hmall-products.card', $hmallProduct)
+                    @endforeach
                 </div>
             @else
                 沒有商品
