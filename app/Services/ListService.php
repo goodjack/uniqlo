@@ -119,21 +119,19 @@ class ListService extends Service
             ['group' => 'baby', 'genders' => ['新生兒/嬰幼兒']],
         ];
 
-        $groupedHmallProducts = $hmallProducts->groupBy('gender');
-
-        $result = [];
+        $groupedHmallProducts = [];
 
         foreach ($groupMapper as $item) {
             $group = $item['group'];
             $genders = $item['genders'];
 
-            $filteredProducts = $groupedHmallProducts->filter(function ($value, $key) use ($genders) {
-                return in_array($key, $genders);
-            })->flatten();
+            $filteredProducts = $hmallProducts->filter(function ($hmallProduct) use ($genders) {
+                return in_array($hmallProduct->gender, $genders);
+            });
 
-            $result[$group] = $filteredProducts;
+            $groupedHmallProducts[$group] = $filteredProducts;
         }
 
-        return $result;
+        return $groupedHmallProducts;
     }
 }
