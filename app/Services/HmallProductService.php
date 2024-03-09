@@ -47,7 +47,7 @@ class HmallProductService extends Service
         return $this->repository->getStyleHintCount($hmallProduct);
     }
 
-    public function fetchAllHmallProducts($brand = 'UNIQLO')
+    public function fetchAllHmallProducts($brand = 'UNIQLO'): void
     {
         $hmallSearchApiUrl = $this->getHmallSearchApiUrl($brand);
 
@@ -115,7 +115,69 @@ class HmallProductService extends Service
         $this->repository->setStockoutHmallProducts($brand);
     }
 
-    public function getHmallSearchApiUrl($brand = 'UNIQLO')
+    public function fetchAllHmallProductDescriptions(string $brand = 'UNIQLO', bool $updateTimestamps = false): void
+    {
+        $hmallProducts = HmallProduct::whereNull('instruction')
+            ->where('brand', $brand)
+            ->select(['id', 'product_code'])
+            ->orderBy('id', 'desc')
+            ->get();
+
+        foreach ($hmallProducts as $hmallProduct) {
+            $this->fetchHmallProductDescriptions($hmallProduct, $brand, $updateTimestamps);
+        }
+    }
+
+    public function fetchHmallProductDescriptions(
+        $hmallProduct,
+        string $brand = 'UNIQLO',
+        bool $updateTimestamps = false
+    ): void {
+        $spuApiUrl = $this->getSpuApiUrl($brand);
+        $productCode = $hmallProduct->product_code;
+        $retry = 0;
+
+        do {
+            try {
+                $response = Http::withHeaders([
+                    'User-Agent' => config('app.user_agent_mobile'),
+                ])
+                    ->retry(5, 1000)
+                    ->get("{$spuApiUrl}{$productCode}.json");
+
+                $responseBody = json_decode($response->getBody());
+                $instruction = data_get($responseBody, 'desc.instruction');
+                $sizeChart = data_get($responseBody, 'desc.sizeChart');
+
+                $this->repository->updateProductDescriptionsFromSpu(
+                    $hmallProduct,
+                    $instruction,
+                    $sizeChart,
+                    $updateTimestamps
+                );
+
+                $retry = 0;
+
+                sleep(1);
+            } catch (Throwable $e) {
+                if ($retry >= 5) {
+                    Log::error('fetchHmallProductDescriptions error', [
+                        'brand' => $brand,
+                        'retry' => $retry,
+                        'productCode' => $productCode,
+                        'hmallProductId' => $hmallProduct->id,
+                    ]);
+                    report($e);
+                }
+
+                $retry++;
+
+                sleep(1);
+            }
+        } while ($retry > 0 && $retry <= 5);
+    }
+
+    private function getHmallSearchApiUrl($brand = 'UNIQLO'): string
     {
         if ($brand === 'GU') {
             return config('gu.api.hmall_search');
@@ -124,61 +186,7 @@ class HmallProductService extends Service
         return config('uniqlo.api.hmall_search');
     }
 
-    public function fetchAllHmallProductDescriptions($brand = 'UNIQLO', $updateTimestamps = false)
-    {
-        $hmallProducts = HmallProduct::whereNull('instruction')
-            ->where('brand', $brand)
-            ->select(['id', 'product_code'])
-            ->orderBy('id', 'desc')
-            ->get();
-
-        $spuApiUrl = $this->getSpuApiUrl($brand);
-
-        foreach ($hmallProducts as $hmallProduct) {
-            $productCode = $hmallProduct->product_code;
-            $retry = 0;
-
-            do {
-                try {
-                    $response = Http::withHeaders([
-                        'User-Agent' => config('app.user_agent_mobile'),
-                    ])
-                        ->retry(5, 1000)
-                        ->get("{$spuApiUrl}{$productCode}.json");
-
-                    $responseBody = json_decode($response->getBody());
-                    $instruction = data_get($responseBody, 'desc.instruction');
-                    $sizeChart = data_get($responseBody, 'desc.sizeChart');
-
-                    $this->repository->updateProductDescriptionsFromSpu(
-                        $hmallProduct,
-                        $instruction,
-                        $sizeChart,
-                        $updateTimestamps
-                    );
-
-                    $retry = 0;
-
-                    sleep(1);
-                } catch (Throwable $e) {
-                    if ($retry >= 5) {
-                        Log::error('fetchAllHmallProductDescriptions error', [
-                            'brand' => $brand,
-                            'retry' => $retry,
-                            'productCode' => $productCode,
-                        ]);
-                        report($e);
-                    }
-
-                    $retry++;
-
-                    sleep(1);
-                }
-            } while ($retry > 0 && $retry <= 5);
-        }
-    }
-
-    public function getSpuApiUrl($brand = 'UNIQLO')
+    private function getSpuApiUrl($brand = 'UNIQLO'): string
     {
         if ($brand === 'GU') {
             return config('gu.api.spu');
