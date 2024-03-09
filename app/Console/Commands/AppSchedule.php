@@ -39,7 +39,12 @@ class AppSchedule extends Command
         ]);
         $this->call('hmall-product:cache');
         $this->call('sitemap:generate');
-        $this->call('style:fetch');
+        $this->call('style:fetch', [
+            'brand' => 'UNIQLO',
+        ]);
+        $this->call('style:fetch', [
+            'brand' => 'GU',
+        ]);
         $this->call('style-hint:fetch', [
             'country' => 'us',
         ]);

@@ -18,7 +18,7 @@ class StyleService extends Service
         $this->repository = $repository;
     }
 
-    public function fetchAllStyles()
+    public function fetchAllStyles($brand = 'UNIQLO'): void
     {
         $genderIds = collect([
             '1', // MEN
@@ -27,13 +27,15 @@ class StyleService extends Service
             '4', // BABY
         ]);
 
-        $genderIds->each(function ($genderId) {
-            return $this->fetchStylesByGenderId($genderId);
+        $genderIds->each(function ($genderId) use ($brand) {
+            return $this->fetchStylesByGenderId($genderId, $brand);
         });
     }
 
-    private function fetchStylesByGenderId(string $genderId)
+    private function fetchStylesByGenderId(string $genderId, string $brand = 'UNIQLO'): void
     {
+        $ugcOfficialStyleListApiUrl = $this->getUgcOfficialStyleListApiUrl($brand);
+
         $pageSize = 50;
         $page = 1;
         $totalStyles = 0;
@@ -43,15 +45,15 @@ class StyleService extends Service
             try {
                 $response = Http::withHeaders([
                     'User-Agent' => config('app.user_agent_mobile'),
-                    'x-fr-clientid' => 'uqtw-sth-sb-proxy',
+                    'x-fr-clientid' => $this->getClientId($brand),
                 ])
                     ->retry(5, 1000)
-                    ->get(config('uniqlo.api.ugc_official_style_list.tw'), [
+                    ->get($ugcOfficialStyleListApiUrl, [
                         'gender_id' => $genderId,
                         'order' => 'display_start_at:desc',
                         'page_size' => $pageSize,
                         'page' => $page,
-                        'brand' => 'uq',
+                        'brand' => ($brand === 'GU') ? 'gu' : 'uq',
                     ]);
 
                 $responseBody = json_decode($response->getBody());
@@ -62,7 +64,7 @@ class StyleService extends Service
                     throw new Exception("Styles does not exist. {$response->body()}");
                 }
 
-                $this->fetchStyleDetails($styles);
+                $this->fetchStyleDetails($styles, $brand);
 
                 $totalStyles = data_get($responseBody, 'result.total_styles');
 
@@ -77,6 +79,7 @@ class StyleService extends Service
                         'page' => $page,
                         'total_styles' => $totalStyles,
                         'page_size' => $pageSize,
+                        'brand' => $brand,
                     ]);
                     report($e);
 
@@ -93,11 +96,13 @@ class StyleService extends Service
         } while ($totalStyles >= $page++ * $pageSize);
     }
 
-    private function fetchStyleDetails($styles)
+    private function fetchStyleDetails($styles, string $brand = 'UNIQLO'): void
     {
         $styles = collect($styles);
 
-        $styles->each(function ($style) {
+        $styles->each(function ($style) use ($brand) {
+            $ugcOfficialStyleListApiUrl = $this->getUgcOfficialStyleListApiUrl($brand);
+
             $retry = 0;
 
             $styleId = $style->style_id;
@@ -106,16 +111,17 @@ class StyleService extends Service
                 try {
                     $response = Http::withHeaders([
                         'User-Agent' => config('app.user_agent_mobile'),
-                        'x-fr-clientid' => 'uqtw-sth-sb-proxy',
+                        'x-fr-clientid' => $this->getClientId($brand),
                     ])
                         ->retry(5, 1000)
-                        ->get(config('uniqlo.api.ugc_official_style_list.tw') . "/{$styleId}", [
+                        ->get($ugcOfficialStyleListApiUrl . "/{$styleId}", [
                             'content_language' => 'zh-TW',
-                            'brand' => 'uq',
+                            'brand' => ($brand === 'GU') ? 'gu' : 'uq',
                         ]);
 
                     $result = json_decode($response->getBody())->result;
-                    $this->repository->saveStyleFromOfficialStyling($styleId, $result);
+
+                    $this->repository->saveStyleFromOfficialStyling($styleId, $result, $brand);
 
                     $retry = 0;
 
@@ -125,6 +131,7 @@ class StyleService extends Service
                         Log::error('fetchStyleDetails error', [
                             'retry' => $retry,
                             'styleId' => $styleId,
+                            'brand' => $brand,
                         ]);
                         report($e);
                     }
@@ -135,5 +142,23 @@ class StyleService extends Service
                 }
             } while ($retry > 0 && $retry <= 5);
         });
+    }
+
+    private function getUgcOfficialStyleListApiUrl($brand = 'UNIQLO'): string
+    {
+        if ($brand === 'GU') {
+            return config('gu.api.ugc_official_style_list.tw');
+        }
+
+        return config('uniqlo.api.ugc_official_style_list.tw');
+    }
+
+    private function getClientId($brand = 'UNIQLO'): string
+    {
+        if ($brand === 'GU') {
+            return 'gutw-sth-sb-proxy';
+        }
+
+        return 'uqtw-sth-sb-proxy';
     }
 }

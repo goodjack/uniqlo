@@ -13,38 +13,32 @@ class FetchStyles extends Command
      *
      * @var string
      */
-    protected $signature = 'style:fetch';
+    protected $signature = 'style:fetch {brand=UNIQLO : The brand of the styles}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Fetch all styles from UNIQLO Styling Book';
-
-    /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
-    public function __construct(StyleService $styleService)
-    {
-        parent::__construct();
-
-        $this->styleService = $styleService;
-    }
+    protected $description = 'Fetch all styles from Official Styling';
 
     /**
      * Execute the console command.
      *
      * @return mixed
      */
-    public function handle()
+    public function handle(StyleService $styleService)
     {
-        Log::debug('FetchStyles start');
+        $brand = $this->argument('brand');
 
-        $this->styleService->fetchAllStyles();
+        $this->info("Fetching styles for {$brand}...");
+        Log::debug("FetchStyles {$brand} start");
 
-        Log::debug('FetchStyles end');
+        $styleService->fetchAllStyles($brand);
+
+        Log::debug("FetchStyles {$brand} end");
+        $this->info("Fetched styles for {$brand}");
+
+        return 0;
     }
 }

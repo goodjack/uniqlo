@@ -30,7 +30,7 @@ class StyleRepository extends Repository
             ->pluck('product_id');
     }
 
-    public function saveStyleFromOfficialStyling($styleId, $result, $brand = 'uq')
+    public function saveStyleFromOfficialStyling($styleId, $result, string $brand = 'UNIQLO'): void
     {
         if (isset($result->error) || empty($result->style)) {
             Log::info("Error style ID: {$styleId}");
@@ -50,7 +50,7 @@ class StyleRepository extends Repository
             );
 
             $model->id = $result->style->style_id;
-            $model->type = $brand;
+            $model->type = ($brand === 'GU') ? 'gu' : 'uq';
             $model->dpt_id = $result->style->gender_id;
             $model->image_path = ($matches[2] ?? $imageOriginal);
             $model->image_url = null;
