@@ -72,7 +72,7 @@ class StyleHintService extends Service
         } while ($total >= $offset);
     }
 
-    public function fetchAllStyleHintsFromUgc(string $country = 'tw')
+    public function fetchAllStyleHintsFromUgc(string $country = 'tw', bool $onlyRecent = true): void
     {
         $genders = collect([
             '1', // MEN
@@ -82,8 +82,8 @@ class StyleHintService extends Service
             '5',
         ]);
 
-        $genders->each(function ($gender) use ($country) {
-            return $this->fetchStyleHintsFromUgcByGender($country, $gender);
+        $genders->each(function ($gender) use ($country, $onlyRecent) {
+            return $this->fetchStyleHintsFromUgcByGender($country, $gender, $onlyRecent);
         });
     }
 
@@ -153,7 +153,7 @@ class StyleHintService extends Service
         });
     }
 
-    private function fetchStyleHintsFromUgcByGender($country, $gender)
+    private function fetchStyleHintsFromUgcByGender(string $country, string $gender, bool $onlyRecent = true): void
     {
         $resultLimit = 50;
         $page = 1;
@@ -191,6 +191,10 @@ class StyleHintService extends Service
                 });
 
                 $totalResultCount = $responseBody->total_result_count;
+
+                if ($onlyRecent && $totalResultCount > 10000) {
+                    $totalResultCount = 10000;
+                }
 
                 $retry = 0;
 

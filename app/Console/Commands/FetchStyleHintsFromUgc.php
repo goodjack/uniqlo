@@ -34,7 +34,7 @@ class FetchStyleHintsFromUgc extends Command
         $this->info("Fetching style hints for {$country}...");
         Log::debug("FetchStyleHintsFromUgc {$country} start");
 
-        $styleHintService->fetchAllStyleHintsFromUgc($country);
+        $styleHintService->fetchAllStyleHintsFromUgc($country, true);
 
         Log::debug("FetchStyleHintsFromUgc {$country} end");
         $this->info("Fetched style hints for {$country}");
