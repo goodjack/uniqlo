@@ -33,8 +33,12 @@ class AppSchedule extends Command
         $this->call('hmall-product:fetch', [
             'brand' => 'GU',
         ]);
-        $this->call('hmall-product-description:fetch-uniqlo');
-        $this->call('hmall-product-description:fetch-gu');
+        $this->call('hmall-product-description:fetch', [
+            'brand' => 'UNIQLO',
+        ]);
+        $this->call('hmall-product-description:fetch', [
+            'brand' => 'GU',
+        ]);
         $this->call('japan-product:fetch', [
             'brand' => 'UNIQLO',
         ]);
