@@ -8,8 +8,6 @@ use Illuminate\Support\Facades\Log;
 
 class SetHmallProductCaches extends Command
 {
-    private $hmallProductRepository;
-
     /**
      * The name and signature of the console command.
      *
@@ -25,35 +23,27 @@ class SetHmallProductCaches extends Command
     protected $description = 'Set Hmall product caches';
 
     /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
-    public function __construct(HmallProductRepository $hmallProductRepository)
-    {
-        parent::__construct();
-
-        $this->hmallProductRepository = $hmallProductRepository;
-    }
-
-    /**
      * Execute the console command.
      *
      * @return int
      */
-    public function handle()
+    public function handle(HmallProductRepository $hmallProductRepository)
     {
+        $this->info('Setting Hmall product caches...');
         Log::debug('SetHmallProductCaches start');
-        $this->hmallProductRepository->setLimitedOfferHmallProductsCache();
-        $this->hmallProductRepository->setSaleHmallProductsCache();
-        $this->hmallProductRepository->setMostReviewedHmallProductsCache();
-        $this->hmallProductRepository->setJapanMostReviewedHmallProductsCache();
-        $this->hmallProductRepository->setTopWearingHmallProductsCache();
-        $this->hmallProductRepository->setNewHmallProductsCache();
-        $this->hmallProductRepository->setComingSoonHmallProductsCache();
-        $this->hmallProductRepository->setMultiBuyHmallProductsCache();
-        $this->hmallProductRepository->setOnlineSpecialHmallProductsCache();
+
+        $hmallProductRepository->setLimitedOfferHmallProductsCache();
+        $hmallProductRepository->setSaleHmallProductsCache();
+        $hmallProductRepository->setMostReviewedHmallProductsCache();
+        $hmallProductRepository->setJapanMostReviewedHmallProductsCache();
+        $hmallProductRepository->setTopWearingHmallProductsCache();
+        $hmallProductRepository->setNewHmallProductsCache();
+        $hmallProductRepository->setComingSoonHmallProductsCache();
+        $hmallProductRepository->setMultiBuyHmallProductsCache();
+        $hmallProductRepository->setOnlineSpecialHmallProductsCache();
+
         Log::debug('SetHmallProductCaches end');
+        $this->info('Set Hmall product caches');
 
         return 0;
     }

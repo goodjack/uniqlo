@@ -23,31 +23,21 @@ class FetchStyleHintsFromUgc extends Command
     protected $description = 'Fetch all style hints from UNIQLO UGC service';
 
     /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
-    public function __construct(StyleHintService $styleHintService)
-    {
-        parent::__construct();
-
-        $this->styleHintService = $styleHintService;
-    }
-
-    /**
      * Execute the console command.
      *
      * @return int
      */
-    public function handle()
+    public function handle(StyleHintService $styleHintService)
     {
         $country = $this->argument('country');
 
+        $this->info("Fetching style hints for {$country}...");
         Log::debug("FetchStyleHintsFromUgc {$country} start");
 
-        $this->styleHintService->fetchAllStyleHintsFromUgc($country);
+        $styleHintService->fetchAllStyleHintsFromUgc($country);
 
         Log::debug("FetchStyleHintsFromUgc {$country} end");
+        $this->info("Fetched style hints for {$country}");
 
         return 0;
     }

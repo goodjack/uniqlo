@@ -30,13 +30,11 @@ class FetchJapanProducts extends Command
         $brand = $this->argument('brand');
 
         $this->info("Fetching Japan products for {$brand}...");
-
         Log::debug("FetchJapanProducts {$brand} start");
 
-        $japanProductService->fetchAllProducts($this->argument('brand'));
+        $japanProductService->fetchAllProducts($brand);
 
         Log::debug("FetchJapanProducts {$brand} end");
-
         $this->info("Fetched Japan products for {$brand}");
 
         return 0;

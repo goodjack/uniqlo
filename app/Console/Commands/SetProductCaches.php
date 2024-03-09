@@ -23,33 +23,23 @@ class SetProductCaches extends Command
     protected $description = 'Set product caches';
 
     /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
-    public function __construct(ProductRepository $productRepository)
-    {
-        parent::__construct();
-
-        $this->productRepository = $productRepository;
-    }
-
-    /**
      * Execute the console command.
      *
      * @return mixed
      */
-    public function handle()
+    public function handle(ProductRepository $productRepository)
     {
+        $this->info('Setting product caches...');
         Log::debug('SetProductCaches start');
 
-        $this->productRepository->setLimitedOfferProductsCache();
-        $this->productRepository->setSaleProductsCache();
-        $this->productRepository->setMostReviewedProductsCache();
-        $this->productRepository->setNewProductsCache();
-        $this->productRepository->setStockoutProductsCache();
-        $this->productRepository->setMultiBuyProductsCache();
+        $productRepository->setLimitedOfferProductsCache();
+        $productRepository->setSaleProductsCache();
+        $productRepository->setMostReviewedProductsCache();
+        $productRepository->setNewProductsCache();
+        $productRepository->setStockoutProductsCache();
+        $productRepository->setMultiBuyProductsCache();
 
         Log::debug('SetProductCaches end');
+        $this->info('Set product caches');
     }
 }

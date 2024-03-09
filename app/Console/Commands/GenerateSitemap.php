@@ -23,28 +23,18 @@ class GenerateSitemap extends Command
     protected $description = 'Generate the sitemap.';
 
     /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
-    public function __construct(SitemapService $sitemapService)
-    {
-        parent::__construct();
-
-        $this->sitemapService = $sitemapService;
-    }
-
-    /**
      * Execute the console command.
      *
      * @return mixed
      */
-    public function handle()
+    public function handle(SitemapService $sitemapService)
     {
+        $this->info('Generating sitemap...');
         Log::debug('GenerateSitemap start');
 
-        $this->sitemapService->make();
+        $sitemapService->make();
 
         Log::debug('GenerateSitemap end');
+        $this->info('Generated sitemap');
     }
 }
