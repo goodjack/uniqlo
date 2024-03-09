@@ -27,8 +27,12 @@ class AppSchedule extends Command
      */
     public function handle()
     {
-        $this->call('hmall-product:fetch-uniqlo');
-        $this->call('hmall-product:fetch-gu');
+        $this->call('hmall-product:fetch', [
+            'brand' => 'UNIQLO',
+        ]);
+        $this->call('hmall-product:fetch', [
+            'brand' => 'GU',
+        ]);
         $this->call('hmall-product-description:fetch-uniqlo');
         $this->call('hmall-product-description:fetch-gu');
         $this->call('japan-product:fetch', [
