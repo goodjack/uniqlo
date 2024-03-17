@@ -2,9 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Events\AppTaskFinished;
+use App\Events\AppTaskStarting;
 use App\Repositories\HmallProductRepository;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class SetHmallProductCaches extends Command
 {
@@ -30,7 +31,7 @@ class SetHmallProductCaches extends Command
     public function handle(HmallProductRepository $hmallProductRepository)
     {
         $this->info('Setting Hmall product caches...');
-        Log::debug('SetHmallProductCaches start');
+        AppTaskStarting::dispatch(class_basename(__CLASS__));
 
         $hmallProductRepository->setLimitedOfferHmallProductsCache();
         $hmallProductRepository->setSaleHmallProductsCache();
@@ -42,7 +43,7 @@ class SetHmallProductCaches extends Command
         $hmallProductRepository->setMultiBuyHmallProductsCache();
         $hmallProductRepository->setOnlineSpecialHmallProductsCache();
 
-        Log::debug('SetHmallProductCaches end');
+        AppTaskFinished::dispatch(class_basename(__CLASS__));
         $this->info('Set Hmall product caches');
 
         return 0;

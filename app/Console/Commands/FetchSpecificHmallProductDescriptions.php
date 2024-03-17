@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Events\AppTaskFinished;
+use App\Events\AppTaskStarting;
 use App\Models\HmallProduct;
 use App\Services\HmallProductService;
 use Illuminate\Console\Command;
@@ -34,7 +36,7 @@ class FetchSpecificHmallProductDescriptions extends Command
         $brand = $this->option('brand');
 
         $this->info("Fetching Hmall product descriptions for {$brand}...");
-        Log::debug("FetchSpecificHmallProductDescriptions {$brand} start", ['product_codes' => $productCodes]);
+        AppTaskStarting::dispatch(class_basename(__CLASS__), $brand, null, ['product_codes' => $productCodes]);
 
         $hmallProducts = HmallProduct::whereIn('product_code', $productCodes)
             ->where('brand', $brand)
@@ -58,7 +60,7 @@ class FetchSpecificHmallProductDescriptions extends Command
 
         $this->newLine();
 
-        Log::debug("FetchSpecificHmallProductDescriptions {$brand} end", ['product_codes' => $productCodes]);
+        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand, null, ['product_codes' => $productCodes]);
         $this->info("Fetched Hmall product descriptions for {$brand}");
 
         return 0;

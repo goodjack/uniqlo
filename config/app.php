@@ -190,5 +190,6 @@ return [
     'pixel_tracking_id' => env('PIXEL_TRACKING_ID'),
     'sitemap_name' => env('SITEMAP_NAME'),
     'user_agent_mobile' => env('USER_AGENT_MOBILE'),
+    'discord_webhook_url' => env('DISCORD_WEBHOOK_URL'),
 
 ];

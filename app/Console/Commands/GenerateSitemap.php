@@ -2,9 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Events\AppTaskFinished;
+use App\Events\AppTaskStarting;
 use App\Services\SitemapService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class GenerateSitemap extends Command
 {
@@ -30,11 +31,11 @@ class GenerateSitemap extends Command
     public function handle(SitemapService $sitemapService)
     {
         $this->info('Generating sitemap...');
-        Log::debug('GenerateSitemap start');
+        AppTaskStarting::dispatch(class_basename(__CLASS__));
 
         $sitemapService->make();
 
-        Log::debug('GenerateSitemap end');
+        AppTaskFinished::dispatch(class_basename(__CLASS__));
         $this->info('Generated sitemap');
     }
 }

@@ -2,9 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Events\AppTaskFinished;
+use App\Events\AppTaskStarting;
 use App\Services\HmallProductService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class FetchHmallProducts extends Command
 {
@@ -32,11 +33,11 @@ class FetchHmallProducts extends Command
         $brand = $this->argument('brand');
 
         $this->info("Fetching Hmall products for {$brand}...");
-        Log::debug("FetchHmallProducts {$brand} start");
+        AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
         $hmallProductService->fetchAllHmallProducts($brand);
 
-        Log::debug("FetchHmallProducts {$brand} end");
+        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
         $this->info("Fetched Hmall products for {$brand}");
 
         return 0;

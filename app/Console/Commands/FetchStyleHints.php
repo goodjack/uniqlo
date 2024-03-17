@@ -2,9 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Events\AppTaskFinished;
+use App\Events\AppTaskStarting;
 use App\Services\StyleHintService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class FetchStyleHints extends Command
 {
@@ -32,11 +33,11 @@ class FetchStyleHints extends Command
         $country = $this->argument('country');
 
         $this->info("Fetching style hints for {$country}...");
-        Log::debug("FetchStyleHints {$country} start");
+        AppTaskStarting::dispatch(class_basename(__CLASS__), null, $country);
 
         $styleHintService->fetchAllStyleHints($country);
 
-        Log::debug("FetchStyleHints {$country} end");
+        AppTaskFinished::dispatch(class_basename(__CLASS__), null, $country);
         $this->info("Fetched style hints for {$country}");
 
         return 0;

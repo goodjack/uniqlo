@@ -2,9 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Events\AppTaskFinished;
+use App\Events\AppTaskStarting;
 use App\Services\StyleService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class FetchStyles extends Command
 {
@@ -32,11 +33,11 @@ class FetchStyles extends Command
         $brand = $this->argument('brand');
 
         $this->info("Fetching styles for {$brand}...");
-        Log::debug("FetchStyles {$brand} start");
+        AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
         $styleService->fetchAllStyles($brand);
 
-        Log::debug("FetchStyles {$brand} end");
+        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
         $this->info("Fetched styles for {$brand}");
 
         return 0;

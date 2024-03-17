@@ -2,9 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Events\AppTaskFinished;
+use App\Events\AppTaskStarting;
 use App\Services\JapanProductService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class FetchJapanProducts extends Command
 {
@@ -30,11 +31,11 @@ class FetchJapanProducts extends Command
         $brand = $this->argument('brand');
 
         $this->info("Fetching Japan products for {$brand}...");
-        Log::debug("FetchJapanProducts {$brand} start");
+        AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
         $japanProductService->fetchAllProducts($brand);
 
-        Log::debug("FetchJapanProducts {$brand} end");
+        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
         $this->info("Fetched Japan products for {$brand}");
 
         return 0;

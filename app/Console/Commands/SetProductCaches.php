@@ -2,9 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Events\AppTaskFinished;
+use App\Events\AppTaskStarting;
 use App\Repositories\ProductRepository;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class SetProductCaches extends Command
 {
@@ -30,7 +31,7 @@ class SetProductCaches extends Command
     public function handle(ProductRepository $productRepository)
     {
         $this->info('Setting product caches...');
-        Log::debug('SetProductCaches start');
+        AppTaskStarting::dispatch(class_basename(__CLASS__));
 
         $productRepository->setLimitedOfferProductsCache();
         $productRepository->setSaleProductsCache();
@@ -39,7 +40,7 @@ class SetProductCaches extends Command
         $productRepository->setStockoutProductsCache();
         $productRepository->setMultiBuyProductsCache();
 
-        Log::debug('SetProductCaches end');
+        AppTaskFinished::dispatch(class_basename(__CLASS__));
         $this->info('Set product caches');
     }
 }
