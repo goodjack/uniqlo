@@ -189,10 +189,10 @@ class StyleHintService extends Service
                     throw new Exception("Content list does not exist. {$response->body()}");
                 }
 
-                collect($contentList)->each(function ($content) use ($country) {
+                collect($contentList)->each(function ($content) use ($brand) {
                     $this->repository->saveStyleHintsFromUgc(
-                        $country,
-                        $content
+                        $content,
+                        $brand
                     );
                 });
 
@@ -209,7 +209,7 @@ class StyleHintService extends Service
                 if ($retry >= 5) {
                     Log::error('fetchStyleHintsFromUgcByGender error', [
                         'retry' => $retry,
-                        'country' => $country,
+                        'brand' => $brand,
                         'style_gender' => $gender,
                         'page' => $page,
                         'totalResultCount' => $totalResultCount,
