@@ -111,12 +111,18 @@ class StyleHint extends Model
     public function getOfficialSiteUrlAttribute()
     {
         $outfitId = $this->outfit_id;
+        $country = $this->country;
+        $brand = $this->brand;
 
-        if ($this->country === 'tw') {
-            return "https://www.uniqlo.com/tw/zh_TW/staff-styling-detail.html?ugcId={$outfitId}";
+        if ($country === 'tw' && $brand === 'UNIQLO') {
+            return "https://www.uniqlo.com/tw/zh_TW/stylingbook/stylehint/{$outfitId}";
         }
 
-        if ($this->country === 'us') {
+        if ($country === 'tw' && $brand === 'GU') {
+            return "https://www.gu-global.com/tw/zh_TW/stylingbook/stylehint/{$outfitId}";
+        }
+
+        if ($country === 'us') {
             return "https://www.uniqlo.com/us/en/stylehint/{$outfitId}";
         }
 
