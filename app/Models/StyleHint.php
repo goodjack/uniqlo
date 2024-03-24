@@ -11,7 +11,26 @@ class StyleHint extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['country', 'outfit_id'];
+    protected $fillable = [
+        'brand',
+        'country',
+        'outfit_id',
+        'style_image_url',
+        'original_source_url',
+        'department_id',
+        'model_height',
+        'user_id',
+        'user_name',
+        'user_image',
+        'user_type',
+        'store_region',
+        'store_name',
+        'comment',
+        'user_info',
+        'hashtags',
+        'gender',
+        'published_at',
+    ];
 
     protected $casts = [
         'user_info' => 'array',

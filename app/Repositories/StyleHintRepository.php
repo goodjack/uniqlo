@@ -97,33 +97,43 @@ class StyleHintRepository extends Repository
         });
     }
 
-    public function saveStyleHintsFromUgc($country, $content)
+    public function saveStyleHintsFromUgc($content, string $brand = 'UNIQLO')
     {
-        $model = $this->model->firstOrNew(['country' => $country, 'outfit_id' => $content->id_ugc_dist_content]);
+        $country = 'tw';
+        $publishedAt = data_get($content, 'updated_date');
+
+        $modelData = [
+            'style_image_url' => data_get($content, 'image_original'),
+            'original_source_url' => data_get($content, 'link_to_url'),
+            'department_id' => null,
+
+            'model_height' => data_get($content, 'model_height'),
+            'user_id' => data_get($content, 'author.id_ugc_author_data'),
+            'user_name' => data_get($content, 'author.nick_name'),
+            'user_image' => data_get($content, 'author.picture_url'),
+            'user_type' => data_get($content, 'author.user_type'),
+            'store_region' => data_get($content, 'author.store_info.region_name'),
+            'store_name' => data_get($content, 'author.store_info.store_name'),
+            'comment' => data_get($content, 'description'),
+            'user_info' => null,
+            'hashtags' => null,
+            'gender' => data_get($content, 'gender'),
+
+            'published_at' => $publishedAt ? Carbon::parse($publishedAt) : null,
+        ];
 
         try {
-            $model->style_image_url = data_get($content, 'image_original');
-            $model->original_source_url = data_get($content, 'link_to_url');
-            $model->department_id = null;
-
-            $model->model_height = data_get($content, 'model_height');
-            $model->user_id = data_get($content, 'author.id_ugc_author_data');
-            $model->user_name = data_get($content, 'author.nick_name');
-            $model->user_image = data_get($content, 'author.picture_url');
-            $model->user_type = data_get($content, 'author.user_type');
-            $model->store_region = data_get($content, 'author.store_info.region_name');
-            $model->store_name = data_get($content, 'author.store_info.store_name');
-            $model->comment = data_get($content, 'description');
-            $model->user_info = null;
-            $model->hashtags = null;
-            $model->gender = data_get($content, 'gender');
-
-            $publishedAt = data_get($content, 'updated_date');
-            $model->published_at = $publishedAt ? Carbon::parse($publishedAt) : null;
-
-            $model->save();
+            $model = $this->model->updateOrCreate(
+                [
+                    'brand' => $brand,
+                    'country' => $country,
+                    'outfit_id' => $content->id_ugc_dist_content,
+                ],
+                $modelData,
+            );
         } catch (Throwable $e) {
             Log::error('saveStyleHintsFromUgc save error', [
+                'brand' => $brand,
                 'country' => $country,
                 'content' => $content,
             ]);
@@ -137,7 +147,7 @@ class StyleHintRepository extends Repository
 
         $originalProductIds = collect(data_get($content, 'products.*.ugc_item.product_id'));
 
-        $originalProductIds->each(function ($originalProductId) use ($model) {
+        $upsertData = $originalProductIds->map(function ($originalProductId) use ($model) {
             try {
                 preg_match('/([0-9]+)-/', $originalProductId, $matches);
                 $code = $matches[1] ?? null;
@@ -148,19 +158,34 @@ class StyleHintRepository extends Repository
                     ]);
                 }
 
-                StyleHintItem::firstOrCreate([
+                return [
                     'style_hint_id' => $model->id,
                     'code' => $code,
                     'original_product_id' => $originalProductId,
-                ]);
+                ];
             } catch (Throwable $e) {
-                Log::error('saveStyleHintsFromUgc StyleHintItem firstOrCreate error', [
+                Log::error('saveStyleHintsFromUgc StyleHintItem upsert error', [
                     'style_hint_id' => $model->id,
                     'original_product_id' => $originalProductId,
                 ]);
 
                 report($e);
+
+                return null;
             }
-        });
+        })->filter()->toArray();
+
+        try {
+            if ($upsertData) {
+                StyleHintItem::upsert($upsertData, uniqueBy: ['style_hint_id', 'code', 'original_product_id']);
+            }
+        } catch (Throwable $e) {
+            Log::error('saveStyleHintsFromUgc StyleHintItem upsert error', [
+                'style_hint_id' => $model->id,
+                'upsertData' => $upsertData,
+            ]);
+
+            report($e);
+        }
     }
 }
