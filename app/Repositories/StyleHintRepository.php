@@ -102,6 +102,12 @@ class StyleHintRepository extends Repository
         $country = 'tw';
         $upsertData = [];
 
+        $existingStyleHints = $this->model
+            ->whereIn('outfit_id', array_column($contentList, 'id_ugc_dist_content'))
+            ->where('brand', $brand)
+            ->where('country', $country)
+            ->get();
+
         foreach ($contentList as $content) {
             $publishedAt = data_get($content, 'updated_date');
 
@@ -123,15 +129,21 @@ class StyleHintRepository extends Repository
                 'published_at' => $publishedAt ? Carbon::parse($publishedAt) : null,
             ];
 
+            $outfitId = $content->id_ugc_dist_content;
+            $model = $existingStyleHints->firstWhere('outfit_id', $outfitId);
+
             try {
-                $model = $this->model->updateOrCreate(
-                    [
+                if ($model) {
+                    $model->update($modelData);
+                } else {
+                    $modelData = array_merge([
                         'brand' => $brand,
                         'country' => $country,
-                        'outfit_id' => $content->id_ugc_dist_content,
-                    ],
-                    $modelData,
-                );
+                        'outfit_id' => $outfitId,
+                    ], $modelData);
+
+                    $model = $this->model->create($modelData);
+                }
             } catch (Throwable $e) {
                 Log::error('saveStyleHintsFromUgc save error', [
                     'brand' => $brand,
@@ -140,10 +152,10 @@ class StyleHintRepository extends Repository
                 ]);
 
                 report($e);
+            }
 
-                if (is_null($model->id)) {
-                    return;
-                }
+            if (is_null($model->id)) {
+                return;
             }
 
             $originalProductIds = collect(data_get($content, 'products.*.ugc_item.product_id'));
