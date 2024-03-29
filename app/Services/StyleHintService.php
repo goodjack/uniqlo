@@ -189,12 +189,7 @@ class StyleHintService extends Service
                     throw new Exception("Content list does not exist. {$response->body()}");
                 }
 
-                collect($contentList)->each(function ($content) use ($brand) {
-                    $this->repository->saveStyleHintsFromUgc(
-                        $content,
-                        $brand
-                    );
-                });
+                $this->repository->saveStyleHintsFromUgc($contentList, $brand);
 
                 $totalResultCount = $responseBody->total_result_count;
 
