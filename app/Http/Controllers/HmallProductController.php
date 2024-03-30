@@ -52,6 +52,7 @@ class HmallProductController extends Controller
      */
     public function show(HmallProduct $hmallProduct)
     {
+        $commonlyStyledHmallProducts = $this->service->getCommonlyStyledHmallProducts($hmallProduct);
         $relatedHmallProducts = $this->service->getRelatedHmallProducts($hmallProduct);
         $relatedProducts = $this->service->getRelatedProducts($hmallProduct);
         $styles = $this->service->getStyles($hmallProduct);
@@ -61,6 +62,7 @@ class HmallProductController extends Controller
 
         return view('hmall-products.show', [
             'hmallProduct' => $hmallProduct,
+            'commonlyStyledHmallProducts' => $commonlyStyledHmallProducts,
             'relatedHmallProducts' => $relatedHmallProducts,
             'relatedProducts' => $relatedProducts,
             'styles' => $styles,

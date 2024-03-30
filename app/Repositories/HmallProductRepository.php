@@ -6,6 +6,7 @@ use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
 use App\Models\Product;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,8 @@ use Throwable;
 class HmallProductRepository extends Repository
 {
     protected $model;
+
+    private $hmallPriceHistory;
 
     private const CACHE_KEY_LIMITED_OFFER = 'hmall_product:limited_offer';
 
@@ -167,6 +170,23 @@ class HmallProductRepository extends Repository
             ->orderByRaw('CASE WHEN `gender` = "男裝" THEN 0 WHEN `gender` = "女裝" THEN 1 ELSE 2 END')
             ->orderBy('min_price')
             ->orderBy('id', 'desc')
+            ->get();
+    }
+
+    public function getCommonlyStyledHmallProducts(HmallProduct $hmallProduct, int $limit = 6): Collection
+    {
+        $select = self::SELECT_COLUMNS_FOR_LIST;
+        $select[] = DB::raw('count(*) as count');
+
+        return HmallProduct::select($select)
+            ->join('style_hint_items as items', 'hmall_products.code', '=', 'items.code')
+            ->join('style_hint_items as related_items', 'items.style_hint_id', '=', 'related_items.style_hint_id')
+            ->where('related_items.code', $hmallProduct->code)
+            ->where('hmall_products.code', '<>', $hmallProduct->code)
+            ->groupBy('hmall_products.id')
+            ->orderByDesc('count')
+            ->orderByDesc('hmall_products.evaluation_count')
+            ->take($limit)
             ->get();
     }
 

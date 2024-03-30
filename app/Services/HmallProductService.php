@@ -32,6 +32,11 @@ class HmallProductService extends Service
         return $this->productRepository->getRelatedProductsForHmallProduct($hmallProduct);
     }
 
+    public function getCommonlyStyledHmallProducts(HmallProduct $hmallProduct, int $limit = 6)
+    {
+        return $this->repository->getCommonlyStyledHmallProducts($hmallProduct, $limit);
+    }
+
     public function getStyles(HmallProduct $hmallProduct)
     {
         return $this->repository->getStyles($hmallProduct);

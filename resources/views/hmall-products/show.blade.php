@@ -349,6 +349,18 @@
         </div>
     @endif
 
+    @if ($commonlyStyledHmallProducts->isNotEmpty())
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+            <div class="ts container">
+                <h2 class="ts large dividing header">經常搭配商品</h2>
+                <div class="ts hidden divider"></div>
+                <div class="ts doubling link cards six">
+                    @each('hmall-products.card', $commonlyStyledHmallProducts, 'hmallProduct')
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if ($relatedHmallProducts->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
