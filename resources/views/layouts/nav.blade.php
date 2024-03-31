@@ -38,7 +38,7 @@
             </div>
             <div class="divider"></div>
             <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">
-                v3.1.0 更新日誌
+                v3.2.0 更新日誌
             </a>
         </div>
         <div class="mobile only right menu">
@@ -80,7 +80,7 @@
                     </a>
                     <div class="divider"></div>
                     <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">
-                        v3.1.0 更新日誌
+                        v3.2.0 更新日誌
                     </a>
                 </div>
             </div>
