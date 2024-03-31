@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\StyleHintRepository;
 use Exception;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -12,6 +13,12 @@ class StyleHintService extends Service
 {
     /** @var StyleHintRepository */
     protected $repository;
+
+    private const CACHE_UGC_SCHEDULING = 'style_hint_ugc:scheduling';
+
+    private const CACHE_UGC_MANUAL_LAST_GENDER = 'style_hint_ugc:manual:%s:last_gender';
+
+    private const CACHE_UGC_MANUAL_LAST_PAGE = 'style_hint_ugc:manual:%s:last_page';
 
     public function __construct(StyleHintRepository $repository)
     {
@@ -72,19 +79,30 @@ class StyleHintService extends Service
         } while ($total >= $offset);
     }
 
-    public function fetchAllStyleHintsFromUgc(string $brand = 'UNIQLO', bool $onlyRecent = true): void
-    {
-        $genders = collect([
+    public function fetchAllStyleHintsFromUgc(
+        string $brand = 'UNIQLO',
+        bool $onlyRecent = false,
+        bool $isManual = true,
+    ): void {
+        $genders = [
             '1', // MEN
             '2', // WOMEN
             '3', // KIDS
             '4', // BABY
             '5',
-        ]);
+        ];
 
-        $genders->each(function ($gender) use ($brand, $onlyRecent) {
-            return $this->fetchStyleHintsFromUgcByGender($gender, $brand, $onlyRecent);
-        });
+        if (! $isManual) {
+            Cache::forever(self::CACHE_UGC_SCHEDULING, true);
+        }
+
+        foreach ($genders as $gender) {
+            $this->fetchStyleHintsFromUgcByGender($gender, $brand, $onlyRecent, $isManual);
+        }
+
+        if (! $isManual) {
+            Cache::forever(self::CACHE_UGC_SCHEDULING, false);
+        }
     }
 
     private function fetchStyleHintsDetails($country, $styleHintSummaries)
@@ -156,7 +174,8 @@ class StyleHintService extends Service
     private function fetchStyleHintsFromUgcByGender(
         string $gender,
         string $brand = 'UNIQLO',
-        bool $onlyRecent = true,
+        bool $onlyRecent = false,
+        bool $isManual = true,
     ): void {
         $ugcStyleHintListApiUrl = $this->getUgcStyleHintListApiUrl($brand);
 
@@ -166,6 +185,16 @@ class StyleHintService extends Service
         $retry = 0;
 
         do {
+            if ($isManual) {
+                if (! $this->shouldManualFetchContinue($gender, $brand)) {
+                    return;
+                }
+                $page = $this->getLastManualFetchPage($page, $brand);
+
+                $totalPage = ceil($totalResultCount / $resultLimit);
+                dump("gender: {$gender}, page: {$page}/{$totalPage}...");
+            }
+
             try {
                 $response = Http::withHeaders([
                     'User-Agent' => config('app.user_agent_mobile'),
@@ -200,6 +229,10 @@ class StyleHintService extends Service
                 $retry = 0;
 
                 usleep(100000);
+
+                if ($isManual) {
+                    $this->forgetLastManualFetchPage($brand);
+                }
             } catch (Throwable $e) {
                 if ($retry >= 5) {
                     Log::error('fetchStyleHintsFromUgcByGender error', [
@@ -223,6 +256,43 @@ class StyleHintService extends Service
                 sleep(1);
             }
         } while ($totalResultCount >= $page++ * $resultLimit);
+
+        if ($isManual) {
+            $this->forgetLastManualFetchGender($brand);
+        }
+    }
+
+    private function shouldManualFetchContinue(string $gender, $brand = 'UNIQLO'): bool
+    {
+        if (Cache::get(self::CACHE_UGC_SCHEDULING, true)) {
+            logger()->info('Manual fetch is stopped because of scheduling.');
+            dump('Manual fetch is stopped because of scheduling.');
+
+            return false;
+        }
+
+        return $gender === Cache::rememberForever(
+            sprintf(self::CACHE_UGC_MANUAL_LAST_GENDER, $brand),
+            fn () => $gender,
+        );
+    }
+
+    private function getLastManualFetchPage(int $page, $brand = 'UNIQLO'): int
+    {
+        return Cache::rememberForever(
+            sprintf(self::CACHE_UGC_MANUAL_LAST_PAGE, $brand),
+            fn () => $page,
+        );
+    }
+
+    private function forgetLastManualFetchPage($brand = 'UNIQLO'): void
+    {
+        Cache::forget(sprintf(self::CACHE_UGC_MANUAL_LAST_PAGE, $brand));
+    }
+
+    private function forgetLastManualFetchGender($brand = 'UNIQLO'): void
+    {
+        Cache::forget(sprintf(self::CACHE_UGC_MANUAL_LAST_GENDER, $brand));
     }
 
     private function getUgcStyleHintListApiUrl(string $brand = 'UNIQLO')

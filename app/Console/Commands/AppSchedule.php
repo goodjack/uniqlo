@@ -61,6 +61,13 @@ class AppSchedule extends Command
         ]);
         $this->call('style-hint-ugc:fetch', [
             'brand' => 'UNIQLO',
+            '--only-recent' => true,
+            '--is-scheduled' => true,
+        ]);
+        $this->call('style-hint-ugc:fetch', [
+            'brand' => 'GU',
+            '--only-recent' => true,
+            '--is-scheduled' => true,
         ]);
 
         return 0;

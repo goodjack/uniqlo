@@ -14,7 +14,10 @@ class FetchStyleHintsFromUgc extends Command
      *
      * @var string
      */
-    protected $signature = 'style-hint-ugc:fetch {brand=UNIQLO : The brand of the products}';
+    protected $signature = 'style-hint-ugc:fetch
+                            {brand=UNIQLO : The brand of the products}
+                            {--only-recent : Fetch only recent style hints}
+                            {--is-scheduled : Is scheduled task}';
 
     /**
      * The console command description.
@@ -31,14 +34,28 @@ class FetchStyleHintsFromUgc extends Command
     public function handle(StyleHintService $styleHintService)
     {
         $brand = $this->argument('brand');
+        $onlyRecent = $this->option('only-recent');
+        $isManual = ! ($this->option('is-scheduled'));
+
+        $this->info($onlyRecent ? 'Only recent style hints will be fetched.' : 'All style hints will be fetched.');
+        $this->info($isManual ? 'This is a manual task.' : null);
+
+        $this->newLine();
 
         $this->info("Fetching style hints for {$brand}...");
-        AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $styleHintService->fetchAllStyleHintsFromUgc($brand, true);
+        AppTaskStarting::dispatch(class_basename(__CLASS__), $brand, null, [
+            'onlyRecent' => $onlyRecent,
+            'isManual' => $isManual,
+        ]);
 
-        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
-        $this->info("Fetched style hints for {$brand}");
+        $styleHintService->fetchAllStyleHintsFromUgc($brand, $onlyRecent, $isManual);
+
+        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand, null, [
+            'onlyRecent' => $onlyRecent,
+            'isManual' => $isManual,
+        ]);
+        $this->info("Fetched style hints for {$brand}.");
 
         return 0;
     }
