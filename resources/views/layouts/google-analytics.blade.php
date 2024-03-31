@@ -1,6 +1,6 @@
-@if(env('GA_TRACKING_ID'))
+@if (config('app.ga_tracking_id'))
 <!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id={{ env('GA_TRACKING_ID') }}"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ config('app.ga_tracking_id') }}"></script>
 <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
