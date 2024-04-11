@@ -25,6 +25,21 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v3.2.1
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">修復功能</div>
+                        <ul>
+                            <li>GU 商品現在可以正常顯示 StyleHint 頁面了</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v3.2.0
                     </h2>
                     <!-- / 標題 -->

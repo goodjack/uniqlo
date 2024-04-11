@@ -3,6 +3,7 @@
 namespace App\Presenters;
 
 use App\Models\HmallPriceHistory;
+use App\Models\HmallProduct;
 
 class HmallProductPresenter
 {
@@ -72,6 +73,15 @@ class HmallProductPresenter
         }
 
         return "https://www.uniqlo.com/tw/hmall/test/{$hmallProduct->product_code}/sku/561/{$colorNum}.jpg";
+    }
+
+    public function getStyleHintsRoute(HmallProduct $hmallProduct): string
+    {
+        if ($hmallProduct->brand === 'GU') {
+            return route('gu-style-hints.show', ['gu_product_code' => $hmallProduct->product_code]);
+        }
+
+        return route('uniqlo-style-hints.show', ['uniqlo_product_code' => $hmallProduct->product_code]);
     }
 
     public function getHmallProductTag($hmallProduct)

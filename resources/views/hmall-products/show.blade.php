@@ -331,7 +331,7 @@
                     StyleHint 網友穿搭靈感
                     <div class="inline sub header">共 {{ $styleHintCount }} 張</div>
                     <a class="ts right floated icon labeled button" style="font-size: 0.9rem;"
-                        href="{{ route('style-hints.show', ['uniqlo_product_code' => $hmallProduct->product_code]) }}">
+                        href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
                         <i class="camera retro icon"></i>
                         查看列表
                     </a>

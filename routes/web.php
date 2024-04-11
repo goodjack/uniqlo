@@ -41,11 +41,12 @@ Route::group(['prefix' => 'products'], function () {
 
 Route::group(['prefix' => 'hmall-products'], function () {
     Route::get('/{uniqlo_product_code}', [HmallProductController::class, 'show'])->name('uniqlo-hmall-products.show');
-    Route::get('/{uniqlo_product_code}/style-hints', [StyleHintController::class, 'show'])->name('style-hints.show');
+    Route::get('/{uniqlo_product_code}/style-hints', [StyleHintController::class, 'show'])->name('uniqlo-style-hints.show');
 });
 
 Route::group(['prefix' => 'gu-products'], function () {
     Route::get('/{gu_product_code}', [HmallProductController::class, 'show'])->name('gu-hmall-products.show');
+    Route::get('/{gu_product_code}/style-hints', [StyleHintController::class, 'show'])->name('gu-style-hints.show');
 });
 
 Route::group(['prefix' => 'search'], function () {
