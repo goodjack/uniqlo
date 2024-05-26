@@ -14,6 +14,9 @@
     ];
 
     $colorNums = json_decode($hmallProduct->color_nums, true);
+
+    $adsenseClientId = config('app.adsense.client_id');
+    $adsenseSlotId = config('app.adsense.slot_id');
 @endphp
 
 @section('title', $hmallProductPresenter->getFullName($hmallProduct))
@@ -369,6 +372,20 @@
                 <div class="ts doubling link cards six">
                     @each('hmall-products.card', $relatedHmallProducts, 'hmallProduct')
                 </div>
+            </div>
+        </div>
+    @endif
+
+    @if (!empty($adsenseClientId) && !empty($adsenseSlotId))
+        <div class="ts very padded horizontally fitted attached fluid secondary segment">
+            <div class="ts container">
+                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ $adsenseClientId }}"
+                    crossorigin="anonymous"></script>
+                <ins class="adsbygoogle" style="display:block" data-ad-client="{{ $adsenseClientId }}"
+                    data-ad-slot="{{ $adsenseSlotId }}" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                <script>
+                    (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
             </div>
         </div>
     @endif

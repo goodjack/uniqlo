@@ -192,4 +192,9 @@ return [
     'user_agent_mobile' => env('USER_AGENT_MOBILE'),
     'discord_webhook_url' => env('DISCORD_WEBHOOK_URL'),
 
+    'adsense' => [
+        'client_id' => env('ADSENSE_CLIENT_ID'),
+        'slot_id' => env('ADSENSE_SLOT_ID'),
+    ],
+
 ];
