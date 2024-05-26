@@ -48,6 +48,9 @@ class HmallProductPresenter
         // 去除 UNIQLO 產品標示
         $description = preg_replace('/(商品材質|物料組成|網路商店退貨須知)\X*/', '', $description);
 
+        // 去除 GU 產品標示
+        $description = preg_replace('/(商品產地)\X*/', '', $description);
+
         // 整理前後換行
         $description = trim($description);
         $description = preg_replace('/^(<br>)+|(<br>)+$/', '', $description);
