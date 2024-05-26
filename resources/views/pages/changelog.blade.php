@@ -25,6 +25,31 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v3.3.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">新增功能</div>
+                        <ul>
+                            <li>增加全新「歷史新低價」標籤，生火生更旺！🔥（特價商品不顯示）</li>
+                            <li>列表頁新增品牌篩選功能，更容易找到需要的商品了 👀</li>
+                            <li>為了協助網站持續經營，商品頁新增小小廣告區塊，歡迎意見回饋</li>
+                        </ul>
+                        <div class="header">修復功能</div>
+                        <ul>
+                            <li>已修復多數不完整的商品描述</li>
+                        </ul>
+                        <div class="header">待修復</div>
+                        <ul>
+                            <li>小克的心 💔😔</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v3.2.1
                     </h2>
                     <!-- / 標題 -->
