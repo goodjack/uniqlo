@@ -46,6 +46,7 @@ class HmallProductRepository extends Repository
         'hmall_products.min_price',
         'hmall_products.lowest_record_price',
         'hmall_products.highest_record_price',
+        'hmall_products.lowest_record_price_count',
         'hmall_products.identity',
         'hmall_products.time_limited_begin',
         'hmall_products.time_limited_end',
@@ -473,6 +474,10 @@ class HmallProductRepository extends Repository
                     'product_code' => $product->productCode,
                 ]);
 
+                // 先計算相關資訊後再更新 model
+                $lowestRecordPriceCount = $this->getLowestRecordPriceCount($model, $product->minPrice);
+                $isChangedThePrice = $this->isChangedThePrice($model, $product);
+
                 $model->code = $product->code;
                 $model->brand = $brand;
                 $model->product_code = $product->productCode;
@@ -484,6 +489,7 @@ class HmallProductRepository extends Repository
                 $model->max_price = $product->maxPrice;
                 $model->lowest_record_price = $this->getLowestRecordPrice($model, $product->minPrice);
                 $model->highest_record_price = $this->getHighestRecordPrice($model, $product->maxPrice);
+                $model->lowest_record_price_count = $lowestRecordPriceCount;
                 $model->origin_price = $product->originPrice;
                 $model->price_color = $product->priceColor;
                 $model->identity = json_encode($product->identity);
@@ -513,7 +519,7 @@ class HmallProductRepository extends Repository
 
                 $model->save();
 
-                if ($this->hasNotChangeThePrice($model)) {
+                if (! $isChangedThePrice) {
                     return;
                 }
 
@@ -573,26 +579,42 @@ class HmallProductRepository extends Repository
             ->get();
     }
 
-    private function getLowestRecordPrice($model, $minPrice)
+    private function getLowestRecordPriceCount($model, $newMinPrice): int
+    {
+        // 新商品或出現新歷史低價
+        if (is_null($model->lowest_record_price) || $newMinPrice < $model->lowest_record_price) {
+            return 1;
+        }
+
+        // 再度出現與歷史低價相同的新檔期
+        if ($newMinPrice === $model->lowest_record_price && $newMinPrice !== $model->min_price) {
+            return $model->lowest_record_price_count + 1;
+        }
+
+        // 與前次抓取相同檔期，或是比歷史低價還高
+        return $model->lowest_record_price_count;
+    }
+
+    private function getLowestRecordPrice($model, $newMinPrice)
     {
         $lowestRecordPrice = $model->lowest_record_price;
 
         if (empty($lowestRecordPrice)) {
-            return $minPrice;
+            return $newMinPrice;
         }
 
-        return min($lowestRecordPrice, $minPrice);
+        return min($lowestRecordPrice, $newMinPrice);
     }
 
-    private function getHighestRecordPrice($model, $maxPrice)
+    private function getHighestRecordPrice($model, $newMaxPrice)
     {
         $highestRecordPrice = $model->highest_record_price;
 
         if (empty($highestRecordPrice)) {
-            return $maxPrice;
+            return $newMaxPrice;
         }
 
-        return max($highestRecordPrice, $maxPrice);
+        return max($highestRecordPrice, $newMaxPrice);
     }
 
     private function getCarbonOrNull($unixTimestampInMilliseconds)
@@ -620,15 +642,12 @@ class HmallProductRepository extends Repository
         return $model->stockout_at;
     }
 
-    private function hasNotChangeThePrice($model)
+    private function isChangedThePrice($model, $product)
     {
-        $latestHmallPriceHistory = $model->hmallPriceHistories()->latest()->first();
-
-        if (is_null($latestHmallPriceHistory)) {
-            return false;
+        if (is_null($model->min_price) || is_null($model->max_price)) {
+            return true;
         }
 
-        return $model->min_price == $latestHmallPriceHistory->min_price &&
-            $model->max_price == $latestHmallPriceHistory->max_price;
+        return $model->min_price !== $product->minPrice || $model->max_price !== $product->maxPrice;
     }
 }

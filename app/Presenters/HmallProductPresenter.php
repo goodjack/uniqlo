@@ -119,6 +119,10 @@ class HmallProductPresenter
             $html .= 'class="ts circular mini very compact primary button"><i class="shopping basket icon"></i>特價商品</a>';
         }
 
+        if ($hmallProduct->is_new_historical_low) {
+            $html .= '<a class="ts circular mini very compact primary button"><i class="arrow down icon"></i>歷史新低價</a>';
+        }
+
         if ($hmallProduct->is_new) {
             $route = route('lists.new');
 
