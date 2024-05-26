@@ -295,4 +295,12 @@ class HmallProduct extends Model
 
         return "u{$shortCodeNumber}";
     }
+
+    public function getIsNewHistoricalLowAttribute(): bool
+    {
+        return $this->lowest_record_price_count === 1
+            && $this->min_price === $this->lowest_record_price
+            && $this->lowest_record_price < $this->highest_record_price
+            && ! $this->is_sale;
+    }
 }

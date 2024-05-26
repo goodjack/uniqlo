@@ -63,6 +63,12 @@
                 </div>
             @endif
 
+            @if ($hmallProduct->is_new_historical_low)
+                <div class="ts horizontal basic circular label">
+                    <span style="color: #00ADEA;">歷史新低價</span>
+                </div>
+            @endif
+
             @if ($hmallProduct->is_new)
                 <div class="ts horizontal basic circular label">
                     <span style="color: #8BB96E;">新款商品</span>
