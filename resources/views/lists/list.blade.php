@@ -43,9 +43,20 @@
     <div class="ts fluid slate">
         <i class="{{ $typeStyle }} {{ $typeIcon }} icon"></i>
         <span class="header">{{ $count }} 件{{ $typeName }}</span>
-        @isset($description)
-            <span class="description">{!! $description !!}</span>
-        @endisset
+        <span class="description">
+            @isset($description)
+                {!! $description !!}
+                <div class="ts hidden divider"></div>
+            @endisset
+            <div class="ts small very compact buttons">
+                <a class="ts button {{ !in_array(request('brand'), ['UNIQLO', 'GU']) ? 'active' : '' }}"
+                    href="{{ $currentUrl }}">全部</a>
+                <a class="ts button {{ request('brand') == 'UNIQLO' ? 'active' : '' }}"
+                    href="{{ $currentUrl }}?brand=UNIQLO">UNIQLO</a>
+                <a class="ts button {{ request('brand') == 'GU' ? 'active' : '' }}"
+                    href="{{ $currentUrl }}?brand=GU">GU</a>
+            </div>
+        </span>
     </div>
 
     @include('lists.cards', ['hmallProductList' => $hmallProductList])
