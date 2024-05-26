@@ -41,7 +41,9 @@ class FixHmallProductDescriptions extends Command
 
         $this->table(
             ['id', 'product_code'],
-            $shortDescriptionProducts->select(['id', 'product_code'])->toArray()
+            $shortDescriptionProducts->map(function ($hmallProduct) {
+                return ['id' => $hmallProduct->id, 'product_code' => $hmallProduct->product_code];
+            })->toArray()
         );
 
         Log::debug(
