@@ -648,6 +648,6 @@ class HmallProductRepository extends Repository
             return true;
         }
 
-        return $model->min_price !== $product->minPrice || $model->max_price !== $product->maxPrice;
+        return $model->min_price != $product->minPrice || $model->max_price != $product->maxPrice;
     }
 }
