@@ -587,7 +587,10 @@ class HmallProductRepository extends Repository
         }
 
         // 再度出現與歷史低價相同的新檔期
-        if ($newMinPrice === $model->lowest_record_price && $newMinPrice !== $model->min_price) {
+        if (
+            intval($newMinPrice) === intval($model->lowest_record_price)
+            && intval($newMinPrice) !== intval($model->min_price)
+        ) {
             return $model->lowest_record_price_count + 1;
         }
 
@@ -648,6 +651,7 @@ class HmallProductRepository extends Repository
             return true;
         }
 
-        return $model->min_price != $product->minPrice || $model->max_price != $product->maxPrice;
+        return intval($model->min_price) !== intval($product->minPrice)
+            || intval($model->max_price) !== intval($product->maxPrice);
     }
 }
