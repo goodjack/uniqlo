@@ -53,7 +53,7 @@
             transition: opacity 0.2s;
         }
 
-        .hidden {
+        .back-to-top.hidden {
             opacity: 0%;
         }
     </style>
