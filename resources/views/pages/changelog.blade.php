@@ -25,6 +25,21 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v3.4.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">移除功能</div>
+                        <ul>
+                            <li>太多噁心廣告，移除商品頁中的 DISQUS 留言板</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v3.3.0
                     </h2>
                     <!-- / 標題 -->
