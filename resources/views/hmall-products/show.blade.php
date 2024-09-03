@@ -161,10 +161,6 @@
                 overflow: auto;
             }
         }
-
-        #disqus_thread>iframe[sandbox] {
-            display: none !important
-        }
     </style>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css"
@@ -574,25 +570,6 @@
             </div>
         </div>
     @endif
-
-    <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-        <div class="ts container">
-            <h2 class="ts large dividing header">商品評論</h2>
-            <div class="ts hidden divider"></div>
-            <div id="disqus_thread"></div>
-            <script>
-                (function() { // DON'T EDIT BELOW THIS LINE
-                    var d = document,
-                        s = d.createElement('script');
-                    s.src = 'https://uq-sou-xun.disqus.com/embed.js';
-                    s.setAttribute('data-timestamp', +new Date());
-                    (d.head || d.body).appendChild(s);
-                })();
-            </script>
-            <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments
-                    powered by Disqus.</a></noscript>
-        </div>
-    </div>
 @endsection
 
 @section('javascript')
