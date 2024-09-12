@@ -171,7 +171,7 @@
 @section('content')
     <div class="ts very padded horizontally fitted attached fluid segment">
         <div class="ts container relaxed grid">
-            <div class="nine wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
+            <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
                 <div class="ts fluid container">
                     <a class="ts centered image" href="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
                         rel="nofollow noopener" data-lightbox="image"
@@ -182,7 +182,7 @@
                     </a>
                 </div>
             </div>
-            <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
+            <div class="nine wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
                 <div class="ts fluid very narrow container grid">
                     <div class="sixteen wide column">
                         <h1 class="ts dividing big header">
@@ -285,7 +285,7 @@
                         @foreach ($colorNums as $key => $colorNum)
                             <x-image-card imageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
                                 largeImageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
-                                link="" alt="商品實照 {{ $key + 1 }}" width="561" height="561" />
+                                link="" alt="商品實照 {{ $key + 1 }}" />
                         @endforeach
                     @endif
                     @if (optional($japanProduct)->main_images)
@@ -428,7 +428,8 @@
                         <div class="item">
                             <div class="ts mini image">
                                 <x-lazy-load-image src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
-                                    alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
+                                    alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}"
+                                    width="1" height="1" />
                             </div>
                             <div class="middle aligned content">
                                 <div class="header">

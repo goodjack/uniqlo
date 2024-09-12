@@ -39,7 +39,7 @@ class LazyLoadImage extends Component
      *
      * @return void
      */
-    public function __construct($src, $alt, $width = 1, $height = 1)
+    public function __construct($src, $alt, $width = 2, $height = 3)
     {
         $this->src = $src;
         $this->alt = $alt;
