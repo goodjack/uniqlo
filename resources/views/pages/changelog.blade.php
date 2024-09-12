@@ -25,6 +25,22 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v4.0.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">更新系統</div>
+                        <ul>
+                            <li>重新支援全新 UNIQLO 與 GU 官網！</li>
+                            <li>因應新版圖片，調整網站的預設圖片比例</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v3.4.0
                     </h2>
                     <!-- / 標題 -->
