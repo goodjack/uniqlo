@@ -54,7 +54,7 @@ class HmallProductService extends Service
 
     public function fetchAllHmallProducts($brand = 'UNIQLO'): void
     {
-        $hmallSearchApiUrl = $this->getHmallSearchApiUrl($brand);
+        $searchApiUrl = $this->getV3SearchApiUrl($brand);
 
         $pageSize = 24;
         $page = 1;
@@ -65,31 +65,26 @@ class HmallProductService extends Service
             try {
                 $response = Http::withHeaders([
                     'User-Agent' => config('app.user_agent_mobile'),
-                ])
-                    ->retry(5, 1000)
-                    ->post($hmallSearchApiUrl, [
-                        'url' => config('uniqlo.data.hmall_search.url') . $page,
-                        'pageInfo' => ['page' => $page, 'pageSize' => $pageSize, 'withSideBar' => 'Y'],
-                        'belongTo' => 'pc',
-                        'rank' => 'overall',
-                        'priceRange' => ['low' => 0, 'high' => 0],
-                        'color' => [],
-                        'size' => [],
-                        'season' => [],
-                        'material' => [],
-                        'sex' => [],
-                        'identity' => [],
-                        'insiteDescription' => '',
-                        'exist' => [],
-                        'searchFlag' => true,
-                        'description' => config('uniqlo.data.hmall_search.description'),
-                    ]);
+                ])->retry(5, 1000)->post($searchApiUrl, [
+                    'belongTo' => 'h5',
+                    'pageInfo' => [
+                        'page' => $page,
+                        'pageSize' => $pageSize,
+                    ],
+                    'description' => '',
+                    'priceRange' => (object) [],
+                    'size' => [],
+                    'color' => [],
+                    'stockFilter' => 'warehouse',
+                    'identity' => [],
+                    'rank' => 'overall',
+                ]);
 
                 $responseBody = json_decode($response->getBody());
-                $products = $responseBody->resp[1];
-                $this->repository->saveProductsFromHmall($products, $brand);
+                $products = $responseBody->resp[0]->productList;
+                $this->repository->saveProductsFromV3($products, $brand);
 
-                $productSum = $responseBody->resp[2]->productSum;
+                $productSum = $responseBody->resp[0]->productSum;
 
                 $retry = 0;
 
@@ -138,23 +133,26 @@ class HmallProductService extends Service
         string $brand = 'UNIQLO',
         bool $updateTimestamps = false
     ): void {
-        $spuApiUrl = $this->getSpuApiUrl($brand);
         $productCode = $hmallProduct->product_code;
+        $instructionApiUrl = $this->getV3DescriptionApiUrl($brand) . "{$productCode}/zh_TW/instructionH5.html";
+        $sizeChartApiUrl = $this->getV3DescriptionApiUrl($brand) . "{$productCode}/zh_TW/sizeAndTryOnH5.html";
         $retry = 0;
 
         do {
             try {
-                $response = Http::withHeaders([
+                $instructionResponse = Http::withHeaders([
                     'User-Agent' => config('app.user_agent_mobile'),
-                ])
-                    ->retry(5, 1000)
-                    ->get("{$spuApiUrl}{$productCode}.json");
+                ])->retry(5, 1000)->get($instructionApiUrl);
 
-                $responseBody = json_decode($response->getBody());
-                $instruction = data_get($responseBody, 'desc.instruction');
-                $sizeChart = data_get($responseBody, 'desc.sizeChart');
+                $instruction = $instructionResponse->body();
 
-                $this->repository->updateProductDescriptionsFromSpu(
+                $sizeChartResponse = Http::withHeaders([
+                    'User-Agent' => config('app.user_agent_mobile'),
+                ])->retry(5, 1000)->get($sizeChartApiUrl);
+
+                $sizeChart = $sizeChartResponse->body();
+
+                $this->repository->updateProductDescriptionsFromV3(
                     $hmallProduct,
                     $instruction,
                     $sizeChart,
@@ -182,21 +180,21 @@ class HmallProductService extends Service
         } while ($retry > 0 && $retry <= 5);
     }
 
-    private function getHmallSearchApiUrl($brand = 'UNIQLO'): string
+    private function getV3SearchApiUrl($brand = 'UNIQLO'): string
     {
         if ($brand === 'GU') {
-            return config('gu.api.hmall_search');
+            return config('gu.api.v3.search.tw');
         }
 
-        return config('uniqlo.api.hmall_search');
+        return config('uniqlo.api.v3.search.tw');
     }
 
-    private function getSpuApiUrl($brand = 'UNIQLO'): string
+    private function getV3DescriptionApiUrl($brand = 'UNIQLO'): string
     {
         if ($brand === 'GU') {
-            return config('gu.api.spu');
+            return config('gu.api.v3.description.tw');
         }
 
-        return config('uniqlo.api.spu');
+        return config('uniqlo.api.v3.description.tw');
     }
 }

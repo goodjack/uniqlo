@@ -464,7 +464,7 @@ class HmallProductRepository extends Repository
         Cache::forever(self::CACHE_KEY_ONLINE_SPECIAL, $hmallProducts);
     }
 
-    public function saveProductsFromHmall($products, $brand = 'UNIQLO')
+    public function saveProductsFromV3($products, $brand = 'UNIQLO')
     {
         collect($products)->each(function ($product) use ($brand) {
             try {
@@ -496,8 +496,8 @@ class HmallProductRepository extends Repository
                 $model->label = $product->label;
                 $model->time_limited_begin = $this->getCarbonOrNull($product->timeLimitedBegin);
                 $model->time_limited_end = $this->getCarbonOrNull($product->timeLimitedEnd);
-                $model->score = $product->score;
-                $model->size_score = $product->sizeScore;
+                $model->score = $product->score ?? null;
+                $model->size_score = $product->sizeScore ?? null;
                 $model->evaluation_count = $product->evaluationCount;
                 $model->sales = $product->sales;
                 $model->new = $product->new;
@@ -554,8 +554,12 @@ class HmallProductRepository extends Repository
             ]);
     }
 
-    public function updateProductDescriptionsFromSpu(HmallProduct $hmallProduct, $instruction, $sizeChart, bool $updateTimestamps = false)
-    {
+    public function updateProductDescriptionsFromV3(
+        HmallProduct $hmallProduct,
+        string $instruction,
+        string $sizeChart,
+        bool $updateTimestamps = false
+    ) {
         $hmallProduct->instruction = $instruction;
         $hmallProduct->size_chart = $sizeChart;
 

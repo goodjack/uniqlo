@@ -31,6 +31,15 @@ return [
         'ugc_official_style_list' => [
             'tw' => env('UQ_API_UGC_OFFICIAL_STYLE_LIST_TW'),
         ],
+
+        'v3' => [
+            'search' => [
+                'tw' => env('UQ_API_V3_SEARCH_TW'),
+            ],
+            'description' => [
+                'tw' => env('UQ_API_V3_DESCRIPTION_TW'),
+            ],
+        ],
     ],
 
     'data' => [
