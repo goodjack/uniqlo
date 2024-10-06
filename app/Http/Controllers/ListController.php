@@ -153,7 +153,7 @@ class ListController extends Controller
         $hmallProducts = $this->service->filterHmallProducts($hmallProducts, $listRequest);
         $count = count($hmallProducts);
 
-        $hmallProductList = $this->service->divideHmallProducts($hmallProducts);
+        $hmallProductList = $this->service->groupHmallProducts($hmallProducts);
 
         return view('lists.list', [
             'hmallProductList' => $hmallProductList,

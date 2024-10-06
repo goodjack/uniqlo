@@ -3,7 +3,10 @@
 namespace App\Services;
 
 use App\Http\Requests\ListRequest;
+use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class ListService extends Service
 {
@@ -110,28 +113,58 @@ class ListService extends Service
         return $hmallProducts;
     }
 
-    public function divideHmallProducts($hmallProducts)
+    public function groupHmallProducts(Collection $hmallProducts): Collection
     {
-        $groupMapper = [
-            ['group' => 'men', 'genders' => ['男裝', '男女適用']],
-            ['group' => 'women', 'genders' => ['女裝', '男女適用']],
-            ['group' => 'kids', 'genders' => ['童裝', '女童']],
-            ['group' => 'baby', 'genders' => ['新生兒/嬰幼兒']],
+        $groupedProducts = $hmallProducts->groupBy(function (HmallProduct $product) {
+            return $this->determineProductGroup($product);
+        });
+
+        $allGroups = ['men', 'women', 'kids', 'baby'];
+
+        return collect($allGroups)->mapWithKeys(function ($group) use ($groupedProducts) {
+            return [$group => $groupedProducts->get($group, collect())];
+        });
+    }
+
+    private function determineProductGroup(HmallProduct $product): array
+    {
+        return $this->getSexGroups($product->sex) ?? $this->getGenderGroups($product->gender);
+    }
+
+    private function getSexGroups(string $sex): ?array
+    {
+        $sexMappings = [
+            '童' => ['kids'],
+            '嬰' => ['baby'],
+            '新生兒' => ['baby'],
+            '男女' => ['men', 'women'],
+            '男' => ['men'],
+            '女' => ['women'],
         ];
 
-        $groupedHmallProducts = [];
-
-        foreach ($groupMapper as $item) {
-            $group = $item['group'];
-            $genders = $item['genders'];
-
-            $filteredProducts = $hmallProducts->filter(function ($hmallProduct) use ($genders) {
-                return in_array($hmallProduct->gender, $genders);
-            });
-
-            $groupedHmallProducts[$group] = $filteredProducts;
+        foreach ($sexMappings as $keyword => $groups) {
+            if (Str::contains($sex, $keyword)) {
+                return $groups;
+            }
         }
 
-        return $groupedHmallProducts;
+        return null;
+    }
+
+    private function getGenderGroups(string $gender): array
+    {
+        $genderMappings = [
+            '男裝' => ['men'],
+            '女裝' => ['women'],
+            '男女適用' => ['men', 'women'],
+            '童裝' => ['kids'],
+            '女童' => ['kids'],
+            '男童' => ['kids'],
+            '新生兒/嬰幼兒' => ['baby'],
+            '嬰幼兒' => ['baby'],
+            '嬰兒' => ['baby'],
+        ];
+
+        return $genderMappings[$gender] ?? [];
     }
 }
