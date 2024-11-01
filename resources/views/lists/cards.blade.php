@@ -17,7 +17,9 @@
                 </h2>
                 @if (count($hmallProductList[$key]) > 0)
                     <div class="ts doubling link cards four">
-                        @each('hmall-products.card', $hmallProductList[$key], 'hmallProduct')
+                        @foreach ($hmallProductList[$key] as $hmallProduct)
+                            @include('hmall-products.card', ['hmallProduct' => $hmallProduct])
+                        @endforeach
                     </div>
                 @else
                     沒有商品
