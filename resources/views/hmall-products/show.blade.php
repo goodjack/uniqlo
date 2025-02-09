@@ -354,7 +354,7 @@
                 <h2 class="ts large dividing header">經常搭配商品</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling link cards six">
-                    @each('hmall-products.card', $commonlyStyledHmallProducts, 'hmallProduct')
+                    @each('hmall-products.simple-card', $commonlyStyledHmallProducts, 'hmallProduct')
                 </div>
             </div>
         </div>

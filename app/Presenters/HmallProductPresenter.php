@@ -7,6 +7,11 @@ use App\Models\HmallProduct;
 
 class HmallProductPresenter
 {
+    public function getNameWithCode($hmallProduct): string
+    {
+        return "{$hmallProduct->name} {$hmallProduct->code}";
+    }
+
     public function getFullName($hmallProduct)
     {
         return "{$hmallProduct->sex} {$hmallProduct->name}";
