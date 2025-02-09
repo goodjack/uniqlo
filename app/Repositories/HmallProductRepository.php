@@ -84,6 +84,7 @@ class HmallProductRepository extends Repository
     {
         $query = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where(function ($query) use ($hmallProduct) {
                 $query->where('code', $hmallProduct->code)
                     ->orWhere(function ($query) use ($hmallProduct) {
@@ -163,6 +164,7 @@ class HmallProductRepository extends Repository
 
         return $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->whereIn('code', $relatedProductIds)
             ->orderBy(DB::raw('ISNULL(`stockout_at`)'), 'desc')
             ->orderBy('min_price')
@@ -299,6 +301,7 @@ class HmallProductRepository extends Repository
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where(function ($query) {
                 $query->where(function ($query) {
                     $query->where('time_limited_begin', '<=', now())
@@ -320,6 +323,7 @@ class HmallProductRepository extends Repository
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where('identity', 'like', '%concessional_rate%')
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
@@ -336,6 +340,7 @@ class HmallProductRepository extends Repository
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where('evaluation_count', '>', function ($query) {
                 $query->select('evaluation_count')
                     ->from('hmall_products')
@@ -360,6 +365,7 @@ class HmallProductRepository extends Repository
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->join('japan_products', 'hmall_products.code', '=', 'japan_products.l1id')
             ->where('rating_count', '>', function ($query) {
                 $query->select('rating_count')
@@ -396,6 +402,7 @@ class HmallProductRepository extends Repository
 
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->addSelect('count')
             ->leftJoinSub($styleHintItems, 'style_hint_items', function ($join) {
                 $join->on('hmall_products.code', '=', 'style_hint_items.code');
@@ -421,6 +428,7 @@ class HmallProductRepository extends Repository
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where('identity', 'like', '%new_product%')
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
@@ -440,6 +448,7 @@ class HmallProductRepository extends Repository
 
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where('identity', 'like', '%COMING%')
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
@@ -456,6 +465,7 @@ class HmallProductRepository extends Repository
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where(function ($query) {
                 $query->where('identity', 'like', '%multi_buy%')
                     ->orWhere('identity', 'like', '%SET%');
@@ -477,6 +487,7 @@ class HmallProductRepository extends Repository
 
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where(function ($query) {
                 $query->where('identity', 'like', '%ONLINE SPECIAL%')
                     ->orWhere('identity', 'like', '%ECONLY%');
@@ -796,6 +807,7 @@ class HmallProductRepository extends Repository
 
         return $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->whereIn(DB::raw("CONCAT(brand, '_', product_code)"), $productIdentifiers->toArray())
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
