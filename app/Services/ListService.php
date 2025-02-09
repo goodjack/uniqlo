@@ -63,6 +63,11 @@ class ListService extends Service
         return $this->repository->getOnlineSpecialHmallProducts();
     }
 
+    public function getMostVisitedHmallProducts(int $limit = null)
+    {
+        return $this->repository->getMostVisitedHmallProducts()->take($limit);
+    }
+
     public function filterHmallProducts($hmallProducts, ListRequest $listRequest)
     {
         $brand = $listRequest->input('brand');
@@ -166,10 +171,5 @@ class ListService extends Service
         ];
 
         return $genderMappings[$gender] ?? [];
-    }
-
-    public function getMostVisitedHmallProducts(int $limit = null)
-    {
-        return $this->repository->getMostVisitedHmallProducts()->take($limit);
     }
 }

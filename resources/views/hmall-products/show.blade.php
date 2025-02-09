@@ -211,11 +211,9 @@
                             </div>
                         </h1>
                     </div>
-                    <div class="sixteen wide center aligned column">
-                        <div class="ts very narrow container">
-                            <div class="ts basic fitted segment">
-                                {!! $hmallProductPresenter->getHmallProductTag($hmallProduct) !!}
-                            </div>
+                    <div class="sixteen wide column">
+                        <div class="ts basic fitted segment">
+                            {!! $hmallProductPresenter->getHmallProductTag($hmallProduct) !!}
                         </div>
                     </div>
                     <div class="sixteen wide column">

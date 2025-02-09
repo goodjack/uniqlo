@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class HmallProduct extends Model
 {
@@ -302,5 +303,30 @@ class HmallProduct extends Model
             && $this->min_price === $this->lowest_record_price
             && $this->lowest_record_price < $this->highest_record_price
             && ! $this->is_sale;
+    }
+
+    public function getIsMostVisitedAttribute(): bool
+    {
+        $cacheKey = 'hmall_product:most_visited';
+
+        if (!Cache::has($cacheKey)) {
+            return false;
+        }
+
+        return Cache::get($cacheKey)->contains('id', $this->id);
+    }
+
+    public function getMostVisitedRankAttribute(): ?int
+    {
+        $cacheKey = 'hmall_product:most_visited';
+
+        if (!$this->is_most_visited) {
+            return null;
+        }
+
+        $products = Cache::get($cacheKey);
+        $index = $products->search(fn($item) => $item->id === $this->id);
+
+        return $index === false ? null : $index + 1;
     }
 }

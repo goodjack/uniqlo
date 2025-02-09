@@ -32,6 +32,14 @@
         </div>
     @endif
 
+    @if ($hmallProduct->is_most_visited)
+        <div class="ts horizontal basic circular label">
+            <span style="color: #B58105;">
+                瀏覽 TOP {{ $hmallProduct->most_visited_rank }}
+            </span>
+        </div>
+    @endif
+
     @if ($hmallProduct->is_new)
         <div class="ts horizontal basic circular label">
             <span style="color: #8BB96E;">新款商品</span>

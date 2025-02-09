@@ -20,6 +20,8 @@
                 aria-label="japan-most-reviewed">日本評論</a>
             <a href="{{ route('lists.top-wearing', request()->only('brand')) }}" class="item"
                 aria-label="top-wearing">熱門穿搭</a>
+            <a href="{{ route('lists.most-visited', request()->only('brand')) }}" class="item"
+                aria-label="most-visited">熱門瀏覽</a>
             <div class="ts item dropdown">
                 <div class="text">
                     更多
@@ -76,6 +78,10 @@
                     <a href="{{ route('lists.top-wearing', request()->only('brand')) }}" class="item"
                         aria-label="top-wearing">
                         <i class="camera retro icon"></i>熱門穿搭
+                    </a>
+                    <a href="{{ route('lists.most-visited', request()->only('brand')) }}" class="item"
+                        aria-label="most-visited">
+                        <i class="eye icon"></i>熱門瀏覽
                     </a>
                     <a href="{{ route('lists.new', request()->only('brand')) }}" class="item" aria-label="new">
                         <i class="leaf icon"></i>新品

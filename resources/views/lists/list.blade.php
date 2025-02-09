@@ -36,6 +36,10 @@
         i.online-special.icon {
             color: #F29E18 !important;
         }
+
+        i.most-visited.icon {
+            color: #B58105 !important;
+        }
     </style>
 @endsection
 
