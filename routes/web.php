@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Auth\DiscordController;
 use App\Http\Controllers\HmallProductController;
 use App\Http\Controllers\ListController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\StyleHintController;
+use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -20,9 +22,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('home');
-})->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::get('/2', function () {
     return view('welcome');

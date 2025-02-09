@@ -46,6 +46,7 @@ class AppSchedule extends Command
             'brand' => 'GU',
         ]);
         $this->call('hmall-product:cache');
+        $this->call('hmall-product:cache-most-visited');
         $this->call('sitemap:generate');
         $this->call('style:fetch', [
             'brand' => 'UNIQLO',

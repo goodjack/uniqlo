@@ -167,4 +167,9 @@ class ListService extends Service
 
         return $genderMappings[$gender] ?? [];
     }
+
+    public function getMostVisitedHmallProducts(int $limit = null)
+    {
+        return $this->repository->getMostVisitedHmallProducts()->take($limit);
+    }
 }

@@ -2,25 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\ListService;
+
 class HomeController extends Controller
 {
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
-    public function __construct()
+    protected $listService;
+
+    public function __construct(ListService $listService)
     {
-        $this->middleware('auth');
+        $this->listService = $listService;
     }
 
-    /**
-     * Show the application dashboard.
-     *
-     * @return \Illuminate\Contracts\Support\Renderable
-     */
     public function index()
     {
-        return view('home');
+        $mostVisitedProducts = $this->listService->getMostVisitedHmallProducts(limit: 12);
+
+        return view('home', [
+            'mostVisitedProducts' => $mostVisitedProducts,
+        ]);
     }
 }
