@@ -798,6 +798,10 @@ class HmallProductRepository extends Repository
 
     private function fetchRankedProducts(Collection $rank): Collection
     {
+        if ($rank->isEmpty()) {
+            return collect([]);
+        }
+
         $productIdentifiers = $rank->map(fn ($item) => "{$item['brand']}_{$item['productCode']}");
 
         $orderClause = $rank->map(fn ($item) => "'{$item['brand']}_{$item['productCode']}'")
