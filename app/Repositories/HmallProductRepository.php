@@ -761,20 +761,20 @@ class HmallProductRepository extends Repository
 
     private function getMostVisitedProducts(): Collection
     {
-        $dailyAnalyticsData = $this->fetchMostVisitedProducts(1, 100);
+        $recentAnalyticsData = $this->fetchMostVisitedProducts(2, 100);
         $weeklyAnalyticsData = $this->fetchMostVisitedProducts(7, 100);
 
-        $rank = $this->calculateProductRanking($dailyAnalyticsData, $weeklyAnalyticsData);
+        $rank = $this->calculateProductRanking($recentAnalyticsData, $weeklyAnalyticsData);
 
         return $this->fetchRankedProducts($rank);
     }
 
-    private function calculateProductRanking(Collection $dailyData, Collection $weeklyData): Collection
+    private function calculateProductRanking(Collection $recentData, Collection $weeklyData): Collection
     {
-        return $dailyData->map(function ($dailyViews, $fullPageUrl) use ($weeklyData) {
-            $weeklyViews = $weeklyData[$fullPageUrl] ?? 0;
-            $weeklyAverageViews = $weeklyViews / 7;
-            $weightedViews = ($dailyViews * 0.7) + ($weeklyAverageViews * 0.3);
+        return $recentData->map(function ($recentViews, $fullPageUrl) use ($weeklyData) {
+            $recentAverageViews = $recentViews / 2;
+            $weeklyAverageViews = ($weeklyData[$fullPageUrl] ?? 0) / 7;
+            $weightedViews = ($recentAverageViews * 0.7) + ($weeklyAverageViews * 0.3);
 
             return [
                 'brand' => $this->getBrandFromUrl($fullPageUrl),
