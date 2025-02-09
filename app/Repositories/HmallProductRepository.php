@@ -47,6 +47,10 @@ class HmallProductRepository extends Repository
 
     private const CACHE_KEY_MOST_VISITED = 'hmall_product:most_visited';
 
+    private const CACHE_KEY_MOST_VISITED_RANKS = 'hmall_product:most_visited_ranks';
+
+    private const CACHE_KEY_TOP_WEARING_RANKS = 'hmall_product:top_wearing_ranks';
+
     private const SELECT_COLUMNS_FOR_LIST = [
         'hmall_products.id',
         'hmall_products.code',
@@ -405,7 +409,12 @@ class HmallProductRepository extends Repository
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $ranks = $hmallProducts->pluck('id')->mapWithKeys(function ($id, $index) {
+            return [$id => $index + 1];
+        });
+
         Cache::forever(self::CACHE_KEY_TOP_WEARING, $hmallProducts);
+        Cache::forever(self::CACHE_KEY_TOP_WEARING_RANKS, $ranks);
     }
 
     public function setNewHmallProductsCache()
@@ -487,7 +496,13 @@ class HmallProductRepository extends Repository
     {
         try {
             $hmallProducts = $this->getMostVisitedProducts();
+
+            $ranks = $hmallProducts->pluck('id')->mapWithKeys(function ($id, $index) {
+                return [$id => $index + 1];
+            });
+
             Cache::forever(self::CACHE_KEY_MOST_VISITED, $hmallProducts);
+            Cache::forever(self::CACHE_KEY_MOST_VISITED_RANKS, $ranks);
         } catch (Throwable $e) {
             Log::error('Failed to get most visited products from GA', [
                 'error' => $e->getMessage(),

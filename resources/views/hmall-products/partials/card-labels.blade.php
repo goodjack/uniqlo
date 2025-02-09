@@ -32,10 +32,18 @@
         </div>
     @endif
 
-    @if ($hmallProduct->is_most_visited)
+    @if ($hmallProduct->most_visited_rank)
         <div class="ts horizontal basic circular label">
             <span style="color: #B58105;">
                 瀏覽 TOP {{ $hmallProduct->most_visited_rank }}
+            </span>
+        </div>
+    @endif
+
+    @if ($hmallProduct->top_wearing_rank)
+        <div class="ts horizontal basic circular label">
+            <span style="color: #CC7F49;">
+                穿搭 TOP {{ $hmallProduct->top_wearing_rank }}
             </span>
         </div>
     @endif

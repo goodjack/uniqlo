@@ -139,7 +139,7 @@ class HmallProductPresenter
             $html .= '</span></a>';
         }
 
-        if ($hmallProduct->is_most_visited) {
+        if ($hmallProduct->most_visited_rank) {
             $route = route('lists.most-visited');
 
             $html .= "<a href={$route} ";
@@ -148,11 +148,20 @@ class HmallProductPresenter
             $html .= '</span></a>';
         }
 
+        if ($hmallProduct->top_wearing_rank) {
+            $route = route('lists.top-wearing');
+
+            $html .= "<a href={$route} ";
+            $html .= 'class="ts horizontal basic circular label"><span style="color: #CC7F49;"><i class="camera retro icon"></i>';
+            $html .= "穿搭 TOP {$hmallProduct->top_wearing_rank}";
+            $html .= '</span></a>';
+        }
+
         if ($hmallProduct->is_new) {
             $route = route('lists.new');
 
             $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #00ADEA;"><i class="leaf icon"></i>';
+            $html .= 'class="ts horizontal basic circular label"><span style="color: #8BB96E;"><i class="leaf icon"></i>';
             $html .= '新款商品';
             $html .= '</span></a>';
         }

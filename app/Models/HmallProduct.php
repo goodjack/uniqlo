@@ -12,6 +12,14 @@ class HmallProduct extends Model
 
     protected $fillable = ['product_code'];
 
+    private const CACHE_KEY_MOST_VISITED = 'hmall_product:most_visited';
+
+    private const CACHE_KEY_TOP_WEARING = 'hmall_product:top_wearing';
+
+    private const CACHE_KEY_MOST_VISITED_RANKS = 'hmall_product:most_visited_ranks';
+
+    private const CACHE_KEY_TOP_WEARING_RANKS = 'hmall_product:top_wearing_ranks';
+
     /**
      * The attributes that should be cast.
      *
@@ -305,28 +313,13 @@ class HmallProduct extends Model
             && ! $this->is_sale;
     }
 
-    public function getIsMostVisitedAttribute(): bool
-    {
-        $cacheKey = 'hmall_product:most_visited';
-
-        if (!Cache::has($cacheKey)) {
-            return false;
-        }
-
-        return Cache::get($cacheKey)->contains('id', $this->id);
-    }
-
     public function getMostVisitedRankAttribute(): ?int
     {
-        $cacheKey = 'hmall_product:most_visited';
+        return Cache::get(self::CACHE_KEY_MOST_VISITED_RANKS)[$this->id] ?? null;
+    }
 
-        if (!$this->is_most_visited) {
-            return null;
-        }
-
-        $products = Cache::get($cacheKey);
-        $index = $products->search(fn($item) => $item->id === $this->id);
-
-        return $index === false ? null : $index + 1;
+    public function getTopWearingRankAttribute(): ?int
+    {
+        return Cache::get(self::CACHE_KEY_TOP_WEARING_RANKS)[$this->id] ?? null;
     }
 }

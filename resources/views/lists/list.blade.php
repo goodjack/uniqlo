@@ -26,7 +26,7 @@
         }
 
         i.top-wearing.icon {
-            color: #F0C8AF !important;
+            color: #CC7F49 !important;
         }
 
         i.coming-soon.icon {
