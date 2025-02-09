@@ -25,6 +25,27 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v4.1.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">全新功能上線</div>
+                        <ul>
+                            <li>新增「熱門瀏覽」排行榜，即時掌握最新潮流動向</li>
+                            <li>新增「瀏覽 TOP」、「穿搭 TOP」標籤，快速辨識高人氣商品</li>
+                        </ul>
+                        <div class="header">功能優化</div>
+                        <ul>
+                            <li>更新商品卡片視覺設計，資訊呈現更直覺清晰</li>
+                            <li>提升列表載入速度</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v4.0.0
                     </h2>
                     <!-- / 標題 -->
