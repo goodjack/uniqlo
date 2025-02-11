@@ -1,3 +1,4 @@
+@inject('hmallProductPresenter', 'App\Presenters\HmallProductPresenter')
 @extends('layouts.master')
 
 @section('title', '首頁')
@@ -23,8 +24,20 @@
                 </center>
             </form>
             <div class="ts hidden divider"></div>
-            <div class="ts hidden divider"></div>
-            <div class="ts hidden divider"></div>
         </div>
     </div>
+
+    @if ($mostVisitedProducts->isNotEmpty())
+        <div class="ts attached padded horizontally fitted fluid segment">
+            <div class="ts container">
+                <h2 class="ts large header">
+                    大家都在看
+                    <div class="inline sub header">最多人瀏覽的商品</div>
+                </h2>
+                <div class="ts doubling link cards six">
+                    @each('hmall-products.simple-card', $mostVisitedProducts, 'hmallProduct')
+                </div>
+            </div>
+        </div>
+    @endif
 @endsection

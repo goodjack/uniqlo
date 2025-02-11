@@ -141,6 +141,20 @@ class ListController extends Controller
         );
     }
 
+    public function getMostVisited(ListRequest $listRequest)
+    {
+        $hmallProducts = $this->service->getMostVisitedHmallProducts();
+
+        return $this->getList(
+            $hmallProducts,
+            $listRequest,
+            '熱門瀏覽商品',
+            'most-visited',
+            'chart line',
+            '排序依據：瀏覽次數',
+        );
+    }
+
     private function getList(
         $hmallProducts,
         $listRequest,

@@ -15,6 +15,10 @@ class Kernel extends ConsoleKernel
         // TODO: 等現有排程結束後再開啟
         // $schedule->command('app:style-hint-schedule')->dailyAt('01:01')->withoutOverlapping(2880);
         $schedule->command('app:schedule')->dailyAt('09:01');
+
+        $schedule->command('hmall-product:cache-most-visited')
+            ->everyTwoHours()
+            ->withoutOverlapping();
     }
 
     /**

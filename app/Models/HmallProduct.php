@@ -4,12 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class HmallProduct extends Model
 {
     use HasFactory;
 
     protected $fillable = ['product_code'];
+
+    private const CACHE_KEY_MOST_VISITED = 'hmall_product:most_visited';
+
+    private const CACHE_KEY_TOP_WEARING = 'hmall_product:top_wearing';
+
+    private const CACHE_KEY_MOST_VISITED_RANKS = 'hmall_product:most_visited_ranks';
+
+    private const CACHE_KEY_TOP_WEARING_RANKS = 'hmall_product:top_wearing_ranks';
 
     /**
      * The attributes that should be cast.
@@ -302,5 +311,15 @@ class HmallProduct extends Model
             && $this->min_price === $this->lowest_record_price
             && $this->lowest_record_price < $this->highest_record_price
             && ! $this->is_sale;
+    }
+
+    public function getMostVisitedRankAttribute(): ?int
+    {
+        return Cache::get(self::CACHE_KEY_MOST_VISITED_RANKS)[$this->id] ?? null;
+    }
+
+    public function getTopWearingRankAttribute(): ?int
+    {
+        return Cache::get(self::CACHE_KEY_TOP_WEARING_RANKS)[$this->id] ?? null;
     }
 }

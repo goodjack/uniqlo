@@ -6,11 +6,19 @@ use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
 use App\Models\Product;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Collection;
+use Google\Analytics\Data\V1beta\Filter;
+use Google\Analytics\Data\V1beta\Filter\StringFilter;
+use Google\Analytics\Data\V1beta\Filter\StringFilter\MatchType;
+use Google\Analytics\Data\V1beta\FilterExpression;
+use Google\Analytics\Data\V1beta\FilterExpressionList;
 use Illuminate\Database\Query\JoinClause;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Spatie\Analytics\Facades\Analytics;
+use Spatie\Analytics\OrderBy;
+use Spatie\Analytics\Period;
 use Throwable;
 
 class HmallProductRepository extends Repository
@@ -36,6 +44,12 @@ class HmallProductRepository extends Repository
     private const CACHE_KEY_MULTI_BUY = 'hmall_product:multi_buy';
 
     private const CACHE_KEY_ONLINE_SPECIAL = 'hmall_product:online_special';
+
+    private const CACHE_KEY_MOST_VISITED = 'hmall_product:most_visited';
+
+    private const CACHE_KEY_MOST_VISITED_RANKS = 'hmall_product:most_visited_ranks';
+
+    private const CACHE_KEY_TOP_WEARING_RANKS = 'hmall_product:top_wearing_ranks';
 
     private const SELECT_COLUMNS_FOR_LIST = [
         'hmall_products.id',
@@ -70,6 +84,7 @@ class HmallProductRepository extends Repository
     {
         $query = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where(function ($query) use ($hmallProduct) {
                 $query->where('code', $hmallProduct->code)
                     ->orWhere(function ($query) use ($hmallProduct) {
@@ -149,6 +164,7 @@ class HmallProductRepository extends Repository
 
         return $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->whereIn('code', $relatedProductIds)
             ->orderBy(DB::raw('ISNULL(`stockout_at`)'), 'desc')
             ->orderBy('min_price')
@@ -272,10 +288,20 @@ class HmallProductRepository extends Repository
         return Cache::get(self::CACHE_KEY_ONLINE_SPECIAL);
     }
 
+    public function getMostVisitedHmallProducts()
+    {
+        if (! Cache::has(self::CACHE_KEY_MOST_VISITED)) {
+            $this->setMostVisitedHmallProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_MOST_VISITED);
+    }
+
     public function setLimitedOfferHmallProductsCache()
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where(function ($query) {
                 $query->where(function ($query) {
                     $query->where('time_limited_begin', '<=', now())
@@ -297,6 +323,7 @@ class HmallProductRepository extends Repository
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where('identity', 'like', '%concessional_rate%')
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
@@ -313,6 +340,7 @@ class HmallProductRepository extends Repository
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where('evaluation_count', '>', function ($query) {
                 $query->select('evaluation_count')
                     ->from('hmall_products')
@@ -337,6 +365,7 @@ class HmallProductRepository extends Repository
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->join('japan_products', 'hmall_products.code', '=', 'japan_products.l1id')
             ->where('rating_count', '>', function ($query) {
                 $query->select('rating_count')
@@ -373,6 +402,7 @@ class HmallProductRepository extends Repository
 
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->addSelect('count')
             ->leftJoinSub($styleHintItems, 'style_hint_items', function ($join) {
                 $join->on('hmall_products.code', '=', 'style_hint_items.code');
@@ -386,13 +416,19 @@ class HmallProductRepository extends Repository
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $ranks = $hmallProducts->pluck('id')->mapWithKeys(function ($id, $index) {
+            return [$id => $index + 1];
+        });
+
         Cache::forever(self::CACHE_KEY_TOP_WEARING, $hmallProducts);
+        Cache::forever(self::CACHE_KEY_TOP_WEARING_RANKS, $ranks);
     }
 
     public function setNewHmallProductsCache()
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where('identity', 'like', '%new_product%')
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
@@ -412,6 +448,7 @@ class HmallProductRepository extends Repository
 
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where('identity', 'like', '%COMING%')
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
@@ -428,6 +465,7 @@ class HmallProductRepository extends Repository
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where(function ($query) {
                 $query->where('identity', 'like', '%multi_buy%')
                     ->orWhere('identity', 'like', '%SET%');
@@ -449,6 +487,7 @@ class HmallProductRepository extends Repository
 
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where(function ($query) {
                 $query->where('identity', 'like', '%ONLINE SPECIAL%')
                     ->orWhere('identity', 'like', '%ECONLY%');
@@ -462,6 +501,26 @@ class HmallProductRepository extends Repository
             ->get();
 
         Cache::forever(self::CACHE_KEY_ONLINE_SPECIAL, $hmallProducts);
+    }
+
+    public function setMostVisitedHmallProductsCache()
+    {
+        try {
+            $hmallProducts = $this->getMostVisitedProducts();
+
+            $ranks = $hmallProducts->pluck('id')->mapWithKeys(function ($id, $index) {
+                return [$id => $index + 1];
+            });
+
+            Cache::forever(self::CACHE_KEY_MOST_VISITED, $hmallProducts);
+            Cache::forever(self::CACHE_KEY_MOST_VISITED_RANKS, $ranks);
+        } catch (Throwable $e) {
+            Log::error('Failed to get most visited products from GA', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            Cache::forever(self::CACHE_KEY_MOST_VISITED, collect([]));
+        }
     }
 
     public function saveProductsFromV3($products, $brand = 'UNIQLO')
@@ -657,5 +716,106 @@ class HmallProductRepository extends Repository
 
         return intval($model->min_price) !== intval($product->minPrice)
             || intval($model->max_price) !== intval($product->maxPrice);
+    }
+
+    private function fetchMostVisitedProducts(int $days, int $maxResults = 20, int $offset = 0): Collection
+    {
+        return Analytics::get(
+            period: Period::days($days),
+            metrics: ['screenPageViews'],
+            dimensions: ['fullPageUrl'],
+            maxResults: $maxResults,
+            orderBy: [
+                OrderBy::metric('screenPageViews', true),
+            ],
+            offset: $offset,
+            dimensionFilter: $this->getDimensionFilter(),
+        )->mapWithKeys(function ($item) {
+            return [$item['fullPageUrl'] => $item['screenPageViews']];
+        });
+    }
+
+    private function getDimensionFilter(): FilterExpression
+    {
+        $filters = collect([
+            '/hmall-products/',
+            '/gu-products/',
+        ])->map(function ($path) {
+            return new FilterExpression([
+                'filter' => new Filter([
+                    'field_name' => 'pagePath',
+                    'string_filter' => new StringFilter([
+                        'match_type' => MatchType::BEGINS_WITH,
+                        'value' => $path,
+                    ]),
+                ]),
+            ]);
+        });
+
+        return new FilterExpression([
+            'or_group' => new FilterExpressionList([
+                'expressions' => $filters->toArray(),
+            ]),
+        ]);
+    }
+
+    private function getMostVisitedProducts(): Collection
+    {
+        $recentAnalyticsData = $this->fetchMostVisitedProducts(2, 100);
+        $weeklyAnalyticsData = $this->fetchMostVisitedProducts(7, 100);
+
+        $rank = $this->calculateProductRanking($recentAnalyticsData, $weeklyAnalyticsData);
+
+        return $this->fetchRankedProducts($rank);
+    }
+
+    private function calculateProductRanking(Collection $recentData, Collection $weeklyData): Collection
+    {
+        return $recentData->map(function ($recentViews, $fullPageUrl) use ($weeklyData) {
+            $recentAverageViews = $recentViews / 2;
+            $weeklyAverageViews = ($weeklyData[$fullPageUrl] ?? 0) / 7;
+            $weightedViews = ($recentAverageViews * 0.7) + ($weeklyAverageViews * 0.3);
+
+            return [
+                'brand' => $this->getBrandFromUrl($fullPageUrl),
+                'productCode' => $this->getProductCodeFromUrl($fullPageUrl),
+                'weightedViews' => $weightedViews,
+            ];
+        })
+            ->unique(fn ($item) => "{$item['brand']}_{$item['productCode']}")
+            ->sortByDesc('weightedViews');
+    }
+
+    private function getBrandFromUrl(string $fullPageUrl): string
+    {
+        return str_contains($fullPageUrl, '/gu-products/') ? 'GU' : 'UNIQLO';
+    }
+
+    private function getProductCodeFromUrl(string $fullPageUrl): string
+    {
+        return explode('/', $fullPageUrl)[2];
+    }
+
+    private function fetchRankedProducts(Collection $rank): Collection
+    {
+        if ($rank->isEmpty()) {
+            return collect([]);
+        }
+
+        $productIdentifiers = $rank->map(fn ($item) => "{$item['brand']}_{$item['productCode']}");
+
+        $orderClause = $rank->map(fn ($item) => "'{$item['brand']}_{$item['productCode']}'")
+            ->join(',');
+
+        $orderByField = sprintf('FIELD(CONCAT(brand, \'_\', product_code), %s)', $orderClause);
+
+        return $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
+            ->whereIn(DB::raw("CONCAT(brand, '_', product_code)"), $productIdentifiers->toArray())
+            ->where('stock', 'Y')
+            ->whereNull('stockout_at')
+            ->orderByRaw($orderByField)
+            ->get();
     }
 }

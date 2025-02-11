@@ -20,6 +20,8 @@
                 aria-label="japan-most-reviewed">日本評論</a>
             <a href="{{ route('lists.top-wearing', request()->only('brand')) }}" class="item"
                 aria-label="top-wearing">熱門穿搭</a>
+            <a href="{{ route('lists.most-visited', request()->only('brand')) }}" class="item"
+                aria-label="most-visited">熱門瀏覽</a>
             <div class="ts item dropdown">
                 <div class="text">
                     更多
@@ -45,7 +47,7 @@
             </div>
             <div class="divider"></div>
             <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">
-                v4.0.0 更新日誌
+                v4.1.0 更新日誌
             </a>
         </div>
         <div class="mobile only right menu">
@@ -77,6 +79,10 @@
                         aria-label="top-wearing">
                         <i class="camera retro icon"></i>熱門穿搭
                     </a>
+                    <a href="{{ route('lists.most-visited', request()->only('brand')) }}" class="item"
+                        aria-label="most-visited">
+                        <i class="eye icon"></i>熱門瀏覽
+                    </a>
                     <a href="{{ route('lists.new', request()->only('brand')) }}" class="item" aria-label="new">
                         <i class="leaf icon"></i>新品
                     </a>
@@ -94,7 +100,7 @@
                     </a>
                     <div class="divider"></div>
                     <a href="{{ route('pages.changelog') }}" class="item" aria-label="changelog">
-                        v4.0.0 更新日誌
+                        v4.1.0 更新日誌
                     </a>
                 </div>
             </div>

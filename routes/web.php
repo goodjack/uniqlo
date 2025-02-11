@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Auth\DiscordController;
 use App\Http\Controllers\HmallProductController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ListController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProductController;
@@ -20,9 +22,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('home');
-})->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::get('/2', function () {
     return view('welcome');
@@ -71,6 +71,7 @@ Route::group(['prefix' => 'lists'], function () {
     Route::get('/coming-soon', [ListController::class, 'getComingSoon'])->name('lists.coming-soon');
     Route::get('/multi-buy', [ListController::class, 'getMultiBuy'])->name('lists.multi-buy');
     Route::get('/online-special', [ListController::class, 'getOnlineSpecial'])->name('lists.online-special');
+    Route::get('/most-visited', [ListController::class, 'getMostVisited'])->name('lists.most-visited');
 });
 
 Route::group(['prefix' => 'old-lists'], function () {

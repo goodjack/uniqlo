@@ -26,7 +26,7 @@
         }
 
         i.top-wearing.icon {
-            color: #F0C8AF !important;
+            color: #CC7F49 !important;
         }
 
         i.coming-soon.icon {
@@ -35,6 +35,10 @@
 
         i.online-special.icon {
             color: #F29E18 !important;
+        }
+
+        i.most-visited.icon {
+            color: #B58105 !important;
         }
     </style>
 @endsection

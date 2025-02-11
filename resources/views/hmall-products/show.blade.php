@@ -211,11 +211,9 @@
                             </div>
                         </h1>
                     </div>
-                    <div class="sixteen wide center aligned column">
-                        <div class="ts very narrow container">
-                            <div class="ts basic fitted segment">
-                                {!! $hmallProductPresenter->getHmallProductTag($hmallProduct) !!}
-                            </div>
+                    <div class="sixteen wide column">
+                        <div class="ts basic fitted segment">
+                            {!! $hmallProductPresenter->getHmallProductTag($hmallProduct) !!}
                         </div>
                     </div>
                     <div class="sixteen wide column">
@@ -354,7 +352,7 @@
                 <h2 class="ts large dividing header">經常搭配商品</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling link cards six">
-                    @each('hmall-products.card', $commonlyStyledHmallProducts, 'hmallProduct')
+                    @each('hmall-products.simple-card', $commonlyStyledHmallProducts, 'hmallProduct')
                 </div>
             </div>
         </div>
