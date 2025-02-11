@@ -81,7 +81,7 @@
                     </a>
                     <a href="{{ route('lists.most-visited', request()->only('brand')) }}" class="item"
                         aria-label="most-visited">
-                        <i class="eye icon"></i>熱門瀏覽
+                        <i class="chart line icon"></i>熱門瀏覽
                     </a>
                     <a href="{{ route('lists.new', request()->only('brand')) }}" class="item" aria-label="new">
                         <i class="leaf icon"></i>新品

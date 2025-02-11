@@ -55,6 +55,10 @@
                     aria-label="top-wearing">
                     <p><i class="camera retro icon"></i> 熱門穿搭商品</p>
                 </a>
+                <a href="{{ route('lists.most-visited', request()->only('brand')) }}" class="fitted item"
+                    aria-label="most-visited">
+                    <p><i class="chart line icon"></i> 熱門瀏覽商品</p>
+                </a>
                 <a href="{{ route('lists.new', request()->only('brand')) }}" class="fitted item" aria-label="new">
                     <p><i class="leaf icon"></i> 新款商品</p>
                 </a>
