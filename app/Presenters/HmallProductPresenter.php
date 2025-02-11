@@ -139,24 +139,6 @@ class HmallProductPresenter
             $html .= '</span></a>';
         }
 
-        if ($hmallProduct->most_visited_rank) {
-            $route = route('lists.most-visited');
-
-            $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #B58105;"><i class="chart line icon"></i>';
-            $html .= "瀏覽 TOP {$hmallProduct->most_visited_rank}";
-            $html .= '</span></a>';
-        }
-
-        if ($hmallProduct->top_wearing_rank) {
-            $route = route('lists.top-wearing');
-
-            $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #CC7F49;"><i class="camera retro icon"></i>';
-            $html .= "穿搭 TOP {$hmallProduct->top_wearing_rank}";
-            $html .= '</span></a>';
-        }
-
         if ($hmallProduct->is_new) {
             $route = route('lists.new');
 
@@ -196,6 +178,24 @@ class HmallProductPresenter
         if ($hmallProduct->is_stockout) {
             $html .= '<a class="ts horizontal basic circular label"><span style="color: #5A5A5A;"><i class="archive icon"></i>';
             $html .= '已售罄';
+            $html .= '</span></a>';
+        }
+
+        if ($hmallProduct->top_wearing_rank) {
+            $route = route('lists.top-wearing');
+
+            $html .= "<a href={$route} ";
+            $html .= 'class="ts horizontal basic circular label"><span style="color: #CC7F49;"><i class="camera retro icon"></i>';
+            $html .= "穿搭 TOP {$hmallProduct->top_wearing_rank}";
+            $html .= '</span></a>';
+        }
+
+        if ($hmallProduct->most_visited_rank) {
+            $route = route('lists.most-visited');
+
+            $html .= "<a href={$route} ";
+            $html .= 'class="ts horizontal basic circular label"><span style="color: #B58105;"><i class="chart line icon"></i>';
+            $html .= "瀏覽 TOP {$hmallProduct->most_visited_rank}";
             $html .= '</span></a>';
         }
 

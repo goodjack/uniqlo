@@ -32,22 +32,6 @@
         </div>
     @endif
 
-    @if ($hmallProduct->most_visited_rank)
-        <div class="ts horizontal basic circular label">
-            <span style="color: #B58105;">
-                瀏覽 TOP {{ $hmallProduct->most_visited_rank }}
-            </span>
-        </div>
-    @endif
-
-    @if ($hmallProduct->top_wearing_rank)
-        <div class="ts horizontal basic circular label">
-            <span style="color: #CC7F49;">
-                穿搭 TOP {{ $hmallProduct->top_wearing_rank }}
-            </span>
-        </div>
-    @endif
-
     @if ($hmallProduct->is_new)
         <div class="ts horizontal basic circular label">
             <span style="color: #8BB96E;">新款商品</span>
@@ -75,6 +59,32 @@
     @if ($hmallProduct->is_stockout)
         <div class="ts horizontal basic circular label">
             <span style="color: #5A5A5A;">已售罄</span>
+        </div>
+    @endif
+
+    @if ($hmallProduct->top_wearing_rank)
+        <div class="ts horizontal basic circular label" title="穿搭 TOP {{ $hmallProduct->top_wearing_rank }}"
+            aria-label="穿搭 TOP {{ $hmallProduct->top_wearing_rank }}">
+            <span style="color: #CC7F49;">
+                @if ($hmallProduct->top_wearing_rank <= 50)
+                    穿搭 TOP {{ $hmallProduct->top_wearing_rank }}
+                @else
+                    熱門穿搭
+                @endif
+            </span>
+        </div>
+    @endif
+
+    @if ($hmallProduct->most_visited_rank)
+        <div class="ts horizontal basic circular label" title="瀏覽 TOP {{ $hmallProduct->most_visited_rank }}"
+            aria-label="瀏覽 TOP {{ $hmallProduct->most_visited_rank }}">
+            <span style="color: #B58105;">
+                @if ($hmallProduct->most_visited_rank <= 50)
+                    瀏覽 TOP {{ $hmallProduct->most_visited_rank }}
+                @else
+                    熱門瀏覽
+                @endif
+            </span>
         </div>
     @endif
 </div>
