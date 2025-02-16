@@ -1,0 +1,23 @@
+{
+    "name": "UQ 搜尋",
+    "short_name": "UQ 搜尋",
+    "description": "UNIQLO 與 GU 價格查詢比價網",
+    "lang": "zh-TW",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#FFFFFF",
+    "theme_color": "#CE5E57",
+    "icons": [
+        {
+            "src": "/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

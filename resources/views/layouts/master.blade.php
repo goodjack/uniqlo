@@ -7,9 +7,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="theme-color" content="#ce5e57">
-    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    <link rel="manifest" href="{{ asset('app.webmanifest') }}">
+    <meta name="apple-mobile-web-app-title" content="UQ 搜尋">
+    <link rel="apple-touch-icon" href="{{ asset('icons/icon-192x192.png') }}">
 
-    <title>@yield('title') | UNIQLO 比價 | UQ 搜尋</title>
+    <title>@yield('title') | UQ 搜尋</title>
 
     @yield('json-ld')
 
@@ -121,6 +124,13 @@
         };
 
         backToTopButton.addEventListener("click", goToTop)
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('{{ asset('service-worker.js') }}');
+            });
+        }
     </script>
 
     @yield('javascript')
