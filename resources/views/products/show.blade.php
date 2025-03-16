@@ -232,14 +232,11 @@
     </div>
 
     @if (count($suggestProducts) > 0)
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-            <div class="ts container">
-                <x-section-header title="你可能也喜歡" />
-                <div class="ts segmented selection items">
-                    @each('products.item', $suggestProducts, 'product')
-                </div>
+        <x-section title="你可能也喜歡" tertiary>
+            <div class="ts segmented selection items">
+                @each('products.item', $suggestProducts, 'product')
             </div>
-        </div>
+        </x-section>
     @endif
 
     @if (count($relatedProducts) > 0)

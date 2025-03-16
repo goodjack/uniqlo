@@ -16,6 +16,13 @@
    - 先撰寫測試案例，再實作元件
    - 測試案例應反映實際使用情境
    - 每個功能點都有對應的測試覆蓋
+   - 確保舊元件的所有測試案例都被新元件涵蓋
+
+4. **合併重複元件**：
+   - 識別功能相似的元件（如 Container 和 Header）
+   - 設計統一的介面來整合功能
+   - 確保向後相容性
+   - 逐步替換舊有使用方式
 
 ## 元件開發流程
 
@@ -23,53 +30,58 @@
    - 找出重複出現的 HTML 結構
    - 識別變化的部分（如標題、副標題等）
    - 確認元件的核心功能和可選功能
+   - 檢視現有元件的使用情境
 
 2. **設計元件介面**：
    - 定義必要的參數和選用的參數
    - 確保參數命名符合直覺
    - 考慮 HTML 安全性（如 `rightAction` 的 HTML 內容）
+   - 設計合理的預設值
 
 3. **撰寫測試案例**：
    - 基本功能測試（如標題渲染）
    - 特殊情況測試（如 XSS 防護）
    - 組合功能測試（如同時使用多個功能）
+   - 確保涵蓋所有舊元件的測試案例
 
 4. **實作元件**：
    - 建立元件類別和視圖
    - 處理參數和渲染邏輯
    - 確保 HTML 安全性
+   - 實作參數的相依性處理（如 secondary/tertiary 互斥）
 
 5. **重構現有程式碼**：
    - 逐步替換重複的 HTML 結構
    - 確認功能正常運作
    - 進行視覺檢查
+   - 移除舊元件檔案
 
 ## 元件設計規範
 
 1. **命名規範**：
-   - 元件類別使用 PascalCase（如 `SectionHeader`）
-   - 元件視圖使用 kebab-case（如 `section-header.blade.php`）
+   - 元件類別使用 PascalCase（如 `Section`）
+   - 元件視圖使用 kebab-case（如 `section.blade.php`）
    - 參數使用 camelCase（如 `rightAction`）
-   - Laravel 8+ 會自動將駝峰式命名轉換為短橫線式命名（如 `SectionHeader` → `<x-section-header>`）
 
 2. **參數處理**：
-   - 必要參數：`title`
-   - 選用參數：`subTitle`、`rightAction` 等
-   - HTML 內容參數需使用 `{!! !!}` 輸出
-   - 使用型別提示和預設值增加程式碼可讀性
+   - 使用型別提示和預設值
+   - 考慮使用 nullable 型別（如 `?string`）
+   - 處理參數間的相依性
+   - 提供合理的預設值
 
 3. **測試案例命名**：
    - 使用 `test_` 前綴
    - 描述測試目的（如 `test_renders_basic_header`）
    - 按功能分組測試案例
    - 測試案例應放在 `tests/Feature/Components` 目錄下
+   - 包含邊界條件測試
 
 4. **元件註冊**：
    - Laravel 8+ 會自動發現 `app/View/Components` 目錄下的元件
    - 無需在 `AppServiceProvider` 中手動註冊元件
    - 元件可以通過 `<x-元件名稱>` 在 Blade 中使用
 
-## 實際案例：SectionHeader 元件
+## 實際案例：Section 元件（合併 Container 和 Header）
 
 ### 元件類別
 ```php
@@ -77,21 +89,33 @@ namespace App\View\Components;
 
 use Illuminate\View\Component;
 
-class SectionHeader extends Component
+class Section extends Component
 {
     /**
      * Create a new component instance.
      *
-     * @param  string  $title  區段標題
+     * @param  string|null  $title  區段標題
      * @param  string|null  $subTitle  副標題（可選）
      * @param  string|null  $rightAction  右側動作（可選）
+     * @param  bool  $secondary  Secondary 樣式
+     * @param  bool  $tertiary  Tertiary 樣式
+     * @param  string|null  $grid  Grid 系統
+     * @param  bool  $veryNarrow  Very Narrow 容器
      * @return void
      */
     public function __construct(
-        public string $title,
+        public ?string $title = '',
         public ?string $subTitle = null,
         public ?string $rightAction = null,
+        public bool $secondary = false,
+        public bool $tertiary = false,
+        public ?string $grid = '',
+        public bool $veryNarrow = false,
     ) {
+        // 確保 secondary 和 tertiary 不會同時為 true
+        if ($this->secondary && $this->tertiary) {
+            $this->tertiary = false;
+        }
     }
 
     /**
@@ -101,161 +125,110 @@ class SectionHeader extends Component
      */
     public function render(): \Illuminate\Contracts\View\View
     {
-        return view('components.section-header');
+        return view('components.section');
     }
 }
 ```
 
 ### 元件視圖
-```php
-@props(['title', 'subTitle' => null, 'rightAction' => null])
+```blade
+<div @class([
+    'ts very padded horizontally fitted attached fluid',
+    'secondary segment' => $secondary,
+    'tertiary segment' => $tertiary,
+    'segment' => !$secondary && !$tertiary,
+])>
+    <div @class([
+        'ts',
+        'very narrow' => $veryNarrow,
+        'container',
+        $grid ? "{$grid} grid" : null,
+    ])>
+        @if ($title)
+            <h2 class="ts large dividing header">
+                {{ $title }}
+                @if ($subTitle)
+                    <div class="inline sub header">{{ $subTitle }}</div>
+                @endif
+                @if ($rightAction)
+                    <div class="right floated">
+                        {!! $rightAction !!}
+                    </div>
+                @endif
+            </h2>
+            <div class="ts hidden divider"></div>
+        @endif
 
-<h2 class="ts large dividing header">
-    {{ $title }}
-
-    @if ($subTitle)
-        <div class="inline sub header">{{ $subTitle }}</div>
-    @endif
-
-    @if ($rightAction)
-        <div class="right floated">
-            {!! $rightAction !!}
-        </div>
-    @endif
-</h2>
-<div class="ts hidden divider"></div>
+        {{ $slot ?? '' }}
+    </div>
+</div>
 ```
 
-### 使用範例
-```php
-<x-section-header
-    title="StyleHint 網友穿搭靈感"
-    subTitle="共 {{ $styleHintCount }} 張"
-    rightAction='<a class="ts icon labeled button" style="font-size: 0.9rem;" href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}"><i class="camera retro icon"></i>查看列表</a>'
-/>
-```
+### 測試案例重點
+1. **基本功能測試**：
+   - 渲染基本區段
+   - 標題和副標題顯示
+   - 右側動作按鈕
 
-## 測試最佳實踐
+2. **樣式測試**：
+   - Secondary 和 Tertiary 樣式
+   - Grid 系統
+   - Very Narrow 容器
 
-### 測試案例範例
-```php
-<?php
+3. **特殊情況測試**：
+   - 空值處理
+   - XSS 防護
+   - 特殊字元處理
 
-namespace Tests\Feature\Components;
+4. **組合功能測試**：
+   - 多重功能組合
+   - 樣式互斥處理
 
-use App\View\Components\SectionHeader;
-use Tests\TestCase;
-
-class SectionHeaderTest extends TestCase
-{
-    public function test_renders_basic_header()
-    {
-        // Arrange & Act
-        $view = $this->component(SectionHeader::class, [
-            'title' => '你可能也喜歡',
-        ]);
-
-        // Assert
-        $view->assertSee('你可能也喜歡')
-            ->assertSee('ts large dividing header');
-    }
-
-    public function test_always_includes_hidden_divider()
-    {
-        // Arrange & Act
-        $view = $this->component(SectionHeader::class, [
-            'title' => '測試標題',
-        ]);
-
-        // Assert
-        $view->assertSee('class="ts hidden divider"', false);
-    }
-
-    public function test_renders_with_all_features_combined()
-    {
-        // Arrange & Act
-        $view = $this->component(SectionHeader::class, [
-            'title' => 'StyleHint 網友穿搭靈感',
-            'subTitle' => '共 10 張',
-            'rightAction' => '<a class="ts icon labeled button" style="font-size: 0.9rem;" href="/style-hints"><i class="camera retro icon"></i>查看列表</a>',
-        ]);
-
-        // Assert
-        $view
-            // 標題相關
-            ->assertSee('StyleHint 網友穿搭靈感')
-            ->assertSee('ts large dividing header')
-            // 副標題相關
-            ->assertSee('共 10 張')
-            ->assertSee('class="inline sub header"', false)
-            // 右側按鈕相關
-            ->assertSee('class="ts icon labeled button"', false)
-            ->assertSee('style="font-size: 0.9rem;"', false)
-            ->assertSee('class="right floated"', false)
-            ->assertSee('<i class="camera retro icon"></i>', false)
-            ->assertSee('查看列表')
-            // 隱藏分隔線
-            ->assertSee('class="ts hidden divider"', false);
-    }
-
-    public function test_escapes_html_in_title_and_subtitle()
-    {
-        // Arrange & Act
-        $view = $this->component(SectionHeader::class, [
-            'title' => "<script>alert('xss')</script>",
-            'subTitle' => "<script>alert('xss')</script>",
-        ]);
-
-        // Assert
-        $view->assertDontSee('<script>', false)
-            ->assertDontSee('</script>', false)
-            ->assertSee('&lt;script&gt;', false)
-            ->assertSee('&lt;/script&gt;', false);
-    }
-}
-```
-
-### 測試執行方式
-```bash
-# 執行特定元件測試
-php artisan test tests/Feature/Components/SectionHeaderTest.php
-
-# 執行特定測試方法
-php artisan test --filter=SectionHeaderTest::test_renders_basic_header
-
-# 執行所有元件測試
-php artisan test --filter=Components
-```
+### 重構步驟
+1. 建立新元件
+2. 撰寫完整測試
+3. 更新使用處
+4. 移除舊元件
 
 ## 注意事項
 
-1. **HTML 安全性**：
+1. **安全性與資料處理**：
    - 謹慎處理用戶輸入的 HTML 內容，避免 XSS 風險
    - 考慮如 `rightAction` 參數不轉義，允許 HTML 內容
+   - 明確處理互斥參數（如 secondary/tertiary）
+   - 在建構函式中處理相依邏輯
+   - 提供清晰的文檔說明參數相依性
 
-2. **測試覆蓋**：
-   - 確保測試覆蓋所有功能點
+2. **測試與品質保證**：
+   - 確保測試覆蓋所有功能點與舊元件功能
    - 測試 HTML 結構和類別名稱
    - 測試特殊情況（如空值、特殊字元）
    - 考慮使用 `assertSee()` 和 `assertDontSee()` 進行斷言
+   - 測試參數組合與邊界條件
+   - 請參考 Laravel 官方文件和最佳實踐
 
-3. **未來升級考量**：
-   - 元件設計應便於未來升級到 Tocas UI v5
-   - 保持元件介面簡潔，便於擴展
-   - 避免過度依賴 Tocas UI v2 特有的功能
+3. **效能與架構**：
+   - 避免在元件中進行複雜的邏輯運算
+   - 考慮使用 `@once` 指令避免重複渲染
+   - 適當使用快取機制提升效能
+   - 最小化 DOM 結構
+   - 適當使用條件渲染
+   - 避免不必要的包裝元素
+   - 保持 HTML 結構的一致性
+   - 考慮容器的正確巢狀關係
 
-4. **元件文檔**：
+4. **文檔與維護性**：
    - 為每個元件建立使用文檔
    - 使用 PHPDoc 註解說明參數用途
    - 提供使用範例和常見問題解答
 
-5. **效能考量**：
-   - 避免在元件中進行複雜的邏輯運算
-   - 考慮使用 `@once` 指令避免重複渲染
-   - 考慮適當使用快取機制提升效能
+5. **未來升級考量**：
+   - 元件設計應便於未來升級到 Tocas UI v5
+   - 保持元件介面簡潔，便於擴展
+   - 避免過度依賴 Tocas UI v2 特有的功能
+   - 預留彈性以適應未來框架更新
+   - 考慮向下相容性
 
-6. **Best Practices**：
-   - 請參考 Laravel 官方文件和最佳實踐，進行元件開發
 
 ## 常見問題與解決方案
 

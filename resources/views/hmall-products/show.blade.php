@@ -169,7 +169,7 @@
 @endsection
 
 @section('content')
-    <x-section-container grid="relaxed">
+    <x-section grid="relaxed">
         <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
             <div class="ts fluid container">
                 <a class="ts centered image" href="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
@@ -247,29 +247,25 @@
                 </div>
             </div>
         </div>
-    </x-section-container>
+    </x-section>
 
     @if (optional($japanProduct)->has_videos)
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-            <div class="ts container">
-                <x-section-header title="商品影片" sub-title="日本版" />
-                <div class="ts doubling four flatted cards">
-                    @foreach ($japanProduct->sub_videos as $key => $subVideo)
-                        <div class="ts card">
-                            <div class="video">
-                                <video preload="metadata" src="{{ $subVideo }}" autoplay muted loop controls
-                                    playsinline></video>
-                            </div>
+        <x-section title="商品影片" subTitle="日本版" tertiary>
+            <div class="ts doubling four flatted cards">
+                @foreach ($japanProduct->sub_videos as $key => $subVideo)
+                    <div class="ts card">
+                        <div class="video">
+                            <video preload="metadata" src="{{ $subVideo }}" autoplay muted loop controls
+                                playsinline></video>
                         </div>
-                    @endforeach
-                </div>
+                    </div>
+                @endforeach
             </div>
-        </div>
+        </x-section>
     @endif
 
     @if ($colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images)
-        <x-section-container tertiary>
-            <x-section-header title="商品實照" />
+        <x-section title="商品實照" tertiary>
             <div class="ts doubling four flatted cards">
                 @if ($colorNums)
                     @foreach ($colorNums as $key => $colorNum)
@@ -291,28 +287,25 @@
                     @endforeach
                 @endif
             </div>
-        </x-section-container>
+        </x-section>
     @endif
 
     @if ($styles->isNotEmpty())
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-            <div class="ts container">
-                <x-section-header title="Official Styling 官方精選穿搭" />
-                <div class="ts doubling four flatted cards">
-                    @foreach ($styles as $key => $style)
-                        <x-image-card link="{{ $style->detail_url }}" imageUrl="{{ $style->image_url }}"
-                            largeImageUrl="{{ $style->large_image_url }}"
-                            alt="Official Styling 官方精選穿搭 {{ $key + 1 }}" width="720" height="960" />
-                    @endforeach
-                </div>
+        <x-section title="Official Styling 官方精選穿搭" tertiary>
+            <div class="ts doubling four flatted cards">
+                @foreach ($styles as $key => $style)
+                    <x-image-card link="{{ $style->detail_url }}" imageUrl="{{ $style->image_url }}"
+                        largeImageUrl="{{ $style->large_image_url }}" alt="Official Styling 官方精選穿搭 {{ $key + 1 }}"
+                        width="720" height="960" />
+                @endforeach
             </div>
-        </div>
+        </x-section>
     @endif
 
     @if ($styleHints->isNotEmpty())
-        <x-section-container tertiary>
-            <x-section-header title="StyleHint 網友穿搭靈感" subTitle="共 {{ $styleHintCount }} 張"
-                rightAction='<a class="ts icon labeled button" style="font-size: 0.9rem;" href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}"><i class="camera retro icon"></i>查看列表</a>' />
+        <x-section title="StyleHint 網友穿搭靈感" subTitle="共 {{ $styleHintCount }} 張"
+            rightAction='<a class="ts icon labeled button" style="font-size: 0.9rem;" href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}"><i class="camera retro icon"></i>查看列表</a>'
+            tertiary>
             <div class="ts doubling four flatted cards">
                 @foreach ($styleHints as $key => $styleHint)
                     <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
@@ -321,29 +314,27 @@
                         height="960" />
                 @endforeach
             </div>
-        </x-section-container>
+        </x-section>
     @endif
 
     @if ($commonlyStyledHmallProducts->isNotEmpty())
-        <x-section-container tertiary>
-            <x-section-header title="經常搭配商品" />
+        <x-section title="經常搭配商品" tertiary>
             <div class="ts doubling link cards six">
                 @each('hmall-products.simple-card', $commonlyStyledHmallProducts, 'hmallProduct')
             </div>
-        </x-section-container>
+        </x-section>
     @endif
 
     @if ($relatedHmallProducts->isNotEmpty())
-        <x-section-container tertiary>
-            <x-section-header title="延伸商品" />
+        <x-section title="延伸商品" tertiary>
             <div class="ts doubling link cards six">
                 @each('hmall-products.card', $relatedHmallProducts, 'hmallProduct')
             </div>
-        </x-section-container>
+        </x-section>
     @endif
 
     @if (!empty($adsenseClientId) && !empty($adsenseSlotId))
-        <x-section-container secondary>
+        <x-section secondary>
             <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ $adsenseClientId }}"
                 crossorigin="anonymous"></script>
             <ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-layout="in-article"
@@ -352,11 +343,10 @@
             <script>
                 (adsbygoogle = window.adsbygoogle || []).push({});
             </script>
-        </x-section-container>
+        </x-section>
     @endif
 
-    <x-section-container tertiary>
-        <x-section-header title="歷史價格" />
+    <x-section title="歷史價格" tertiary>
         <div class="ts fluid container grid">
             <div class="four wide computer sixteen wide tablet sixteen wide mobile column">
                 <div class="ts grid">
@@ -417,11 +407,10 @@
                 </div>
             </div>
         </div>
-    </x-section-container>
+    </x-section>
 
     @isset($japanProduct)
-        <x-section-container tertiary>
-            <x-section-header title="日本版商品資訊" />
+        <x-section title="日本版商品資訊" tertiary>
             <div class="ts items">
                 <div class="item">
                     <div class="ts tiny image">
@@ -518,16 +507,15 @@
                     @endif
                 </div>
             </div>
-        </x-section-container>
+        </x-section>
     @endisset
 
     @if ($relatedProducts->isNotEmpty())
-        <x-section-container tertiary>
-            <x-section-header title="舊系統商品" />
+        <x-section title="舊系統商品" tertiary>
             <div class="ts doubling link cards six">
                 @each('products.card', $relatedProducts, 'product')
             </div>
-        </x-section-container>
+        </x-section>
     @endif
 @endsection
 
