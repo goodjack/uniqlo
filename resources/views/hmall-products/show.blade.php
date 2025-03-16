@@ -254,11 +254,7 @@
     @if (optional($japanProduct)->has_videos)
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
-                <h2 class="ts large dividing header">
-                    商品影片
-                    <div class="inline sub header">日本版</div>
-                </h2>
-                <div class="ts hidden divider"></div>
+                <x-section-header title="商品影片" sub-title="日本版" />
                 <div class="ts doubling four flatted cards">
                     @foreach ($japanProduct->sub_videos as $key => $subVideo)
                         <div class="ts card">
@@ -276,8 +272,7 @@
     @if ($colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images)
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
-                <h2 class="ts large dividing header">商品實照</h2>
-                <div class="ts hidden divider"></div>
+                <x-section-header title="商品實照" />
                 <div class="ts doubling four flatted cards">
                     @if ($colorNums)
                         @foreach ($colorNums as $key => $colorNum)
@@ -308,8 +303,7 @@
     @if ($styles->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
-                <h2 class="ts large dividing header">Official Styling 官方精選穿搭</h2>
-                <div class="ts hidden divider"></div>
+                <x-section-header title="Official Styling 官方精選穿搭" />
                 <div class="ts doubling four flatted cards">
                     @foreach ($styles as $key => $style)
                         <x-image-card link="{{ $style->detail_url }}" imageUrl="{{ $style->image_url }}"
@@ -324,16 +318,8 @@
     @if ($styleHints->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
-                <h2 class="ts large dividing header">
-                    StyleHint 網友穿搭靈感
-                    <div class="inline sub header">共 {{ $styleHintCount }} 張</div>
-                    <a class="ts right floated icon labeled button" style="font-size: 0.9rem;"
-                        href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
-                        <i class="camera retro icon"></i>
-                        查看列表
-                    </a>
-                </h2>
-                <div class="ts hidden divider"></div>
+                <x-section-header title="StyleHint 網友穿搭靈感" subTitle="共 {{ $styleHintCount }} 張"
+                    rightAction='<a class="ts icon labeled button" style="font-size: 0.9rem;" href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}"><i class="camera retro icon"></i>查看列表</a>' />
                 <div class="ts doubling four flatted cards">
                     @foreach ($styleHints as $key => $styleHint)
                         <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
@@ -349,8 +335,7 @@
     @if ($commonlyStyledHmallProducts->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
-                <h2 class="ts large dividing header">經常搭配商品</h2>
-                <div class="ts hidden divider"></div>
+                <x-section-header title="經常搭配商品" />
                 <div class="ts doubling link cards six">
                     @each('hmall-products.simple-card', $commonlyStyledHmallProducts, 'hmallProduct')
                 </div>
@@ -361,8 +346,7 @@
     @if ($relatedHmallProducts->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
-                <h2 class="ts large dividing header">延伸商品</h2>
-                <div class="ts hidden divider"></div>
+                <x-section-header title="延伸商品" />
                 <div class="ts doubling link cards six">
                     @each('hmall-products.card', $relatedHmallProducts, 'hmallProduct')
                 </div>
@@ -387,8 +371,7 @@
 
     <div class="ts very padded horizontally fitted attached fluid tertiary segment">
         <div class="ts container">
-            <h2 class="ts large dividing header">歷史價格</h2>
-            <div class="ts hidden divider"></div>
+            <x-section-header title="歷史價格" />
             <div class="ts fluid container grid">
                 <div class="four wide computer sixteen wide tablet sixteen wide mobile column">
                     <div class="ts grid">
@@ -455,8 +438,7 @@
     @isset($japanProduct)
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
-                <h2 class="ts large dividing header">日本版商品資訊</h2>
-                <div class="ts hidden divider"></div>
+                <x-section-header title="日本版商品資訊" />
                 <div class="ts items">
                     <div class="item">
                         <div class="ts tiny image">
@@ -561,8 +543,7 @@
     @if ($relatedProducts->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
-                <h2 class="ts large dividing header">舊系統商品</h2>
-                <div class="ts hidden divider"></div>
+                <x-section-header title="舊系統商品" />
                 <div class="ts doubling link cards six">
                     @each('products.card', $relatedProducts, 'product')
                 </div>

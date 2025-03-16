@@ -2,16 +2,16 @@
 @extends('layouts.master')
 
 @php
-$shareText = $product->name . ' | UNIQLO 比價 | UQ 搜尋';
-$shareTextEncode = urlencode($shareText);
+    $shareText = $product->name . ' | UNIQLO 比價 | UQ 搜尋';
+    $shareTextEncode = urlencode($shareText);
 
-$url = url()->current();
-$shareUrl = [
-    'facebook' => urlencode($url . '?utm_source=uqs&utm_medium=fb&utm_campaign=share'),
-    'twitter' => urlencode($url . '?utm_source=uqs&utm_medium=twtr&utm_campaign=share'),
-    'line' => urlencode($url . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
-    'webShare' => $url . '?utm_source=uqs&utm_medium=webshare&utm_campaign=share',
-];
+    $url = url()->current();
+    $shareUrl = [
+        'facebook' => urlencode($url . '?utm_source=uqs&utm_medium=fb&utm_campaign=share'),
+        'twitter' => urlencode($url . '?utm_source=uqs&utm_medium=twtr&utm_campaign=share'),
+        'line' => urlencode($url . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
+        'webShare' => $url . '?utm_source=uqs&utm_medium=webshare&utm_campaign=share',
+    ];
 @endphp
 
 @section('title', "{$product->name}")
@@ -68,8 +68,7 @@ $shareUrl = [
     <meta name="twitter:creator" content="@littlegoodjack" />
     <meta name="twitter:title" content="{{ $product->name }} | UQ 搜尋" />
     <meta name="twitter:description" content="{{ $productPresenter->getSocialMediaDescription($product) }}" />
-    <meta name="twitter:image"
-        content="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}" />
+    <meta name="twitter:image" content="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}" />
     <meta name="share:text" content="{{ $shareText }}" />
     <meta name="share:url" content="{{ $shareUrl['webShare'] }}" />
 @endsection
@@ -235,8 +234,7 @@ $shareUrl = [
     @if (count($suggestProducts) > 0)
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
-                <h2 class="ts large dividing header">你可能也喜歡</h2>
-                <div class="ts hidden divider"></div>
+                <x-section-header title="你可能也喜歡" />
                 <div class="ts segmented selection items">
                     @each('products.item', $suggestProducts, 'product')
                 </div>
