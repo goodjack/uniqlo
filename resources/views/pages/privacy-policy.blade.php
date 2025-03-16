@@ -1,10 +1,9 @@
 @extends('layouts.master')
 
-@section('title', "隱私權政策")
+@section('title', '隱私權政策')
 
 @section('content')
-<div class="ts attached very padded horizontally fitted secondary segment">
-    <div class="ts container">
+    <x-section secondary>
         <div class="ts hidden divider"></div>
         <div class="ts basic segment">
             <h1 class="ts header">
@@ -12,10 +11,8 @@
             </h1>
         </div>
         <div class="ts hidden divider"></div>
-    </div>
-</div>
-<div class="ts attached very padded horizontally fitted segment">
-    <div class="ts container relaxed stackable grid">
+    </x-section>
+    <x-section grid="relaxed stackable">
         <!-- 左側區塊 -->
         <div class="sixteen wide tablet eleven wide computer column">
             <!-- 文章 -->
@@ -89,15 +86,15 @@
                 <div class="ts large padded basic horizontally fitted secondary attached message">
                     <p>
                         前項但書之情形包括不限於：
-                        <ul style="color: #919191">
-                            <li>經由您書面同意。</li>
-                            <li>法律明文規定。</li>
-                            <li>為免除您生命、身體、自由或財產上之危險。</li>
-                            <li>與公務機關或學術研究機構合作，基於公共利益為統計或學術研究而有必要，且資料經過提供者處理或蒐集者依其揭露方式無從識別特定之當事人。</li>
-                            <li>當您在網站的行為，違反服務條款或可能損害或妨礙網站與其他使用者權益或導致任何人遭受損害時，經網站管理單位研析揭露您的個人資料是為了辨識、聯絡或採取法律行動所必要者。</li>
-                            <li>有利於您的權益。</li>
-                            <li>本網站委託廠商協助蒐集、處理或利用您的個人資料時，將對委外廠商或個人善盡監督管理之責。</li>
-                        </ul>
+                    <ul style="color: #919191">
+                        <li>經由您書面同意。</li>
+                        <li>法律明文規定。</li>
+                        <li>為免除您生命、身體、自由或財產上之危險。</li>
+                        <li>與公務機關或學術研究機構合作，基於公共利益為統計或學術研究而有必要，且資料經過提供者處理或蒐集者依其揭露方式無從識別特定之當事人。</li>
+                        <li>當您在網站的行為，違反服務條款或可能損害或妨礙網站與其他使用者權益或導致任何人遭受損害時，經網站管理單位研析揭露您的個人資料是為了辨識、聯絡或採取法律行動所必要者。</li>
+                        <li>有利於您的權益。</li>
+                        <li>本網站委託廠商協助蒐集、處理或利用您的個人資料時，將對委外廠商或個人善盡監督管理之責。</li>
+                    </ul>
                     </p>
                 </div>
 
@@ -124,6 +121,5 @@
             <!-- / 文章 -->
         </div>
         <!-- / 左側區塊 -->
-    </div>
-</div>
+    </x-section>
 @endsection

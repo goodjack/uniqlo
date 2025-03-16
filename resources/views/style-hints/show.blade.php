@@ -39,35 +39,33 @@
             <a class="ts mini basic button" href="{{ $hmallProduct->route_url }}">返回商品頁</a>
         </div>
     </div>
-    <div class="ts very padded horizontally fitted attached fluid secondary segment">
-        <div class="ts container">
-            <div class="ts items">
-                <div class="item">
-                    <div class="ts mini image">
-                        <x-lazy-load-image src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
-                            alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
+    <x-section secondary>
+        <div class="ts items">
+            <div class="item">
+                <div class="ts mini image">
+                    <x-lazy-load-image src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
+                        alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
+                </div>
+                <div class="middle aligned content">
+                    <div class="header">
+                        {{ $hmallProductPresenter->getFullName($hmallProduct) }}
                     </div>
-                    <div class="middle aligned content">
-                        <div class="header">
-                            {{ $hmallProductPresenter->getFullName($hmallProduct) }}
-                        </div>
-                        <div class="inline middoted meta">
-                            <span>{{ $hmallProduct->brand }} 商品編號 {{ $hmallProduct->code }}
-                                {{ $hmallProduct->product_code }}</span>
-                        </div>
+                    <div class="inline middoted meta">
+                        <span>{{ $hmallProduct->brand }} 商品編號 {{ $hmallProduct->code }}
+                            {{ $hmallProduct->product_code }}</span>
                     </div>
                 </div>
             </div>
-            <div class="ts doubling four flatted cards">
-                @foreach ($styleHints as $key => $styleHint)
-                    <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
-                        largeImageUrl="{{ $styleHint->large_image_url }}" country="{{ $styleHint->country }}"
-                        alt="StyleHint 網友穿搭靈感 {{ $styleHints->firstItem() + $key }} ({{ $styleHint->user_name }})"
-                        width="720" height="960" />
-                @endforeach
-            </div>
         </div>
-    </div>
+        <div class="ts doubling four flatted cards">
+            @foreach ($styleHints as $key => $styleHint)
+                <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
+                    largeImageUrl="{{ $styleHint->large_image_url }}" country="{{ $styleHint->country }}"
+                    alt="StyleHint 網友穿搭靈感 {{ $styleHints->firstItem() + $key }} ({{ $styleHint->user_name }})"
+                    width="720" height="960" />
+            @endforeach
+        </div>
+    </x-section>
     <div class="ts very padded horizontally fitted attached fluid secondary center aligned segment">
         <div class="ts small buttons">
             {{-- Previous Page Link --}}

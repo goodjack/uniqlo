@@ -18,6 +18,8 @@ class Section extends Component
      * @param  string|null  $rightAction  右側動作（可選）
      * @param  bool  $secondary  是否使用 secondary 樣式
      * @param  bool  $tertiary  是否使用 tertiary 樣式
+     * @param  bool  $inverted  是否使用 inverted 樣式
+     * @param  string  $padded  內距程度（預設為 very，可選：very、normal、none）
      * @param  string|null  $grid  grid 的類型（例如：stackable、relaxed、relaxed stackable）
      * @param  bool  $veryNarrow  是否使用 very narrow 樣式
      *
@@ -29,6 +31,8 @@ class Section extends Component
         public ?string $rightAction = null,
         public bool $secondary = false,
         public bool $tertiary = false,
+        public bool $inverted = false,
+        public string $padded = 'very',
         public ?string $grid = '',
         public bool $veryNarrow = false,
     ) {

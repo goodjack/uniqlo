@@ -289,4 +289,106 @@ class SectionTest extends TestCase
         $view->assertSee('標題')
             ->assertDontSee('class="right floated"', false);
     }
+
+    public function test_renders_with_inverted_style()
+    {
+        // Arrange & Act
+        $view = $this->component(Section::class, [
+            'inverted' => true,
+        ]);
+
+        // Assert
+        $view->assertSee('inverted');
+    }
+
+    public function test_renders_with_inverted_and_secondary_style()
+    {
+        // Arrange & Act
+        $view = $this->component(Section::class, [
+            'inverted' => true,
+            'secondary' => true,
+        ]);
+
+        // Assert
+        $view->assertSee('secondary segment')
+            ->assertSee('inverted');
+    }
+
+    public function test_renders_with_inverted_and_tertiary_style()
+    {
+        // Arrange & Act
+        $view = $this->component(Section::class, [
+            'inverted' => true,
+            'tertiary' => true,
+        ]);
+
+        // Assert
+        $view->assertSee('tertiary segment')
+            ->assertSee('inverted');
+    }
+
+    public function test_renders_inverted_with_title_and_subtitle()
+    {
+        // Arrange & Act
+        $view = $this->component(Section::class, [
+            'title' => '測試標題',
+            'subTitle' => '副標題',
+            'inverted' => true,
+        ]);
+
+        // Assert
+        $view->assertSee('測試標題')
+            ->assertSee('副標題')
+            ->assertSee('inverted');
+    }
+
+    public function test_renders_with_default_very_padded()
+    {
+        // Arrange & Act
+        $view = $this->component(Section::class);
+
+        // Assert
+        $view->assertSee('very padded')
+            ->assertDontSee('class="ts padded"', false);
+    }
+
+    public function test_renders_with_normal_padded()
+    {
+        // Arrange & Act
+        $view = $this->component(Section::class, [
+            'padded' => 'normal',
+        ]);
+
+        // Assert
+        $view->assertDontSee('very padded')
+            ->assertSee('padded');
+    }
+
+    public function test_renders_without_padding()
+    {
+        // Arrange & Act
+        $view = $this->component(Section::class, [
+            'padded' => 'none',
+        ]);
+
+        // Assert
+        $view->assertDontSee('very padded')
+            ->assertDontSee('padded');
+    }
+
+    public function test_renders_padded_with_other_styles()
+    {
+        // Arrange & Act
+        $view = $this->component(Section::class, [
+            'padded' => 'normal',
+            'secondary' => true,
+            'inverted' => true,
+        ]);
+
+        // Assert
+        $view->assertSee('padded')
+            ->assertDontSee('very padded')
+            ->assertSee('secondary segment')
+            ->assertSee('inverted');
+    }
 }

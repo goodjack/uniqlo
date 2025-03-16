@@ -4,15 +4,21 @@
     'rightAction' => null,
     'secondary' => false,
     'tertiary' => false,
+    'inverted' => false,
+    'padded' => 'very',
     'grid' => '',
     'veryNarrow' => false,
 ])
 
 <div @class([
-    'ts very padded horizontally fitted attached fluid',
+    'ts',
+    'padded' => $padded === 'normal',
+    'very padded' => $padded === 'very',
+    'horizontally fitted attached fluid',
     'secondary segment' => $secondary,
     'tertiary segment' => $tertiary,
     'segment' => !$secondary && !$tertiary,
+    'inverted' => $inverted,
 ])>
     <div @class([
         'ts',
