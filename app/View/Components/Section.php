@@ -15,7 +15,6 @@ class Section extends Component
      *
      * @param  string|null  $title  區段標題
      * @param  string|null  $subTitle  副標題（可選）
-     * @param  string|null  $rightAction  右側動作（可選）
      * @param  bool  $secondary  是否使用 secondary 樣式
      * @param  bool  $tertiary  是否使用 tertiary 樣式
      * @param  bool  $inverted  是否使用 inverted 樣式
@@ -28,7 +27,6 @@ class Section extends Component
     public function __construct(
         public ?string $title = '',
         public ?string $subTitle = null,
-        public ?string $rightAction = null,
         public bool $secondary = false,
         public bool $tertiary = false,
         public bool $inverted = false,

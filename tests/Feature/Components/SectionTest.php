@@ -46,10 +46,13 @@ class SectionTest extends TestCase
     public function test_renders_with_right_action()
     {
         // Arrange & Act
-        $view = $this->component(Section::class, [
-            'title' => '測試標題',
-            'rightAction' => '<a href="#" class="ts button">按鈕</a>',
-        ]);
+        $view = $this->blade(
+            '<x-section title="測試標題">
+                <x-slot:rightAction>
+                    <a href="#" class="ts button">按鈕</a>
+                </x-slot:rightAction>
+            </x-section>'
+        );
 
         // Assert
         $view->assertSee('測試標題')
@@ -131,14 +134,13 @@ class SectionTest extends TestCase
     public function test_renders_with_combined_features()
     {
         // Arrange & Act
-        $view = $this->component(Section::class, [
-            'title' => '測試標題',
-            'subTitle' => '副標題',
-            'rightAction' => '<a href="#" class="ts button">按鈕</a>',
-            'secondary' => true,
-            'grid' => 'relaxed stackable',
-            'veryNarrow' => true,
-        ]);
+        $view = $this->blade(
+            '<x-section title="測試標題" subTitle="副標題" secondary grid="relaxed stackable" veryNarrow>
+                <x-slot:rightAction>
+                    <a href="#" class="ts button">按鈕</a>
+                </x-slot:rightAction>
+            </x-section>'
+        );
 
         // Assert
         $view->assertSee('測試標題')
@@ -190,9 +192,13 @@ class SectionTest extends TestCase
     public function test_renders_with_only_right_action()
     {
         // Arrange & Act
-        $view = $this->component(Section::class, [
-            'rightAction' => '<a href="#" class="ts button">按鈕</a>',
-        ]);
+        $view = $this->blade(
+            '<x-section>
+                <x-slot:rightAction>
+                    <a href="#" class="ts button">按鈕</a>
+                </x-slot:rightAction>
+            </x-section>'
+        );
 
         // Assert
         $view->assertDontSee('按鈕')
@@ -215,11 +221,13 @@ class SectionTest extends TestCase
     public function test_renders_with_empty_title()
     {
         // Arrange & Act
-        $view = $this->component(Section::class, [
-            'title' => '',
-            'subTitle' => '副標題',
-            'rightAction' => '<a href="#" class="ts button">按鈕</a>',
-        ]);
+        $view = $this->blade(
+            '<x-section title="" subTitle="副標題">
+                <x-slot:rightAction>
+                    <a href="#" class="ts button">按鈕</a>
+                </x-slot:rightAction>
+            </x-section>'
+        );
 
         // Assert
         $view->assertDontSee('class="ts large dividing header"', false)
@@ -233,7 +241,6 @@ class SectionTest extends TestCase
         $view = $this->component(Section::class, [
             'title' => null,
             'subTitle' => null,
-            'rightAction' => null,
             'grid' => null,
         ]);
 
@@ -266,6 +273,28 @@ class SectionTest extends TestCase
         $view->assertSee('ts container relaxed stackable doubling grid');
     }
 
+    public function test_renders_with_named_slot_right_action()
+    {
+        // Arrange & Act
+        $view = $this->blade(
+            '<x-section title="測試標題">
+                <x-slot:rightAction>
+                    <button class="ts primary button">
+                        <i class="plus icon"></i>新增
+                    </button>
+                </x-slot:rightAction>
+                <p>內容區塊</p>
+            </x-section>'
+        );
+
+        // Assert
+        $view->assertSee('測試標題')
+            ->assertSee('class="right floated"', false)
+            ->assertSee('class="ts primary button"', false)
+            ->assertSee('<i class="plus icon"></i>新增', false)
+            ->assertSee('內容區塊');
+    }
+
     public function test_always_includes_hidden_divider()
     {
         // Arrange & Act
@@ -280,10 +309,10 @@ class SectionTest extends TestCase
     public function test_handles_empty_right_action()
     {
         // Arrange & Act
-        $view = $this->component(Section::class, [
-            'title' => '標題',
-            'rightAction' => '',
-        ]);
+        $view = $this->blade(
+            '<x-section title="標題">
+            </x-section>'
+        );
 
         // Assert
         $view->assertSee('標題')

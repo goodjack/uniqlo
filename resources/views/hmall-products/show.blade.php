@@ -303,9 +303,13 @@
     @endif
 
     @if ($styleHints->isNotEmpty())
-        <x-section title="StyleHint 網友穿搭靈感" subTitle="共 {{ $styleHintCount }} 張"
-            rightAction='<a class="ts icon labeled button" style="font-size: 0.9rem;" href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}"><i class="camera retro icon"></i>查看列表</a>'
-            tertiary>
+        <x-section title="StyleHint 網友穿搭靈感" subTitle="共 {{ $styleHintCount }} 張" tertiary>
+            <x-slot:rightAction>
+                <a class="ts icon labeled button" style="font-size: 0.9rem;" 
+                   href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
+                    <i class="camera retro icon"></i>查看列表
+                </a>
+            </x-slot:rightAction>
             <div class="ts doubling four flatted cards">
                 @foreach ($styleHints as $key => $styleHint)
                     <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"

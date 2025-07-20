@@ -1,7 +1,6 @@
 @props([
     'title' => '',
     'subTitle' => null,
-    'rightAction' => null,
     'secondary' => false,
     'tertiary' => false,
     'inverted' => false,
@@ -32,11 +31,11 @@
                 @if ($subTitle)
                     <div class="inline sub header">{{ $subTitle }}</div>
                 @endif
-                @if ($rightAction)
+                @isset($rightAction)
                     <div class="right floated">
-                        {!! $rightAction !!}
+                        {{ $rightAction }}
                     </div>
-                @endif
+                @endisset
             </h2>
             <div class="ts hidden divider"></div>
         @endif

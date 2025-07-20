@@ -35,7 +35,7 @@
 2. **設計元件介面**：
    - 定義必要的參數和選用的參數
    - 確保參數命名符合直覺
-   - 考慮 HTML 安全性（如 `rightAction` 的 HTML 內容）
+   - 考慮 HTML 安全性（使用 Named Slot 來處理右側動作，避免字串拼接的 XSS 風險）
    - 設計合理的預設值
 
 3. **撰寫測試案例**：
@@ -96,7 +96,6 @@ class Section extends Component
      *
      * @param  string|null  $title  區段標題
      * @param  string|null  $subTitle  副標題（可選）
-     * @param  string|null  $rightAction  右側動作（可選）
      * @param  bool  $secondary  Secondary 樣式
      * @param  bool  $tertiary  Tertiary 樣式
      * @param  string|null  $grid  Grid 系統
@@ -106,7 +105,6 @@ class Section extends Component
     public function __construct(
         public ?string $title = '',
         public ?string $subTitle = null,
-        public ?string $rightAction = null,
         public bool $secondary = false,
         public bool $tertiary = false,
         public ?string $grid = '',
@@ -150,11 +148,11 @@ class Section extends Component
                 @if ($subTitle)
                     <div class="inline sub header">{{ $subTitle }}</div>
                 @endif
-                @if ($rightAction)
+                @isset($rightAction)
                     <div class="right floated">
-                        {!! $rightAction !!}
+                        {{ $rightAction }}
                     </div>
-                @endif
+                @endisset
             </h2>
             <div class="ts hidden divider"></div>
         @endif
@@ -194,7 +192,7 @@ class Section extends Component
 
 1. **安全性與資料處理**：
    - 謹慎處理用戶輸入的 HTML 內容，避免 XSS 風險
-   - 考慮如 `rightAction` 參數不轉義，允許 HTML 內容
+   - 使用 Named Slot 處理複雜 HTML 內容，提供更好的安全性和可讀性
    - 明確處理互斥參數（如 secondary/tertiary）
    - 在建構函式中處理相依邏輯
    - 提供清晰的文檔說明參數相依性
@@ -398,6 +396,22 @@ class Section extends Component
 <x-section-container grid="relaxed stackable">
     <!-- 內容 -->
 </x-section-container>
+```
+
+使用 Named Slot 的右側動作：
+```blade
+<x-section title="商品清單" subTitle="共 25 個商品" tertiary>
+    <x-slot:rightAction>
+        <a href="/products/create" class="ts primary button">
+            <i class="plus icon"></i>新增商品
+        </a>
+    </x-slot:rightAction>
+    
+    <!-- 商品列表內容 -->
+    <div class="ts doubling four cards">
+        <!-- 商品卡片 -->
+    </div>
+</x-section>
 ```
 
 組合使用：
