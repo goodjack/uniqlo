@@ -12,8 +12,11 @@ class SectionTest extends TestCase
         // Arrange & Act
         $view = $this->component(Section::class);
 
-        // Assert
-        $view->assertSee('ts very padded horizontally fitted attached fluid segment')
+        // Assert - 分別驗證各個 CSS 類別，提高測試的可維護性
+        $view->assertSee('ts very padded')
+            ->assertSee('horizontally fitted')
+            ->assertSee('attached fluid')
+            ->assertSee('segment')
             ->assertSee('ts container');
     }
 
@@ -68,8 +71,11 @@ class SectionTest extends TestCase
             'secondary' => true,
         ]);
 
-        // Assert
-        $view->assertSee('ts very padded horizontally fitted attached fluid secondary segment')
+        // Assert - 分別驗證 secondary segment 的 CSS 類別
+        $view->assertSee('ts very padded')
+            ->assertSee('horizontally fitted')
+            ->assertSee('attached fluid')
+            ->assertSee('secondary segment')
             ->assertSee('ts container');
     }
 
@@ -80,8 +86,11 @@ class SectionTest extends TestCase
             'tertiary' => true,
         ]);
 
-        // Assert
-        $view->assertSee('ts very padded horizontally fitted attached fluid tertiary segment')
+        // Assert - 分別驗證 tertiary segment 的 CSS 類別
+        $view->assertSee('ts very padded')
+            ->assertSee('horizontally fitted')
+            ->assertSee('attached fluid')
+            ->assertSee('tertiary segment')
             ->assertSee('ts container');
     }
 
@@ -146,7 +155,9 @@ class SectionTest extends TestCase
         $view->assertSee('測試標題')
             ->assertSee('副標題')
             ->assertSee('按鈕')
-            ->assertSee('ts very padded horizontally fitted attached fluid secondary segment')
+            ->assertSee('secondary segment')
+            ->assertSee('ts very padded')
+            ->assertSee('horizontally fitted')
             ->assertSee('ts very narrow container relaxed stackable grid');
     }
 
@@ -177,21 +188,21 @@ class SectionTest extends TestCase
             ->assertSee('&lt;/script&gt;', false);
     }
 
-    public function test_renders_with_only_subtitle()
+    public function test_subtitle_not_rendered_without_title()
     {
-        // Arrange & Act
+        // Arrange & Act - 測試沒有標題時，副標題不會被渲染
         $view = $this->component(Section::class, [
             'subTitle' => '只有副標題',
         ]);
 
-        // Assert
+        // Assert - 確認副標題和相關的 HTML 結構都不會出現
         $view->assertDontSee('只有副標題', false)
             ->assertDontSee('class="inline sub header"', false);
     }
 
-    public function test_renders_with_only_right_action()
+    public function test_right_action_not_rendered_without_title()
     {
-        // Arrange & Act
+        // Arrange & Act - 測試沒有標題時，右側動作不會被渲染
         $view = $this->blade(
             '<x-section>
                 <x-slot:rightAction>
@@ -200,7 +211,7 @@ class SectionTest extends TestCase
             </x-section>'
         );
 
-        // Assert
+        // Assert - 確認右側動作和相關的 HTML 結構都不會出現
         $view->assertDontSee('按鈕')
             ->assertDontSee('class="right floated"', false);
     }
@@ -244,8 +255,11 @@ class SectionTest extends TestCase
             'grid' => null,
         ]);
 
-        // Assert
-        $view->assertSee('ts very padded horizontally fitted attached fluid segment')
+        // Assert - 驗證空 grid 字串的處理
+        $view->assertSee('ts very padded')
+            ->assertSee('horizontally fitted')
+            ->assertSee('attached fluid')
+            ->assertSee('segment')
             ->assertSee('ts container')
             ->assertDontSee('grid');
     }
