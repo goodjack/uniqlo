@@ -14,6 +14,9 @@ class StyleHintService extends Service
     /** @var StyleHintRepository */
     protected $repository;
 
+    /** @var int */
+    private $detailCounter = 0;
+
     private const CACHE_UGC_SCHEDULING = 'style_hint_ugc:scheduling';
 
     private const CACHE_UGC_MANUAL_LAST_GENDER = 'style_hint_ugc:manual:%s:last_gender';
@@ -25,19 +28,132 @@ class StyleHintService extends Service
         $this->repository = $repository;
     }
 
-    public function fetchAllStyleHints(string $country)
+    /**
+     * Get a random User-Agent from the configured pool.
+     */
+    private function getRandomUserAgent(): string
+    {
+        $userAgents = config('app.user_agents');
+
+        return $userAgents[array_rand($userAgents)];
+    }
+
+    /**
+     * Build complete browser headers for the request.
+     */
+    private function buildHeaders(): array
+    {
+        return [
+            'User-Agent' => $this->getRandomUserAgent(),
+            'Accept' => 'application/json, text/plain, */*',
+            'Accept-Language' => 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Encoding' => 'gzip, deflate, br, zstd',
+            'appCheck' => 'for-app-review',
+            'langCode' => 'zh_TW',
+            'Origin' => 'https://m.uniqlo.com',
+            'Referer' => 'https://m.uniqlo.com/',
+        ];
+    }
+
+    /**
+     * Check if the exception is a 403 Forbidden error.
+     */
+    private function is403Error(Throwable $e): bool
+    {
+        if ($e instanceof \Illuminate\Http\Client\RequestException) {
+            return $e->response?->status() === 403;
+        }
+
+        return false;
+    }
+
+    /**
+     * Apply random delay in microseconds.
+     */
+    private function randomDelay(): void
+    {
+        $delayConfig = config('app.crawler.delay');
+        $delayMs = rand($delayConfig['min'], $delayConfig['max']);
+
+        usleep($delayMs);
+    }
+
+    /**
+     * Apply random sleep in seconds.
+     */
+    private function randomSleep(): void
+    {
+        $retryConfig = config('app.crawler.retry');
+        $sleepSec = rand($retryConfig['sleep_min'], $retryConfig['sleep_max']);
+
+        sleep($sleepSec);
+    }
+
+    /**
+     * Check if offset batch rest should be triggered.
+     */
+    private function shouldOffsetBatchRest(int $offset, int $limit): bool
+    {
+        $interval = config('app.crawler.batch_rest.offset.interval');
+
+        return ($offset / $limit) % $interval === 0 && $offset > 0;
+    }
+
+    /**
+     * Perform offset batch rest.
+     */
+    private function doOffsetBatchRest(): void
+    {
+        $offsetConfig = config('app.crawler.batch_rest.offset');
+        $sleepSec = rand($offsetConfig['sleep_min'], $offsetConfig['sleep_max']);
+
+        logger()->info("Offset batch rest: sleeping {$sleepSec}s");
+        sleep($sleepSec);
+    }
+
+    /**
+     * Reset detail counter.
+     */
+    private function resetDetailCounter(): void
+    {
+        $this->detailCounter = 0;
+    }
+
+    /**
+     * Check if detail batch rest should be triggered.
+     */
+    private function shouldDetailBatchRest(): bool
+    {
+        return $this->detailCounter % config('app.crawler.batch_rest.detail.interval') === 0 && $this->detailCounter > 0;
+    }
+
+    /**
+     * Perform detail batch rest.
+     */
+    private function doDetailBatchRest(): void
+    {
+        $detailConfig = config('app.crawler.batch_rest.detail');
+        $sleepSec = rand($detailConfig['sleep_min'], $detailConfig['sleep_max']);
+
+        logger()->info("Detail batch rest: sleeping {$sleepSec}s");
+        sleep($sleepSec);
+    }
+
+    public function fetchAllStyleHints(string $country, bool $fresh = false)
     {
         $limit = 50;
-        $offset = 0;
+        $cacheKey = "style_hint:offset:{$country}";
+        $offset = $fresh ? 0 : (Cache::get($cacheKey) ?? 0);
         $total = 0;
         $retry = 0;
+        $maxRetry = config('app.crawler.retry.laravel');
+
+        logger()->info("Fetching style hints for {$country}, starting from offset {$offset}");
 
         do {
             try {
-                $response = Http::withHeaders([
-                    'User-Agent' => config('app.user_agent_mobile'),
-                ])
-                    ->retry(5, 1000)
+                $response = Http::withHeaders($this->buildHeaders())
+                    ->retry($maxRetry, 1000)
                     ->get(config("uniqlo.api.style_hint_list.{$country}"), [
                         'offset' => $offset,
                         'limit' => $limit,
@@ -51,18 +167,39 @@ class StyleHintService extends Service
 
                 $total = $responseBody->result->pagination->total;
 
+                // Update checkpoint
+                Cache::set($cacheKey, $offset + $limit, now()->addDays(7));
+
                 $offset += $limit;
                 $retry = 0;
 
-                usleep(500000);
+                // Check if offset batch rest is needed
+                if ($this->shouldOffsetBatchRest($offset, $limit)) {
+                    $this->doOffsetBatchRest();
+                }
+
+                $this->randomDelay();
             } catch (Throwable $e) {
-                if ($retry >= 5) {
-                    Log::error('fetchAllStyleHints error', [
+                // 403 is a permanent block - stop immediately
+                if ($this->is403Error($e)) {
+                    Log::error('fetchAllStyleHints blocked (403)', [
+                        'country' => $country,
+                        'offset' => $offset,
+                        'limit' => $limit,
+                    ]);
+                    report($e);
+
+                    return;
+                }
+
+                if ($retry >= $maxRetry) {
+                    Log::error('fetchAllStyleHints error - max retry exceeded', [
                         'retry' => $retry,
                         'country' => $country,
                         'limit' => $limit,
                         'offset' => $offset,
-                        'response_body' => $response->body() ?? null,
+                        'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
+                        'error' => $e->getMessage(),
                     ]);
                     report($e);
 
@@ -73,16 +210,20 @@ class StyleHintService extends Service
                 }
 
                 $retry++;
-
-                sleep(1);
+                $this->randomSleep();
             }
         } while ($total >= $offset);
+
+        // Clear checkpoint on successful completion
+        Cache::forget($cacheKey);
+        logger()->info("Completed fetching style hints for {$country}");
     }
 
     public function fetchAllStyleHintsFromUgc(
         string $brand = 'UNIQLO',
         bool $onlyRecent = false,
         bool $isManual = true,
+        bool $fresh = false,
     ): void {
         $genders = [
             '1', // MEN
@@ -92,11 +233,18 @@ class StyleHintService extends Service
             '5',
         ];
 
+        // Clear checkpoints if fresh start
+        if ($fresh) {
+            Cache::forget(sprintf(self::CACHE_UGC_MANUAL_LAST_PAGE, $brand));
+            Cache::forget(sprintf(self::CACHE_UGC_MANUAL_LAST_GENDER, $brand));
+        }
+
         if (! $isManual) {
             Cache::forever(self::CACHE_UGC_SCHEDULING, true);
         }
 
         foreach ($genders as $gender) {
+            $this->resetDetailCounter();
             $this->fetchStyleHintsFromUgcByGender($gender, $brand, $onlyRecent, $isManual);
         }
 
@@ -107,6 +255,7 @@ class StyleHintService extends Service
 
     private function fetchStyleHintsDetails($country, $styleHintSummaries)
     {
+        $this->resetDetailCounter();
         $styleHintSummaries = collect($styleHintSummaries);
 
         $existOutfitIds = $this->repository->getExistStyleHintOutfitIds(
@@ -120,7 +269,9 @@ class StyleHintService extends Service
             return in_array($outfitId, $existOutfitIds);
         });
 
-        $styleHintSummaries->each(function ($styleHintSummary) use ($country) {
+        $maxRetry = config('app.crawler.retry.manual');
+
+        $styleHintSummaries->each(function ($styleHintSummary) use ($country, $maxRetry) {
             $retry = 0;
 
             $outfitId = $styleHintSummary->outfitId;
@@ -128,10 +279,8 @@ class StyleHintService extends Service
 
             do {
                 try {
-                    $response = Http::withHeaders([
-                        'User-Agent' => config('app.user_agent_mobile'),
-                    ])
-                        ->retry(5, 1000)
+                    $response = Http::withHeaders($this->buildHeaders())
+                        ->retry($maxRetry, 1000)
                         ->get($url, [
                             'type' => 'sh',
                         ]);
@@ -150,24 +299,47 @@ class StyleHintService extends Service
                         $result
                     );
 
+                    $this->detailCounter++;
+
+                    // Check if detail batch rest is needed
+                    if ($this->shouldDetailBatchRest()) {
+                        $this->doDetailBatchRest();
+                    }
+
                     $retry = 0;
 
-                    usleep(500000);
+                    $this->randomDelay();
                 } catch (Throwable $e) {
-                    if ($retry >= 5) {
-                        Log::error('fetchStyleHintsDetails error', [
-                            'retry' => $retry,
+                    // 403 is a permanent block - stop immediately
+                    if ($this->is403Error($e)) {
+                        Log::error('fetchStyleHintsDetails blocked (403)', [
                             'country' => $country,
                             'outfitId' => $outfitId,
                         ]);
                         report($e);
+
+                        return; // Stop processing this batch
+                    }
+
+                    if ($retry >= $maxRetry) {
+                        Log::error('fetchStyleHintsDetails error - max retry exceeded', [
+                            'retry' => $retry,
+                            'country' => $country,
+                            'outfitId' => $outfitId,
+                            'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
+                            'error' => $e->getMessage(),
+                        ]);
+                        report($e);
+
+                        $retry = 0;
+
+                        return; // Skip this item
                     }
 
                     $retry++;
-
-                    sleep(1);
+                    $this->randomSleep();
                 }
-            } while ($retry > 0 && $retry <= 5);
+            } while ($retry > 0 && $retry <= $maxRetry);
         });
     }
 
@@ -183,6 +355,7 @@ class StyleHintService extends Service
         $page = 1;
         $totalResultCount = 0;
         $retry = 0;
+        $maxRetry = config('app.crawler.retry.manual');
 
         do {
             if ($isManual) {
@@ -192,15 +365,15 @@ class StyleHintService extends Service
                 $page = $this->getLastManualFetchPage($page, $brand);
 
                 $totalPage = ceil($totalResultCount / $resultLimit);
-                dump("gender: {$gender}, page: {$page}/{$totalPage}...");
+                logger()->info("Fetching UGC for {$brand} gender {$gender}: page {$page}/{$totalPage}");
             }
 
             try {
-                $response = Http::withHeaders([
-                    'User-Agent' => config('app.user_agent_mobile'),
-                    'x-fr-clientid' => $this->getClientId($brand),
-                ])
-                    ->retry(5, 1000)
+                $headers = $this->buildHeaders();
+                $headers['x-fr-clientid'] = $this->getClientId($brand);
+
+                $response = Http::withHeaders($headers)
+                    ->retry($maxRetry, 1000)
                     ->get($ugcStyleHintListApiUrl, [
                         'style_gender' => [$gender],
                         'order' => 'published_at:desc',
@@ -219,6 +392,12 @@ class StyleHintService extends Service
                 }
 
                 $this->repository->saveStyleHintsFromUgc($contentList, $brand);
+                $this->detailCounter += count($contentList);
+
+                // Check if detail batch rest is needed
+                if ($this->shouldDetailBatchRest()) {
+                    $this->doDetailBatchRest();
+                }
 
                 $totalResultCount = $responseBody->total_result_count;
 
@@ -228,20 +407,34 @@ class StyleHintService extends Service
 
                 $retry = 0;
 
-                usleep(100000);
+                $this->randomDelay();
 
                 if ($isManual) {
                     $this->forgetLastManualFetchPage($brand);
                 }
             } catch (Throwable $e) {
-                if ($retry >= 5) {
-                    Log::error('fetchStyleHintsFromUgcByGender error', [
+                // 403 is a permanent block - stop immediately
+                if ($this->is403Error($e)) {
+                    Log::error('fetchStyleHintsFromUgcByGender blocked (403)', [
+                        'brand' => $brand,
+                        'style_gender' => $gender,
+                        'page' => $page,
+                    ]);
+                    report($e);
+
+                    return;
+                }
+
+                if ($retry >= $maxRetry) {
+                    Log::error('fetchStyleHintsFromUgcByGender error - max retry exceeded', [
                         'retry' => $retry,
                         'brand' => $brand,
                         'style_gender' => $gender,
                         'page' => $page,
                         'totalResultCount' => $totalResultCount,
                         'resultLimit' => $resultLimit,
+                        'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
+                        'error' => $e->getMessage(),
                     ]);
                     report($e);
 
@@ -253,7 +446,7 @@ class StyleHintService extends Service
                 $retry++;
                 $page--;
 
-                sleep(1);
+                $this->randomSleep();
             }
         } while ($totalResultCount >= $page++ * $resultLimit);
 
@@ -266,7 +459,6 @@ class StyleHintService extends Service
     {
         if (Cache::get(self::CACHE_UGC_SCHEDULING, true)) {
             logger()->info('Manual fetch is stopped because of scheduling.');
-            dump('Manual fetch is stopped because of scheduling.');
 
             return false;
         }

@@ -14,7 +14,7 @@ class FetchStyleHints extends Command
      *
      * @var string
      */
-    protected $signature = 'style-hint:fetch {country}';
+    protected $signature = 'style-hint:fetch {country} {--fresh : Ignore checkpoint and start fresh}';
 
     /**
      * The console command description.
@@ -31,11 +31,16 @@ class FetchStyleHints extends Command
     public function handle(StyleHintService $styleHintService)
     {
         $country = $this->argument('country');
+        $fresh = $this->option('fresh');
+
+        if ($fresh) {
+            $this->warn('Starting fresh - ignoring checkpoint');
+        }
 
         $this->info("Fetching style hints for {$country}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), null, $country);
 
-        $styleHintService->fetchAllStyleHints($country);
+        $styleHintService->fetchAllStyleHints($country, $fresh);
 
         AppTaskFinished::dispatch(class_basename(__CLASS__), null, $country);
         $this->info("Fetched style hints for {$country}");

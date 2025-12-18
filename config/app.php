@@ -190,6 +190,36 @@ return [
     'pixel_tracking_id' => env('PIXEL_TRACKING_ID'),
     'sitemap_name' => env('SITEMAP_NAME'),
     'user_agent_mobile' => env('USER_AGENT_MOBILE'),
+
+    'user_agents' => array_filter(explode('|', env('CRAWLER_USER_AGENTS', ''))),
+
+    'crawler' => [
+        'retry' => [
+            'laravel' => 2,
+            'manual' => 2,
+            'sleep_min' => 2,
+            'sleep_max' => 5,
+        ],
+        'delay' => [
+            'min' => 1000000,
+            'max' => 3000000,
+        ],
+        'batch_rest' => [
+            'offset' => [
+                'enabled' => true,
+                'interval' => 75,
+                'sleep_min' => 30,
+                'sleep_max' => 60,
+            ],
+            'detail' => [
+                'enabled' => true,
+                'interval' => 200,
+                'sleep_min' => 10,
+                'sleep_max' => 20,
+            ],
+        ],
+    ],
+
     'discord_webhook_url' => env('DISCORD_WEBHOOK_URL'),
 
     'adsense' => [
