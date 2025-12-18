@@ -3,33 +3,47 @@
 namespace App\Services;
 
 use App\Repositories\JapanProductRepository;
+use App\Services\Traits\AntiBlockingCrawler;
 use Exception;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class JapanProductService
 {
+    use AntiBlockingCrawler;
+
+    private const CACHE_KEY_JAPAN_PRODUCTS_OFFSET = 'japan_products:offset:%s'; // brand
     public function __construct(protected JapanProductRepository $repository)
     {
     }
 
-    public function fetchAllProducts($brand = 'UNIQLO'): void
+    public function fetchAllProducts($brand = 'UNIQLO', bool $fresh = false): void
     {
         $japanProductListApiUrl = $this->getJapanProductListApiUrl($brand);
+        $cacheKey = sprintf(self::CACHE_KEY_JAPAN_PRODUCTS_OFFSET, $brand);
 
         $limit = 36;
-        $offset = 0;
+        $offset = $fresh ? 0 : (Cache::get($cacheKey) ?? 0);
         $total = 0;
         $retry = 0;
+        $maxRetry = config('app.crawler.retry.manual');
+
+        // Clear checkpoint if fresh
+        if ($fresh) {
+            Cache::forget($cacheKey);
+        }
+
+        Log::info("Fetching Japan products for {$brand}, starting from offset {$offset}");
 
         do {
             try {
-                $response = Http::withHeaders([
-                    'User-Agent' => config('app.user_agent_mobile'),
-                    'x-fr-clientid' => $this->getClientId($brand),
-                ])
-                    ->retry(5, 1000)
+                $headers = $this->buildHeaders();
+                $headers['x-fr-clientid'] = $this->getClientId($brand);
+
+                $response = Http::withHeaders($headers)
+                    ->retry($maxRetry, 1000)
                     ->get($japanProductListApiUrl, [
                         'offset' => $offset,
                         'limit' => $limit,
@@ -50,17 +64,39 @@ class JapanProductService
                 }
 
                 $offset += $limit;
+
+                // Update checkpoint
+                Cache::set($cacheKey, $offset, now()->addDays(7));
+
                 $retry = 0;
 
-                usleep(500000);
+                // Check if offset batch rest is needed
+                if ($this->shouldOffsetBatchRest($offset, $limit)) {
+                    $this->doOffsetBatchRest();
+                }
+
+                $this->randomDelay();
             } catch (Throwable $e) {
-                if ($retry >= 5) {
-                    Log::error('JapanProductService fetchAllProducts error', [
+                // 403 is a permanent block - stop immediately
+                if ($this->is403Error($e)) {
+                    Log::error('fetchAllProducts blocked (403)', [
+                        'brand' => $brand,
+                        'offset' => $offset,
+                    ]);
+                    report($e);
+
+                    return;
+                }
+
+                if ($retry >= $maxRetry) {
+                    Log::error('JapanProductService fetchAllProducts error - max retry exceeded', [
                         'brand' => $brand,
                         'retry' => $retry,
                         'limit' => $limit,
                         'offset' => $offset,
-                        'response_body' => $response->body() ?? null,
+                        'total' => $total,
+                        'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
+                        'error' => $e->getMessage(),
                     ]);
                     report($e);
 
@@ -72,11 +108,16 @@ class JapanProductService
 
                 $retry++;
 
-                sleep(1);
+                $this->randomSleep();
             }
         } while ($total >= $offset);
 
+        // Clear checkpoint on complete success
+        Cache::forget($cacheKey);
+
         $this->repository->setStockoutProducts($brand);
+
+        Log::info("Completed fetching Japan products for {$brand}");
     }
 
     private function getJapanProductListApiUrl($brand = 'UNIQLO')

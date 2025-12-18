@@ -5,16 +5,23 @@ namespace App\Services;
 use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
+use App\Services\Traits\AntiBlockingCrawler;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class HmallProductService extends Service
 {
+    use AntiBlockingCrawler;
+
     /** @var HmallProductRepository */
     protected $repository;
 
     protected $productRepository;
+
+    private const CACHE_KEY_HMALL_PRODUCTS_PAGE = 'hmall_products:page:%s';
+    private const CACHE_KEY_HMALL_DESCRIPTIONS = 'hmall_descriptions:last_id:%s';
 
     public function __construct(HmallProductRepository $repository, ProductRepository $productRepository)
     {
@@ -52,33 +59,37 @@ class HmallProductService extends Service
         return $this->repository->getStyleHintCount($hmallProduct);
     }
 
-    public function fetchAllHmallProducts($brand = 'UNIQLO'): void
+    public function fetchAllHmallProducts($brand = 'UNIQLO', bool $fresh = false): void
     {
         $searchApiUrl = $this->getV3SearchApiUrl($brand);
 
         $pageSize = 24;
-        $page = 1;
+        $cacheKey = sprintf(self::CACHE_KEY_HMALL_PRODUCTS_PAGE, $brand);
+        $page = $fresh ? 1 : (Cache::get($cacheKey) ?? 1);
         $productSum = 0;
         $retry = 0;
+        $maxRetry = config('app.crawler.retry.laravel');
+
+        Log::info("Fetching Hmall products for {$brand}, starting from page {$page}");
 
         do {
             try {
-                $response = Http::withHeaders([
-                    'User-Agent' => config('app.user_agent_mobile'),
-                ])->retry(5, 1000)->post($searchApiUrl, [
-                    'belongTo' => 'h5',
-                    'pageInfo' => [
-                        'page' => $page,
-                        'pageSize' => $pageSize,
-                    ],
-                    'description' => '',
-                    'priceRange' => (object) [],
-                    'size' => [],
-                    'color' => [],
-                    'stockFilter' => 'warehouse',
-                    'identity' => [],
-                    'rank' => 'overall',
-                ]);
+                $response = Http::withHeaders($this->buildHeaders())
+                    ->retry($maxRetry, 1000)
+                    ->post($searchApiUrl, [
+                        'belongTo' => 'h5',
+                        'pageInfo' => [
+                            'page' => $page,
+                            'pageSize' => $pageSize,
+                        ],
+                        'description' => '',
+                        'priceRange' => (object) [],
+                        'size' => [],
+                        'color' => [],
+                        'stockFilter' => 'warehouse',
+                        'identity' => [],
+                        'rank' => 'overall',
+                    ]);
 
                 $responseBody = json_decode($response->getBody());
                 $products = $responseBody->resp[0]->productList;
@@ -86,17 +97,34 @@ class HmallProductService extends Service
 
                 $productSum = $responseBody->resp[0]->productSum;
 
+                // Update checkpoint
+                Cache::set($cacheKey, $page + 1, now()->addDays(7));
+
                 $retry = 0;
 
-                sleep(1);
+                $this->randomDelay();
             } catch (Throwable $e) {
-                if ($retry >= 5) {
-                    Log::error('fetchAllHmallProducts error', [
+                // 403 is a permanent block - stop immediately
+                if ($this->is403Error($e)) {
+                    Log::error('fetchAllHmallProducts blocked (403)', [
+                        'brand' => $brand,
+                        'page' => $page,
+                        'pageSize' => $pageSize,
+                    ]);
+                    report($e);
+
+                    return;
+                }
+
+                if ($retry >= $maxRetry) {
+                    Log::error('fetchAllHmallProducts error - max retry exceeded', [
                         'brand' => $brand,
                         'retry' => $retry,
                         'page' => $page,
                         'pageSize' => $pageSize,
                         'productSum' => $productSum,
+                        'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
+                        'error' => $e->getMessage(),
                     ]);
                     report($e);
 
@@ -108,24 +136,55 @@ class HmallProductService extends Service
                 $retry++;
                 $page--;
 
-                sleep(1);
+                $this->randomSleep();
             }
         } while ($productSum >= $page++ * $pageSize);
+
+        // Clear checkpoint on successful completion
+        Cache::forget($cacheKey);
+        Log::info("Completed fetching Hmall products for {$brand}");
 
         $this->repository->setStockoutHmallProducts($brand);
     }
 
-    public function fetchAllHmallProductDescriptions(string $brand = 'UNIQLO', bool $updateTimestamps = false): void
+    public function fetchAllHmallProductDescriptions(string $brand = 'UNIQLO', bool $updateTimestamps = false, bool $fresh = false): void
     {
-        $hmallProducts = HmallProduct::whereNull('instruction')
+        $cacheKey = sprintf(self::CACHE_KEY_HMALL_DESCRIPTIONS, $brand);
+        $lastProcessedId = $fresh ? null : Cache::get($cacheKey);
+
+        $query = HmallProduct::whereNull('instruction')
             ->where('brand', $brand)
             ->select(['id', 'product_code'])
-            ->orderBy('id', 'desc')
-            ->get();
+            ->orderBy('id', 'desc');
+
+        if ($lastProcessedId) {
+            $query->where('id', '>', $lastProcessedId);
+            Log::info("Resuming Hmall product descriptions for {$brand} from ID {$lastProcessedId}");
+        } else {
+            Log::info("Fetching Hmall product descriptions for {$brand} from start");
+        }
+
+        $hmallProducts = $query->get();
+
+        $this->resetDetailCounter();
 
         foreach ($hmallProducts as $hmallProduct) {
             $this->fetchHmallProductDescriptions($hmallProduct, $brand, $updateTimestamps);
+
+            // Update checkpoint after each product
+            Cache::set($cacheKey, $hmallProduct->id, now()->addDays(7));
+
+            $this->detailCounter++;
+
+            // Check if detail batch rest is needed
+            if ($this->shouldDetailBatchRest()) {
+                $this->doDetailBatchRest();
+            }
         }
+
+        // Clear checkpoint on completion
+        Cache::forget($cacheKey);
+        Log::info("Completed fetching Hmall product descriptions for {$brand}");
     }
 
     public function fetchHmallProductDescriptions(
@@ -137,18 +196,19 @@ class HmallProductService extends Service
         $instructionApiUrl = $this->getV3DescriptionApiUrl($brand) . "{$productCode}/zh_TW/instructionH5.html";
         $sizeChartApiUrl = $this->getV3DescriptionApiUrl($brand) . "{$productCode}/zh_TW/sizeAndTryOnH5.html";
         $retry = 0;
+        $maxRetry = config('app.crawler.retry.manual');
 
         do {
             try {
-                $instructionResponse = Http::withHeaders([
-                    'User-Agent' => config('app.user_agent_mobile'),
-                ])->retry(5, 1000)->get($instructionApiUrl);
+                $instructionResponse = Http::withHeaders($this->buildHeaders())
+                    ->retry($maxRetry, 1000)
+                    ->get($instructionApiUrl);
 
                 $instruction = $instructionResponse->body();
 
-                $sizeChartResponse = Http::withHeaders([
-                    'User-Agent' => config('app.user_agent_mobile'),
-                ])->retry(5, 1000)->get($sizeChartApiUrl);
+                $sizeChartResponse = Http::withHeaders($this->buildHeaders())
+                    ->retry($maxRetry, 1000)
+                    ->get($sizeChartApiUrl);
 
                 $sizeChart = $sizeChartResponse->body();
 
@@ -161,23 +221,41 @@ class HmallProductService extends Service
 
                 $retry = 0;
 
-                sleep(1);
+                $this->randomDelay();
             } catch (Throwable $e) {
-                if ($retry >= 5) {
-                    Log::error('fetchHmallProductDescriptions error', [
+                // 403 is a permanent block - stop immediately
+                if ($this->is403Error($e)) {
+                    Log::error('fetchHmallProductDescriptions blocked (403)', [
                         'brand' => $brand,
-                        'retry' => $retry,
                         'productCode' => $productCode,
                         'hmallProductId' => $hmallProduct->id,
                     ]);
                     report($e);
+
+                    return;
+                }
+
+                if ($retry >= $maxRetry) {
+                    Log::error('fetchHmallProductDescriptions error - max retry exceeded', [
+                        'brand' => $brand,
+                        'retry' => $retry,
+                        'productCode' => $productCode,
+                        'hmallProductId' => $hmallProduct->id,
+                        'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
+                        'error' => $e->getMessage(),
+                    ]);
+                    report($e);
+
+                    $retry = 0;
+
+                    return;
                 }
 
                 $retry++;
 
-                sleep(1);
+                $this->randomSleep();
             }
-        } while ($retry > 0 && $retry <= 5);
+        } while ($retry > 0 && $retry <= $maxRetry);
     }
 
     private function getV3SearchApiUrl($brand = 'UNIQLO'): string

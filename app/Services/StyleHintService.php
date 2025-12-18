@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Repositories\StyleHintRepository;
+use App\Services\Traits\AntiBlockingCrawler;
 use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -11,11 +12,10 @@ use Throwable;
 
 class StyleHintService extends Service
 {
+    use AntiBlockingCrawler;
+
     /** @var StyleHintRepository */
     protected $repository;
-
-    /** @var int */
-    private $detailCounter = 0;
 
     private const CACHE_UGC_SCHEDULING = 'style_hint_ugc:scheduling';
 
@@ -29,17 +29,7 @@ class StyleHintService extends Service
     }
 
     /**
-     * Get a random User-Agent from the configured pool.
-     */
-    private function getRandomUserAgent(): string
-    {
-        $userAgents = config('app.user_agents');
-
-        return $userAgents[array_rand($userAgents)];
-    }
-
-    /**
-     * Build complete browser headers for the request.
+     * Build complete browser headers for the request (customized for StyleHint).
      */
     private function buildHeaders(): array
     {
@@ -53,90 +43,6 @@ class StyleHintService extends Service
             'Origin' => 'https://m.uniqlo.com',
             'Referer' => 'https://m.uniqlo.com/',
         ];
-    }
-
-    /**
-     * Check if the exception is a 403 Forbidden error.
-     */
-    private function is403Error(Throwable $e): bool
-    {
-        if ($e instanceof \Illuminate\Http\Client\RequestException) {
-            return $e->response?->status() === 403;
-        }
-
-        return false;
-    }
-
-    /**
-     * Apply random delay in microseconds.
-     */
-    private function randomDelay(): void
-    {
-        $delayConfig = config('app.crawler.delay');
-        $delayMs = rand($delayConfig['min'], $delayConfig['max']);
-
-        usleep($delayMs);
-    }
-
-    /**
-     * Apply random sleep in seconds.
-     */
-    private function randomSleep(): void
-    {
-        $retryConfig = config('app.crawler.retry');
-        $sleepSec = rand($retryConfig['sleep_min'], $retryConfig['sleep_max']);
-
-        sleep($sleepSec);
-    }
-
-    /**
-     * Check if offset batch rest should be triggered.
-     */
-    private function shouldOffsetBatchRest(int $offset, int $limit): bool
-    {
-        $interval = config('app.crawler.batch_rest.offset.interval');
-
-        return ($offset / $limit) % $interval === 0 && $offset > 0;
-    }
-
-    /**
-     * Perform offset batch rest.
-     */
-    private function doOffsetBatchRest(): void
-    {
-        $offsetConfig = config('app.crawler.batch_rest.offset');
-        $sleepSec = rand($offsetConfig['sleep_min'], $offsetConfig['sleep_max']);
-
-        logger()->info("Offset batch rest: sleeping {$sleepSec}s");
-        sleep($sleepSec);
-    }
-
-    /**
-     * Reset detail counter.
-     */
-    private function resetDetailCounter(): void
-    {
-        $this->detailCounter = 0;
-    }
-
-    /**
-     * Check if detail batch rest should be triggered.
-     */
-    private function shouldDetailBatchRest(): bool
-    {
-        return $this->detailCounter % config('app.crawler.batch_rest.detail.interval') === 0 && $this->detailCounter > 0;
-    }
-
-    /**
-     * Perform detail batch rest.
-     */
-    private function doDetailBatchRest(): void
-    {
-        $detailConfig = config('app.crawler.batch_rest.detail');
-        $sleepSec = rand($detailConfig['sleep_min'], $detailConfig['sleep_max']);
-
-        logger()->info("Detail batch rest: sleeping {$sleepSec}s");
-        sleep($sleepSec);
     }
 
     public function fetchAllStyleHints(string $country, bool $fresh = false)
