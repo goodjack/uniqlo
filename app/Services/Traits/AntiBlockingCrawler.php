@@ -2,6 +2,7 @@
 
 namespace App\Services\Traits;
 
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -46,7 +47,7 @@ trait AntiBlockingCrawler
      */
     private function is403Error(Throwable $e): bool
     {
-        if ($e instanceof \Illuminate\Http\Client\RequestException) {
+        if ($e instanceof RequestException) {
             return $e->response?->status() === 403;
         }
 

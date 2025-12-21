@@ -4,11 +4,15 @@ namespace Tests\Unit\Services;
 
 use App\Repositories\StyleHintRepository;
 use App\Services\StyleHintService;
+use Exception;
+use GuzzleHttp\Psr7\Response as Psr7Response;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use ReflectionClass;
 use Tests\TestCase;
 
 class StyleHintServiceTest extends TestCase
@@ -65,8 +69,8 @@ class StyleHintServiceTest extends TestCase
     public function test_is_403_error_detects_403_correctly()
     {
         // Create a response with status 403
-        $mockResponse = new \Illuminate\Http\Client\Response(
-            new \GuzzleHttp\Psr7\Response(403)
+        $mockResponse = new Response(
+            new Psr7Response(403)
         );
 
         // Create RequestException properly
@@ -79,8 +83,8 @@ class StyleHintServiceTest extends TestCase
 
     public function test_is_403_error_returns_false_for_other_status_codes()
     {
-        $mockResponse = new \Illuminate\Http\Client\Response(
-            new \GuzzleHttp\Psr7\Response(500)
+        $mockResponse = new Response(
+            new Psr7Response(500)
         );
 
         $requestException = new RequestException($mockResponse);
@@ -92,7 +96,7 @@ class StyleHintServiceTest extends TestCase
 
     public function test_is_403_error_returns_false_for_non_request_exception()
     {
-        $exception = new \Exception('Some error');
+        $exception = new Exception('Some error');
 
         $result = $this->invokeMethod($this->service, 'is403Error', [$exception]);
 
@@ -363,7 +367,7 @@ class StyleHintServiceTest extends TestCase
 
     private function invokeMethod(&$object, $methodName, array $parameters = [])
     {
-        $reflection = new \ReflectionClass(get_class($object));
+        $reflection = new ReflectionClass(get_class($object));
         $method = $reflection->getMethod($methodName);
         $method->setAccessible(true);
 
@@ -372,7 +376,7 @@ class StyleHintServiceTest extends TestCase
 
     private function setPrivateProperty(&$object, $propertyName, $value)
     {
-        $reflection = new \ReflectionClass(get_class($object));
+        $reflection = new ReflectionClass(get_class($object));
         $property = $reflection->getProperty($propertyName);
         $property->setAccessible(true);
         $property->setValue($object, $value);

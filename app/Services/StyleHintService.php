@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Repositories\StyleHintRepository;
 use App\Services\Traits\AntiBlockingCrawler;
 use Exception;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -104,7 +105,7 @@ class StyleHintService extends Service
                         'country' => $country,
                         'limit' => $limit,
                         'offset' => $offset,
-                        'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
+                        'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
                         'error' => $e->getMessage(),
                     ]);
                     report($e);
@@ -232,7 +233,7 @@ class StyleHintService extends Service
                             'retry' => $retry,
                             'country' => $country,
                             'outfitId' => $outfitId,
-                            'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
+                            'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
                             'error' => $e->getMessage(),
                         ]);
                         report($e);
@@ -337,7 +338,7 @@ class StyleHintService extends Service
                         'page' => $page,
                         'totalResultCount' => $totalResultCount,
                         'resultLimit' => $resultLimit,
-                        'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
+                        'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
                         'error' => $e->getMessage(),
                     ]);
                     report($e);

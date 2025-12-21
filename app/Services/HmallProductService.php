@@ -6,6 +6,7 @@ use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use App\Services\Traits\AntiBlockingCrawler;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -123,7 +124,7 @@ class HmallProductService extends Service
                         'page' => $page,
                         'pageSize' => $pageSize,
                         'productSum' => $productSum,
-                        'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
+                        'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
                         'error' => $e->getMessage(),
                     ]);
                     report($e);
@@ -241,7 +242,7 @@ class HmallProductService extends Service
                         'retry' => $retry,
                         'productCode' => $productCode,
                         'hmallProductId' => $hmallProduct->id,
-                        'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
+                        'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
                         'error' => $e->getMessage(),
                     ]);
                     report($e);

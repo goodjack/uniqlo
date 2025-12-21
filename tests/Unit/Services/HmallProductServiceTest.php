@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use stdClass;
 use Tests\TestCase;
 
 class HmallProductServiceTest extends TestCase
@@ -139,7 +140,7 @@ class HmallProductServiceTest extends TestCase
         Log::shouldReceive('info')->andReturnNull();
 
         // Create a mock HmallProduct
-        $mockProduct = new \stdClass();
+        $mockProduct = new stdClass();
         $mockProduct->id = 1;
         $mockProduct->product_code = 'TEST123';
 

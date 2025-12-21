@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Repositories\StyleRepository;
 use App\Services\Traits\AntiBlockingCrawler;
 use Exception;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -134,7 +135,7 @@ class StyleService extends Service
                         'total_styles' => $totalStyles,
                         'page_size' => $pageSize,
                         'brand' => $brand,
-                        'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
+                        'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
                         'error' => $e->getMessage(),
                     ]);
                     report($e);
@@ -207,7 +208,7 @@ class StyleService extends Service
                             'retry' => $retry,
                             'styleId' => $styleId,
                             'brand' => $brand,
-                            'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
+                            'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
                             'error' => $e->getMessage(),
                         ]);
                         report($e);
