@@ -64,22 +64,7 @@ class StyleHintServiceTest extends TestCase
 
     public function test_is_403_error_detects_403_correctly()
     {
-        $response = Http::response([], 403);
-
-        // Create a mock exception with the response
-        $exception = new class extends \Exception {
-            public function __construct() {
-                parent::__construct();
-            }
-
-            public function response() {
-                $mockResponse = $this->createMock(\Illuminate\Http\Client\Response::class);
-                $mockResponse->method('status')->willReturn(403);
-                return $mockResponse;
-            }
-        };
-
-        // Simpler approach: directly test with a response that has status 403
+        // Create a response with status 403
         $mockResponse = new \Illuminate\Http\Client\Response(
             new \GuzzleHttp\Psr7\Response(403)
         );

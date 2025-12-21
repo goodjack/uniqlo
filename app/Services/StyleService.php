@@ -139,6 +139,8 @@ class StyleService extends Service
                     ]);
                     report($e);
 
+                    $retry = 0;
+
                     continue;
                 }
 

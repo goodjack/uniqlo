@@ -82,7 +82,7 @@ trait AntiBlockingCrawler
     {
         $interval = config('app.crawler.batch_rest.offset.interval');
 
-        return ($offset / $limit) % $interval === 0 && $offset > 0;
+        return $limit > 0 && $interval > 0 && ($offset / $limit) % $interval === 0 && $offset > 0;
     }
 
     /**
@@ -110,7 +110,9 @@ trait AntiBlockingCrawler
      */
     private function shouldDetailBatchRest(): bool
     {
-        return $this->detailCounter % config('app.crawler.batch_rest.detail.interval') === 0 && $this->detailCounter > 0;
+        $interval = config('app.crawler.batch_rest.detail.interval');
+
+        return $interval > 0 && $this->detailCounter % $interval === 0 && $this->detailCounter > 0;
     }
 
     /**

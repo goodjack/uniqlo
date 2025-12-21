@@ -128,6 +128,8 @@ class HmallProductService extends Service
                     ]);
                     report($e);
 
+                    $retry = 0;
+
                     continue;
                 }
 
