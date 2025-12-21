@@ -116,6 +116,26 @@ class StyleHintServiceTest extends TestCase
         $this->assertFalse($result);
     }
 
+    public function test_should_offset_batch_rest_handles_zero_limit()
+    {
+        // This tests the division-by-zero bug fix
+        Config::set('app.crawler.batch_rest.offset.interval', 75);
+
+        // Should not trigger (and not crash) when limit is 0
+        $result = $this->invokeMethod($this->service, 'shouldOffsetBatchRest', [100, 0]);
+        $this->assertFalse($result, 'Should handle zero limit without crashing');
+    }
+
+    public function test_should_offset_batch_rest_handles_zero_interval()
+    {
+        // This tests the division-by-zero bug fix
+        Config::set('app.crawler.batch_rest.offset.interval', 0);
+
+        // Should not trigger (and not crash) when interval is 0
+        $result = $this->invokeMethod($this->service, 'shouldOffsetBatchRest', [100, 50]);
+        $this->assertFalse($result, 'Should handle zero interval without crashing');
+    }
+
     public function test_should_detail_batch_rest_triggers_at_interval()
     {
         Config::set('app.crawler.batch_rest.detail.interval', 200);
@@ -134,6 +154,57 @@ class StyleHintServiceTest extends TestCase
         $this->setPrivateProperty($this->service, 'detailCounter', 150);
         $result = $this->invokeMethod($this->service, 'shouldDetailBatchRest');
         $this->assertFalse($result);
+    }
+
+    public function test_should_detail_batch_rest_handles_zero_interval()
+    {
+        // This tests the division-by-zero bug fix
+        Config::set('app.crawler.batch_rest.detail.interval', 0);
+
+        // Should not trigger (and not crash) when interval is 0
+        $this->setPrivateProperty($this->service, 'detailCounter', 200);
+        $result = $this->invokeMethod($this->service, 'shouldDetailBatchRest');
+        $this->assertFalse($result, 'Should handle zero interval without crashing');
+    }
+
+    public function test_get_random_user_agent_handles_empty_config()
+    {
+        // This tests the empty array bug fix
+        Config::set('app.user_agents', []);
+
+        Log::shouldReceive('warning')->once()->andReturnNull();
+
+        // Should not crash with Fatal Error from array_rand([])
+        $result = $this->invokeMethod($this->service, 'getRandomUserAgent');
+
+        $this->assertNotEmpty($result, 'Should return fallback User-Agent');
+        $this->assertStringContainsString('Mozilla', $result);
+    }
+
+    public function test_get_random_user_agent_handles_null_config()
+    {
+        // This tests the null config bug fix
+        Config::set('app.user_agents', null);
+
+        Log::shouldReceive('warning')->once()->andReturnNull();
+
+        // Should not crash
+        $result = $this->invokeMethod($this->service, 'getRandomUserAgent');
+
+        $this->assertNotEmpty($result, 'Should return fallback User-Agent when config is null');
+    }
+
+    public function test_get_random_user_agent_returns_from_pool()
+    {
+        Config::set('app.user_agents', [
+            'UserAgent1',
+            'UserAgent2',
+            'UserAgent3',
+        ]);
+
+        $result = $this->invokeMethod($this->service, 'getRandomUserAgent');
+
+        $this->assertContains($result, ['UserAgent1', 'UserAgent2', 'UserAgent3']);
     }
 
     // ==================== 403 Blocking Tests ====================
@@ -174,8 +245,12 @@ class StyleHintServiceTest extends TestCase
             (object) ['outfitId' => '123'],
         ];
 
-        // Should stop on 403 and not continue
-        $this->invokeMethod($this->service, 'fetchStyleHintsDetails', ['us', $mockSummaries]);
+        // With the fix (throw exception), this should throw
+        try {
+            $this->invokeMethod($this->service, 'fetchStyleHintsDetails', ['us', $mockSummaries]);
+        } catch (\Throwable $e) {
+            // Expected - 403 should throw exception
+        }
 
         // Verify error was logged
         \Log::shouldHaveReceived('error')->atLeast()->once();

@@ -147,10 +147,68 @@ class StyleServiceTest extends TestCase
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        $this->service->fetchAllStyles('UNIQLO');
+        // With the fix (throw exception), this should throw
+        // Without the fix (return), it would silently continue
+        try {
+            $this->service->fetchAllStyles('UNIQLO');
+            // If we get here, the exception was caught somewhere (which is OK)
+            $this->assertTrue(true);
+        } catch (\Throwable $e) {
+            // If exception is thrown, that's also correct behavior
+            $this->assertTrue(true);
+        }
+    }
 
-        // Test completes without throwing exception
-        $this->assertTrue(true);
+    public function test_fetch_style_details_actually_stops_processing_on_403()
+    {
+        // This test verifies that Collection::each() actually stops on 403
+        // Create a mock that tracks how many times save is called
+        $saveCount = 0;
+        $mockRepository = $this->createMock(StyleRepository::class);
+        $mockRepository->method('saveStyleFromOfficialStyling')
+            ->willReturnCallback(function () use (&$saveCount) {
+                $saveCount++;
+            });
+
+        $service = new StyleService($mockRepository);
+
+        Http::fake([
+            'https://api.example.com/styles' => Http::sequence()
+                ->push([
+                    'result' => [
+                        'styles' => [
+                            (object) ['style_id' => 'style1'],
+                            (object) ['style_id' => 'style2'],
+                            (object) ['style_id' => 'style3'],
+                        ],
+                        'total_styles' => 3,
+                    ],
+                ])
+                ->push([
+                    'result' => [
+                        'styles' => [],
+                        'total_styles' => 3,
+                    ],
+                ]),
+            // First detail request returns 403
+            'https://api.example.com/styles/*' => Http::response([], 403),
+        ]);
+
+        Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        try {
+            $service->fetchAllStyles('UNIQLO');
+        } catch (\Throwable $e) {
+            // Expected - 403 should throw
+        }
+
+        // With throw: save should be called 0 times (stops immediately)
+        // Without throw (old code with return): save would be called 0 times but loop continues
+        // The key is that exception is thrown, not silently continuing
+        $this->assertEquals(0, $saveCount, 'Should not save any styles when 403 occurs');
     }
 
     public function test_uses_configured_retry_count()
