@@ -224,7 +224,7 @@ class StyleHintService extends Service
                         ]);
                         report($e);
 
-                        return; // Stop processing this batch
+                        throw $e;
                     }
 
                     if ($retry >= $maxRetry) {
@@ -236,8 +236,6 @@ class StyleHintService extends Service
                             'error' => $e->getMessage(),
                         ]);
                         report($e);
-
-                        $retry = 0;
 
                         return; // Skip this item
                     }

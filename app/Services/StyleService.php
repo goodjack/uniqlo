@@ -139,8 +139,6 @@ class StyleService extends Service
                     ]);
                     report($e);
 
-                    $retry = 0;
-
                     continue;
                 }
 
@@ -199,7 +197,7 @@ class StyleService extends Service
                         ]);
                         report($e);
 
-                        return;
+                        throw $e;
                     }
 
                     if ($retry >= $maxRetry) {
@@ -211,8 +209,6 @@ class StyleService extends Service
                             'error' => $e->getMessage(),
                         ]);
                         report($e);
-
-                        $retry = 0;
 
                         return;
                     }

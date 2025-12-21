@@ -128,8 +128,6 @@ class HmallProductService extends Service
                     ]);
                     report($e);
 
-                    $retry = 0;
-
                     continue;
                 }
 
@@ -158,7 +156,7 @@ class HmallProductService extends Service
             ->orderBy('id', 'desc');
 
         if ($lastProcessedId) {
-            $query->where('id', '>', $lastProcessedId);
+            $query->where('id', '<', $lastProcessedId);
             Log::info("Resuming Hmall product descriptions for {$brand} from ID {$lastProcessedId}");
         } else {
             Log::info("Fetching Hmall product descriptions for {$brand} from start");
@@ -245,8 +243,6 @@ class HmallProductService extends Service
                         'error' => $e->getMessage(),
                     ]);
                     report($e);
-
-                    $retry = 0;
 
                     return;
                 }

@@ -17,6 +17,12 @@ trait AntiBlockingCrawler
     {
         $userAgents = config('app.user_agents');
 
+        // Fallback to a default User-Agent if configuration is missing or empty
+        if (!is_array($userAgents) || empty($userAgents)) {
+            Log::warning('CRAWLER_USER_AGENTS not configured, using fallback User-Agent');
+            return 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+        }
+
         return $userAgents[array_rand($userAgents)];
     }
 
