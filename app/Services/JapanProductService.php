@@ -7,7 +7,6 @@ use App\Services\Traits\AntiBlockingCrawler;
 use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class JapanProductService
@@ -35,7 +34,7 @@ class JapanProductService
             Cache::forget($cacheKey);
         }
 
-        Log::info("Fetching Japan products for {$brand}, starting from offset {$offset}");
+        logger()->info("Fetching Japan products for {$brand}, starting from offset {$offset}");
 
         do {
             try {
@@ -79,7 +78,7 @@ class JapanProductService
             } catch (Throwable $e) {
                 // 403 is a permanent block - stop immediately
                 if ($this->is403Error($e)) {
-                    Log::error('fetchAllProducts blocked (403)', [
+                    logger()->error('fetchAllProducts blocked (403)', [
                         'brand' => $brand,
                         'offset' => $offset,
                     ]);
@@ -89,7 +88,7 @@ class JapanProductService
                 }
 
                 if ($retry >= $maxRetry) {
-                    Log::error('JapanProductService fetchAllProducts error - max retry exceeded', [
+                    logger()->error('JapanProductService fetchAllProducts error - max retry exceeded', [
                         'brand' => $brand,
                         'retry' => $retry,
                         'limit' => $limit,
@@ -117,7 +116,7 @@ class JapanProductService
 
         $this->repository->setStockoutProducts($brand);
 
-        Log::info("Completed fetching Japan products for {$brand}");
+        logger()->info("Completed fetching Japan products for {$brand}");
     }
 
     private function getJapanProductListApiUrl($brand = 'UNIQLO')

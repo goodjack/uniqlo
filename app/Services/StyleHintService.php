@@ -8,7 +8,6 @@ use Exception;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class StyleHintService extends Service
@@ -89,7 +88,7 @@ class StyleHintService extends Service
             } catch (Throwable $e) {
                 // 403 is a permanent block - stop immediately
                 if ($this->is403Error($e)) {
-                    Log::error('fetchAllStyleHints blocked (403)', [
+                    logger()->error('fetchAllStyleHints blocked (403)', [
                         'country' => $country,
                         'offset' => $offset,
                         'limit' => $limit,
@@ -100,7 +99,7 @@ class StyleHintService extends Service
                 }
 
                 if ($retry >= $maxRetry) {
-                    Log::error('fetchAllStyleHints error - max retry exceeded', [
+                    logger()->error('fetchAllStyleHints error - max retry exceeded', [
                         'retry' => $retry,
                         'country' => $country,
                         'limit' => $limit,
@@ -219,7 +218,7 @@ class StyleHintService extends Service
                 } catch (Throwable $e) {
                     // 403 is a permanent block - stop immediately
                     if ($this->is403Error($e)) {
-                        Log::error('fetchStyleHintsDetails blocked (403)', [
+                        logger()->error('fetchStyleHintsDetails blocked (403)', [
                             'country' => $country,
                             'outfitId' => $outfitId,
                         ]);
@@ -229,7 +228,7 @@ class StyleHintService extends Service
                     }
 
                     if ($retry >= $maxRetry) {
-                        Log::error('fetchStyleHintsDetails error - max retry exceeded', [
+                        logger()->error('fetchStyleHintsDetails error - max retry exceeded', [
                             'retry' => $retry,
                             'country' => $country,
                             'outfitId' => $outfitId,
@@ -320,7 +319,7 @@ class StyleHintService extends Service
             } catch (Throwable $e) {
                 // 403 is a permanent block - stop immediately
                 if ($this->is403Error($e)) {
-                    Log::error('fetchStyleHintsFromUgcByGender blocked (403)', [
+                    logger()->error('fetchStyleHintsFromUgcByGender blocked (403)', [
                         'brand' => $brand,
                         'style_gender' => $gender,
                         'page' => $page,
@@ -331,7 +330,7 @@ class StyleHintService extends Service
                 }
 
                 if ($retry >= $maxRetry) {
-                    Log::error('fetchStyleHintsFromUgcByGender error - max retry exceeded', [
+                    logger()->error('fetchStyleHintsFromUgcByGender error - max retry exceeded', [
                         'retry' => $retry,
                         'brand' => $brand,
                         'style_gender' => $gender,

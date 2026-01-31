@@ -9,7 +9,6 @@ use App\Services\Traits\AntiBlockingCrawler;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class HmallProductService extends Service
@@ -71,7 +70,7 @@ class HmallProductService extends Service
         $retry = 0;
         $maxRetry = config('app.crawler.retry.laravel');
 
-        Log::info("Fetching Hmall products for {$brand}, starting from page {$page}");
+        logger()->info("Fetching Hmall products for {$brand}, starting from page {$page}");
 
         do {
             try {
@@ -107,7 +106,7 @@ class HmallProductService extends Service
             } catch (Throwable $e) {
                 // 403 is a permanent block - stop immediately
                 if ($this->is403Error($e)) {
-                    Log::error('fetchAllHmallProducts blocked (403)', [
+                    logger()->error('fetchAllHmallProducts blocked (403)', [
                         'brand' => $brand,
                         'page' => $page,
                         'pageSize' => $pageSize,
@@ -118,7 +117,7 @@ class HmallProductService extends Service
                 }
 
                 if ($retry >= $maxRetry) {
-                    Log::error('fetchAllHmallProducts error - max retry exceeded', [
+                    logger()->error('fetchAllHmallProducts error - max retry exceeded', [
                         'brand' => $brand,
                         'retry' => $retry,
                         'page' => $page,
@@ -143,7 +142,7 @@ class HmallProductService extends Service
 
         // Clear checkpoint on successful completion
         Cache::forget($cacheKey);
-        Log::info("Completed fetching Hmall products for {$brand}");
+        logger()->info("Completed fetching Hmall products for {$brand}");
 
         $this->repository->setStockoutHmallProducts($brand);
     }
@@ -160,9 +159,9 @@ class HmallProductService extends Service
 
         if ($lastProcessedId) {
             $query->where('id', '<', $lastProcessedId);
-            Log::info("Resuming Hmall product descriptions for {$brand} from ID {$lastProcessedId}");
+            logger()->info("Resuming Hmall product descriptions for {$brand} from ID {$lastProcessedId}");
         } else {
-            Log::info("Fetching Hmall product descriptions for {$brand} from start");
+            logger()->info("Fetching Hmall product descriptions for {$brand} from start");
         }
 
         $hmallProducts = $query->get();
@@ -185,7 +184,7 @@ class HmallProductService extends Service
 
         // Clear checkpoint on completion
         Cache::forget($cacheKey);
-        Log::info("Completed fetching Hmall product descriptions for {$brand}");
+        logger()->info("Completed fetching Hmall product descriptions for {$brand}");
     }
 
     public function fetchHmallProductDescriptions(
@@ -226,7 +225,7 @@ class HmallProductService extends Service
             } catch (Throwable $e) {
                 // 403 is a permanent block - stop immediately
                 if ($this->is403Error($e)) {
-                    Log::error('fetchHmallProductDescriptions blocked (403)', [
+                    logger()->error('fetchHmallProductDescriptions blocked (403)', [
                         'brand' => $brand,
                         'productCode' => $productCode,
                         'hmallProductId' => $hmallProduct->id,
@@ -237,7 +236,7 @@ class HmallProductService extends Service
                 }
 
                 if ($retry >= $maxRetry) {
-                    Log::error('fetchHmallProductDescriptions error - max retry exceeded', [
+                    logger()->error('fetchHmallProductDescriptions error - max retry exceeded', [
                         'brand' => $brand,
                         'retry' => $retry,
                         'productCode' => $productCode,

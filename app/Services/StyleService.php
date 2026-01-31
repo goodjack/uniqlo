@@ -8,7 +8,6 @@ use Exception;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class StyleService extends Service
@@ -49,7 +48,7 @@ class StyleService extends Service
 
         $this->resetDetailCounter();
 
-        Log::info("Fetching styles for {$brand}, starting from gender index {$startIndex}");
+        logger()->info("Fetching styles for {$brand}, starting from gender index {$startIndex}");
 
         for ($i = $startIndex; $i < $genderIds->count(); $i++) {
             $genderId = $genderIds[$i];
@@ -65,7 +64,7 @@ class StyleService extends Service
 
         // Clear all checkpoints on complete success
         Cache::forget(sprintf(self::CACHE_KEY_STYLE_LAST_GENDER, $brand));
-        Log::info("Completed fetching styles for {$brand}");
+        logger()->info("Completed fetching styles for {$brand}");
     }
 
     private function fetchStylesByGenderId(string $genderId, string $brand = 'UNIQLO'): void
@@ -79,7 +78,7 @@ class StyleService extends Service
         $retry = 0;
         $maxRetry = config('app.crawler.retry.manual');
 
-        Log::info("Fetching styles for {$brand} gender {$genderId}, starting from page {$page}");
+        logger()->info("Fetching styles for {$brand} gender {$genderId}, starting from page {$page}");
 
         do {
             try {
@@ -117,7 +116,7 @@ class StyleService extends Service
             } catch (Throwable $e) {
                 // 403 is a permanent block - stop immediately
                 if ($this->is403Error($e)) {
-                    Log::error('fetchStylesByGenderId blocked (403)', [
+                    logger()->error('fetchStylesByGenderId blocked (403)', [
                         'brand' => $brand,
                         'gender_id' => $genderId,
                         'page' => $page,
@@ -128,7 +127,7 @@ class StyleService extends Service
                 }
 
                 if ($retry >= $maxRetry) {
-                    Log::error('fetchStylesByGenderId error - max retry exceeded', [
+                    logger()->error('fetchStylesByGenderId error - max retry exceeded', [
                         'retry' => $retry,
                         'gender_id' => $genderId,
                         'page' => $page,
@@ -194,7 +193,7 @@ class StyleService extends Service
                 } catch (Throwable $e) {
                     // 403 is a permanent block - stop immediately
                     if ($this->is403Error($e)) {
-                        Log::error('fetchStyleDetails blocked (403)', [
+                        logger()->error('fetchStyleDetails blocked (403)', [
                             'brand' => $brand,
                             'styleId' => $styleId,
                         ]);
@@ -204,7 +203,7 @@ class StyleService extends Service
                     }
 
                     if ($retry >= $maxRetry) {
-                        Log::error('fetchStyleDetails error - max retry exceeded', [
+                        logger()->error('fetchStyleDetails error - max retry exceeded', [
                             'retry' => $retry,
                             'styleId' => $styleId,
                             'brand' => $brand,

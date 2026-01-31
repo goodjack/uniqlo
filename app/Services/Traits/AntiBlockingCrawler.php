@@ -3,7 +3,6 @@
 namespace App\Services\Traits;
 
 use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 trait AntiBlockingCrawler
@@ -20,7 +19,7 @@ trait AntiBlockingCrawler
 
         // Fallback to a default User-Agent if configuration is missing or empty
         if (!is_array($userAgents) || empty($userAgents)) {
-            Log::warning('CRAWLER_USER_AGENTS not configured, using fallback User-Agent');
+            logger()->warning('CRAWLER_USER_AGENTS not configured, using fallback User-Agent');
             return 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
         }
 
@@ -94,7 +93,7 @@ trait AntiBlockingCrawler
         $offsetConfig = config('app.crawler.batch_rest.offset');
         $sleepSec = rand($offsetConfig['sleep_min'], $offsetConfig['sleep_max']);
 
-        Log::info("Offset batch rest: sleeping {$sleepSec}s");
+        logger()->info("Offset batch rest: sleeping {$sleepSec}s");
         sleep($sleepSec);
     }
 
@@ -124,7 +123,7 @@ trait AntiBlockingCrawler
         $detailConfig = config('app.crawler.batch_rest.detail');
         $sleepSec = rand($detailConfig['sleep_min'], $detailConfig['sleep_max']);
 
-        Log::info("Detail batch rest: sleeping {$sleepSec}s");
+        logger()->info("Detail batch rest: sleeping {$sleepSec}s");
         sleep($sleepSec);
     }
 }
