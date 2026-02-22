@@ -56,7 +56,15 @@ class StyleService extends Service
             // Save current gender checkpoint
             Cache::set(sprintf(self::CACHE_KEY_STYLE_LAST_GENDER, $brand), $genderId, now()->addDays(7));
 
-            $this->fetchStylesByGenderId($genderId, $brand);
+            try {
+                $this->fetchStylesByGenderId($genderId, $brand);
+            } catch (Throwable $e) {
+                // 403 propagated from inner method - stop all genders
+                if ($this->is403Error($e)) {
+                    return;
+                }
+                // Other errors: skip gender (already logged)
+            }
 
             // Clear gender-specific checkpoint after completion
             Cache::forget(sprintf(self::CACHE_KEY_STYLE_PAGE, $brand, $genderId));
@@ -75,46 +83,48 @@ class StyleService extends Service
         $cacheKey = sprintf(self::CACHE_KEY_STYLE_PAGE, $brand, $genderId);
         $page = Cache::get($cacheKey) ?? 1;
         $totalStyles = 0;
-        $retry = 0;
-        $maxRetry = config('app.crawler.retry.manual');
 
         logger()->info("Fetching styles for {$brand} gender {$genderId}, starting from page {$page}");
 
         do {
             try {
-                $headers = $this->buildHeaders();
-                $headers['x-fr-clientid'] = $this->getClientId($brand);
+                $totalStyles = retry(
+                    config('app.crawler.retry.times'),
+                    function ($attempts) use ($ugcOfficialStyleListApiUrl, $brand, $genderId, $page, $pageSize) {
+                        $headers = $this->buildHeaders();
+                        $headers['x-fr-clientid'] = $this->getClientId($brand);
 
-                $response = Http::withHeaders($headers)
-                    ->retry($maxRetry, 1000)
-                    ->get($ugcOfficialStyleListApiUrl, [
-                        'gender_id' => $genderId,
-                        'order' => 'display_start_at:desc',
-                        'page_size' => $pageSize,
-                        'page' => $page,
-                        'brand' => ($brand === 'GU') ? 'gu' : 'uq',
-                    ]);
+                        $response = Http::withHeaders($headers)
+                            ->throw()
+                            ->get($ugcOfficialStyleListApiUrl, [
+                                'gender_id' => $genderId,
+                                'order' => 'display_start_at:desc',
+                                'page_size' => $pageSize,
+                                'page' => $page,
+                                'brand' => ($brand === 'GU') ? 'gu' : 'uq',
+                            ]);
 
-                $responseBody = json_decode($response->getBody());
-                $styles = data_get($responseBody, 'result.styles');
+                        $responseBody = json_decode($response->getBody());
+                        $styles = data_get($responseBody, 'result.styles');
 
-                if (is_null($styles)) {
-                    $this->randomSleep();
-                    throw new Exception("Styles does not exist. {$response->body()}");
-                }
+                        if (is_null($styles)) {
+                            throw new Exception("Styles does not exist. {$response->body()}");
+                        }
 
-                $this->fetchStyleDetails($styles, $brand);
+                        $this->fetchStyleDetails($styles, $brand);
 
-                $totalStyles = data_get($responseBody, 'result.total_styles');
+                        return data_get($responseBody, 'result.total_styles');
+                    },
+                    fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
+                    fn ($e) => $this->shouldRetry($e),
+                );
 
                 // Update checkpoint
                 Cache::set($cacheKey, $page + 1, now()->addDays(7));
 
-                $retry = 0;
-
                 $this->randomDelay();
             } catch (Throwable $e) {
-                // 403 is a permanent block - stop immediately
+                // 403 is a permanent block - propagate upward
                 if ($this->is403Error($e)) {
                     logger()->error('fetchStylesByGenderId blocked (403)', [
                         'brand' => $brand,
@@ -123,103 +133,86 @@ class StyleService extends Service
                     ]);
                     report($e);
 
-                    return;
+                    throw $e;
                 }
 
-                if ($retry >= $maxRetry) {
-                    logger()->error('fetchStylesByGenderId error - max retry exceeded', [
-                        'retry' => $retry,
-                        'gender_id' => $genderId,
-                        'page' => $page,
-                        'total_styles' => $totalStyles,
-                        'page_size' => $pageSize,
-                        'brand' => $brand,
-                        'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
-                        'error' => $e->getMessage(),
-                    ]);
-                    report($e);
-
-                    $retry = 0;
-
-                    continue;
-                }
-
-                $retry++;
-                $page--;
-
-                $this->randomSleep();
+                // retry() exhausted - skip page and continue
+                logger()->error('fetchStylesByGenderId error - max retry exceeded', [
+                    'gender_id' => $genderId,
+                    'page' => $page,
+                    'total_styles' => $totalStyles,
+                    'page_size' => $pageSize,
+                    'brand' => $brand,
+                    'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
+                    'error' => $e->getMessage(),
+                ]);
+                report($e);
             }
-        } while ($totalStyles >= $page++ * $pageSize);
+
+            $page++;
+        } while ($totalStyles >= $page * $pageSize);
     }
 
     private function fetchStyleDetails($styles, string $brand = 'UNIQLO'): void
     {
         $styles = collect($styles);
-        $maxRetry = config('app.crawler.retry.manual');
 
-        $styles->each(function ($style) use ($brand, $maxRetry) {
+        $styles->each(function ($style) use ($brand) {
             $ugcOfficialStyleListApiUrl = $this->getUgcOfficialStyleListApiUrl($brand);
-
-            $retry = 0;
 
             $styleId = $style->style_id;
 
-            do {
-                try {
-                    $headers = $this->buildHeaders();
-                    $headers['x-fr-clientid'] = $this->getClientId($brand);
+            try {
+                retry(
+                    config('app.crawler.retry.times'),
+                    function ($attempts) use ($ugcOfficialStyleListApiUrl, $brand, $styleId) {
+                        $headers = $this->buildHeaders();
+                        $headers['x-fr-clientid'] = $this->getClientId($brand);
 
-                    $response = Http::withHeaders($headers)
-                        ->retry($maxRetry, 1000)
-                        ->get($ugcOfficialStyleListApiUrl . "/{$styleId}", [
-                            'content_language' => 'zh-TW',
-                            'brand' => ($brand === 'GU') ? 'gu' : 'uq',
-                        ]);
+                        $response = Http::withHeaders($headers)
+                            ->throw()
+                            ->get($ugcOfficialStyleListApiUrl . "/{$styleId}", [
+                                'content_language' => 'zh-TW',
+                                'brand' => ($brand === 'GU') ? 'gu' : 'uq',
+                            ]);
 
-                    $result = json_decode($response->getBody())->result;
+                        $result = json_decode($response->getBody())->result;
 
-                    $this->repository->saveStyleFromOfficialStyling($styleId, $result, $brand);
+                        $this->repository->saveStyleFromOfficialStyling($styleId, $result, $brand);
+                    },
+                    fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
+                    fn ($e) => $this->shouldRetry($e),
+                );
 
-                    $this->detailCounter++;
+                $this->detailCounter++;
 
-                    // Check if detail batch rest is needed
-                    if ($this->shouldDetailBatchRest()) {
-                        $this->doDetailBatchRest();
-                    }
-
-                    $retry = 0;
-
-                    $this->randomDelay();
-                } catch (Throwable $e) {
-                    // 403 is a permanent block - stop immediately
-                    if ($this->is403Error($e)) {
-                        logger()->error('fetchStyleDetails blocked (403)', [
-                            'brand' => $brand,
-                            'styleId' => $styleId,
-                        ]);
-                        report($e);
-
-                        throw $e;
-                    }
-
-                    if ($retry >= $maxRetry) {
-                        logger()->error('fetchStyleDetails error - max retry exceeded', [
-                            'retry' => $retry,
-                            'styleId' => $styleId,
-                            'brand' => $brand,
-                            'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
-                            'error' => $e->getMessage(),
-                        ]);
-                        report($e);
-
-                        return;
-                    }
-
-                    $retry++;
-
-                    $this->randomSleep();
+                // Check if detail batch rest is needed
+                if ($this->shouldDetailBatchRest()) {
+                    $this->doDetailBatchRest();
                 }
-            } while ($retry > 0 && $retry <= $maxRetry);
+
+                $this->randomDelay();
+            } catch (Throwable $e) {
+                // 403 is a permanent block - propagate to stop Collection::each
+                if ($this->is403Error($e)) {
+                    logger()->error('fetchStyleDetails blocked (403)', [
+                        'brand' => $brand,
+                        'styleId' => $styleId,
+                    ]);
+                    report($e);
+
+                    throw $e;
+                }
+
+                // retry() exhausted - skip this style
+                logger()->error('fetchStyleDetails error - max retry exceeded', [
+                    'styleId' => $styleId,
+                    'brand' => $brand,
+                    'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
+                    'error' => $e->getMessage(),
+                ]);
+                report($e);
+            }
         });
     }
 

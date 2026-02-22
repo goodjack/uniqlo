@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Repositories\JapanProductRepository;
 use App\Services\Traits\AntiBlockingCrawler;
 use Exception;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Throwable;
@@ -26,8 +27,6 @@ class JapanProductService
         $limit = 36;
         $offset = $fresh ? 0 : (Cache::get($cacheKey) ?? 0);
         $total = 0;
-        $retry = 0;
-        $maxRetry = config('app.crawler.retry.manual');
 
         // Clear checkpoint if fresh
         if ($fresh) {
@@ -38,36 +37,46 @@ class JapanProductService
 
         do {
             try {
-                $headers = $this->buildHeaders();
-                $headers['x-fr-clientid'] = $this->getClientId($brand);
+                $total = retry(
+                    config('app.crawler.retry.times'),
+                    function ($attempts) use ($japanProductListApiUrl, $brand, $offset, $limit) {
+                        $headers = $this->buildHeaders();
+                        $headers['x-fr-clientid'] = $this->getClientId($brand);
 
-                $response = Http::withHeaders($headers)
-                    ->retry($maxRetry, 1000)
-                    ->get($japanProductListApiUrl, [
-                        'offset' => $offset,
-                        'limit' => $limit,
-                        'sort' => 1,
-                        'httpFailure' => 'true',
-                        'queryRelaxationFlag' => 'true',
-                    ]);
+                        $response = Http::withHeaders($headers)
+                            ->throw()
+                            ->get($japanProductListApiUrl, [
+                                'offset' => $offset,
+                                'limit' => $limit,
+                                'sort' => 1,
+                                'httpFailure' => 'true',
+                                'queryRelaxationFlag' => 'true',
+                            ]);
 
-                $responseBody = json_decode($response->body());
-                $items = $responseBody->result->items;
+                        $responseBody = json_decode($response->body());
+                        $items = $responseBody->result->items ?? null;
 
-                $this->repository->saveProducts($items, $brand);
+                        if (is_null($items)) {
+                            throw new Exception("Items does not exist. {$response->body()}");
+                        }
 
-                $total = $responseBody->result->pagination->total;
+                        $this->repository->saveProducts($items, $brand);
+
+                        return $responseBody->result->pagination->total;
+                    },
+                    fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
+                    fn ($e) => $this->shouldRetry($e),
+                );
 
                 if ($total === 0) {
-                    throw new Exception('No products found');
+                    logger()->info("No products found for {$brand}, stopping.");
+                    break;
                 }
 
                 $offset += $limit;
 
                 // Update checkpoint
                 Cache::set($cacheKey, $offset, now()->addDays(7));
-
-                $retry = 0;
 
                 // Check if offset batch rest is needed
                 if ($this->shouldOffsetBatchRest($offset, $limit)) {
@@ -87,27 +96,18 @@ class JapanProductService
                     return;
                 }
 
-                if ($retry >= $maxRetry) {
-                    logger()->error('JapanProductService fetchAllProducts error - max retry exceeded', [
-                        'brand' => $brand,
-                        'retry' => $retry,
-                        'limit' => $limit,
-                        'offset' => $offset,
-                        'total' => $total,
-                        'status_code' => $e instanceof \Illuminate\Http\Client\RequestException ? $e->response?->status() : 'unknown',
-                        'error' => $e->getMessage(),
-                    ]);
-                    report($e);
+                // retry() exhausted - skip batch and continue
+                logger()->error('JapanProductService fetchAllProducts error - max retry exceeded', [
+                    'brand' => $brand,
+                    'limit' => $limit,
+                    'offset' => $offset,
+                    'total' => $total,
+                    'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
+                    'error' => $e->getMessage(),
+                ]);
+                report($e);
 
-                    $offset += $limit;
-                    $retry = 0;
-
-                    continue;
-                }
-
-                $retry++;
-
-                $this->randomSleep();
+                $offset += $limit;
             }
         } while ($total >= $offset);
 

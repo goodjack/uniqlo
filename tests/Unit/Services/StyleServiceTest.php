@@ -46,9 +46,12 @@ class StyleServiceTest extends TestCase
 
         $this->service->fetchAllStyles('UNIQLO');
 
-        // No checkpoint should be saved when blocked
+        // Page checkpoint should not be advanced when blocked by 403
         $this->assertNull(Cache::get('styles:page:UNIQLO:1'));
-        $this->assertNull(Cache::get('styles:last_gender:UNIQLO'));
+
+        // Last gender checkpoint is preserved for resumption (set before the 403 hit)
+        // This allows the crawler to resume from gender 1 on next run
+        $this->assertEquals('1', Cache::get('styles:last_gender:UNIQLO'));
     }
 
     public function test_fetch_styles_by_gender_saves_checkpoint()
@@ -213,8 +216,8 @@ class StyleServiceTest extends TestCase
 
     public function test_uses_configured_retry_count()
     {
-        $maxRetry = Config::get('app.crawler.retry.manual');
+        $maxRetry = Config::get('app.crawler.retry.times');
 
-        $this->assertEquals(2, $maxRetry, 'Expected configured manual retry count to be 2');
+        $this->assertEquals(3, $maxRetry, 'Expected configured retry count to be 3');
     }
 }

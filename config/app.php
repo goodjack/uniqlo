@@ -195,8 +195,7 @@ return [
 
     'crawler' => [
         'retry' => [
-            'laravel' => 2,
-            'manual' => 2,
+            'times' => 3,
             'sleep_min' => 2,
             'sleep_max' => 5,
         ],
@@ -206,13 +205,11 @@ return [
         ],
         'batch_rest' => [
             'offset' => [
-                'enabled' => true,
                 'interval' => 75,
                 'sleep_min' => 30,
                 'sleep_max' => 60,
             ],
             'detail' => [
-                'enabled' => true,
                 'interval' => 200,
                 'sleep_min' => 10,
                 'sleep_max' => 20,

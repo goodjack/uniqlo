@@ -336,7 +336,7 @@ class StyleHintServiceTest extends TestCase
 
     public function test_uses_configured_retry_count_for_list_api()
     {
-        $maxRetry = Config::get('app.crawler.retry.laravel');
+        $maxRetry = Config::get('app.crawler.retry.times');
 
         Http::fake([
             'https://api.example.com/style-hint-list' => Http::response(
@@ -353,14 +353,14 @@ class StyleHintServiceTest extends TestCase
 
         $this->service->fetchAllStyleHints('us');
 
-        $this->assertEquals(2, $maxRetry, 'Expected configured laravel retry count to be 2');
+        $this->assertEquals(3, $maxRetry, 'Expected configured retry count to be 3');
     }
 
     public function test_uses_configured_retry_count_for_detail_api()
     {
-        $maxRetry = Config::get('app.crawler.retry.manual');
+        $maxRetry = Config::get('app.crawler.retry.times');
 
-        $this->assertEquals(2, $maxRetry, 'Expected configured manual retry count to be 2');
+        $this->assertEquals(3, $maxRetry, 'Expected configured retry count to be 3');
     }
 
     // ==================== Helper Methods ====================

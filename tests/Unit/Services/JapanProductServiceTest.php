@@ -120,8 +120,8 @@ class JapanProductServiceTest extends TestCase
 
     public function test_uses_configured_retry_count()
     {
-        $maxRetry = Config::get('app.crawler.retry.manual');
+        $maxRetry = Config::get('app.crawler.retry.times');
 
-        $this->assertEquals(2, $maxRetry, 'Expected configured manual retry count to be 2');
+        $this->assertEquals(3, $maxRetry, 'Expected configured retry count to be 3');
     }
 }
