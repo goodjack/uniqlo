@@ -6,6 +6,7 @@ use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use App\Services\Traits\AntiBlockingCrawler;
+use Exception;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -96,7 +97,7 @@ class HmallProductService extends Service
                         $products = $responseBody->resp[0]->productList ?? null;
 
                         if (is_null($products)) {
-                            throw new \Exception("Product list does not exist. {$response->body()}");
+                            throw new Exception("Product list does not exist. {$response->body()}");
                         }
 
                         $this->repository->saveProductsFromV3($products, $brand);
