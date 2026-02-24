@@ -8,8 +8,12 @@ use Throwable;
 
 trait AntiBlockingCrawler
 {
-    /** @var int */
-    private $detailCounter = 0;
+    /**
+     * Counter for detail fetch operations.
+     * Used to determine when to trigger detail batch rests.
+     * Managed by resetDetailCounter() / shouldDetailBatchRest() / doDetailBatchRest().
+     */
+    private int $detailCounter = 0;
 
     /**
      * Get a random User-Agent from the configured pool.
@@ -60,9 +64,9 @@ trait AntiBlockingCrawler
     private function randomDelay(): void
     {
         $delayConfig = config('app.crawler.delay');
-        $delayMs = rand($delayConfig['min'], $delayConfig['max']);
+        $delayMicroseconds = rand($delayConfig['min'], $delayConfig['max']);
 
-        usleep($delayMs);
+        usleep($delayMicroseconds);
     }
 
     /**
@@ -90,7 +94,7 @@ trait AntiBlockingCrawler
     {
         $interval = config('app.crawler.batch_rest.offset.interval');
 
-        return $limit > 0 && $interval > 0 && ($offset / $limit) % $interval === 0 && $offset > 0;
+        return $limit > 0 && $interval > 0 && ($offset % ($limit * $interval)) === 0 && $offset > 0;
     }
 
     /**

@@ -200,8 +200,8 @@ return [
             'sleep_max' => 5,
         ],
         'delay' => [
-            'min' => 1000000,
-            'max' => 3000000,
+            'min' => 1000000, // microseconds (1 second)
+            'max' => 3000000, // microseconds (3 seconds)
         ],
         'batch_rest' => [
             'offset' => [

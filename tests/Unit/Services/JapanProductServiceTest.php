@@ -34,24 +34,25 @@ class JapanProductServiceTest extends TestCase
 
     public function test_fetch_all_products_stops_on_403_error()
     {
+        // Pre-set checkpoint (simulating partial completion)
+        Cache::set('japan_products:offset:UNIQLO', 36);
+        $checkpointBefore = Cache::get('japan_products:offset:UNIQLO');
+
         Http::fake([
             '*' => Http::response([], 403),
         ]);
 
         Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
 
-        Cache::flush();
-        $checkpointBefore = Cache::get('japan_products:offset:UNIQLO');
-
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
         $this->service->fetchAllProducts('UNIQLO');
 
-        // Checkpoint should not be set when blocked by 403
+        // Checkpoint must not be overwritten on 403
         $checkpointAfter = Cache::get('japan_products:offset:UNIQLO');
-        $this->assertNull($checkpointBefore);
-        $this->assertNull($checkpointAfter);
+        $this->assertEquals(36, $checkpointBefore);
+        $this->assertEquals(36, $checkpointAfter, 'Checkpoint must not be overwritten on 403');
     }
 
     public function test_fetch_all_products_saves_checkpoint()
@@ -120,8 +121,23 @@ class JapanProductServiceTest extends TestCase
 
     public function test_uses_configured_retry_count()
     {
-        $maxRetry = Config::get('app.crawler.retry.times');
+        Config::set('app.crawler.retry.times', 3);
+        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
 
-        $this->assertEquals(3, $maxRetry, 'Expected configured retry count to be 3');
+        $requestCount = 0;
+        // Use wildcard to match GET URLs with query parameters (e.g. ?offset=0&limit=36&...)
+        Http::fake(['https://api.example.com/products*' => function ($request) use (&$requestCount) {
+            $requestCount++;
+
+            return Http::response([], 500);
+        }]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->service->fetchAllProducts('UNIQLO');
+
+        // retry(3) = 3 total attempts; total stays 0 → loop exits after 1 iteration
+        $this->assertEquals(3, $requestCount, 'Should make exactly 3 HTTP attempts (1 initial + 2 retries)');
     }
 }

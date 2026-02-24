@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use ReflectionClass;
 use Tests\TestCase;
 
 class StyleServiceTest extends TestCase
@@ -216,8 +217,101 @@ class StyleServiceTest extends TestCase
 
     public function test_uses_configured_retry_count()
     {
-        $maxRetry = Config::get('app.crawler.retry.times');
+        Config::set('app.crawler.retry.times', 3);
+        Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
 
-        $this->assertEquals(3, $maxRetry, 'Expected configured retry count to be 3');
+        $requestCount = 0;
+        // Use wildcard to match GET URLs with query parameters (e.g. ?gender_id=1&...)
+        Http::fake(['https://api.example.com/styles*' => function ($request) use (&$requestCount) {
+            $requestCount++;
+
+            return Http::response([], 500);
+        }]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        // Directly call private fetchStylesByGenderId to avoid 4-gender loop
+        $this->invokeMethod($this->service, 'fetchStylesByGenderId', ['1', 'UNIQLO']);
+
+        // retry(3) = 3 total attempts; totalStyles stays 0 → loop exits after 1 iteration
+        $this->assertEquals(3, $requestCount, 'Should make exactly 3 HTTP attempts (1 initial + 2 retries)');
+    }
+
+    public function test_fetch_styles_by_gender_fetches_last_partial_page()
+    {
+        // total_styles=51, page_size=50 → page 1 and page 2 should both be fetched
+        Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
+
+        $requestCount = 0;
+        // Use wildcard to match GET URLs with query parameters (e.g. ?gender_id=1&...)
+        // styles=[] so fetchStyleDetails makes no detail requests; all requestCount come from list
+        Http::fake(['https://api.example.com/styles*' => function ($request) use (&$requestCount) {
+            $requestCount++;
+
+            return Http::response([
+                'result' => [
+                    'styles' => [],
+                    'total_styles' => 51,
+                ],
+            ]);
+        }]);
+
+        $this->invokeMethod($this->service, 'fetchStylesByGenderId', ['1', 'UNIQLO']);
+
+        $this->assertEquals(2, $requestCount, 'Should fetch page 1 (51 >= 50) and page 2 (51 >= 50), stop at page 3 (51 < 100)');
+    }
+
+    public function test_list_api_not_re_called_when_detail_fails()
+    {
+        // Structural guard test: verifies that detail fetch failures do NOT trigger list API retries.
+        // This test is a regression guard to prevent fetchStyleDetails from being moved back
+        // inside the list retry callback. It does NOT claim a currently reproducible bug.
+        Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
+
+        $listRequestCount = 0;
+        // Use closure-based fake to distinguish list (/styles?) from detail (/styles/id?) by URL path
+        Http::fake(function ($request) use (&$listRequestCount) {
+            $urlPath = parse_url($request->url(), PHP_URL_PATH);
+
+            if ($urlPath === '/styles') {
+                // List request (path is exactly /styles, query params follow)
+                $listRequestCount++;
+
+                return Http::response([
+                    'result' => [
+                        'styles' => [
+                            (object) ['style_id' => 'style1'],
+                        ],
+                        'total_styles' => 1,
+                    ],
+                ]);
+            }
+
+            // Detail request (path is /styles/style1)
+            return Http::response([], 500);
+        });
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        try {
+            $this->invokeMethod($this->service, 'fetchStylesByGenderId', ['1', 'UNIQLO']);
+        } catch (\Throwable $e) {
+            // detail failures may propagate (403) or be swallowed (500)
+        }
+
+        $this->assertEquals(1, $listRequestCount, 'List API should be called exactly once; detail failures must not trigger list retries');
+    }
+
+    // ==================== Helper Methods ====================
+
+    private function invokeMethod(&$object, $methodName, array $parameters = [])
+    {
+        $reflection = new ReflectionClass(get_class($object));
+        $method = $reflection->getMethod($methodName);
+        $method->setAccessible(true);
+
+        return $method->invokeArgs($object, $parameters);
     }
 }

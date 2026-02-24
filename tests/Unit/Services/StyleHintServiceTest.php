@@ -215,24 +215,26 @@ class StyleHintServiceTest extends TestCase
 
     public function test_fetch_all_style_hints_stops_on_403_error()
     {
+        // Pre-set checkpoint (simulating partial completion)
+        Cache::set('style_hint:offset:us', 50);
+        $checkpointBefore = Cache::get('style_hint:offset:us');
+
+        // Use wildcard to match GET URLs with query parameters (e.g. ?offset=50&limit=50&...)
         Http::fake([
-            'https://api.example.com/style-hint-list' => Http::response([], 403),
+            'https://api.example.com/style-hint-list*' => Http::response([], 403),
         ]);
 
         Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
 
-        // Allow all log calls
         Log::shouldReceive('info')->andReturnNull();
         Log::shouldReceive('error')->andReturnNull();
 
-        // Track that the method completes without exception
-        $checkpointBefore = Cache::get('style_hint:offset:us');
-
         $this->service->fetchAllStyleHints('us');
 
-        // The method should have executed without throwing exception
-        // Verify that offset was not set (method returned early on 403)
-        $this->assertNull($checkpointBefore, 'Checkpoint should be null before execution');
+        // Checkpoint must not be overwritten on 403
+        $checkpointAfter = Cache::get('style_hint:offset:us');
+        $this->assertEquals(50, $checkpointBefore);
+        $this->assertEquals(50, $checkpointAfter, 'Checkpoint must not be overwritten on 403');
     }
 
     public function test_fetch_style_hints_details_stops_on_403_error()
@@ -336,31 +338,111 @@ class StyleHintServiceTest extends TestCase
 
     public function test_uses_configured_retry_count_for_list_api()
     {
-        $maxRetry = Config::get('app.crawler.retry.times');
-
-        Http::fake([
-            'https://api.example.com/style-hint-list' => Http::response(
-                [
-                    'result' => [
-                        'images' => [],
-                        'pagination' => ['total' => 0],
-                    ],
-                ]
-            ),
-        ]);
-
+        Config::set('app.crawler.retry.times', 3);
         Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+
+        $requestCount = 0;
+        // Use wildcard to match GET URLs with query parameters (e.g. ?offset=0&limit=50&...)
+        Http::fake(['https://api.example.com/style-hint-list*' => function ($request) use (&$requestCount) {
+            $requestCount++;
+
+            return Http::response([], 500);
+        }]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
 
         $this->service->fetchAllStyleHints('us');
 
-        $this->assertEquals(3, $maxRetry, 'Expected configured retry count to be 3');
+        // retry(3) = 3 total attempts; total stays 0 → loop exits after 1 iteration
+        $this->assertEquals(3, $requestCount, 'Should make exactly 3 HTTP attempts (1 initial + 2 retries)');
     }
 
-    public function test_uses_configured_retry_count_for_detail_api()
+    public function test_uses_configured_retry_count_for_ugc_api()
     {
-        $maxRetry = Config::get('app.crawler.retry.times');
+        Config::set('app.crawler.retry.times', 3);
+        Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc-style-hints');
 
-        $this->assertEquals(3, $maxRetry, 'Expected configured retry count to be 3');
+        $requestCount = 0;
+        // Use wildcard to match GET URLs with query parameters (e.g. ?style_gender[]=1&...)
+        Http::fake(['https://api.example.com/ugc-style-hints*' => function ($request) use (&$requestCount) {
+            $requestCount++;
+
+            return Http::response([], 500);
+        }]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        // Directly call private method to avoid 5-gender loop
+        $this->invokeMethod($this->service, 'fetchStyleHintsFromUgcByGender', ['1', 'UNIQLO', false, false]);
+
+        // retry(3) = 3 total attempts; totalResultCount stays 0 → loop exits after 1 iteration
+        $this->assertEquals(3, $requestCount, 'Should make exactly 3 HTTP attempts (1 initial + 2 retries)');
+    }
+
+    public function test_fetch_style_hints_from_ugc_fetches_last_partial_page()
+    {
+        // total_result_count=51, result_limit=50 → page 1 and page 2 should both be fetched
+        Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc-style-hints');
+
+        $requestCount = 0;
+        // Use wildcard to match GET URLs with query parameters (e.g. ?style_gender[]=1&...)
+        Http::fake(['https://api.example.com/ugc-style-hints*' => function ($request) use (&$requestCount) {
+            $requestCount++;
+
+            return Http::response(json_encode([
+                'total_result_count' => 51,
+                'content_list' => [],
+            ]), 200, ['Content-Type' => 'application/json']);
+        }]);
+
+        $this->invokeMethod($this->service, 'fetchStyleHintsFromUgcByGender', ['1', 'UNIQLO', false, false]);
+
+        $this->assertEquals(2, $requestCount, 'Should fetch page 1 (51 >= 50) and page 2 (51 >= 50), stop at page 3 (51 < 100)');
+    }
+
+    public function test_list_api_not_re_called_when_style_hint_detail_fails()
+    {
+        // Structural guard test: verifies that detail fetch failures do NOT trigger list API retries.
+        // This test is a regression guard to prevent fetchStyleHintsDetails from being moved back
+        // inside the list retry callback. It does NOT claim a currently reproducible bug.
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+        Config::set('uniqlo.api.style_hint_detail.us', 'https://api.example.com/style-hint-detail/');
+
+        $listRequestCount = 0;
+        // Use closure-based fake to distinguish list (path=/style-hint-list) from detail (path=/style-hint-detail/...)
+        Http::fake(function ($request) use (&$listRequestCount) {
+            $urlPath = parse_url($request->url(), PHP_URL_PATH);
+
+            if ($urlPath === '/style-hint-list') {
+                // List request (path is exactly /style-hint-list, query params follow)
+                $listRequestCount++;
+
+                return Http::response([
+                    'result' => [
+                        'images' => [
+                            (object) ['outfitId' => 'outfit1'],
+                        ],
+                        'pagination' => ['total' => 1],
+                    ],
+                ]);
+            }
+
+            // Detail request (path is /style-hint-detail/outfit1/details)
+            return Http::response([], 500);
+        });
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        try {
+            $this->service->fetchAllStyleHints('us');
+        } catch (\Throwable $e) {
+            // detail failures may propagate (403) or be swallowed (500)
+        }
+
+        $this->assertEquals(1, $listRequestCount, 'List API should be called exactly once; detail failures must not trigger list retries');
     }
 
     // ==================== Helper Methods ====================

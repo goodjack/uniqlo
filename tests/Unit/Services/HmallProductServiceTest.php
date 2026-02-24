@@ -17,6 +17,7 @@ class HmallProductServiceTest extends TestCase
 {
     private HmallProductService $service;
     private HmallProductRepository $mockHmallRepository;
+    private ProductRepository $mockProductRepository;
 
     protected function setUp(): void
     {
@@ -34,31 +35,32 @@ class HmallProductServiceTest extends TestCase
         $this->mockHmallRepository->method('setStockoutHmallProducts')->willReturn(true);
         $this->mockHmallRepository->method('updateProductDescriptionsFromV3')->willReturn(true);
 
-        $mockProductRepository = $this->createMock(ProductRepository::class);
+        $this->mockProductRepository = $this->createMock(ProductRepository::class);
 
-        $this->service = new HmallProductService($this->mockHmallRepository, $mockProductRepository);
+        $this->service = new HmallProductService($this->mockHmallRepository, $this->mockProductRepository);
     }
 
     public function test_fetch_all_hmall_products_stops_on_403_error()
     {
+        // Pre-set checkpoint (simulating partial completion)
+        Cache::set('hmall_products:page:UNIQLO', 5);
+        $checkpointBefore = Cache::get('hmall_products:page:UNIQLO');
+
         Http::fake([
             '*' => Http::response([], 403),
         ]);
 
         Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
 
-        Cache::flush();
-        $checkpointBefore = Cache::get('hmall_products:page:UNIQLO');
-
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
         $this->service->fetchAllHmallProducts('UNIQLO');
 
-        // Checkpoint should not be set when blocked by 403
+        // Checkpoint must not be overwritten on 403
         $checkpointAfter = Cache::get('hmall_products:page:UNIQLO');
-        $this->assertNull($checkpointBefore);
-        $this->assertNull($checkpointAfter);
+        $this->assertEquals(5, $checkpointBefore);
+        $this->assertEquals(5, $checkpointAfter, 'Checkpoint must not be overwritten on 403');
     }
 
     public function test_fetch_all_hmall_products_saves_checkpoint()
@@ -191,9 +193,59 @@ class HmallProductServiceTest extends TestCase
 
     public function test_uses_configured_retry_count()
     {
-        $maxRetry = Config::get('app.crawler.retry.times');
+        Config::set('app.crawler.retry.times', 3);
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
 
-        $this->assertEquals(3, $maxRetry, 'Expected configured retry count to be 3');
+        $requestCount = 0;
+        Http::fake(['https://api.example.com/search' => function ($request) use (&$requestCount) {
+            $requestCount++;
+
+            return Http::response([], 500);
+        }]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->service->fetchAllHmallProducts('UNIQLO');
+
+        // retry(3) = 3 total attempts; productSum stays 0 → loop exits after 1 iteration
+        $this->assertEquals(3, $requestCount, 'Should make exactly 3 HTTP attempts (1 initial + 2 retries)');
+    }
+
+    public function test_get_related_products_uses_product_repository()
+    {
+        $hmallProduct = $this->createMock(\App\Models\HmallProduct::class);
+
+        $this->mockProductRepository
+            ->expects($this->once())
+            ->method('getRelatedProductsForHmallProduct')
+            ->with($hmallProduct);
+
+        $this->service->getRelatedProducts($hmallProduct);
+    }
+
+    public function test_fetch_all_hmall_products_fetches_last_partial_page()
+    {
+        // productSum=25, pageSize=24 → page 1 returns 25, page 2 should also be fetched
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        $requestCount = 0;
+        Http::fake(['https://api.example.com/search' => function ($request) use (&$requestCount) {
+            $requestCount++;
+
+            return Http::response([
+                'resp' => [
+                    [
+                        'productList' => [],
+                        'productSum' => 25,
+                    ],
+                ],
+            ]);
+        }]);
+
+        $this->service->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertEquals(2, $requestCount, 'Should fetch page 1 (25 >= 24) and page 2 (25 >= 24), stop at page 3 (25 < 48)');
     }
 
     public function test_fetch_all_hmall_product_descriptions_resumes_from_checkpoint_with_correct_order()
