@@ -37,7 +37,7 @@ class HmallProductService extends Service
 
     public function getRelatedProducts(HmallProduct $hmallProduct)
     {
-        return $this->repository->getRelatedProductsForHmallProduct($hmallProduct);
+        return $this->productRepository->getRelatedProductsForHmallProduct($hmallProduct);
     }
 
     public function getCommonlyStyledHmallProducts(HmallProduct $hmallProduct, int $limit = 6)
@@ -138,7 +138,7 @@ class HmallProductService extends Service
             }
 
             $page++;
-        } while ($productSum >= $page * $pageSize);
+        } while ($productSum >= ($page - 1) * $pageSize);
 
         // Clear checkpoint on successful completion
         Cache::forget($cacheKey);
@@ -174,19 +174,19 @@ class HmallProductService extends Service
 
                 // Update checkpoint only on success
                 Cache::set($cacheKey, $hmallProduct->id, now()->addDays(7));
+
+                $this->detailCounter++;
+
+                // Check if detail batch rest is needed
+                if ($this->shouldDetailBatchRest()) {
+                    $this->doDetailBatchRest();
+                }
             } catch (Throwable $e) {
                 // 403 propagated from inner method - stop the entire foreach
                 if ($this->is403Error($e)) {
                     return;
                 }
                 // Other errors: skip item (already logged in fetchHmallProductDescriptions)
-            }
-
-            $this->detailCounter++;
-
-            // Check if detail batch rest is needed
-            if ($this->shouldDetailBatchRest()) {
-                $this->doDetailBatchRest();
             }
         }
 
@@ -245,7 +245,7 @@ class HmallProductService extends Service
                 throw $e;
             }
 
-            // retry() exhausted - skip this item
+            // retry() exhausted - log and propagate so caller can skip and not count this item
             logger()->error('fetchHmallProductDescriptions error - max retry exceeded', [
                 'brand' => $brand,
                 'productCode' => $productCode,
@@ -254,6 +254,8 @@ class HmallProductService extends Service
                 'error' => $e->getMessage(),
             ]);
             report($e);
+
+            throw $e;
         }
     }
 

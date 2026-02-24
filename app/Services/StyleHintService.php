@@ -29,7 +29,12 @@ class StyleHintService extends Service
     }
 
     /**
-     * Build complete browser headers for the request (customized for StyleHint).
+     * Build complete browser headers for the request.
+     *
+     * Overrides trait default because StyleHint API requires:
+     * - Mobile origin (m.uniqlo.com) instead of www.uniqlo.com
+     * - appCheck header for app-review bypass
+     * - langCode header for Traditional Chinese content
      */
     private function buildHeaders(): array
     {
@@ -56,7 +61,7 @@ class StyleHintService extends Service
 
         do {
             try {
-                $total = retry(
+                [$styleHintSummaries, $total] = retry(
                     config('app.crawler.retry.times'),
                     function ($attempts) use ($country, $offset, $limit) {
                         $response = Http::withHeaders($this->buildHeaders())
@@ -69,14 +74,17 @@ class StyleHintService extends Service
                             ]);
 
                         $responseBody = json_decode($response->body());
-                        $styleHintSummaries = $responseBody->result->images;
-                        $this->fetchStyleHintsDetails($country, $styleHintSummaries);
 
-                        return $responseBody->result->pagination->total;
+                        return [
+                            $responseBody->result->images,
+                            $responseBody->result->pagination->total,
+                        ];
                     },
                     fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
                     fn ($e) => $this->shouldRetry($e),
                 );
+
+                $this->fetchStyleHintsDetails($country, $styleHintSummaries);
 
                 // Update checkpoint
                 Cache::set($cacheKey, $offset + $limit, now()->addDays(7));
@@ -146,7 +154,7 @@ class StyleHintService extends Service
         }
 
         foreach ($genders as $gender) {
-            $this->resetDetailCounter();
+            $this->resetDetailCounter(); // Reset per-gender — each gender has independent batch rest quota
 
             try {
                 $this->fetchStyleHintsFromUgcByGender($gender, $brand, $onlyRecent, $isManual);
@@ -347,7 +355,7 @@ class StyleHintService extends Service
             }
 
             $page++;
-        } while ($totalResultCount >= $page * $resultLimit);
+        } while ($totalResultCount >= ($page - 1) * $resultLimit);
 
         if ($isManual) {
             $this->forgetLastManualFetchGender($brand);

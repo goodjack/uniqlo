@@ -88,7 +88,7 @@ class StyleService extends Service
 
         do {
             try {
-                $totalStyles = retry(
+                [$styles, $totalStyles] = retry(
                     config('app.crawler.retry.times'),
                     function ($attempts) use ($ugcOfficialStyleListApiUrl, $brand, $genderId, $page, $pageSize) {
                         $headers = $this->buildHeaders();
@@ -111,13 +111,16 @@ class StyleService extends Service
                             throw new Exception("Styles does not exist. {$response->body()}");
                         }
 
-                        $this->fetchStyleDetails($styles, $brand);
-
-                        return data_get($responseBody, 'result.total_styles');
+                        return [
+                            $styles,
+                            data_get($responseBody, 'result.total_styles'),
+                        ];
                     },
                     fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
                     fn ($e) => $this->shouldRetry($e),
                 );
+
+                $this->fetchStyleDetails($styles, $brand);
 
                 // Update checkpoint
                 Cache::set($cacheKey, $page + 1, now()->addDays(7));
@@ -150,7 +153,7 @@ class StyleService extends Service
             }
 
             $page++;
-        } while ($totalStyles >= $page * $pageSize);
+        } while ($totalStyles >= ($page - 1) * $pageSize);
     }
 
     private function fetchStyleDetails($styles, string $brand = 'UNIQLO'): void
