@@ -64,6 +64,12 @@ class StyleHintServiceTest extends TestCase
         // Verify values are not empty
         $this->assertNotEmpty($headers['User-Agent']);
         $this->assertNotEmpty($headers['Accept']);
+
+        // Verify StyleHintService-specific headers (override from trait)
+        $this->assertEquals('for-app-review', $headers['appCheck']);
+        $this->assertEquals('zh_TW', $headers['langCode']);
+        $this->assertEquals('https://m.uniqlo.com', $headers['Origin']);
+        $this->assertEquals('https://m.uniqlo.com/', $headers['Referer']);
     }
 
     public function test_is_403_error_detects_403_correctly()

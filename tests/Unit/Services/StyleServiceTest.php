@@ -151,16 +151,13 @@ class StyleServiceTest extends TestCase
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        // With the fix (throw exception), this should throw
-        // Without the fix (return), it would silently continue
-        try {
-            $this->service->fetchAllStyles('UNIQLO');
-            // If we get here, the exception was caught somewhere (which is OK)
-            $this->assertTrue(true);
-        } catch (\Throwable $e) {
-            // If exception is thrown, that's also correct behavior
-            $this->assertTrue(true);
-        }
+        // fetchAllStyles catches the 403 propagated from fetchStyleDetails and returns gracefully.
+        // The key verification is that it completes without processing further genders
+        // (covered by test_fetch_style_details_actually_stops_processing_on_403).
+        $this->service->fetchAllStyles('UNIQLO');
+
+        // Verify page checkpoint was NOT advanced (403 stops before checkpoint update)
+        $this->assertNull(Cache::get('styles:page:UNIQLO:1'), 'Page checkpoint must not be set on 403');
     }
 
     public function test_fetch_style_details_actually_stops_processing_on_403()

@@ -364,7 +364,7 @@ class StyleHintService extends Service
 
     private function shouldManualFetchContinue(string $gender, $brand = 'UNIQLO'): bool
     {
-        if (Cache::get(self::CACHE_UGC_SCHEDULING, true)) {
+        if (Cache::get(self::CACHE_UGC_SCHEDULING, false)) {
             logger()->info('Manual fetch is stopped because of scheduling.');
 
             return false;

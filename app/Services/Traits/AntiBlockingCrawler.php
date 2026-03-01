@@ -2,7 +2,6 @@
 
 namespace App\Services\Traits;
 
-use Exception;
 use Illuminate\Http\Client\RequestException;
 use Throwable;
 
@@ -72,7 +71,7 @@ trait AntiBlockingCrawler
     /**
      * Get random sleep duration in milliseconds for retry callback.
      */
-    private function getRetrySleepMilliseconds(int $attempts, Exception $exception): int
+    private function getRetrySleepMilliseconds(int $attempts, Throwable $exception): int
     {
         $retryConfig = config('app.crawler.retry');
 
@@ -82,7 +81,7 @@ trait AntiBlockingCrawler
     /**
      * Determine if the exception is retryable (not a 403 error).
      */
-    private function shouldRetry(Exception $exception): bool
+    private function shouldRetry(Throwable $exception): bool
     {
         return !$this->is403Error($exception);
     }

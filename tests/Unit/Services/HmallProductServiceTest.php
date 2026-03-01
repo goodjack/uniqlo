@@ -247,31 +247,4 @@ class HmallProductServiceTest extends TestCase
 
         $this->assertEquals(2, $requestCount, 'Should fetch page 1 (25 >= 24) and page 2 (25 >= 24), stop at page 3 (25 < 48)');
     }
-
-    public function test_fetch_all_hmall_product_descriptions_resumes_from_checkpoint_with_correct_order()
-    {
-        // This is a documentation test that verifies the checkpoint logic is correct
-        // The actual query is: orderBy('id', 'desc')->where('id', '<', $lastProcessedId)
-        // This ensures when resuming from ID 99, it will fetch IDs 98, 97, 96...
-
-        // Set checkpoint to 99 (last processed ID)
-        $cacheKey = 'hmall_descriptions:last_id:UNIQLO';
-        Cache::set($cacheKey, 99);
-
-        // Verify checkpoint exists
-        $this->assertEquals(99, Cache::get($cacheKey));
-
-        // The critical fix is: where('id', '<', 99) not where('id', '>', 99)
-        // With orderBy('id', 'desc'), we need '<' to get 98, 97, 96...
-        // This test documents the expected behavior
-        $this->assertTrue(true, 'Checkpoint logic uses correct WHERE condition for descending order');
-    }
-
-    public function test_retry_counter_resets_between_pages()
-    {
-        // Documentation test: with retry() helper, there is no manual $retry counter.
-        // Each page call to retry() starts fresh - no state leaks between pages.
-        // The Laravel retry() helper is self-contained per invocation.
-        $this->assertTrue(true, 'retry() helper is stateless per invocation - no counter leak between pages');
-    }
 }
