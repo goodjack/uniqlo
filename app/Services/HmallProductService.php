@@ -109,12 +109,14 @@ class HmallProductService extends Service
                 );
 
                 // Update checkpoint
-                Cache::set($cacheKey, $page + 1, now()->addDays(7));
+                Cache::put($cacheKey, $page + 1, now()->addDays(7));
 
                 $this->randomDelay();
             } catch (Throwable $e) {
                 // 403 is a permanent block - stop immediately
                 if ($this->is403Error($e)) {
+                    // TODO: Consider running stockout processing on partial data, or at least notifying
+                    logger()->warning('403 blocked - skipping stockout processing', ['brand' => $brand]);
                     logger()->error('fetchAllHmallProducts blocked (403)', [
                         'brand' => $brand,
                         'page' => $page,
@@ -173,7 +175,7 @@ class HmallProductService extends Service
                 $this->fetchHmallProductDescriptions($hmallProduct, $brand, $updateTimestamps);
 
                 // Update checkpoint only on success
-                Cache::set($cacheKey, $hmallProduct->id, now()->addDays(7));
+                Cache::put($cacheKey, $hmallProduct->id, now()->addDays(7));
 
                 $this->detailCounter++;
 
@@ -205,30 +207,37 @@ class HmallProductService extends Service
         $sizeChartApiUrl = $this->getV3DescriptionApiUrl($brand) . "{$productCode}/zh_TW/sizeAndTryOnH5.html";
 
         try {
-            retry(
+            $instruction = retry(
                 config('app.crawler.retry.times'),
-                function ($attempts) use ($instructionApiUrl, $sizeChartApiUrl, $hmallProduct, $brand, $updateTimestamps) {
-                    $instructionResponse = Http::withHeaders($this->buildHeaders())
+                function ($attempts) use ($instructionApiUrl) {
+                    $response = Http::withHeaders($this->buildHeaders())
                         ->throw()
                         ->get($instructionApiUrl);
 
-                    $instruction = $instructionResponse->body();
-
-                    $sizeChartResponse = Http::withHeaders($this->buildHeaders())
-                        ->throw()
-                        ->get($sizeChartApiUrl);
-
-                    $sizeChart = $sizeChartResponse->body();
-
-                    $this->repository->updateProductDescriptionsFromV3(
-                        $hmallProduct,
-                        $instruction,
-                        $sizeChart,
-                        $updateTimestamps
-                    );
+                    return $response->body();
                 },
                 fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
                 fn ($e) => $this->shouldRetry($e),
+            );
+
+            $sizeChart = retry(
+                config('app.crawler.retry.times'),
+                function ($attempts) use ($sizeChartApiUrl) {
+                    $response = Http::withHeaders($this->buildHeaders())
+                        ->throw()
+                        ->get($sizeChartApiUrl);
+
+                    return $response->body();
+                },
+                fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
+                fn ($e) => $this->shouldRetry($e),
+            );
+
+            $this->repository->updateProductDescriptionsFromV3(
+                $hmallProduct,
+                $instruction,
+                $sizeChart,
+                $updateTimestamps
             );
 
             $this->randomDelay();

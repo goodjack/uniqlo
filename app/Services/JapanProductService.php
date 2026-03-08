@@ -76,7 +76,7 @@ class JapanProductService
                 $offset += $limit;
 
                 // Update checkpoint
-                Cache::set($cacheKey, $offset, now()->addDays(7));
+                Cache::put($cacheKey, $offset, now()->addDays(7));
 
                 // Check if offset batch rest is needed
                 if ($this->shouldOffsetBatchRest($offset, $limit)) {
@@ -87,6 +87,8 @@ class JapanProductService
             } catch (Throwable $e) {
                 // 403 is a permanent block - stop immediately
                 if ($this->is403Error($e)) {
+                    // TODO: Consider running stockout processing on partial data, or at least notifying
+                    logger()->warning('403 blocked - skipping stockout processing', ['brand' => $brand]);
                     logger()->error('fetchAllProducts blocked (403)', [
                         'brand' => $brand,
                         'offset' => $offset,

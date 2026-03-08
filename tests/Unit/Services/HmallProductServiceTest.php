@@ -52,6 +52,7 @@ class HmallProductServiceTest extends TestCase
 
         Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
 
+        Log::shouldReceive('warning')->andReturnNull();
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
@@ -222,6 +223,53 @@ class HmallProductServiceTest extends TestCase
             ->with($hmallProduct);
 
         $this->service->getRelatedProducts($hmallProduct);
+    }
+
+    public function test_description_fetch_retries_each_url_independently()
+    {
+        // Fix #10: instruction and sizeChart HTTP requests are now in separate retry blocks,
+        // so a transient failure on sizeChart doesn't re-fetch instruction.
+        Config::set('app.crawler.retry.times', 3);
+        Config::set('uniqlo.api.v3.description.tw', 'https://api.example.com/description/');
+
+        $instructionCount = 0;
+        $sizeChartCount = 0;
+
+        Http::fake(function ($request) use (&$instructionCount, &$sizeChartCount) {
+            $url = $request->url();
+
+            if (str_contains($url, 'instructionH5')) {
+                $instructionCount++;
+
+                return Http::response('<div>instruction</div>');
+            }
+
+            if (str_contains($url, 'sizeAndTryOnH5')) {
+                $sizeChartCount++;
+
+                // First attempt fails, second succeeds
+                if ($sizeChartCount === 1) {
+                    return Http::response([], 500);
+                }
+
+                return Http::response('<div>sizeChart</div>');
+            }
+
+            return Http::response([], 404);
+        });
+
+        $mockProduct = $this->createMock(\App\Models\HmallProduct::class);
+        $mockProduct->method('__get')->willReturnMap([
+            ['id', 1],
+            ['product_code', 'TEST123'],
+        ]);
+
+        $this->service->fetchHmallProductDescriptions($mockProduct, 'UNIQLO');
+
+        // Instruction should be fetched exactly once (succeeded on first try)
+        $this->assertEquals(1, $instructionCount, 'Instruction should not be re-fetched when sizeChart retries');
+        // SizeChart should be fetched twice (failed once, then succeeded)
+        $this->assertEquals(2, $sizeChartCount, 'SizeChart should retry independently');
     }
 
     public function test_fetch_all_hmall_products_fetches_last_partial_page()

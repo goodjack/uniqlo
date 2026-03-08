@@ -17,6 +17,8 @@ class StyleHintService extends Service
     /** @var StyleHintRepository */
     protected $repository;
 
+    private const CACHE_KEY_STYLE_HINT_OFFSET = 'style_hint:offset:%s';
+
     private const CACHE_UGC_SCHEDULING = 'style_hint_ugc:scheduling';
 
     private const CACHE_UGC_MANUAL_LAST_GENDER = 'style_hint_ugc:manual:%s:last_gender';
@@ -36,6 +38,8 @@ class StyleHintService extends Service
      * - appCheck header for app-review bypass
      * - langCode header for Traditional Chinese content
      */
+    // TODO: Headers are hardcoded for Taiwan site (zh_TW, m.uniqlo.com).
+    // If fetchAllStyleHints() is used for non-TW countries, these should be parameterized.
     private function buildHeaders(): array
     {
         return [
@@ -53,11 +57,18 @@ class StyleHintService extends Service
     public function fetchAllStyleHints(string $country, bool $fresh = false)
     {
         $limit = 50;
-        $cacheKey = "style_hint:offset:{$country}";
+        $cacheKey = sprintf(self::CACHE_KEY_STYLE_HINT_OFFSET, $country);
+
+        if ($fresh) {
+            Cache::forget($cacheKey);
+        }
+
         $offset = $fresh ? 0 : (Cache::get($cacheKey) ?? 0);
         $total = 0;
 
         logger()->info("Fetching style hints for {$country}, starting from offset {$offset}");
+
+        $this->resetDetailCounter();
 
         do {
             try {
@@ -75,10 +86,14 @@ class StyleHintService extends Service
 
                         $responseBody = json_decode($response->body());
 
-                        return [
-                            $responseBody->result->images,
-                            $responseBody->result->pagination->total,
-                        ];
+                        $images = data_get($responseBody, 'result.images');
+                        $total = data_get($responseBody, 'result.pagination.total');
+
+                        if (is_null($images) || is_null($total)) {
+                            throw new Exception("Missing required fields in response. {$response->body()}");
+                        }
+
+                        return [$images, $total];
                     },
                     fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
                     fn ($e) => $this->shouldRetry($e),
@@ -87,7 +102,7 @@ class StyleHintService extends Service
                 $this->fetchStyleHintsDetails($country, $styleHintSummaries);
 
                 // Update checkpoint
-                Cache::set($cacheKey, $offset + $limit, now()->addDays(7));
+                Cache::put($cacheKey, $offset + $limit, now()->addDays(7));
 
                 $offset += $limit;
 
@@ -178,7 +193,6 @@ class StyleHintService extends Service
 
     private function fetchStyleHintsDetails($country, $styleHintSummaries)
     {
-        $this->resetDetailCounter();
         $styleHintSummaries = collect($styleHintSummaries);
 
         $existOutfitIds = $this->repository->getExistStyleHintOutfitIds(
@@ -279,7 +293,7 @@ class StyleHintService extends Service
             }
 
             try {
-                $totalResultCount = retry(
+                [$totalResultCount, $contentCount] = retry(
                     config('app.crawler.retry.times'),
                     function ($attempts) use ($ugcStyleHintListApiUrl, $brand, $gender, $page, $resultLimit, $onlyRecent) {
                         $headers = $this->buildHeaders();
@@ -304,12 +318,6 @@ class StyleHintService extends Service
                         }
 
                         $this->repository->saveStyleHintsFromUgc($contentList, $brand);
-                        $this->detailCounter += count($contentList);
-
-                        // Check if detail batch rest is needed
-                        if ($this->shouldDetailBatchRest()) {
-                            $this->doDetailBatchRest();
-                        }
 
                         $total = $responseBody->total_result_count;
 
@@ -317,11 +325,18 @@ class StyleHintService extends Service
                             $total = 10000;
                         }
 
-                        return $total;
+                        return [$total, count($contentList)];
                     },
                     fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
                     fn ($e) => $this->shouldRetry($e),
                 );
+
+                $this->detailCounter += $contentCount;
+
+                // Check if detail batch rest is needed
+                if ($this->shouldDetailBatchRest()) {
+                    $this->doDetailBatchRest();
+                }
 
                 $this->randomDelay();
 

@@ -451,6 +451,176 @@ class StyleHintServiceTest extends TestCase
         $this->assertEquals(1, $listRequestCount, 'List API should be called exactly once; detail failures must not trigger list retries');
     }
 
+    // ==================== Bug Fix Regression Tests ====================
+
+    public function test_detail_counter_accumulates_across_pages()
+    {
+        // Bug #1: resetDetailCounter() was called per-page in fetchStyleHintsDetails(),
+        // causing detailCounter to never reach the batch rest interval (200).
+        // Fix: resetDetailCounter() is now called once in fetchAllStyleHints() before the do-while.
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+        Config::set('uniqlo.api.style_hint_detail.us', 'https://api.example.com/style-hint-detail/');
+
+        // Simulate 2 pages with 3 items each → detailCounter should reach 6 total
+        $page = 0;
+        Http::fake(function ($request) use (&$page) {
+            $urlPath = parse_url($request->url(), PHP_URL_PATH);
+
+            if ($urlPath === '/style-hint-list') {
+                $page++;
+
+                if ($page === 1) {
+                    return Http::response([
+                        'result' => [
+                            'images' => [
+                                (object) ['outfitId' => 'o1'],
+                                (object) ['outfitId' => 'o2'],
+                                (object) ['outfitId' => 'o3'],
+                            ],
+                            'pagination' => ['total' => 100],
+                        ],
+                    ]);
+                }
+
+                // Page 2: stop loop
+                return Http::response([
+                    'result' => [
+                        'images' => [
+                            (object) ['outfitId' => 'o4'],
+                            (object) ['outfitId' => 'o5'],
+                            (object) ['outfitId' => 'o6'],
+                        ],
+                        'pagination' => ['total' => 51],
+                    ],
+                ]);
+            }
+
+            // Detail requests succeed
+            return Http::response([
+                'result' => (object) ['some' => 'data'],
+            ]);
+        });
+
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->service->fetchAllStyleHints('us');
+
+        // detailCounter should be 6 (3 items × 2 pages), NOT reset to 3 after each page
+        $detailCounter = $this->getPrivateProperty($this->service, 'detailCounter');
+        $this->assertEquals(6, $detailCounter, 'detailCounter should accumulate across pages, not reset per page');
+    }
+
+    public function test_list_api_throws_on_missing_images_field()
+    {
+        // Bug #2: list API response missing result.images was not validated,
+        // causing null property access errors.
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+        Config::set('app.crawler.retry.times', 1);
+
+        Http::fake([
+            'https://api.example.com/style-hint-list*' => Http::response([
+                'result' => [
+                    // 'images' is missing
+                    'pagination' => ['total' => 100],
+                ],
+            ]),
+        ]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        // Should not crash — the exception is caught by the do-while's catch block
+        $this->service->fetchAllStyleHints('us');
+
+        // Verify it logged an error (retry exhausted)
+        Log::shouldHaveReceived('error')->atLeast()->once();
+    }
+
+    public function test_list_api_throws_on_missing_pagination_field()
+    {
+        // Bug #2: list API response missing result.pagination.total was not validated.
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+        Config::set('app.crawler.retry.times', 1);
+
+        Http::fake([
+            'https://api.example.com/style-hint-list*' => Http::response([
+                'result' => [
+                    'images' => [],
+                    // 'pagination' is missing
+                ],
+            ]),
+        ]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->service->fetchAllStyleHints('us');
+
+        Log::shouldHaveReceived('error')->atLeast()->once();
+    }
+
+    public function test_fresh_clears_checkpoint_cache()
+    {
+        // Bug #3: $fresh only set offset=0 but didn't Cache::forget the old checkpoint.
+        // If the fresh run is interrupted, the old stale checkpoint would persist.
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+
+        // Pre-set a stale checkpoint
+        Cache::put('style_hint:offset:us', 500);
+
+        // Return 403 immediately to simulate an interrupted fresh run
+        Http::fake([
+            'https://api.example.com/style-hint-list*' => Http::response([], 403),
+        ]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->service->fetchAllStyleHints('us', fresh: true);
+
+        // With the fix, Cache::forget is called before the loop,
+        // so the stale checkpoint (500) should be gone even though the run was interrupted
+        $this->assertNull(
+            Cache::get('style_hint:offset:us'),
+            'Fresh run must clear old checkpoint even when interrupted by 403'
+        );
+    }
+
+    public function test_ugc_detail_counter_not_incremented_on_retry()
+    {
+        // Fix #4: detailCounter was incremented inside retry callback,
+        // causing over-counting when retries occur.
+        Config::set('app.crawler.retry.times', 3);
+        Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc-style-hints');
+
+        $requestCount = 0;
+        Http::fake(['https://api.example.com/ugc-style-hints*' => function ($request) use (&$requestCount) {
+            $requestCount++;
+
+            // First attempt fails, second succeeds
+            if ($requestCount === 1) {
+                return Http::response([], 500);
+            }
+
+            return Http::response(json_encode([
+                'total_result_count' => 10,
+                'content_list' => [
+                    (object) ['id' => 1],
+                    (object) ['id' => 2],
+                    (object) ['id' => 3],
+                ],
+            ]), 200, ['Content-Type' => 'application/json']);
+        }]);
+
+        $this->setPrivateProperty($this->service, 'detailCounter', 0);
+
+        $this->invokeMethod($this->service, 'fetchStyleHintsFromUgcByGender', ['1', 'UNIQLO', false, false]);
+
+        // detailCounter should be 3 (count of content_list), NOT 6 (from being inside retry)
+        $detailCounter = $this->getPrivateProperty($this->service, 'detailCounter');
+        $this->assertEquals(3, $detailCounter, 'detailCounter should only increment once per successful request, not per retry attempt');
+    }
+
     // ==================== Helper Methods ====================
 
     private function invokeMethod(&$object, $methodName, array $parameters = [])
@@ -468,5 +638,14 @@ class StyleHintServiceTest extends TestCase
         $property = $reflection->getProperty($propertyName);
         $property->setAccessible(true);
         $property->setValue($object, $value);
+    }
+
+    private function getPrivateProperty(&$object, $propertyName)
+    {
+        $reflection = new ReflectionClass(get_class($object));
+        $property = $reflection->getProperty($propertyName);
+        $property->setAccessible(true);
+
+        return $property->getValue($object);
     }
 }

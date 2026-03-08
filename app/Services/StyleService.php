@@ -54,7 +54,7 @@ class StyleService extends Service
             $genderId = $genderIds[$i];
 
             // Save current gender checkpoint
-            Cache::set(sprintf(self::CACHE_KEY_STYLE_LAST_GENDER, $brand), $genderId, now()->addDays(7));
+            Cache::put(sprintf(self::CACHE_KEY_STYLE_LAST_GENDER, $brand), $genderId, now()->addDays(7));
 
             try {
                 $this->fetchStylesByGenderId($genderId, $brand);
@@ -123,7 +123,7 @@ class StyleService extends Service
                 $this->fetchStyleDetails($styles, $brand);
 
                 // Update checkpoint
-                Cache::set($cacheKey, $page + 1, now()->addDays(7));
+                Cache::put($cacheKey, $page + 1, now()->addDays(7));
 
                 $this->randomDelay();
             } catch (Throwable $e) {

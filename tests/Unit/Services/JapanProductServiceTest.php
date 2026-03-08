@@ -44,6 +44,7 @@ class JapanProductServiceTest extends TestCase
 
         Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
 
+        Log::shouldReceive('warning')->andReturnNull();
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
