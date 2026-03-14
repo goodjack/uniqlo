@@ -215,7 +215,7 @@ class StyleHintService extends Service
 
         $styleHintSummaries->each(function ($styleHintSummary) use ($country) {
             $outfitId = $styleHintSummary->outfitId;
-            $url = config("uniqlo.api.style_hint_detail.{$country}")."{$outfitId}/details";
+            $url = config("uniqlo.api.style_hint_detail.{$country}") . "{$outfitId}/details";
 
             try {
                 retry(

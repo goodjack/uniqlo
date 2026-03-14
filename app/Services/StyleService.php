@@ -189,7 +189,7 @@ class StyleService extends Service
 
                         $response = Http::withHeaders($headers)
                             ->throw()
-                            ->get($ugcOfficialStyleListApiUrl."/{$styleId}", [
+                            ->get($ugcOfficialStyleListApiUrl . "/{$styleId}", [
                                 'content_language' => 'zh-TW',
                                 'brand' => ($brand === 'GU') ? 'gu' : 'uq',
                             ]);
