@@ -301,6 +301,38 @@ class StyleServiceTest extends TestCase
         $this->assertEquals(1, $listRequestCount, 'List API should be called exactly once; detail failures must not trigger list retries');
     }
 
+    // ==================== Earlier Review Bug Fix Tests ====================
+
+    public function test_non_403_failure_preserves_gender_page_checkpoint()
+    {
+        // Bug #58: Cache::forget(page_checkpoint) ran unconditionally after the try-catch,
+        // even when fetchStylesByGenderId failed with non-403 error.
+        // This cleared page progress, so next run would restart from page 1.
+        Config::set('app.crawler.retry.times', 1);
+        Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
+
+        // Pre-set page checkpoint for gender 1 at page 5
+        Cache::put('styles:page:UNIQLO:1', 5);
+
+        // First gender (MEN=1): list API fails with 500
+        Http::fake([
+            'https://api.example.com/styles*' => Http::response([], 500),
+        ]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+        Log::shouldReceive('warning')->andReturnNull();
+
+        $this->service->fetchAllStyles('UNIQLO');
+
+        // Page checkpoint for gender 1 must be preserved for resumption
+        $this->assertEquals(
+            5,
+            Cache::get('styles:page:UNIQLO:1'),
+            'Page checkpoint must be preserved when gender fails with non-403 error'
+        );
+    }
+
     // ==================== Helper Methods ====================
 
     private function invokeMethod(&$object, $methodName, array $parameters = [])

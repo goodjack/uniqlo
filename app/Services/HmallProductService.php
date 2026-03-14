@@ -68,6 +68,7 @@ class HmallProductService extends Service
         $cacheKey = sprintf(self::CACHE_KEY_HMALL_PRODUCTS_PAGE, $brand);
         $page = $fresh ? 1 : (Cache::get($cacheKey) ?? 1);
         $productSum = 0;
+        $hasSucceeded = false;
 
         logger()->info("Fetching Hmall products for {$brand}, starting from page {$page}");
 
@@ -108,6 +109,8 @@ class HmallProductService extends Service
                     fn ($e) => $this->shouldRetry($e),
                 );
 
+                $hasSucceeded = true;
+
                 // Update checkpoint
                 Cache::put($cacheKey, $page + 1, now()->addDays(7));
 
@@ -142,11 +145,15 @@ class HmallProductService extends Service
             $page++;
         } while ($productSum >= ($page - 1) * $pageSize);
 
-        // Clear checkpoint on successful completion
-        Cache::forget($cacheKey);
-        logger()->info("Completed fetching Hmall products for {$brand}");
+        if ($hasSucceeded) {
+            // Clear checkpoint on successful completion
+            Cache::forget($cacheKey);
+            logger()->info("Completed fetching Hmall products for {$brand}");
 
-        $this->repository->setStockoutHmallProducts($brand);
+            $this->repository->setStockoutHmallProducts($brand);
+        } else {
+            logger()->warning('No pages were successfully fetched - preserving checkpoint', ['brand' => $brand]);
+        }
     }
 
     public function fetchAllHmallProductDescriptions(string $brand = 'UNIQLO', bool $updateTimestamps = false, bool $fresh = false): void

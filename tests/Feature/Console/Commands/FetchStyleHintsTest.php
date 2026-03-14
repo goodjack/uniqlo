@@ -87,7 +87,7 @@ class FetchStyleHintsTest extends TestCase
     public function test_command_stops_on_403_blocking()
     {
         Http::fake([
-            'https://api.example.com/style-hint-list' => Http::response([], 403),
+            'https://api.example.com/style-hint-list*' => Http::response([], 403),
         ]);
 
         Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
@@ -106,7 +106,7 @@ class FetchStyleHintsTest extends TestCase
         Cache::set('style_hint:offset:us', $checkpointOffset);
 
         Http::fake([
-            'https://api.example.com/style-hint-list' => Http::response(
+            'https://api.example.com/style-hint-list*' => Http::response(
                 [
                     'result' => [
                         'images' => [],
@@ -128,7 +128,7 @@ class FetchStyleHintsTest extends TestCase
     public function test_command_clears_checkpoint_on_success()
     {
         Http::fake([
-            'https://api.example.com/style-hint-list' => Http::response(
+            'https://api.example.com/style-hint-list*' => Http::response(
                 [
                     'result' => [
                         'images' => [],

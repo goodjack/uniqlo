@@ -133,6 +133,7 @@ class JapanProductServiceTest extends TestCase
             return Http::response([], 500);
         }]);
 
+        Log::shouldReceive('warning')->andReturnNull();
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
@@ -140,5 +141,33 @@ class JapanProductServiceTest extends TestCase
 
         // retry(3) = 3 total attempts; total stays 0 → loop exits after 1 iteration
         $this->assertEquals(3, $requestCount, 'Should make exactly 3 HTTP attempts (1 initial + 2 retries)');
+    }
+
+    public function test_all_pages_fail_preserves_checkpoint_and_skips_stockout()
+    {
+        // Bug #57: When all pages fail with non-403, the loop exits with total=0
+        // and incorrectly clears checkpoint + runs stockout as if completed successfully.
+        Config::set('app.crawler.retry.times', 1);
+        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
+
+        // Pre-set checkpoint
+        Cache::put('japan_products:offset:UNIQLO', 72);
+
+        Http::fake([
+            'https://api.example.com/products*' => Http::response([], 500),
+        ]);
+
+        Log::shouldReceive('warning')->andReturnNull();
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->service->fetchAllProducts('UNIQLO');
+
+        // Checkpoint must be preserved — not cleared
+        $this->assertEquals(
+            72,
+            Cache::get('japan_products:offset:UNIQLO'),
+            'Checkpoint must not be cleared when no batches succeeded'
+        );
     }
 }

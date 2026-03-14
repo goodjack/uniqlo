@@ -273,7 +273,7 @@ class StyleHintServiceTest extends TestCase
     public function test_fetch_all_style_hints_saves_checkpoint()
     {
         Http::fake([
-            'https://api.example.com/style-hint-list' => Http::response(
+            'https://api.example.com/style-hint-list*' => Http::response(
                 [
                     'result' => [
                         'images' => [],
@@ -299,7 +299,7 @@ class StyleHintServiceTest extends TestCase
         Cache::set('style_hint:offset:us', $initialCheckpoint);
 
         Http::fake([
-            'https://api.example.com/style-hint-list' => Http::response(
+            'https://api.example.com/style-hint-list*' => Http::response(
                 [
                     'result' => [
                         'images' => [],
@@ -322,7 +322,7 @@ class StyleHintServiceTest extends TestCase
         Cache::set('style_hint:offset:us', 100);
 
         Http::fake([
-            'https://api.example.com/style-hint-list' => Http::response(
+            'https://api.example.com/style-hint-list*' => Http::response(
                 [
                     'result' => [
                         'images' => [],
@@ -355,6 +355,7 @@ class StyleHintServiceTest extends TestCase
             return Http::response([], 500);
         }]);
 
+        Log::shouldReceive('warning')->andReturnNull();
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
@@ -526,6 +527,7 @@ class StyleHintServiceTest extends TestCase
             ]),
         ]);
 
+        Log::shouldReceive('warning')->andReturnNull();
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
@@ -551,6 +553,7 @@ class StyleHintServiceTest extends TestCase
             ]),
         ]);
 
+        Log::shouldReceive('warning')->andReturnNull();
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
@@ -619,6 +622,80 @@ class StyleHintServiceTest extends TestCase
         // detailCounter should be 3 (count of content_list), NOT 6 (from being inside retry)
         $detailCounter = $this->getPrivateProperty($this->service, 'detailCounter');
         $this->assertEquals(3, $detailCounter, 'detailCounter should only increment once per successful request, not per retry attempt');
+    }
+
+    // ==================== Earlier Review Bug Fix Tests ====================
+
+    public function test_manual_mode_advances_past_failed_page()
+    {
+        // Bug #56: In manual mode, forgetLastManualFetchPage was only called on success.
+        // On non-403 failure, the cached page persisted, causing getLastManualFetchPage
+        // to restore the same failed page → infinite loop.
+        Config::set('app.crawler.retry.times', 1);
+        Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc-style-hints');
+
+        $requestCount = 0;
+        Http::fake(['https://api.example.com/ugc-style-hints*' => function ($request) use (&$requestCount) {
+            $requestCount++;
+
+            // Page 1 succeeds with totalResultCount=100 (needs 2 pages of 50)
+            if ($requestCount === 1) {
+                return Http::response(json_encode([
+                    'total_result_count' => 100,
+                    'content_list' => [],
+                ]), 200, ['Content-Type' => 'application/json']);
+            }
+
+            // Page 2 fails (500) — this is the page that must be advanced past
+            if ($requestCount === 2) {
+                return Http::response([], 500);
+            }
+
+            // Page 3 succeeds — proves we advanced past failed page 2
+            return Http::response(json_encode([
+                'total_result_count' => 100,
+                'content_list' => [],
+            ]), 200, ['Content-Type' => 'application/json']);
+        }]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        // Run in manual mode — page 2 fails, should advance to page 3 (not loop on page 2)
+        $this->invokeMethod($this->service, 'fetchStyleHintsFromUgcByGender', ['1', 'UNIQLO', false, true]);
+
+        // Should make exactly 3 requests: page 1 (success) + page 2 (fail) + page 3 (success)
+        // Without the fix, it would loop on page 2 indefinitely
+        $this->assertEquals(3, $requestCount, 'Manual mode must advance past failed page, not retry infinitely');
+    }
+
+    public function test_all_pages_fail_preserves_checkpoint()
+    {
+        // Bug #57: When all pages fail with non-403 errors, the loop exits with
+        // total/productSum=0 and incorrectly runs Cache::forget + completion logic,
+        // treating a complete failure as successful completion.
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+        Config::set('app.crawler.retry.times', 1);
+
+        // Pre-set checkpoint
+        Cache::put('style_hint:offset:us', 100);
+
+        Http::fake([
+            'https://api.example.com/style-hint-list*' => Http::response([], 500),
+        ]);
+
+        Log::shouldReceive('warning')->andReturnNull();
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->service->fetchAllStyleHints('us');
+
+        // Checkpoint must be preserved — not cleared as if completed successfully
+        $this->assertEquals(
+            100,
+            Cache::get('style_hint:offset:us'),
+            'Checkpoint must not be cleared when no pages succeeded'
+        );
     }
 
     // ==================== Helper Methods ====================

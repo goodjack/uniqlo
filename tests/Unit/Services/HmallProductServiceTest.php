@@ -204,6 +204,7 @@ class HmallProductServiceTest extends TestCase
             return Http::response([], 500);
         }]);
 
+        Log::shouldReceive('warning')->andReturnNull();
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
@@ -294,5 +295,37 @@ class HmallProductServiceTest extends TestCase
         $this->service->fetchAllHmallProducts('UNIQLO');
 
         $this->assertEquals(2, $requestCount, 'Should fetch page 1 (25 >= 24) and page 2 (25 >= 24), stop at page 3 (25 < 48)');
+    }
+
+    public function test_all_pages_fail_preserves_checkpoint_and_skips_stockout()
+    {
+        // Bug #57: When all pages fail with non-403, the loop exits with productSum=0
+        // and incorrectly clears checkpoint + runs stockout as if completed successfully.
+        Config::set('app.crawler.retry.times', 1);
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        // Pre-set checkpoint
+        Cache::put('hmall_products:page:UNIQLO', 3);
+
+        Http::fake([
+            'https://api.example.com/search' => Http::response([], 500),
+        ]);
+
+        // setStockoutHmallProducts should NOT be called
+        $this->mockHmallRepository->expects($this->never())
+            ->method('setStockoutHmallProducts');
+
+        Log::shouldReceive('warning')->andReturnNull();
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->service->fetchAllHmallProducts('UNIQLO');
+
+        // Checkpoint must be preserved — not cleared
+        $this->assertEquals(
+            3,
+            Cache::get('hmall_products:page:UNIQLO'),
+            'Checkpoint must not be cleared when no pages succeeded'
+        );
     }
 }

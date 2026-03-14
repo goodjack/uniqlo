@@ -57,17 +57,20 @@ class StyleService extends Service
             Cache::put(sprintf(self::CACHE_KEY_STYLE_LAST_GENDER, $brand), $genderId, now()->addDays(7));
 
             try {
-                $this->fetchStylesByGenderId($genderId, $brand);
+                $genderCompleted = $this->fetchStylesByGenderId($genderId, $brand);
             } catch (Throwable $e) {
                 // 403 propagated from inner method - stop all genders
                 if ($this->is403Error($e)) {
                     return;
                 }
-                // Other errors: skip gender (already logged)
+                // Other errors: skip gender, preserve page checkpoint for resumption
+                $genderCompleted = false;
             }
 
-            // Clear gender-specific checkpoint after completion
-            Cache::forget(sprintf(self::CACHE_KEY_STYLE_PAGE, $brand, $genderId));
+            // Only clear page checkpoint if gender completed without errors
+            if ($genderCompleted) {
+                Cache::forget(sprintf(self::CACHE_KEY_STYLE_PAGE, $brand, $genderId));
+            }
         }
 
         // Clear all checkpoints on complete success
@@ -75,7 +78,10 @@ class StyleService extends Service
         logger()->info("Completed fetching styles for {$brand}");
     }
 
-    private function fetchStylesByGenderId(string $genderId, string $brand = 'UNIQLO'): void
+    /**
+     * @return bool true if all pages completed without errors
+     */
+    private function fetchStylesByGenderId(string $genderId, string $brand = 'UNIQLO'): bool
     {
         $ugcOfficialStyleListApiUrl = $this->getUgcOfficialStyleListApiUrl($brand);
 
@@ -83,6 +89,7 @@ class StyleService extends Service
         $cacheKey = sprintf(self::CACHE_KEY_STYLE_PAGE, $brand, $genderId);
         $page = Cache::get($cacheKey) ?? 1;
         $totalStyles = 0;
+        $hasErrors = false;
 
         logger()->info("Fetching styles for {$brand} gender {$genderId}, starting from page {$page}");
 
@@ -140,6 +147,7 @@ class StyleService extends Service
                 }
 
                 // retry() exhausted - skip page and continue
+                $hasErrors = true;
                 logger()->error('fetchStylesByGenderId error - max retry exceeded', [
                     'gender_id' => $genderId,
                     'page' => $page,
@@ -154,6 +162,8 @@ class StyleService extends Service
 
             $page++;
         } while ($totalStyles >= ($page - 1) * $pageSize);
+
+        return ! $hasErrors;
     }
 
     private function fetchStyleDetails($styles, string $brand = 'UNIQLO'): void

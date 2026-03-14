@@ -27,6 +27,7 @@ class JapanProductService
         $limit = 36;
         $offset = $fresh ? 0 : (Cache::get($cacheKey) ?? 0);
         $total = 0;
+        $hasSucceeded = false;
 
         // Clear checkpoint if fresh
         if ($fresh) {
@@ -67,6 +68,8 @@ class JapanProductService
                     fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
                     fn ($e) => $this->shouldRetry($e),
                 );
+
+                $hasSucceeded = true;
 
                 if ($total === 0) {
                     logger()->info("No products found for {$brand}, stopping.");
@@ -113,12 +116,16 @@ class JapanProductService
             }
         } while ($total >= $offset);
 
-        // Clear checkpoint on complete success
-        Cache::forget($cacheKey);
+        if ($hasSucceeded) {
+            // Clear checkpoint on complete success
+            Cache::forget($cacheKey);
 
-        $this->repository->setStockoutProducts($brand);
+            $this->repository->setStockoutProducts($brand);
 
-        logger()->info("Completed fetching Japan products for {$brand}");
+            logger()->info("Completed fetching Japan products for {$brand}");
+        } else {
+            logger()->warning('No batches were successfully fetched - preserving checkpoint', ['brand' => $brand]);
+        }
     }
 
     private function getJapanProductListApiUrl($brand = 'UNIQLO')

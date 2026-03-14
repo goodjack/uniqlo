@@ -65,6 +65,7 @@ class StyleHintService extends Service
 
         $offset = $fresh ? 0 : (Cache::get($cacheKey) ?? 0);
         $total = 0;
+        $hasSucceeded = false;
 
         logger()->info("Fetching style hints for {$country}, starting from offset {$offset}");
 
@@ -100,6 +101,8 @@ class StyleHintService extends Service
                 );
 
                 $this->fetchStyleHintsDetails($country, $styleHintSummaries);
+
+                $hasSucceeded = true;
 
                 // Update checkpoint
                 Cache::put($cacheKey, $offset + $limit, now()->addDays(7));
@@ -139,9 +142,13 @@ class StyleHintService extends Service
             }
         } while ($total >= $offset);
 
-        // Clear checkpoint on successful completion
-        Cache::forget($cacheKey);
-        logger()->info("Completed fetching style hints for {$country}");
+        if ($hasSucceeded) {
+            // Clear checkpoint on successful completion
+            Cache::forget($cacheKey);
+            logger()->info("Completed fetching style hints for {$country}");
+        } else {
+            logger()->warning('No batches were successfully fetched - preserving checkpoint', ['country' => $country]);
+        }
     }
 
     public function fetchAllStyleHintsFromUgc(
@@ -367,6 +374,11 @@ class StyleHintService extends Service
                     'error' => $e->getMessage(),
                 ]);
                 report($e);
+
+                // Clear page checkpoint so $page++ takes effect on next iteration
+                if ($isManual) {
+                    $this->forgetLastManualFetchPage($brand);
+                }
             }
 
             $page++;
