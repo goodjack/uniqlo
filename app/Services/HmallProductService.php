@@ -22,6 +22,7 @@ class HmallProductService extends Service
     protected $productRepository;
 
     private const CACHE_KEY_HMALL_PRODUCTS_PAGE = 'hmall_products:page:%s';
+
     private const CACHE_KEY_HMALL_DESCRIPTIONS = 'hmall_descriptions:last_id:%s';
 
     public function __construct(HmallProductRepository $repository, ProductRepository $productRepository)
@@ -64,7 +65,11 @@ class HmallProductService extends Service
     {
         $searchApiUrl = $this->getV3SearchApiUrl($brand);
 
-        $pageSize = 24;
+        $pageSize = (int) config('app.crawler.page_sizes.hmall_products');
+        if ($pageSize < 1) {
+            throw new Exception('CRAWLER_HMALL_PRODUCTS_PAGE_SIZE is not configured.');
+        }
+
         $cacheKey = sprintf(self::CACHE_KEY_HMALL_PRODUCTS_PAGE, $brand);
         $page = $fresh ? 1 : (Cache::get($cacheKey) ?? 1);
         $productSum = 0;
@@ -210,8 +215,8 @@ class HmallProductService extends Service
         bool $updateTimestamps = false
     ): void {
         $productCode = $hmallProduct->product_code;
-        $instructionApiUrl = $this->getV3DescriptionApiUrl($brand) . "{$productCode}/zh_TW/instructionH5.html";
-        $sizeChartApiUrl = $this->getV3DescriptionApiUrl($brand) . "{$productCode}/zh_TW/sizeAndTryOnH5.html";
+        $instructionApiUrl = $this->getV3DescriptionApiUrl($brand)."{$productCode}/zh_TW/instructionH5.html";
+        $sizeChartApiUrl = $this->getV3DescriptionApiUrl($brand)."{$productCode}/zh_TW/sizeAndTryOnH5.html";
 
         try {
             $instruction = retry(

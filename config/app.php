@@ -194,6 +194,12 @@ return [
     'user_agents' => array_filter(explode('|', env('CRAWLER_USER_AGENTS', ''))),
 
     'crawler' => [
+        'page_sizes' => [
+            'hmall_products' => env('CRAWLER_HMALL_PRODUCTS_PAGE_SIZE'),
+            'japan_products' => env('CRAWLER_JAPAN_PRODUCTS_PAGE_SIZE'),
+            'official_styles' => env('CRAWLER_OFFICIAL_STYLES_PAGE_SIZE'),
+            'ugc_style_hints' => env('CRAWLER_UGC_STYLE_HINTS_PAGE_SIZE'),
+        ],
         'retry' => [
             'times' => 3,
             'sleep_min' => 2,

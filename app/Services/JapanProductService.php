@@ -15,16 +15,19 @@ class JapanProductService
     use AntiBlockingCrawler;
 
     private const CACHE_KEY_JAPAN_PRODUCTS_OFFSET = 'japan_products:offset:%s'; // brand
-    public function __construct(protected JapanProductRepository $repository)
-    {
-    }
+
+    public function __construct(protected JapanProductRepository $repository) {}
 
     public function fetchAllProducts($brand = 'UNIQLO', bool $fresh = false): void
     {
         $japanProductListApiUrl = $this->getJapanProductListApiUrl($brand);
         $cacheKey = sprintf(self::CACHE_KEY_JAPAN_PRODUCTS_OFFSET, $brand);
 
-        $limit = 36;
+        $limit = (int) config('app.crawler.page_sizes.japan_products');
+        if ($limit < 1) {
+            throw new Exception('CRAWLER_JAPAN_PRODUCTS_PAGE_SIZE is not configured.');
+        }
+
         $offset = $fresh ? 0 : (Cache::get($cacheKey) ?? 0);
         $total = 0;
         $hasSucceeded = false;

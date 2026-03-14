@@ -215,12 +215,12 @@ class StyleHintService extends Service
 
         $styleHintSummaries->each(function ($styleHintSummary) use ($country) {
             $outfitId = $styleHintSummary->outfitId;
-            $url = config("uniqlo.api.style_hint_detail.{$country}") . "{$outfitId}/details";
+            $url = config("uniqlo.api.style_hint_detail.{$country}")."{$outfitId}/details";
 
             try {
                 retry(
                     config('app.crawler.retry.times'),
-                    function ($attempts) use ($url, $country, $styleHintSummary, $outfitId) {
+                    function ($attempts) use ($url, $country, $styleHintSummary) {
                         $response = Http::withHeaders($this->buildHeaders())
                             ->throw()
                             ->get($url, [
@@ -284,7 +284,11 @@ class StyleHintService extends Service
     ): void {
         $ugcStyleHintListApiUrl = $this->getUgcStyleHintListApiUrl($brand);
 
-        $resultLimit = 50;
+        $resultLimit = (int) config('app.crawler.page_sizes.ugc_style_hints');
+        if ($resultLimit < 1) {
+            throw new Exception('CRAWLER_UGC_STYLE_HINTS_PAGE_SIZE is not configured.');
+        }
+
         $page = 1;
         $totalResultCount = 0;
 

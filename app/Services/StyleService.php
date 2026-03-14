@@ -18,6 +18,7 @@ class StyleService extends Service
     protected $repository;
 
     private const CACHE_KEY_STYLE_PAGE = 'styles:page:%s:%s'; // brand:gender
+
     private const CACHE_KEY_STYLE_LAST_GENDER = 'styles:last_gender:%s'; // brand
 
     public function __construct(StyleRepository $repository)
@@ -85,7 +86,11 @@ class StyleService extends Service
     {
         $ugcOfficialStyleListApiUrl = $this->getUgcOfficialStyleListApiUrl($brand);
 
-        $pageSize = 50;
+        $pageSize = (int) config('app.crawler.page_sizes.official_styles');
+        if ($pageSize < 1) {
+            throw new Exception('CRAWLER_OFFICIAL_STYLES_PAGE_SIZE is not configured.');
+        }
+
         $cacheKey = sprintf(self::CACHE_KEY_STYLE_PAGE, $brand, $genderId);
         $page = Cache::get($cacheKey) ?? 1;
         $totalStyles = 0;
@@ -184,7 +189,7 @@ class StyleService extends Service
 
                         $response = Http::withHeaders($headers)
                             ->throw()
-                            ->get($ugcOfficialStyleListApiUrl . "/{$styleId}", [
+                            ->get($ugcOfficialStyleListApiUrl."/{$styleId}", [
                                 'content_language' => 'zh-TW',
                                 'brand' => ($brand === 'GU') ? 'gu' : 'uq',
                             ]);
