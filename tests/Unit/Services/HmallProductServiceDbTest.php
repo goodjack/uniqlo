@@ -18,6 +18,7 @@ class HmallProductServiceDbTest extends TestCase
     use RefreshDatabase;
 
     private HmallProductService $service;
+
     private HmallProductRepository $mockHmallRepository;
 
     protected function setUp(): void

@@ -46,7 +46,7 @@ class StyleHintServiceTest extends TestCase
 
         for ($i = 0; $i < 10; $i++) {
             $ua = $this->invokeMethod($this->service, 'getRandomUserAgent');
-            $this->assertTrue(in_array($ua, $userAgents), "UA should be from the configured pool");
+            $this->assertTrue(in_array($ua, $userAgents), 'UA should be from the configured pool');
         }
     }
 

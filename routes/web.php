@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Auth\DiscordController;
 use App\Http\Controllers\HmallProductController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ListController;

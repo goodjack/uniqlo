@@ -16,7 +16,9 @@ use Tests\TestCase;
 class HmallProductServiceTest extends TestCase
 {
     private HmallProductService $service;
+
     private HmallProductRepository $mockHmallRepository;
+
     private ProductRepository $mockProductRepository;
 
     protected function setUp(): void
