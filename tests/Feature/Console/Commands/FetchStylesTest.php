@@ -20,6 +20,14 @@ class FetchStylesTest extends TestCase
             'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
             'Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36',
         ]);
+        Config::set('cache.default', 'array');
+        Config::set('app.crawler.page_sizes.official_styles', 50);
+        Config::set('app.crawler.delay.min', 0);
+        Config::set('app.crawler.delay.max', 0);
+        Config::set('app.crawler.retry.sleep_min', 0);
+        Config::set('app.crawler.retry.sleep_max', 0);
+        Config::set('app.crawler.batch_rest.offset.interval', 0);
+        Config::set('app.crawler.batch_rest.detail.interval', 0);
 
         // Prevent real Discord notifications during tests
         Event::fake();
