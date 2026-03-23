@@ -168,8 +168,7 @@ class HmallProductService extends Service
 
         $query = HmallProduct::whereNull('instruction')
             ->where('brand', $brand)
-            ->select(['id', 'product_code'])
-            ->orderBy('id', 'desc');
+            ->select(['id', 'product_code']);
 
         if ($lastProcessedId) {
             $query->where('id', '<', $lastProcessedId);
@@ -178,7 +177,7 @@ class HmallProductService extends Service
             logger()->info("Fetching Hmall product descriptions for {$brand} from start");
         }
 
-        $hmallProducts = $query->get();
+        $hmallProducts = $query->lazyByIdDesc();
 
         $this->resetDetailCounter();
 

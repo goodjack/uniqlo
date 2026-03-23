@@ -630,8 +630,7 @@ class HmallProductRepository extends Repository
     {
         return $this->model
             ->select(['id', 'brand', 'product_code', 'updated_at'])
-            ->orderBy('id', 'desc')
-            ->cursor();
+            ->lazyByIdDesc();
     }
 
     public function getIdsFromCodes(array $codes)
