@@ -347,6 +347,6 @@ class ProductRepository extends Repository
     {
         return $this->product
             ->select(['id', 'updated_at'])
-            ->get();
+            ->cursor();
     }
 }
