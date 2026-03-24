@@ -278,7 +278,7 @@ class StyleHintServiceTest extends TestCase
 
     // ==================== Checkpoint Tests ====================
 
-    public function test_fetch_all_style_hints_saves_checkpoint()
+    public function test_backfill_saves_and_clears_checkpoint_on_completion()
     {
         Http::fake([
             'https://api.example.com/style-hint-list*' => Http::response(
@@ -295,13 +295,13 @@ class StyleHintServiceTest extends TestCase
 
         Cache::flush();
 
-        $this->service->fetchAllStyleHints('us');
+        $this->service->fetchAllStyleHints('us', backfill: true);
 
-        // Checkpoint should be cleared after completion
+        // Checkpoint should be cleared after successful backfill completion
         $this->assertNull(Cache::get('style_hint:offset:us'));
     }
 
-    public function test_fetch_all_style_hints_resumes_from_checkpoint()
+    public function test_backfill_resumes_from_checkpoint()
     {
         $initialCheckpoint = 50;
         Cache::set('style_hint:offset:us', $initialCheckpoint);
@@ -319,13 +319,18 @@ class StyleHintServiceTest extends TestCase
 
         Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
 
-        $this->service->fetchAllStyleHints('us');
+        $this->service->fetchAllStyleHints('us', backfill: true);
 
-        // Verify checkpoint was used and then cleared on success
+        // Verify checkpoint was used (offset=50 in request)
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'offset=50');
+        });
+
+        // Checkpoint cleared on success
         $this->assertNull(Cache::get('style_hint:offset:us'));
     }
 
-    public function test_fetch_all_style_hints_fresh_ignores_checkpoint()
+    public function test_backfill_fresh_ignores_checkpoint()
     {
         Cache::set('style_hint:offset:us', 100);
 
@@ -342,9 +347,14 @@ class StyleHintServiceTest extends TestCase
 
         Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
 
-        $this->service->fetchAllStyleHints('us', fresh: true);
+        $this->service->fetchAllStyleHints('us', fresh: true, backfill: true);
 
-        // Verify checkpoint was cleared on success
+        // Should start from offset 0 despite checkpoint being 100
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'offset=0');
+        });
+
+        // Checkpoint cleared on success
         $this->assertNull(Cache::get('style_hint:offset:us'));
     }
 
@@ -363,7 +373,6 @@ class StyleHintServiceTest extends TestCase
             return Http::response([], 500);
         }]);
 
-        Log::shouldReceive('warning')->andReturnNull();
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
@@ -535,7 +544,6 @@ class StyleHintServiceTest extends TestCase
             ]),
         ]);
 
-        Log::shouldReceive('warning')->andReturnNull();
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
@@ -561,7 +569,6 @@ class StyleHintServiceTest extends TestCase
             ]),
         ]);
 
-        Log::shouldReceive('warning')->andReturnNull();
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
@@ -587,7 +594,7 @@ class StyleHintServiceTest extends TestCase
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        $this->service->fetchAllStyleHints('us', fresh: true);
+        $this->service->fetchAllStyleHints('us', fresh: true, backfill: true);
 
         // With the fix, Cache::forget is called before the loop,
         // so the stale checkpoint (500) should be gone even though the run was interrupted
@@ -677,7 +684,7 @@ class StyleHintServiceTest extends TestCase
         $this->assertEquals(3, $requestCount, 'Manual mode must advance past failed page, not retry infinitely');
     }
 
-    public function test_all_pages_fail_preserves_checkpoint()
+    public function test_backfill_all_pages_fail_preserves_checkpoint()
     {
         // Bug #57: When all pages fail with non-403 errors, the loop exits with
         // total/productSum=0 and incorrectly runs Cache::forget + completion logic,
@@ -696,7 +703,7 @@ class StyleHintServiceTest extends TestCase
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        $this->service->fetchAllStyleHints('us');
+        $this->service->fetchAllStyleHints('us', backfill: true);
 
         // Checkpoint must be preserved — not cleared as if completed successfully
         $this->assertEquals(
@@ -704,6 +711,264 @@ class StyleHintServiceTest extends TestCase
             Cache::get('style_hint:offset:us'),
             'Checkpoint must not be cleared when no pages succeeded'
         );
+    }
+
+    // ==================== Daily Mode Tests ====================
+
+    public function test_daily_mode_starts_from_offset_zero_ignoring_checkpoint()
+    {
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+
+        Cache::put('style_hint:offset:us', 500);
+
+        Http::fake([
+            'https://api.example.com/style-hint-list*' => Http::response([
+                'result' => [
+                    'images' => [],
+                    'pagination' => ['total' => 0],
+                ],
+            ]),
+        ]);
+
+        $this->service->fetchAllStyleHints('us');
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'offset=0');
+        });
+    }
+
+    public function test_daily_mode_does_not_save_checkpoint()
+    {
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+
+        Cache::flush();
+
+        Http::fake([
+            'https://api.example.com/style-hint-list*' => Http::response([
+                'result' => [
+                    'images' => [],
+                    'pagination' => ['total' => 0],
+                ],
+            ]),
+        ]);
+
+        $this->service->fetchAllStyleHints('us');
+
+        $this->assertNull(Cache::get('style_hint:offset:us'), 'Daily mode should not write checkpoint');
+    }
+
+    public function test_daily_mode_terminates_after_consecutive_empty_pages()
+    {
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+
+        // All items already exist in DB
+        $mockRepository = $this->createMock(StyleHintRepository::class);
+        $mockRepository->method('getExistStyleHintOutfitIds')
+            ->willReturnCallback(fn ($country, $outfitIds) => $outfitIds->toArray());
+        $service = new StyleHintService($mockRepository);
+
+        $listRequestCount = 0;
+        Http::fake(['https://api.example.com/style-hint-list*' => function () use (&$listRequestCount) {
+            $listRequestCount++;
+
+            return Http::response([
+                'result' => [
+                    'images' => [(object) ['outfitId' => "o{$listRequestCount}"]],
+                    'pagination' => ['total' => 10000],
+                ],
+            ]);
+        }]);
+
+        Log::shouldReceive('info')->andReturnNull();
+
+        $service->fetchAllStyleHints('us');
+
+        // Should stop after 3 consecutive empty pages, not all 200 pages
+        $this->assertEquals(3, $listRequestCount, 'Should stop after 3 consecutive empty pages');
+    }
+
+    public function test_daily_mode_resets_counter_on_page_with_new_items()
+    {
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+        Config::set('uniqlo.api.style_hint_detail.us', 'https://api.example.com/style-hint-detail/');
+
+        // Pages 1-2: all exist → counter 2
+        // Page 3: new item → counter reset to 0
+        // Pages 4-6: all exist → counter reaches 3 → stop
+        $pageNum = 0;
+        $mockRepository = $this->createMock(StyleHintRepository::class);
+        $mockRepository->method('getExistStyleHintOutfitIds')
+            ->willReturnCallback(function ($country, $outfitIds) use (&$pageNum) {
+                if ($pageNum === 3) {
+                    return []; // Page 3: nothing exists → item is new
+                }
+
+                return $outfitIds->toArray(); // All exist
+            });
+        $mockRepository->method('saveStyleHints')->willReturn(true);
+        $service = new StyleHintService($mockRepository);
+
+        $listRequestCount = 0;
+        Http::fake(function ($request) use (&$pageNum, &$listRequestCount) {
+            $urlPath = parse_url($request->url(), PHP_URL_PATH);
+
+            if ($urlPath === '/style-hint-list') {
+                $listRequestCount++;
+                $pageNum = $listRequestCount;
+
+                return Http::response([
+                    'result' => [
+                        'images' => [(object) ['outfitId' => "outfit{$listRequestCount}"]],
+                        'pagination' => ['total' => 10000],
+                    ],
+                ]);
+            }
+
+            // Detail request
+            return Http::response(['result' => (object) ['some' => 'data']]);
+        });
+
+        Log::shouldReceive('info')->andReturnNull();
+
+        $service->fetchAllStyleHints('us');
+
+        // Pages 1,2 (empty) + Page 3 (new, resets) + Pages 4,5,6 (empty, reaches 3) = 6
+        $this->assertEquals(6, $listRequestCount, 'Counter should reset when page has new items');
+    }
+
+    public function test_fetch_style_hints_details_returns_new_item_count()
+    {
+        Config::set('uniqlo.api.style_hint_detail.us', 'https://api.example.com/style-hint-detail/');
+
+        // 2 of 4 items already exist
+        $mockRepository = $this->createMock(StyleHintRepository::class);
+        $mockRepository->method('getExistStyleHintOutfitIds')->willReturn(['o1', 'o3']);
+        $mockRepository->method('saveStyleHints')->willReturn(true);
+        $service = new StyleHintService($mockRepository);
+
+        Http::fake(['*' => Http::response(['result' => (object) ['some' => 'data']])]);
+
+        $summaries = [
+            (object) ['outfitId' => 'o1'],
+            (object) ['outfitId' => 'o2'],
+            (object) ['outfitId' => 'o3'],
+            (object) ['outfitId' => 'o4'],
+        ];
+
+        $result = $this->invokeMethod($service, 'fetchStyleHintsDetails', ['us', $summaries]);
+
+        $this->assertEquals(2, $result, 'Should return count of new items (not existing in DB)');
+    }
+
+    public function test_fetch_style_hints_details_returns_zero_when_all_exist()
+    {
+        $mockRepository = $this->createMock(StyleHintRepository::class);
+        $mockRepository->method('getExistStyleHintOutfitIds')->willReturn(['o1', 'o2']);
+        $service = new StyleHintService($mockRepository);
+
+        $summaries = [
+            (object) ['outfitId' => 'o1'],
+            (object) ['outfitId' => 'o2'],
+        ];
+
+        $result = $this->invokeMethod($service, 'fetchStyleHintsDetails', ['us', $summaries]);
+
+        $this->assertEquals(0, $result, 'Should return 0 when all items already exist');
+    }
+
+    // ==================== Backfill Mode Tests ====================
+
+    public function test_backfill_mode_saves_checkpoint()
+    {
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+        Config::set('uniqlo.api.style_hint_detail.us', 'https://api.example.com/style-hint-detail/');
+
+        $page = 0;
+        Http::fake(function ($request) use (&$page) {
+            $urlPath = parse_url($request->url(), PHP_URL_PATH);
+
+            if ($urlPath === '/style-hint-list') {
+                $page++;
+
+                if ($page === 1) {
+                    return Http::response([
+                        'result' => [
+                            'images' => [(object) ['outfitId' => 'o1']],
+                            'pagination' => ['total' => 100],
+                        ],
+                    ]);
+                }
+
+                // Page 2: 403 to stop the loop
+                return Http::response([], 403);
+            }
+
+            return Http::response(['result' => (object) ['some' => 'data']]);
+        });
+
+        Log::shouldReceive('info')->andReturnNull();
+        Log::shouldReceive('error')->andReturnNull();
+
+        $this->service->fetchAllStyleHints('us', backfill: true);
+
+        // Checkpoint should be saved at offset 50 from the successful first page
+        $this->assertEquals(50, Cache::get('style_hint:offset:us'));
+    }
+
+    public function test_backfill_mode_no_early_termination()
+    {
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+
+        // All items already exist — daily mode would stop after 3 pages
+        $mockRepository = $this->createMock(StyleHintRepository::class);
+        $mockRepository->method('getExistStyleHintOutfitIds')
+            ->willReturnCallback(fn ($country, $outfitIds) => $outfitIds->toArray());
+        $service = new StyleHintService($mockRepository);
+
+        $listRequestCount = 0;
+        Http::fake(['https://api.example.com/style-hint-list*' => function () use (&$listRequestCount) {
+            $listRequestCount++;
+
+            return Http::response([
+                'result' => [
+                    'images' => [(object) ['outfitId' => "o{$listRequestCount}"]],
+                    'pagination' => ['total' => 200],
+                ],
+            ]);
+        }]);
+
+        Log::shouldReceive('info')->andReturnNull();
+
+        $service->fetchAllStyleHints('us', backfill: true);
+
+        // total=200, limit=50 → 5 pages (offsets 0,50,100,150,200)
+        // Backfill should NOT early-terminate even though all pages have zero new items
+        $this->assertEquals(5, $listRequestCount, 'Backfill should fetch all pages without early termination');
+    }
+
+    public function test_backfill_fresh_clears_and_starts_from_zero()
+    {
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+
+        Cache::put('style_hint:offset:us', 500);
+
+        Http::fake([
+            'https://api.example.com/style-hint-list*' => Http::response([
+                'result' => [
+                    'images' => [],
+                    'pagination' => ['total' => 0],
+                ],
+            ]),
+        ]);
+
+        $this->service->fetchAllStyleHints('us', fresh: true, backfill: true);
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'offset=0');
+        });
+
+        // Checkpoint should be cleared (fresh cleared it, then completion cleared it)
+        $this->assertNull(Cache::get('style_hint:offset:us'));
     }
 
     // ==================== Helper Methods ====================

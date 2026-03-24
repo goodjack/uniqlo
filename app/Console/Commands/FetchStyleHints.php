@@ -14,7 +14,9 @@ class FetchStyleHints extends Command
      *
      * @var string
      */
-    protected $signature = 'style-hint:fetch {country} {--fresh : Ignore checkpoint and start fresh}';
+    protected $signature = 'style-hint:fetch {country}
+        {--fresh : Ignore checkpoint and start fresh}
+        {--backfill : Resume from checkpoint without early termination}';
 
     /**
      * The console command description.
@@ -32,15 +34,25 @@ class FetchStyleHints extends Command
     {
         $country = $this->argument('country');
         $fresh = $this->option('fresh');
+        $backfill = $this->option('backfill');
 
-        if ($fresh) {
-            $this->warn('Starting fresh - ignoring checkpoint');
+        if ($fresh && ! $backfill) {
+            $this->warn('--fresh has no effect without --backfill (daily mode always starts from 0)');
         }
 
-        $this->info("Fetching style hints for {$country}...");
+        if ($fresh && $backfill) {
+            $this->warn('Starting fresh backfill - clearing checkpoint');
+        }
+
+        if ($backfill) {
+            $this->info("Backfilling style hints for {$country}...");
+        } else {
+            $this->info("Fetching style hints for {$country}...");
+        }
+
         AppTaskStarting::dispatch(class_basename(__CLASS__), null, $country);
 
-        $styleHintService->fetchAllStyleHints($country, $fresh);
+        $styleHintService->fetchAllStyleHints($country, $fresh, $backfill);
 
         AppTaskFinished::dispatch(class_basename(__CLASS__), null, $country);
         $this->info("Fetched style hints for {$country}");

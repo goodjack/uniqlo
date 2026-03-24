@@ -19,6 +19,8 @@ class StyleHintService extends Service
 
     private const CACHE_KEY_STYLE_HINT_OFFSET = 'style_hint:offset:%s';
 
+    private const CONSECUTIVE_EMPTY_PAGES_THRESHOLD = 3;
+
     private const CACHE_UGC_SCHEDULING = 'style_hint_ugc:scheduling';
 
     private const CACHE_UGC_MANUAL_LAST_GENDER = 'style_hint_ugc:manual:%s:last_gender';
@@ -54,20 +56,25 @@ class StyleHintService extends Service
         ];
     }
 
-    public function fetchAllStyleHints(string $country, bool $fresh = false)
+    public function fetchAllStyleHints(string $country, bool $fresh = false, bool $backfill = false)
     {
         $limit = 50;
         $cacheKey = sprintf(self::CACHE_KEY_STYLE_HINT_OFFSET, $country);
 
-        if ($fresh) {
-            Cache::forget($cacheKey);
+        if ($backfill) {
+            if ($fresh) {
+                Cache::forget($cacheKey);
+            }
+            $offset = $fresh ? 0 : (Cache::get($cacheKey) ?? 0);
+        } else {
+            $offset = 0;
         }
 
-        $offset = $fresh ? 0 : (Cache::get($cacheKey) ?? 0);
         $total = 0;
         $hasSucceeded = false;
+        $consecutiveEmptyPages = 0;
 
-        logger()->info("Fetching style hints for {$country}, starting from offset {$offset}");
+        logger()->info("Fetching style hints for {$country}" . ($backfill ? ' (backfill)' : '') . ", starting from offset {$offset}");
 
         $this->resetDetailCounter();
 
@@ -100,12 +107,29 @@ class StyleHintService extends Service
                     fn ($e) => $this->shouldRetry($e),
                 );
 
-                $this->fetchStyleHintsDetails($country, $styleHintSummaries);
+                $newCount = $this->fetchStyleHintsDetails($country, $styleHintSummaries);
 
                 $hasSucceeded = true;
 
-                // Update checkpoint
-                Cache::put($cacheKey, $offset + $limit, now()->addDays(7));
+                // Early termination in daily mode
+                if (! $backfill) {
+                    if ($newCount === 0) {
+                        $consecutiveEmptyPages++;
+                        logger()->info("Page at offset {$offset} had zero new items ({$consecutiveEmptyPages}/" . self::CONSECUTIVE_EMPTY_PAGES_THRESHOLD . ')');
+
+                        if ($consecutiveEmptyPages >= self::CONSECUTIVE_EMPTY_PAGES_THRESHOLD) {
+                            logger()->info("Early termination: {$consecutiveEmptyPages} consecutive empty pages for {$country}");
+
+                            break;
+                        }
+                    } else {
+                        $consecutiveEmptyPages = 0;
+                    }
+                }
+
+                if ($backfill) {
+                    Cache::put($cacheKey, $offset + $limit, now()->addDays(7));
+                }
 
                 $offset += $limit;
 
@@ -142,12 +166,15 @@ class StyleHintService extends Service
             }
         } while ($total >= $offset);
 
-        if ($hasSucceeded) {
-            // Clear checkpoint on successful completion
-            Cache::forget($cacheKey);
-            logger()->info("Completed fetching style hints for {$country}");
+        if ($backfill) {
+            if ($hasSucceeded) {
+                Cache::forget($cacheKey);
+                logger()->info("Completed backfill for {$country}");
+            } else {
+                logger()->warning('No batches were successfully fetched - preserving checkpoint', ['country' => $country]);
+            }
         } else {
-            logger()->warning('No batches were successfully fetched - preserving checkpoint', ['country' => $country]);
+            logger()->info("Completed daily fetch for {$country}");
         }
     }
 
@@ -198,7 +225,7 @@ class StyleHintService extends Service
         }
     }
 
-    private function fetchStyleHintsDetails($country, $styleHintSummaries)
+    private function fetchStyleHintsDetails($country, $styleHintSummaries): int
     {
         $styleHintSummaries = collect($styleHintSummaries);
 
@@ -212,6 +239,8 @@ class StyleHintService extends Service
 
             return in_array($outfitId, $existOutfitIds);
         });
+
+        $newCount = $styleHintSummaries->count();
 
         $styleHintSummaries->each(function ($styleHintSummary) use ($country) {
             $outfitId = $styleHintSummary->outfitId;
@@ -274,6 +303,8 @@ class StyleHintService extends Service
                 report($e);
             }
         });
+
+        return $newCount;
     }
 
     private function fetchStyleHintsFromUgcByGender(
