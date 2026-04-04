@@ -30,7 +30,8 @@ class FetchHmallProductsTest extends TestCase
         $mockService = $this->createMock(HmallProductService::class);
         $mockService->expects($this->once())
             ->method('fetchAllHmallProducts')
-            ->with('UNIQLO', true);
+            ->with('UNIQLO', true)
+            ->willReturn(true);
 
         $this->app->instance(HmallProductService::class, $mockService);
 
@@ -41,7 +42,8 @@ class FetchHmallProductsTest extends TestCase
     public function test_command_shows_fresh_warning()
     {
         $mockService = $this->createMock(HmallProductService::class);
-        $mockService->method('fetchAllHmallProducts');
+        $mockService->method('fetchAllHmallProducts')
+            ->willReturn(true);
 
         $this->app->instance(HmallProductService::class, $mockService);
 
@@ -53,12 +55,13 @@ class FetchHmallProductsTest extends TestCase
     public function test_command_stops_on_403_blocking()
     {
         $mockService = $this->createMock(HmallProductService::class);
-        $mockService->method('fetchAllHmallProducts');
+        $mockService->method('fetchAllHmallProducts')
+            ->willReturn(false);
 
         $this->app->instance(HmallProductService::class, $mockService);
 
         $this->artisan('hmall-product:fetch UNIQLO')
-            ->assertExitCode(0);
+            ->assertExitCode(1);
     }
 
     public function test_command_resumes_from_checkpoint()
@@ -68,7 +71,8 @@ class FetchHmallProductsTest extends TestCase
         $mockService = $this->createMock(HmallProductService::class);
         $mockService->expects($this->once())
             ->method('fetchAllHmallProducts')
-            ->with('UNIQLO', false);
+            ->with('UNIQLO', false)
+            ->willReturn(true);
 
         $this->app->instance(HmallProductService::class, $mockService);
 

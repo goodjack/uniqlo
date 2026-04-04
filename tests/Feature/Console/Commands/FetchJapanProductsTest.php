@@ -30,7 +30,8 @@ class FetchJapanProductsTest extends TestCase
         $mockService = $this->createMock(JapanProductService::class);
         $mockService->expects($this->once())
             ->method('fetchAllProducts')
-            ->with('UNIQLO', true);
+            ->with('UNIQLO', true)
+            ->willReturn(true);
 
         $this->app->instance(JapanProductService::class, $mockService);
 
@@ -41,7 +42,8 @@ class FetchJapanProductsTest extends TestCase
     public function test_command_shows_fresh_warning()
     {
         $mockService = $this->createMock(JapanProductService::class);
-        $mockService->method('fetchAllProducts');
+        $mockService->method('fetchAllProducts')
+            ->willReturn(true);
 
         $this->app->instance(JapanProductService::class, $mockService);
 
@@ -53,12 +55,13 @@ class FetchJapanProductsTest extends TestCase
     public function test_command_stops_on_403_blocking()
     {
         $mockService = $this->createMock(JapanProductService::class);
-        $mockService->method('fetchAllProducts');
+        $mockService->method('fetchAllProducts')
+            ->willReturn(false);
 
         $this->app->instance(JapanProductService::class, $mockService);
 
         $this->artisan('japan-product:fetch UNIQLO')
-            ->assertExitCode(0);
+            ->assertExitCode(1);
     }
 
     public function test_command_resumes_from_checkpoint()
@@ -68,7 +71,8 @@ class FetchJapanProductsTest extends TestCase
         $mockService = $this->createMock(JapanProductService::class);
         $mockService->expects($this->once())
             ->method('fetchAllProducts')
-            ->with('UNIQLO', false);
+            ->with('UNIQLO', false)
+            ->willReturn(true);
 
         $this->app->instance(JapanProductService::class, $mockService);
 

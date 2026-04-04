@@ -38,11 +38,14 @@ class FetchJapanProducts extends Command
         $this->info("Fetching Japan products for {$brand}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $japanProductService->fetchAllProducts($brand, $fresh);
+        $succeeded = $japanProductService->fetchAllProducts($brand, $fresh);
 
-        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        if ($succeeded) {
+            AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        }
+
         $this->info("Fetched Japan products for {$brand}");
 
-        return 0;
+        return $succeeded ? 0 : 1;
     }
 }

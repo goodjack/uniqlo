@@ -77,7 +77,7 @@ class FetchStylesTest extends TestCase
         Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
 
         $this->artisan('style:fetch UNIQLO')
-            ->assertExitCode(0);
+            ->assertExitCode(1);
     }
 
     public function test_command_resumes_from_checkpoint_per_gender()

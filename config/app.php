@@ -195,10 +195,10 @@ return [
 
     'crawler' => [
         'page_sizes' => [
-            'hmall_products' => env('CRAWLER_HMALL_PRODUCTS_PAGE_SIZE'),
-            'japan_products' => env('CRAWLER_JAPAN_PRODUCTS_PAGE_SIZE'),
-            'official_styles' => env('CRAWLER_OFFICIAL_STYLES_PAGE_SIZE'),
-            'ugc_style_hints' => env('CRAWLER_UGC_STYLE_HINTS_PAGE_SIZE'),
+            'hmall_products' => env('CRAWLER_HMALL_PRODUCTS_PAGE_SIZE', 24),
+            'japan_products' => env('CRAWLER_JAPAN_PRODUCTS_PAGE_SIZE', 36),
+            'official_styles' => env('CRAWLER_OFFICIAL_STYLES_PAGE_SIZE', 50),
+            'ugc_style_hints' => env('CRAWLER_UGC_STYLE_HINTS_PAGE_SIZE', 50),
         ],
         'retry' => [
             'times' => 3,

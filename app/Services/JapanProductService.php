@@ -20,7 +20,7 @@ class JapanProductService
     {
     }
 
-    public function fetchAllProducts($brand = 'UNIQLO', bool $fresh = false): void
+    public function fetchAllProducts($brand = 'UNIQLO', bool $fresh = false): bool
     {
         $japanProductListApiUrl = $this->getJapanProductListApiUrl($brand);
         $cacheKey = sprintf(self::CACHE_KEY_JAPAN_PRODUCTS_OFFSET, $brand);
@@ -33,6 +33,7 @@ class JapanProductService
         $offset = $fresh ? 0 : (Cache::get($cacheKey) ?? 0);
         $total = 0;
         $hasSucceeded = false;
+        $hasFailures = false;
 
         // Clear checkpoint if fresh
         if ($fresh) {
@@ -95,18 +96,17 @@ class JapanProductService
             } catch (Throwable $e) {
                 // 403 is a permanent block - stop immediately
                 if ($this->is403Error($e)) {
-                    // TODO: Consider running stockout processing on partial data, or at least notifying
-                    logger()->warning('403 blocked - skipping stockout processing', ['brand' => $brand]);
                     logger()->error('fetchAllProducts blocked (403)', [
                         'brand' => $brand,
                         'offset' => $offset,
                     ]);
                     report($e);
 
-                    return;
+                    return false;
                 }
 
                 // retry() exhausted - skip batch and continue
+                $hasFailures = true;
                 logger()->error('JapanProductService fetchAllProducts error - max retry exceeded', [
                     'brand' => $brand,
                     'limit' => $limit,
@@ -121,16 +121,19 @@ class JapanProductService
             }
         } while ($total >= $offset);
 
-        if ($hasSucceeded) {
-            // Clear checkpoint on complete success
+        if ($hasSucceeded && ! $hasFailures) {
+            // All batches succeeded - clear checkpoint and run stockout processing
             Cache::forget($cacheKey);
-
             $this->repository->setStockoutProducts($brand);
-
             logger()->info("Completed fetching Japan products for {$brand}");
+        } elseif ($hasSucceeded) {
+            // Partial success - preserve checkpoint, skip stockout to avoid false negatives
+            logger()->warning('Some batches failed - preserving checkpoint, skipping stockout', ['brand' => $brand]);
         } else {
             logger()->warning('No batches were successfully fetched - preserving checkpoint', ['brand' => $brand]);
         }
+
+        return true;
     }
 
     private function getJapanProductListApiUrl($brand = 'UNIQLO')

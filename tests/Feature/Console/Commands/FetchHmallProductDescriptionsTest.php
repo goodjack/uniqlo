@@ -30,7 +30,8 @@ class FetchHmallProductDescriptionsTest extends TestCase
         $mockService = $this->createMock(HmallProductService::class);
         $mockService->expects($this->once())
             ->method('fetchAllHmallProductDescriptions')
-            ->with('UNIQLO', false, true);
+            ->with('UNIQLO', false, true)
+            ->willReturn(true);
 
         $this->app->instance(HmallProductService::class, $mockService);
 
@@ -41,7 +42,8 @@ class FetchHmallProductDescriptionsTest extends TestCase
     public function test_command_shows_fresh_warning()
     {
         $mockService = $this->createMock(HmallProductService::class);
-        $mockService->method('fetchAllHmallProductDescriptions');
+        $mockService->method('fetchAllHmallProductDescriptions')
+            ->willReturn(true);
 
         $this->app->instance(HmallProductService::class, $mockService);
 
@@ -53,11 +55,12 @@ class FetchHmallProductDescriptionsTest extends TestCase
     public function test_command_stops_on_403_blocking()
     {
         $mockService = $this->createMock(HmallProductService::class);
-        $mockService->method('fetchAllHmallProductDescriptions');
+        $mockService->method('fetchAllHmallProductDescriptions')
+            ->willReturn(false);
 
         $this->app->instance(HmallProductService::class, $mockService);
 
         $this->artisan('hmall-product-description:fetch UNIQLO')
-            ->assertExitCode(0);
+            ->assertExitCode(1);
     }
 }

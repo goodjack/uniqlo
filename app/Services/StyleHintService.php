@@ -56,7 +56,7 @@ class StyleHintService extends Service
         ];
     }
 
-    public function fetchAllStyleHints(string $country, bool $fresh = false, bool $backfill = false)
+    public function fetchAllStyleHints(string $country, bool $fresh = false, bool $backfill = false): bool
     {
         $limit = 50;
         $cacheKey = sprintf(self::CACHE_KEY_STYLE_HINT_OFFSET, $country);
@@ -65,7 +65,7 @@ class StyleHintService extends Service
             if ($fresh) {
                 Cache::forget($cacheKey);
             }
-            $offset = $fresh ? 0 : (Cache::get($cacheKey) ?? 0);
+            $offset = Cache::get($cacheKey) ?? 0;
         } else {
             $offset = 0;
         }
@@ -149,7 +149,7 @@ class StyleHintService extends Service
                     ]);
                     report($e);
 
-                    return;
+                    return false;
                 }
 
                 // retry() exhausted - skip batch and continue
@@ -174,8 +174,14 @@ class StyleHintService extends Service
                 logger()->warning('No batches were successfully fetched - preserving checkpoint', ['country' => $country]);
             }
         } else {
-            logger()->info("Completed daily fetch for {$country}");
+            if ($hasSucceeded) {
+                logger()->info("Completed daily fetch for {$country}");
+            } else {
+                logger()->warning('Daily fetch completed with no successful pages', ['country' => $country]);
+            }
         }
+
+        return true;
     }
 
     public function fetchAllStyleHintsFromUgc(
@@ -228,6 +234,10 @@ class StyleHintService extends Service
     private function fetchStyleHintsDetails($country, $styleHintSummaries): int
     {
         $styleHintSummaries = collect($styleHintSummaries);
+
+        if ($styleHintSummaries->isEmpty()) {
+            return 0;
+        }
 
         $existOutfitIds = $this->repository->getExistStyleHintOutfitIds(
             $country,

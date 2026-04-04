@@ -40,11 +40,14 @@ class FetchStyles extends Command
         $this->info("Fetching styles for {$brand}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $styleService->fetchAllStyles($brand, $fresh);
+        $succeeded = $styleService->fetchAllStyles($brand, $fresh);
 
-        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        if ($succeeded) {
+            AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        }
+
         $this->info("Fetched styles for {$brand}");
 
-        return 0;
+        return $succeeded ? 0 : 1;
     }
 }

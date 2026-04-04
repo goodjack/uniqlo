@@ -26,7 +26,7 @@ class StyleService extends Service
         $this->repository = $repository;
     }
 
-    public function fetchAllStyles($brand = 'UNIQLO', bool $fresh = false): void
+    public function fetchAllStyles($brand = 'UNIQLO', bool $fresh = false): bool
     {
         $genderIds = collect([
             '1', // MEN
@@ -62,7 +62,7 @@ class StyleService extends Service
             } catch (Throwable $e) {
                 // 403 propagated from inner method - stop all genders
                 if ($this->is403Error($e)) {
-                    return;
+                    return false;
                 }
                 // Other errors: skip gender, preserve page checkpoint for resumption
                 $genderCompleted = false;
@@ -77,6 +77,8 @@ class StyleService extends Service
         // Clear all checkpoints on complete success
         Cache::forget(sprintf(self::CACHE_KEY_STYLE_LAST_GENDER, $brand));
         logger()->info("Completed fetching styles for {$brand}");
+
+        return true;
     }
 
     /**

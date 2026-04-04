@@ -375,6 +375,7 @@ class StyleHintServiceTest extends TestCase
 
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
+        Log::shouldReceive('warning')->andReturnNull();
 
         $this->service->fetchAllStyleHints('us');
 
@@ -546,6 +547,7 @@ class StyleHintServiceTest extends TestCase
 
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
+        Log::shouldReceive('warning')->andReturnNull();
 
         // Should not crash — the exception is caught by the do-while's catch block
         $this->service->fetchAllStyleHints('us');
@@ -571,6 +573,7 @@ class StyleHintServiceTest extends TestCase
 
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
+        Log::shouldReceive('warning')->andReturnNull();
 
         $this->service->fetchAllStyleHints('us');
 

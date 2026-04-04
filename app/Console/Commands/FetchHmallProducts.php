@@ -40,11 +40,14 @@ class FetchHmallProducts extends Command
         $this->info("Fetching Hmall products for {$brand}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $hmallProductService->fetchAllHmallProducts($brand, $fresh);
+        $succeeded = $hmallProductService->fetchAllHmallProducts($brand, $fresh);
 
-        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        if ($succeeded) {
+            AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        }
+
         $this->info("Fetched Hmall products for {$brand}");
 
-        return 0;
+        return $succeeded ? 0 : 1;
     }
 }

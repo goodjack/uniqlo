@@ -52,11 +52,14 @@ class FetchStyleHints extends Command
 
         AppTaskStarting::dispatch(class_basename(__CLASS__), null, $country);
 
-        $styleHintService->fetchAllStyleHints($country, $fresh, $backfill);
+        $succeeded = $styleHintService->fetchAllStyleHints($country, $fresh, $backfill);
 
-        AppTaskFinished::dispatch(class_basename(__CLASS__), null, $country);
+        if ($succeeded) {
+            AppTaskFinished::dispatch(class_basename(__CLASS__), null, $country);
+        }
+
         $this->info("Fetched style hints for {$country}");
 
-        return 0;
+        return $succeeded ? 0 : 1;
     }
 }

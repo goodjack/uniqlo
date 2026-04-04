@@ -122,7 +122,7 @@ class FetchStyleHintsTest extends TestCase
         Log::spy();
 
         $this->artisan('style-hint:fetch us')
-            ->assertExitCode(0); // Command itself doesn't error, but logs the block
+            ->assertExitCode(1);
 
         Log::shouldHaveReceived('error')->atLeast()->once();
     }

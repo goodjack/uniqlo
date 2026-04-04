@@ -61,7 +61,7 @@ class HmallProductService extends Service
         return $this->repository->getStyleHintCount($hmallProduct);
     }
 
-    public function fetchAllHmallProducts($brand = 'UNIQLO', bool $fresh = false): void
+    public function fetchAllHmallProducts($brand = 'UNIQLO', bool $fresh = false): bool
     {
         $searchApiUrl = $this->getV3SearchApiUrl($brand);
 
@@ -71,9 +71,16 @@ class HmallProductService extends Service
         }
 
         $cacheKey = sprintf(self::CACHE_KEY_HMALL_PRODUCTS_PAGE, $brand);
+
+        // Clear checkpoint if fresh
+        if ($fresh) {
+            Cache::forget($cacheKey);
+        }
+
         $page = $fresh ? 1 : (Cache::get($cacheKey) ?? 1);
         $productSum = 0;
         $hasSucceeded = false;
+        $hasFailures = false;
 
         logger()->info("Fetching Hmall products for {$brand}, starting from page {$page}");
 
@@ -123,8 +130,6 @@ class HmallProductService extends Service
             } catch (Throwable $e) {
                 // 403 is a permanent block - stop immediately
                 if ($this->is403Error($e)) {
-                    // TODO: Consider running stockout processing on partial data, or at least notifying
-                    logger()->warning('403 blocked - skipping stockout processing', ['brand' => $brand]);
                     logger()->error('fetchAllHmallProducts blocked (403)', [
                         'brand' => $brand,
                         'page' => $page,
@@ -132,10 +137,11 @@ class HmallProductService extends Service
                     ]);
                     report($e);
 
-                    return;
+                    return false;
                 }
 
                 // retry() exhausted - skip page and continue
+                $hasFailures = true;
                 logger()->error('fetchAllHmallProducts error - max retry exceeded', [
                     'brand' => $brand,
                     'page' => $page,
@@ -150,20 +156,30 @@ class HmallProductService extends Service
             $page++;
         } while ($productSum >= ($page - 1) * $pageSize);
 
-        if ($hasSucceeded) {
-            // Clear checkpoint on successful completion
+        if ($hasSucceeded && ! $hasFailures) {
+            // All pages succeeded - clear checkpoint and run stockout processing
             Cache::forget($cacheKey);
-            logger()->info("Completed fetching Hmall products for {$brand}");
-
             $this->repository->setStockoutHmallProducts($brand);
+            logger()->info("Completed fetching Hmall products for {$brand}");
+        } elseif ($hasSucceeded) {
+            // Partial success - preserve checkpoint, skip stockout to avoid false negatives
+            logger()->warning('Some pages failed - preserving checkpoint, skipping stockout', ['brand' => $brand]);
         } else {
             logger()->warning('No pages were successfully fetched - preserving checkpoint', ['brand' => $brand]);
         }
+
+        return true;
     }
 
-    public function fetchAllHmallProductDescriptions(string $brand = 'UNIQLO', bool $updateTimestamps = false, bool $fresh = false): void
+    public function fetchAllHmallProductDescriptions(string $brand = 'UNIQLO', bool $updateTimestamps = false, bool $fresh = false): bool
     {
         $cacheKey = sprintf(self::CACHE_KEY_HMALL_DESCRIPTIONS, $brand);
+
+        // Clear checkpoint if fresh
+        if ($fresh) {
+            Cache::forget($cacheKey);
+        }
+
         $lastProcessedId = $fresh ? null : Cache::get($cacheKey);
 
         $query = HmallProduct::whereNull('instruction')
@@ -181,12 +197,16 @@ class HmallProductService extends Service
 
         $this->resetDetailCounter();
 
+        $hasSucceeded = false;
+
         foreach ($hmallProducts as $hmallProduct) {
             try {
                 $this->fetchHmallProductDescriptions($hmallProduct, $brand, $updateTimestamps);
 
                 // Update checkpoint only on success
                 Cache::put($cacheKey, $hmallProduct->id, now()->addDays(7));
+
+                $hasSucceeded = true;
 
                 $this->detailCounter++;
 
@@ -197,15 +217,20 @@ class HmallProductService extends Service
             } catch (Throwable $e) {
                 // 403 propagated from inner method - stop the entire foreach
                 if ($this->is403Error($e)) {
-                    return;
+                    return false;
                 }
                 // Other errors: skip item (already logged in fetchHmallProductDescriptions)
             }
         }
 
-        // Clear checkpoint on completion
-        Cache::forget($cacheKey);
+        // Clear checkpoint only if at least one item succeeded
+        if ($hasSucceeded) {
+            Cache::forget($cacheKey);
+        }
+
         logger()->info("Completed fetching Hmall product descriptions for {$brand}");
+
+        return true;
     }
 
     public function fetchHmallProductDescriptions(
