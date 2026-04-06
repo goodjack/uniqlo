@@ -74,7 +74,7 @@ class StyleHintService extends Service
         $hasSucceeded = false;
         $consecutiveEmptyPages = 0;
 
-        logger()->info("Fetching style hints for {$country}" . ($backfill ? ' (backfill)' : '') . ", starting from offset {$offset}");
+        logger()->info("Fetching style hints for {$country}".($backfill ? ' (backfill)' : '').", starting from offset {$offset}");
 
         $this->resetDetailCounter();
 
@@ -115,7 +115,7 @@ class StyleHintService extends Service
                 if (! $backfill) {
                     if ($newCount === 0) {
                         $consecutiveEmptyPages++;
-                        logger()->info("Page at offset {$offset} had zero new items ({$consecutiveEmptyPages}/" . self::CONSECUTIVE_EMPTY_PAGES_THRESHOLD . ')');
+                        logger()->info("Page at offset {$offset} had zero new items ({$consecutiveEmptyPages}/".self::CONSECUTIVE_EMPTY_PAGES_THRESHOLD.')');
 
                         if ($consecutiveEmptyPages >= self::CONSECUTIVE_EMPTY_PAGES_THRESHOLD) {
                             logger()->info("Early termination: {$consecutiveEmptyPages} consecutive empty pages for {$country}");
@@ -193,7 +193,7 @@ class StyleHintService extends Service
         bool $onlyRecent = false,
         bool $isManual = true,
         bool $fresh = false,
-    ): void {
+    ): bool {
         $genders = [
             '1', // MEN
             '2', // WOMEN
@@ -212,6 +212,8 @@ class StyleHintService extends Service
             Cache::forever(self::CACHE_UGC_SCHEDULING, true);
         }
 
+        $allCompleted = true;
+
         foreach ($genders as $gender) {
             $this->resetDetailCounter(); // Reset per-gender — each gender has independent batch rest quota
 
@@ -224,15 +226,18 @@ class StyleHintService extends Service
                         Cache::forever(self::CACHE_UGC_SCHEDULING, false);
                     }
 
-                    return;
+                    return false;
                 }
                 // Other errors: skip gender (already logged)
+                $allCompleted = false;
             }
         }
 
         if (! $isManual) {
             Cache::forever(self::CACHE_UGC_SCHEDULING, false);
         }
+
+        return $allCompleted;
     }
 
     private function fetchStyleHintsDetails($country, $styleHintSummaries): int
@@ -258,7 +263,7 @@ class StyleHintService extends Service
 
         $styleHintSummaries->each(function ($styleHintSummary) use ($country) {
             $outfitId = $styleHintSummary->outfitId;
-            $url = config("uniqlo.api.style_hint_detail.{$country}") . "{$outfitId}/details";
+            $url = config("uniqlo.api.style_hint_detail.{$country}")."{$outfitId}/details";
 
             try {
                 retry(

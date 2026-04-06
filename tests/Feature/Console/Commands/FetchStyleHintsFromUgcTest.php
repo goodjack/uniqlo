@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Console\Commands;
 
+use App\Services\StyleHintService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -106,14 +107,17 @@ class FetchStyleHintsFromUgcTest extends TestCase
 
     public function test_command_stops_on_403_blocking()
     {
-        Http::fake([
-            'https://api.example.com/ugc/list' => Http::response([], 403),
-        ]);
+        $mockService = $this->createMock(StyleHintService::class);
+        $mockService->method('fetchAllStyleHintsFromUgc')
+            ->willReturn(false);
 
-        Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc/list');
+        $this->app->instance(StyleHintService::class, $mockService);
 
         $this->artisan('style-hint-ugc:fetch UNIQLO')
-            ->assertExitCode(0); // Command itself doesn't error, but logs the block
+            ->assertExitCode(1);
+
+        Event::assertDispatched(\App\Events\AppTaskStarting::class);
+        Event::assertNotDispatched(\App\Events\AppTaskFinished::class);
     }
 
     public function test_command_clears_checkpoints_with_fresh_option()

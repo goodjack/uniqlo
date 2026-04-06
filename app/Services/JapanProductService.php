@@ -16,9 +16,7 @@ class JapanProductService
 
     private const CACHE_KEY_JAPAN_PRODUCTS_OFFSET = 'japan_products:offset:%s'; // brand
 
-    public function __construct(protected JapanProductRepository $repository)
-    {
-    }
+    public function __construct(protected JapanProductRepository $repository) {}
 
     public function fetchAllProducts($brand = 'UNIQLO', bool $fresh = false): bool
     {

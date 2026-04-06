@@ -58,15 +58,18 @@ class FetchStyleHintsFromUgc extends Command
             'fresh' => $fresh,
         ]);
 
-        $styleHintService->fetchAllStyleHintsFromUgc($brand, $onlyRecent, $isManual, $fresh);
+        $succeeded = $styleHintService->fetchAllStyleHintsFromUgc($brand, $onlyRecent, $isManual, $fresh);
 
-        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand, null, [
-            'onlyRecent' => $onlyRecent,
-            'isManual' => $isManual,
-            'fresh' => $fresh,
-        ]);
+        if ($succeeded) {
+            AppTaskFinished::dispatch(class_basename(__CLASS__), $brand, null, [
+                'onlyRecent' => $onlyRecent,
+                'isManual' => $isManual,
+                'fresh' => $fresh,
+            ]);
+        }
+
         $this->info("Fetched style hints for {$brand}.");
 
-        return 0;
+        return $succeeded ? 0 : 1;
     }
 }
