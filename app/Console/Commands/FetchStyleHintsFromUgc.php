@@ -40,7 +40,9 @@ class FetchStyleHintsFromUgc extends Command
         $fresh = $this->option('fresh');
 
         $this->info($onlyRecent ? 'Only recent style hints will be fetched.' : 'All style hints will be fetched.');
-        $this->info($isManual ? 'This is a manual task.' : null);
+        if ($isManual) {
+            $this->info('This is a manual task.');
+        }
 
         if ($fresh) {
             $this->warn('Starting fresh - ignoring checkpoint');

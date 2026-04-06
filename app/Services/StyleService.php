@@ -51,6 +51,8 @@ class StyleService extends Service
 
         logger()->info("Fetching styles for {$brand}, starting from gender index {$startIndex}");
 
+        $allCompleted = true;
+
         for ($i = $startIndex; $i < $genderIds->count(); $i++) {
             $genderId = $genderIds[$i];
 
@@ -68,17 +70,23 @@ class StyleService extends Service
                 $genderCompleted = false;
             }
 
-            // Only clear page checkpoint if gender completed without errors
             if ($genderCompleted) {
+                // Only clear page checkpoint if gender completed without errors
                 Cache::forget(sprintf(self::CACHE_KEY_STYLE_PAGE, $brand, $genderId));
+            } else {
+                $allCompleted = false;
             }
         }
 
-        // Clear all checkpoints on complete success
-        Cache::forget(sprintf(self::CACHE_KEY_STYLE_LAST_GENDER, $brand));
-        logger()->info("Completed fetching styles for {$brand}");
+        if ($allCompleted) {
+            // Clear all checkpoints on complete success
+            Cache::forget(sprintf(self::CACHE_KEY_STYLE_LAST_GENDER, $brand));
+            logger()->info("Completed fetching styles for {$brand}");
+        } else {
+            logger()->warning('Some genders had errors - preserving checkpoint', ['brand' => $brand]);
+        }
 
-        return true;
+        return $allCompleted;
     }
 
     /**

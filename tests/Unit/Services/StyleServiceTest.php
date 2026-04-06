@@ -53,8 +53,9 @@ class StyleServiceTest extends TestCase
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        $this->service->fetchAllStyles('UNIQLO');
+        $result = $this->service->fetchAllStyles('UNIQLO');
 
+        $this->assertFalse($result, 'fetchAllStyles should return false on 403');
         // Page checkpoint should not be advanced when blocked by 403
         $this->assertNull(Cache::get('styles:page:UNIQLO:1'));
 
@@ -133,37 +134,33 @@ class StyleServiceTest extends TestCase
 
     public function test_fetch_style_details_stops_on_403_error()
     {
-        Http::fake([
-            // First request succeeds to get list
-            'https://api.example.com/styles' => Http::sequence()
-                ->push([
+        Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
+
+        Http::fake(function ($request) {
+            $urlPath = parse_url($request->url(), PHP_URL_PATH);
+
+            if ($urlPath === '/styles') {
+                // List request
+                return Http::response([
                     'result' => [
                         'styles' => [
                             (object) ['style_id' => 'test123'],
                         ],
                         'total_styles' => 1,
                     ],
-                ])
-                ->push([
-                    'result' => [
-                        'styles' => [],
-                        'total_styles' => 1,
-                    ],
-                ]),
-            // Detail request returns 403
-            'https://api.example.com/styles/*' => Http::response([], 403),
-        ]);
+                ]);
+            }
 
-        Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
+            // Detail request — return 403
+            return Http::response([], 403);
+        });
 
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        // fetchAllStyles catches the 403 propagated from fetchStyleDetails and returns gracefully.
-        // The key verification is that it completes without processing further genders
-        // (covered by test_fetch_style_details_actually_stops_processing_on_403).
-        $this->service->fetchAllStyles('UNIQLO');
+        $result = $this->service->fetchAllStyles('UNIQLO');
 
+        $this->assertFalse($result, 'fetchAllStyles should return false on 403');
         // Verify page checkpoint was NOT advanced (403 stops before checkpoint update)
         $this->assertNull(Cache::get('styles:page:UNIQLO:1'), 'Page checkpoint must not be set on 403');
     }
@@ -181,9 +178,13 @@ class StyleServiceTest extends TestCase
 
         $service = new StyleService($mockRepository);
 
-        Http::fake([
-            'https://api.example.com/styles' => Http::sequence()
-                ->push([
+        Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
+
+        Http::fake(function ($request) {
+            $urlPath = parse_url($request->url(), PHP_URL_PATH);
+
+            if ($urlPath === '/styles') {
+                return Http::response([
                     'result' => [
                         'styles' => [
                             (object) ['style_id' => 'style1'],
@@ -192,31 +193,20 @@ class StyleServiceTest extends TestCase
                         ],
                         'total_styles' => 3,
                     ],
-                ])
-                ->push([
-                    'result' => [
-                        'styles' => [],
-                        'total_styles' => 3,
-                    ],
-                ]),
-            // First detail request returns 403
-            'https://api.example.com/styles/*' => Http::response([], 403),
-        ]);
+                ]);
+            }
 
-        Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
+            // Detail request — return 403
+            return Http::response([], 403);
+        });
 
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        try {
-            $service->fetchAllStyles('UNIQLO');
-        } catch (\Throwable $e) {
-            // Expected - 403 should throw
-        }
+        $result = $service->fetchAllStyles('UNIQLO');
 
-        // With throw: save should be called 0 times (stops immediately)
-        // Without throw (old code with return): save would be called 0 times but loop continues
-        // The key is that exception is thrown, not silently continuing
+        $this->assertFalse($result, 'fetchAllStyles should return false on 403');
+        // save should not be called because 403 stops processing before save
         $this->assertEquals(0, $saveCount, 'Should not save any styles when 403 occurs');
     }
 

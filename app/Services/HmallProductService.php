@@ -166,6 +166,8 @@ class HmallProductService extends Service
             logger()->warning('Some pages failed - preserving checkpoint, skipping stockout', ['brand' => $brand]);
         } else {
             logger()->warning('No pages were successfully fetched - preserving checkpoint', ['brand' => $brand]);
+
+            return false;
         }
 
         return true;

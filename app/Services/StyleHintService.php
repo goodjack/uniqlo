@@ -172,12 +172,16 @@ class StyleHintService extends Service
                 logger()->info("Completed backfill for {$country}");
             } else {
                 logger()->warning('No batches were successfully fetched - preserving checkpoint', ['country' => $country]);
+
+                return false;
             }
         } else {
             if ($hasSucceeded) {
                 logger()->info("Completed daily fetch for {$country}");
             } else {
                 logger()->warning('Daily fetch completed with no successful pages', ['country' => $country]);
+
+                return false;
             }
         }
 

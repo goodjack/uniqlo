@@ -131,6 +131,8 @@ class JapanProductService
             logger()->warning('Some batches failed - preserving checkpoint, skipping stockout', ['brand' => $brand]);
         } else {
             logger()->warning('No batches were successfully fetched - preserving checkpoint', ['brand' => $brand]);
+
+            return false;
         }
 
         return true;
