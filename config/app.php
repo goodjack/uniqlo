@@ -190,6 +190,39 @@ return [
     'pixel_tracking_id' => env('PIXEL_TRACKING_ID'),
     'sitemap_name' => env('SITEMAP_NAME'),
     'user_agent_mobile' => env('USER_AGENT_MOBILE'),
+
+    'user_agents' => array_filter(explode('|', env('CRAWLER_USER_AGENTS', ''))),
+
+    'crawler' => [
+        'page_sizes' => [
+            'hmall_products' => env('CRAWLER_HMALL_PRODUCTS_PAGE_SIZE', 24),
+            'japan_products' => env('CRAWLER_JAPAN_PRODUCTS_PAGE_SIZE', 36),
+            'official_styles' => env('CRAWLER_OFFICIAL_STYLES_PAGE_SIZE', 50),
+            'ugc_style_hints' => env('CRAWLER_UGC_STYLE_HINTS_PAGE_SIZE', 50),
+        ],
+        'retry' => [
+            'times' => 3,
+            'sleep_min' => 2,
+            'sleep_max' => 5,
+        ],
+        'delay' => [
+            'min' => 1000000, // microseconds (1 second)
+            'max' => 3000000, // microseconds (3 seconds)
+        ],
+        'batch_rest' => [
+            'offset' => [
+                'interval' => 75,
+                'sleep_min' => 30,
+                'sleep_max' => 60,
+            ],
+            'detail' => [
+                'interval' => 200,
+                'sleep_min' => 10,
+                'sleep_max' => 20,
+            ],
+        ],
+    ],
+
     'discord_webhook_url' => env('DISCORD_WEBHOOK_URL'),
 
     'adsense' => [

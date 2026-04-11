@@ -17,7 +17,8 @@ class FetchStyleHintsFromUgc extends Command
     protected $signature = 'style-hint-ugc:fetch
                             {brand=UNIQLO : The brand of the products}
                             {--only-recent : Fetch only recent style hints}
-                            {--is-scheduled : Is scheduled task}';
+                            {--is-scheduled : Is scheduled task}
+                            {--fresh : Ignore checkpoint and start fresh}';
 
     /**
      * The console command description.
@@ -36,9 +37,16 @@ class FetchStyleHintsFromUgc extends Command
         $brand = $this->argument('brand');
         $onlyRecent = $this->option('only-recent');
         $isManual = ! ($this->option('is-scheduled'));
+        $fresh = $this->option('fresh');
 
         $this->info($onlyRecent ? 'Only recent style hints will be fetched.' : 'All style hints will be fetched.');
-        $this->info($isManual ? 'This is a manual task.' : null);
+        if ($isManual) {
+            $this->info('This is a manual task.');
+        }
+
+        if ($fresh) {
+            $this->warn('Starting fresh - ignoring checkpoint');
+        }
 
         $this->newLine();
 
@@ -47,16 +55,21 @@ class FetchStyleHintsFromUgc extends Command
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand, null, [
             'onlyRecent' => $onlyRecent,
             'isManual' => $isManual,
+            'fresh' => $fresh,
         ]);
 
-        $styleHintService->fetchAllStyleHintsFromUgc($brand, $onlyRecent, $isManual);
+        $succeeded = $styleHintService->fetchAllStyleHintsFromUgc($brand, $onlyRecent, $isManual, $fresh);
 
-        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand, null, [
-            'onlyRecent' => $onlyRecent,
-            'isManual' => $isManual,
-        ]);
+        if ($succeeded) {
+            AppTaskFinished::dispatch(class_basename(__CLASS__), $brand, null, [
+                'onlyRecent' => $onlyRecent,
+                'isManual' => $isManual,
+                'fresh' => $fresh,
+            ]);
+        }
+
         $this->info("Fetched style hints for {$brand}.");
 
-        return 0;
+        return $succeeded ? 0 : 1;
     }
 }

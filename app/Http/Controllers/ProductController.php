@@ -55,7 +55,7 @@ class ProductController extends Controller
      */
     public function show($value)
     {
-        $product = \App\Models\Product::find($value);
+        $product = Product::find($value);
 
         if (! $product) {
             // return redirect()->route('search', ['query' => $value])->send();

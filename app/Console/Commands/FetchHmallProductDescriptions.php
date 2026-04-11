@@ -14,7 +14,7 @@ class FetchHmallProductDescriptions extends Command
      *
      * @var string
      */
-    protected $signature = 'hmall-product-description:fetch {brand=UNIQLO : The brand of the products}';
+    protected $signature = 'hmall-product-description:fetch {brand=UNIQLO : The brand of the products} {--fresh : Ignore checkpoint and start fresh}';
 
     /**
      * The console command description.
@@ -31,15 +31,23 @@ class FetchHmallProductDescriptions extends Command
     public function handle(HmallProductService $hmallProductService)
     {
         $brand = $this->argument('brand');
+        $fresh = $this->option('fresh');
+
+        if ($fresh) {
+            $this->warn('Starting fresh - ignoring checkpoint');
+        }
 
         $this->info("Fetching Hmall product descriptions for {$brand}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $hmallProductService->fetchAllHmallProductDescriptions($brand);
+        $succeeded = $hmallProductService->fetchAllHmallProductDescriptions($brand, false, $fresh);
 
-        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        if ($succeeded) {
+            AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        }
+
         $this->info("Fetched Hmall product descriptions for {$brand}");
 
-        return 0;
+        return $succeeded ? 0 : 1;
     }
 }

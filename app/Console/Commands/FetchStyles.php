@@ -14,7 +14,7 @@ class FetchStyles extends Command
      *
      * @var string
      */
-    protected $signature = 'style:fetch {brand=UNIQLO : The brand of the styles}';
+    protected $signature = 'style:fetch {brand=UNIQLO : The brand of the styles} {--fresh : Ignore checkpoint and start fresh}';
 
     /**
      * The console command description.
@@ -31,15 +31,23 @@ class FetchStyles extends Command
     public function handle(StyleService $styleService)
     {
         $brand = $this->argument('brand');
+        $fresh = $this->option('fresh');
+
+        if ($fresh) {
+            $this->warn('Starting fresh - ignoring checkpoint');
+        }
 
         $this->info("Fetching styles for {$brand}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $styleService->fetchAllStyles($brand);
+        $succeeded = $styleService->fetchAllStyles($brand, $fresh);
 
-        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        if ($succeeded) {
+            AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        }
+
         $this->info("Fetched styles for {$brand}");
 
-        return 0;
+        return $succeeded ? 0 : 1;
     }
 }

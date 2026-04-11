@@ -11,7 +11,7 @@ use GuzzleHttp\Client;
 
 class ProductService extends Service
 {
-    use divideProducts;
+    use DivideProducts;
 
     protected $repository;
 

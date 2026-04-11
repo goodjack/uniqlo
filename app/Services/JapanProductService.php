@@ -3,80 +3,137 @@
 namespace App\Services;
 
 use App\Repositories\JapanProductRepository;
+use App\Services\Traits\AntiBlockingCrawler;
 use Exception;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class JapanProductService
 {
-    public function __construct(protected JapanProductRepository $repository)
-    {
-    }
+    use AntiBlockingCrawler;
 
-    public function fetchAllProducts($brand = 'UNIQLO'): void
+    private const CACHE_KEY_JAPAN_PRODUCTS_OFFSET = 'japan_products:offset:%s'; // brand
+
+    public function __construct(protected JapanProductRepository $repository) {}
+
+    public function fetchAllProducts($brand = 'UNIQLO', bool $fresh = false): bool
     {
         $japanProductListApiUrl = $this->getJapanProductListApiUrl($brand);
+        $cacheKey = sprintf(self::CACHE_KEY_JAPAN_PRODUCTS_OFFSET, $brand);
 
-        $limit = 36;
-        $offset = 0;
+        $limit = (int) config('app.crawler.page_sizes.japan_products');
+        if ($limit < 1) {
+            throw new Exception('CRAWLER_JAPAN_PRODUCTS_PAGE_SIZE is not configured.');
+        }
+
+        $offset = $fresh ? 0 : (Cache::get($cacheKey) ?? 0);
         $total = 0;
-        $retry = 0;
+        $hasSucceeded = false;
+        $hasFailures = false;
+
+        // Clear checkpoint if fresh
+        if ($fresh) {
+            Cache::forget($cacheKey);
+        }
+
+        logger()->info("Fetching Japan products for {$brand}, starting from offset {$offset}");
 
         do {
             try {
-                $response = Http::withHeaders([
-                    'User-Agent' => config('app.user_agent_mobile'),
-                    'x-fr-clientid' => $this->getClientId($brand),
-                ])
-                    ->retry(5, 1000)
-                    ->get($japanProductListApiUrl, [
-                        'offset' => $offset,
-                        'limit' => $limit,
-                        'sort' => 1,
-                        'httpFailure' => 'true',
-                        'queryRelaxationFlag' => 'true',
-                    ]);
+                $total = retry(
+                    config('app.crawler.retry.times'),
+                    function ($attempts) use ($japanProductListApiUrl, $brand, $offset, $limit) {
+                        $headers = $this->buildHeaders();
+                        $headers['x-fr-clientid'] = $this->getClientId($brand);
 
-                $responseBody = json_decode($response->body());
-                $items = $responseBody->result->items;
+                        $response = Http::withHeaders($headers)
+                            ->throw()
+                            ->get($japanProductListApiUrl, [
+                                'offset' => $offset,
+                                'limit' => $limit,
+                                'sort' => 1,
+                                'httpFailure' => 'true',
+                                'queryRelaxationFlag' => 'true',
+                            ]);
 
-                $this->repository->saveProducts($items, $brand);
+                        $responseBody = json_decode($response->body());
+                        $items = $responseBody->result->items ?? null;
 
-                $total = $responseBody->result->pagination->total;
+                        if (is_null($items)) {
+                            throw new Exception("Items does not exist. {$response->body()}");
+                        }
+
+                        $this->repository->saveProducts($items, $brand);
+
+                        return $responseBody->result->pagination->total;
+                    },
+                    fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
+                    fn ($e) => $this->shouldRetry($e),
+                );
+
+                $hasSucceeded = true;
 
                 if ($total === 0) {
-                    throw new Exception('No products found');
+                    logger()->info("No products found for {$brand}, stopping.");
+                    break;
                 }
 
                 $offset += $limit;
-                $retry = 0;
 
-                usleep(500000);
+                // Update checkpoint
+                Cache::put($cacheKey, $offset, now()->addDays(7));
+
+                // Check if offset batch rest is needed
+                if ($this->shouldOffsetBatchRest($offset, $limit)) {
+                    $this->doOffsetBatchRest();
+                }
+
+                $this->randomDelay();
             } catch (Throwable $e) {
-                if ($retry >= 5) {
-                    Log::error('JapanProductService fetchAllProducts error', [
+                // 403 is a permanent block - stop immediately
+                if ($this->is403Error($e)) {
+                    logger()->error('fetchAllProducts blocked (403)', [
                         'brand' => $brand,
-                        'retry' => $retry,
-                        'limit' => $limit,
                         'offset' => $offset,
-                        'response_body' => $response->body() ?? null,
                     ]);
                     report($e);
 
-                    $offset += $limit;
-                    $retry = 0;
-
-                    continue;
+                    return false;
                 }
 
-                $retry++;
+                // retry() exhausted - skip batch and continue
+                $hasFailures = true;
+                logger()->error('JapanProductService fetchAllProducts error - max retry exceeded', [
+                    'brand' => $brand,
+                    'limit' => $limit,
+                    'offset' => $offset,
+                    'total' => $total,
+                    'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
+                    'error' => $e->getMessage(),
+                ]);
+                report($e);
 
-                sleep(1);
+                $offset += $limit;
             }
         } while ($total >= $offset);
 
-        $this->repository->setStockoutProducts($brand);
+        if ($hasSucceeded && ! $hasFailures) {
+            // All batches succeeded - clear checkpoint and run stockout processing
+            Cache::forget($cacheKey);
+            $this->repository->setStockoutProducts($brand);
+            logger()->info("Completed fetching Japan products for {$brand}");
+        } elseif ($hasSucceeded) {
+            // Partial success - preserve checkpoint, skip stockout to avoid false negatives
+            logger()->warning('Some batches failed - preserving checkpoint, skipping stockout', ['brand' => $brand]);
+        } else {
+            logger()->warning('No batches were successfully fetched - preserving checkpoint', ['brand' => $brand]);
+
+            return false;
+        }
+
+        return true;
     }
 
     private function getJapanProductListApiUrl($brand = 'UNIQLO')

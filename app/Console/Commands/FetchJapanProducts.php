@@ -14,7 +14,7 @@ class FetchJapanProducts extends Command
      *
      * @var string
      */
-    protected $signature = 'japan-product:fetch {brand=UNIQLO : The brand of the products}';
+    protected $signature = 'japan-product:fetch {brand=UNIQLO : The brand of the products} {--fresh : Ignore checkpoint and start fresh}';
 
     /**
      * The console command description.
@@ -29,15 +29,23 @@ class FetchJapanProducts extends Command
     public function handle(JapanProductService $japanProductService)
     {
         $brand = $this->argument('brand');
+        $fresh = $this->option('fresh');
+
+        if ($fresh) {
+            $this->warn('Starting fresh - ignoring checkpoint');
+        }
 
         $this->info("Fetching Japan products for {$brand}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $japanProductService->fetchAllProducts($brand);
+        $succeeded = $japanProductService->fetchAllProducts($brand, $fresh);
 
-        AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        if ($succeeded) {
+            AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        }
+
         $this->info("Fetched Japan products for {$brand}");
 
-        return 0;
+        return $succeeded ? 0 : 1;
     }
 }
