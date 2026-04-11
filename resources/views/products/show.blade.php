@@ -2,16 +2,16 @@
 @extends('layouts.master')
 
 @php
-$shareText = $product->name . ' | UNIQLO 比價 | UQ 搜尋';
-$shareTextEncode = urlencode($shareText);
+    $shareText = $product->name . ' | UNIQLO 比價 | UQ 搜尋';
+    $shareTextEncode = urlencode($shareText);
 
-$url = url()->current();
-$shareUrl = [
-    'facebook' => urlencode($url . '?utm_source=uqs&utm_medium=fb&utm_campaign=share'),
-    'twitter' => urlencode($url . '?utm_source=uqs&utm_medium=twtr&utm_campaign=share'),
-    'line' => urlencode($url . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
-    'webShare' => $url . '?utm_source=uqs&utm_medium=webshare&utm_campaign=share',
-];
+    $url = url()->current();
+    $shareUrl = [
+        'facebook' => urlencode($url . '?utm_source=uqs&utm_medium=fb&utm_campaign=share'),
+        'twitter' => urlencode($url . '?utm_source=uqs&utm_medium=twtr&utm_campaign=share'),
+        'line' => urlencode($url . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
+        'webShare' => $url . '?utm_source=uqs&utm_medium=webshare&utm_campaign=share',
+    ];
 @endphp
 
 @section('title', "{$product->name}")
@@ -68,8 +68,7 @@ $shareUrl = [
     <meta name="twitter:creator" content="@littlegoodjack" />
     <meta name="twitter:title" content="{{ $product->name }} | UQ 搜尋" />
     <meta name="twitter:description" content="{{ $productPresenter->getSocialMediaDescription($product) }}" />
-    <meta name="twitter:image"
-        content="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}" />
+    <meta name="twitter:image" content="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}" />
     <meta name="share:text" content="{{ $shareText }}" />
     <meta name="share:url" content="{{ $shareUrl['webShare'] }}" />
 @endsection
@@ -137,215 +136,190 @@ $shareUrl = [
 @endsection
 
 @section('content')
-    <div class="ts padded horizontally fitted attached fluid tertiary segment">
-        <div class="ts container">
-            <div class="ts medium header">
-                <div class="content">
-                    <i class="notice circle icon"></i>您現在位於舊系統商品頁
-                    <div class="sub header">資料已過時或損毀，建議一併參考新系統的最新內容</div>
+    <x-section padded="normal" tertiary>
+        <div class="ts medium header">
+            <div class="content">
+                <i class="notice circle icon"></i>您現在位於舊系統商品頁
+                <div class="sub header">資料已過時或損毀，建議一併參考新系統的最新內容</div>
+            </div>
+        </div>
+        @if ($relatedHmallProducts->isNotEmpty())
+            <div class="ts fitted attached fluid segment">
+                <div class="ts segmented selection single line items">
+                    @each('hmall-products.item', $relatedHmallProducts, 'hmallProduct')
                 </div>
             </div>
-            @if ($relatedHmallProducts->isNotEmpty())
-                <div class="ts fitted attached fluid segment">
-                    <div class="ts segmented selection single line items">
-                        @each('hmall-products.item', $relatedHmallProducts, 'hmallProduct')
-                    </div>
-                </div>
-            @endif
-        </div>
-    </div>
+        @endif
+    </x-section>
 
-    <div class="ts very padded horizontally fitted attached fluid segment">
-        <div class="ts container relaxed grid">
-            <div class="nine wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
-                <div class="ts fluid container">
-                    <a class="ts centered image"
-                        href="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
-                        rel="nofollow noopener" data-lightbox="image" data-title="{{ $product->name }}">
-                        <x-lazy-load-image class="ts centered image"
-                            src="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
-                            alt="{{ $product->name }}" />
-                    </a>
+    <x-section grid="relaxed">
+        <div class="nine wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
+            <div class="ts fluid container">
+                <a class="ts centered image"
+                    href="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
+                    rel="nofollow noopener" data-lightbox="image" data-title="{{ $product->name }}">
+                    <x-lazy-load-image class="ts centered image"
+                        src="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
+                        alt="{{ $product->name }}" />
+                </a>
+            </div>
+        </div>
+        <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
+            <div class="ts fluid very narrow container grid">
+                <div class="sixteen wide column">
+                    <h1 class="ts dividing big header">
+                        {{ $product->name }}
+                        <div class="sub header">
+                            舊系統 &middot; 商品編號 {{ $product->id }}
+                            {!! $productPresenter->getRatingForProductShow($product) !!}
+                            &middot;
+                            <div class="ts buttons">
+                                <a id="facebook" class="ts link button"
+                                    href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
+                                    target="_blank" rel="nofollow noopener" aria-label="Facebook">
+                                    <i class="facebook icon"></i>
+                                </a>
+                                <a id="twitter" class="ts link button"
+                                    href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
+                                    target="_blank" rel="nofollow noopener" aria-label="Twitter">
+                                    <i class="twitter icon"></i>
+                                </a>
+                                <a id="line" class="ts link button"
+                                    href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
+                                    target="_blank" rel="nofollow noopener" aria-label="Line">
+                                    <i class="chat icon"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </h1>
+                </div>
+                <div class="sixteen wide center aligned column">
+                    <div class="ts very narrow container">
+                        <div class="ts basic fitted segment">
+                            {!! $productPresenter->getProductTag($product) !!}
+                        </div>
+                    </div>
+                </div>
+                <div class="sixteen wide column">
+                    <div class="ts basic horizontally fitted segment" id="comment">
+                        <p>{!! $product->comment !!}</p>
+                    </div>
                 </div>
             </div>
-            <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
-                <div class="ts fluid very narrow container grid">
-                    <div class="sixteen wide column">
-                        <h1 class="ts dividing big header">
-                            {{ $product->name }}
-                            <div class="sub header">
-                                舊系統 &middot; 商品編號 {{ $product->id }}
-                                {!! $productPresenter->getRatingForProductShow($product) !!}
-                                &middot;
-                                <div class="ts buttons">
-                                    <a id="facebook" class="ts link button"
-                                        href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="Facebook">
-                                        <i class="facebook icon"></i>
-                                    </a>
-                                    <a id="twitter" class="ts link button"
-                                        href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="Twitter">
-                                        <i class="twitter icon"></i>
-                                    </a>
-                                    <a id="line" class="ts link button"
-                                        href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="Line">
-                                        <i class="chat icon"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </h1>
-                    </div>
-                    <div class="sixteen wide center aligned column">
-                        <div class="ts very narrow container">
-                            <div class="ts basic fitted segment">
-                                {!! $productPresenter->getProductTag($product) !!}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="sixteen wide column">
-                        <div class="ts basic horizontally fitted segment" id="comment">
-                            <p>{!! $product->comment !!}</p>
-                        </div>
-                    </div>
+            <div class="ts divider"></div>
+            <div class="ts grid">
+                <div class="four wide column">
+                    <h2>${{ $product->price }}</h2>
                 </div>
-                <div class="ts divider"></div>
-                <div class="ts grid">
-                    <div class="four wide column">
-                        <h2>${{ $product->price }}</h2>
-                    </div>
-                    <div class="twelve wide column">
-                        <div id="uniqlo-column">
-                            <div class="ts right floated separated stackable buttons">
-                                <a class="ts negative right labeled icon disabled button"
-                                    href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank"
-                                    rel="nofollow noopener" aria-label="UNIQLO">無法前往 UNIQLO 舊官網<i
-                                        class="external icon"></i></a>
-                                <a class="ts basic button" id="share" target="_blank" rel="nofollow noopener"
-                                    aria-label="Share" style="display: none;"><i class="share icon"></i>分享</a>
-                            </div>
+                <div class="twelve wide column">
+                    <div id="uniqlo-column">
+                        <div class="ts right floated separated stackable buttons">
+                            <a class="ts negative right labeled icon disabled button"
+                                href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank"
+                                rel="nofollow noopener" aria-label="UNIQLO">無法前往 UNIQLO 舊官網<i class="external icon"></i></a>
+                            <a class="ts basic button" id="share" target="_blank" rel="nofollow noopener"
+                                aria-label="Share" style="display: none;"><i class="share icon"></i>分享</a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </x-section>
 
     @if (count($suggestProducts) > 0)
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-            <div class="ts container">
-                <h2 class="ts large dividing header">你可能也喜歡</h2>
-                <div class="ts hidden divider"></div>
-                <div class="ts segmented selection items">
-                    @each('products.item', $suggestProducts, 'product')
-                </div>
+        <x-section title="你可能也喜歡" tertiary>
+            <div class="ts segmented selection items">
+                @each('products.item', $suggestProducts, 'product')
             </div>
-        </div>
+        </x-section>
     @endif
 
     @if (count($relatedProducts) > 0)
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-            <div class="ts container">
-                <h2 class="ts large dividing header">延伸商品</h2>
-                <div class="ts hidden divider"></div>
-                <div class="ts doubling link cards six">
-                    @each('products.card', $relatedProducts, 'product')
-                </div>
+        <x-section title="延伸商品" tertiary>
+            <div class="ts doubling link cards six">
+                @each('products.card', $relatedProducts, 'product')
             </div>
-        </div>
+        </x-section>
     @endif
 
     @if (count($styles) > 0 || count($styleDictionaries) > 0)
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-            <div class="ts container">
-                <h2 class="ts large dividing header">Official Styling 官方精選穿搭</h2>
-                <div class="ts hidden divider"></div>
-                <div class="ts doubling four flatted cards">
-                    {!! $productPresenter->getStyles($styles) !!}
-                    {!! $productPresenter->getStyleDictionaries($styleDictionaries) !!}
-                </div>
+        <x-section title="Official Styling 官方精選穿搭" tertiary>
+            <div class="ts doubling four flatted cards">
+                {!! $productPresenter->getStyles($styles) !!}
+                {!! $productPresenter->getStyleDictionaries($styleDictionaries) !!}
             </div>
-        </div>
+        </x-section>
     @endif
 
     @if (!empty($product->colors) || !empty($product->sub_images))
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-            <div class="ts container">
-                <h2 class="ts large dividing header">商品實照</h2>
-                <div class="ts hidden divider"></div>
-                <div class="ts doubling four flatted cards">
-                    {!! $productPresenter->getSubImages($product) !!}
-                    {!! $productPresenter->getItemImages($product) !!}
-                </div>
+        <x-section title="商品實照" tertiary>
+            <div class="ts doubling four flatted cards">
+                {!! $productPresenter->getSubImages($product) !!}
+                {!! $productPresenter->getItemImages($product) !!}
             </div>
-        </div>
+        </x-section>
     @endif
 
-    <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-        <div class="ts container">
-            <h2 class="ts large dividing header">歷史價格</h2>
-            <div class="ts hidden divider"></div>
-            <div class="ts fluid container grid">
-                <div class="four wide computer sixteen wide tablet sixteen wide mobile column">
-                    <div class="ts grid">
-                        <div class="sixteen wide computer eight wide tablet eight wide mobile column">
-                            <div class="ts card">
-                                <div class="center aligned content">
-                                    <div class="ts medium statistic">
-                                        <div class="value">{{ $product->max_price }}</div>
-                                        <div class="label">歷史高價</div>
-                                    </div>
-                                </div>
-                                <div class="symbol">
-                                    <i class="arrow up icon"></i>
+    <x-section title="歷史價格" tertiary>
+        <div class="ts fluid container grid">
+            <div class="four wide computer sixteen wide tablet sixteen wide mobile column">
+                <div class="ts grid">
+                    <div class="sixteen wide computer eight wide tablet eight wide mobile column">
+                        <div class="ts card">
+                            <div class="center aligned content">
+                                <div class="ts medium statistic">
+                                    <div class="value">{{ $product->max_price }}</div>
+                                    <div class="label">歷史高價</div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="sixteen wide computer eight wide tablet eight wide mobile column">
-                            <div class="ts card">
-                                <div class="center aligned content">
-                                    <div class="ts medium statistic">
-                                        <div class="value">{{ $product->min_price }}</div>
-                                        <div class="label">歷史低價</div>
-                                    </div>
-                                </div>
-                                <div class="symbol">
-                                    <i class="arrow down icon"></i>
-                                </div>
+                            <div class="symbol">
+                                <i class="arrow up icon"></i>
                             </div>
                         </div>
                     </div>
-                    <div class="ts hidden divider"></div>
+                    <div class="sixteen wide computer eight wide tablet eight wide mobile column">
+                        <div class="ts card">
+                            <div class="center aligned content">
+                                <div class="ts medium statistic">
+                                    <div class="value">{{ $product->min_price }}</div>
+                                    <div class="label">歷史低價</div>
+                                </div>
+                            </div>
+                            <div class="symbol">
+                                <i class="arrow down icon"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="twelve wide computer sixteen wide tablet sixteen wide mobile column">
-                    <div class="ts items">
-                        <div class="item">
-                            <div class="ts mini image">
-                                <x-lazy-load-image
-                                    src="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
-                                    alt="{{ $product->name }} {{ $product->id }}" />
+                <div class="ts hidden divider"></div>
+            </div>
+            <div class="twelve wide computer sixteen wide tablet sixteen wide mobile column">
+                <div class="ts items">
+                    <div class="item">
+                        <div class="ts mini image">
+                            <x-lazy-load-image
+                                src="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
+                                alt="{{ $product->name }} {{ $product->id }}" />
+                        </div>
+                        <div class="middle aligned content">
+                            <div class="header">
+                                {{ $product->name }}
                             </div>
-                            <div class="middle aligned content">
-                                <div class="header">
-                                    {{ $product->name }}
-                                </div>
-                                <div class="inline middoted meta">
-                                    <span>商品編號
-                                        {{ $product->id }}</span>{!! $productPresenter->getRatingForProductCardAndItem($product) !!}<span>NT${{ $product->price }}</span>
-                                </div>
+                            <div class="inline middoted meta">
+                                <span>商品編號
+                                    {{ $product->id }}</span>{!! $productPresenter->getRatingForProductCardAndItem($product) !!}<span>NT${{ $product->price }}</span>
                             </div>
                         </div>
                     </div>
-                    <div class="ts flatted card">
-                        <div class="image">
-                            <canvas id="priceChart"></canvas>
-                        </div>
+                </div>
+                <div class="ts flatted card">
+                    <div class="image">
+                        <canvas id="priceChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </x-section>
 @endsection
 
 @section('javascript')
