@@ -2,6 +2,8 @@
 
 namespace App\Repositories;
 
+use App\Enums\CategoryLevel;
+use App\Models\HmallCategory;
 use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
 use App\Models\Product;
@@ -525,7 +527,11 @@ class HmallProductRepository extends Repository
 
     public function saveProductsFromV3($products, $brand = 'UNIQLO')
     {
-        collect($products)->each(function ($product) use ($brand) {
+        // 分類主檔整批先寫，一頁商品只打一次資料庫，而不是每個商品各寫十幾筆。
+        // 回傳的 code 對 id 對照表給下面掛關聯用，省掉每個商品各查一次。
+        $categoryIds = $this->saveCategoriesFromV3($products, $brand);
+
+        collect($products)->each(function ($product) use ($brand, $categoryIds) {
             try {
                 /** @var HmallProduct $model */
                 $model = $this->model->firstOrNew([
@@ -560,6 +566,7 @@ class HmallProductRepository extends Repository
                 $model->evaluation_count = $product->evaluationCount ?? null;
                 $model->sales = $product->sales ?? null;
                 $model->new = $product->new ?? null;
+                $model->new_at = $this->getCarbonOrNull($product->new ?? null);
                 $model->season = $product->season ?? null;
                 $model->style_text = isset($product->styleText) ? json_encode($product->styleText) : null;
                 $model->color_nums = isset($product->colorNums) ? json_encode($product->colorNums) : null;
@@ -577,6 +584,8 @@ class HmallProductRepository extends Repository
                 $model->stock = $product->stock ?? null;
 
                 $model->save();
+
+                $this->syncCategories($model, $product, $categoryIds);
 
                 if (! $isChangedThePrice) {
                     return;
@@ -680,6 +689,99 @@ class HmallProductRepository extends Repository
         }
 
         return max($highestRecordPrice, $newMaxPrice);
+    }
+
+    /**
+     * 從整批商品的回傳裡取出分類主檔並寫入，回傳 code 對 id 的對照表。
+     *
+     * 官方每筆商品都帶完整的四層分類物件（code、name、parentCode 齊全），
+     * 所以主檔不需要另外抓一支 endpoint。分類的身分是品牌加 code，
+     * upsert 的比對鍵也是這兩欄。
+     *
+     * @return Collection<string, int>
+     */
+    private function saveCategoriesFromV3($products, string $brand): Collection
+    {
+        $categories = collect($products)
+            ->flatMap(fn ($product) => $this->extractCategories($product, $brand))
+            ->unique('code')
+            ->values();
+
+        if ($categories->isEmpty()) {
+            return collect();
+        }
+
+        HmallCategory::upsert($categories->all(), ['brand', 'code'], ['name', 'parent_code', 'level']);
+
+        return HmallCategory::where('brand', $brand)
+            ->whereIn('code', $categories->pluck('code'))
+            ->pluck('id', 'code');
+    }
+
+    /**
+     * 把商品的四層分類陣列攤平成主檔資料列。
+     *
+     * 層級由它出現在哪個陣列決定：官方的同一個 code 不會跨層出現。
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function extractCategories($product, string $brand): array
+    {
+        $levels = [
+            [CategoryLevel::Top, $product->topCategories ?? []],
+            [CategoryLevel::One, $product->levelOne ?? []],
+            [CategoryLevel::Two, $product->levelTwo ?? []],
+            [CategoryLevel::Three, $product->levelThree ?? []],
+        ];
+
+        $categories = [];
+
+        foreach ($levels as [$level, $items]) {
+            foreach ($items as $item) {
+                if (empty($item->code)) {
+                    continue;
+                }
+
+                $categories[] = [
+                    'brand' => $brand,
+                    'code' => $item->code,
+                    'name' => $item->name ?? $item->code,
+                    'parent_code' => $item->parentCode ?? null,
+                    // upsert 走 query builder、不套 model 的 cast，這裡要給原始值
+                    'level' => $level->value,
+                ];
+            }
+        }
+
+        return $categories;
+    }
+
+    /**
+     * 更新商品掛在哪些分類底下。
+     *
+     * 分類歸屬以四層陣列為準，categorySortList 只提供官方在該分類內的排序權重。
+     * 回傳沒有分類時不動既有關聯：那比較可能是這次回傳缺漏，而不是商品真的被移出所有分類。
+     */
+    private function syncCategories(HmallProduct $model, $product, Collection $categoryIds): void
+    {
+        $codes = collect($this->extractCategories($product, $model->brand))
+            ->pluck('code')
+            ->unique()
+            ->filter(fn (string $code) => $categoryIds->has($code));
+
+        if ($codes->isEmpty()) {
+            return;
+        }
+
+        $sorts = collect($product->categorySortList ?? [])
+            ->filter(fn ($item) => ! empty($item->code))
+            ->mapWithKeys(fn ($item) => [$item->code => $item->sort ?? null]);
+
+        $model->categories()->sync(
+            $codes->mapWithKeys(fn (string $code) => [
+                $categoryIds->get($code) => ['sort' => $sorts->get($code)],
+            ])->all()
+        );
     }
 
     private function getCarbonOrNull($unixTimestampInMilliseconds)

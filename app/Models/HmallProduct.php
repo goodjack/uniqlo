@@ -29,11 +29,22 @@ class HmallProduct extends Model
         'time_limited_begin' => 'datetime',
         'time_limited_end' => 'datetime',
         'stockout_at' => 'datetime',
+        'new_at' => 'datetime',
     ];
 
     public function hmallPriceHistories()
     {
         return $this->hasMany(HmallPriceHistory::class);
+    }
+
+    public function categories()
+    {
+        return $this->belongsToMany(
+            HmallCategory::class,
+            'hmall_category_hmall_product',
+            'hmall_product_id',
+            'hmall_category_id'
+        )->withPivot('sort');
     }
 
     public function styles()
