@@ -21,6 +21,15 @@
 
 @section('css')
     @include('partials.list-type-icon-styles')
+    <style>
+        /* nav 是 60px 的 fixed，性別選單黏在它下面 */
+        .sticky-gender-menu {
+            position: sticky;
+            top: 60px;
+            z-index: 5;
+            background: #fff;
+        }
+    </style>
 @endsection
 
 @section('content')

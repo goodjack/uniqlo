@@ -18,14 +18,37 @@
         <div class="ts container">
             <div class="ts relaxed divided items" id="favorites-cards"></div>
 
+            {{-- 三種狀態長得不一樣，使用者才知道自己該做什麼 --}}
             <div class="ts center aligned basic segment" id="favorites-empty" hidden>
                 <div class="ts icon header">
                     <i class="heart outline faded icon"></i>
                     <div class="content">
                         還沒有收藏任何商品
-                        <div class="sub header">在商品頁按「追蹤降價」就會出現在這裡</div>
+                        <div class="sub header">在商品頁按「收藏」就會出現在這裡</div>
                     </div>
                 </div>
+            </div>
+
+            <div class="ts center aligned basic segment" id="favorites-gone" hidden>
+                <div class="ts icon header">
+                    <i class="archive faded icon"></i>
+                    <div class="content">
+                        收藏的商品都已經下架了
+                        <div class="sub header">官網已經買不到這些商品，可以把它們從收藏移除</div>
+                    </div>
+                </div>
+                <button class="ts basic button" id="favorites-clear">清空收藏</button>
+            </div>
+
+            <div class="ts center aligned basic segment" id="favorites-error" hidden>
+                <div class="ts icon header">
+                    <i class="warning circle faded icon"></i>
+                    <div class="content">
+                        暫時載入不到收藏
+                        <div class="sub header">收藏清單還在你的瀏覽器裡，沒有遺失</div>
+                    </div>
+                </div>
+                <button class="ts basic button" id="favorites-retry">重新載入</button>
             </div>
 
             <div class="ts center aligned basic segment" id="favorites-loading">

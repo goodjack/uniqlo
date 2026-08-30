@@ -97,18 +97,15 @@ class ListService extends Service
 
         $hmallProducts = $hmallProducts->filter(function ($hmallProduct) use ($tags, $tagMappings) {
             foreach ($tags as $tag) {
-                if (isset($tagMappings[$tag])) {
-                    $conditions = $tagMappings[$tag];
-                    $match = true;
+                if (! isset($tagMappings[$tag])) {
+                    continue;
+                }
 
-                    foreach ($conditions as $condition) {
-                        if (! $hmallProduct->$condition) {
-                            $match = false;
-                            break;
-                        }
-                    }
-
-                    if ($match) {
+                // 一個標籤底下的條件是「任一成立」，要跟卡片上那個標籤的顯示判準一致。
+                // 原本寫成「全部成立」，於是清單上 52 件標著「期間限定」的商品，
+                // 用同一個標籤去篩會得到 0 件。
+                foreach ($tagMappings[$tag] as $condition) {
+                    if ($hmallProduct->$condition) {
                         return true;
                     }
                 }

@@ -125,17 +125,39 @@ window.UqFavorites = (function () {
         });
     }
 
+    /**
+     * 三種空的情況要分開講：完全沒收藏、收藏的商品都下架了、以及這次載入失敗。
+     * 講成同一句會讓使用者以為自己的收藏不見了。
+     */
+    function showState(name, summaryText) {
+        ['favorites-empty', 'favorites-gone', 'favorites-error'].forEach(function (id) {
+            document.getElementById(id).hidden = id !== name;
+        });
+
+        if (summaryText !== undefined) {
+            document.getElementById('favorites-summary').textContent = summaryText;
+        }
+    }
+
     async function renderPage(options) {
         const container = document.getElementById('favorites-cards');
         const loading = document.getElementById('favorites-loading');
-        const empty = document.getElementById('favorites-empty');
         const summary = document.getElementById('favorites-summary');
         const wanted = items();
 
         loading.hidden = true;
+        container.innerHTML = '';
+
+        document.getElementById('favorites-retry').onclick = function () {
+            renderPage(options);
+        };
+        document.getElementById('favorites-clear').onclick = function () {
+            write({});
+            showState('favorites-empty', '收藏只存在這個瀏覽器，換裝置看不到');
+        };
 
         if (wanted.length === 0) {
-            empty.hidden = false;
+            showState('favorites-empty', '收藏只存在這個瀏覽器，換裝置看不到');
             return;
         }
 
@@ -158,27 +180,27 @@ window.UqFavorites = (function () {
 
             html = await response.text();
         } catch (e) {
-            summary.textContent = '載入收藏時發生問題，請稍後再試一次';
+            showState('favorites-error', '收藏清單還在你的瀏覽器裡');
             return;
         }
 
         container.innerHTML = html;
         revealLazyImages(container);
 
-        const showEmptyState = function () {
-            empty.hidden = false;
-            summary.textContent = '收藏只存在這個瀏覽器，換裝置看不到';
-        };
-
-        bindRemoveButtons(container, showEmptyState);
+        bindRemoveButtons(container, function () {
+            showState('favorites-empty', '收藏只存在這個瀏覽器，換裝置看不到');
+        });
 
         // 商品可能已經下架，回來的卡片會比收藏的少
         const rendered = container.querySelectorAll('[data-favorite-key]');
 
+        // 有收藏、但回來的卡片是空的，代表那些商品都下架了
         if (rendered.length === 0) {
-            empty.hidden = false;
+            showState('favorites-gone');
             return;
         }
+
+        showState(null);
 
         summary.textContent = '共 ' + rendered.length + ' 件，只存在這個瀏覽器';
     }
