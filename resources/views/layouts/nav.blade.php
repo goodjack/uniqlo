@@ -12,6 +12,7 @@
         <div class="tablet or large device only right menu">
             <a href="{{ route('home') }}" class="item" aria-label="home">首頁</a>
             <a href="{{ route('categories.index') }}" class="item" aria-label="categories">分類</a>
+            <a href="{{ route('favorites.index') }}" class="item" aria-label="favorites">收藏</a>
             <a href="{{ route('lists.limited-offers', request()->only('brand')) }}" class="item"
                 aria-label="limited-offers">期間限定</a>
             <a href="{{ route('lists.sale', request()->only('brand')) }}" class="item" aria-label="sale">特價</a>
@@ -63,6 +64,9 @@
                     </a>
                     <a href="{{ route('categories.index') }}" class="item" aria-label="categories">
                         <i class="sitemap icon"></i>分類
+                    </a>
+                    <a href="{{ route('favorites.index') }}" class="item" aria-label="favorites">
+                        <i class="heart outline icon"></i>收藏
                     </a>
                     <a href="{{ route('lists.limited-offers', request()->only('brand')) }}" class="item"
                         aria-label="limited-offers">

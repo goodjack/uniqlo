@@ -540,6 +540,34 @@ class HmallProductRepository extends Repository
     }
 
     /**
+     * 依品牌與商品編號批次取商品，用於收藏清單。
+     *
+     * 一定要連品牌一起指定：兩家共用同一組編號空間，光看 product_code 會撈到
+     * 另一家的商品（例如 u0000000053204 在 UNIQLO 是打褶寬版錐形褲、在 GU 是
+     * 一件家居服）。商品的唯一鍵是 brand 加 product_code，跟爬蟲寫入時一致。
+     *
+     * 查詢先用 product_code 縮小範圍（那欄有索引，每個編號最多命中兩筆），
+     * 再在記憶體裡用品牌配對。順序照傳入的順序排，收藏頁才維持使用者的收藏順序。
+     *
+     * @param  array<int, array{brand: string, code: string}>  $items
+     * @return Collection<int, HmallProduct>
+     */
+    public function getByBrandAndProductCodes(array $items): Collection
+    {
+        $products = $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
+            ->whereIn('product_code', array_column($items, 'code'))
+            ->get()
+            ->keyBy(fn (HmallProduct $product) => $product->brand.':'.$product->product_code);
+
+        return collect($items)
+            ->map(fn (array $item) => $products->get($item['brand'].':'.$item['code']))
+            ->filter()
+            ->values();
+    }
+
+    /**
      * 取出某個分類底下還買得到的商品。
      *
      * 走 pivot join 直接查資料庫，不走清單頁那套預熱快取：清單頁是「促銷狀態」

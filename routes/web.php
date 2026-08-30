@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HmallProductController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ListController;
@@ -59,6 +60,14 @@ Route::group(['prefix' => 'search', 'middleware' => 'throttle:30,1'], function (
 Route::group(['prefix' => 'pages'], function () {
     Route::get('/changelog', [PageController::class, 'getChangelog'])->name('pages.changelog');
     Route::get('/privacy', [PageController::class, 'getPrivacyPolicy'])->name('pages.privacy-policy');
+});
+
+Route::group(['prefix' => 'favorites'], function () {
+    Route::get('/', [FavoriteController::class, 'index'])->name('favorites.index');
+    // 收藏清單在瀏覽器，這支只是拿一串商品編號換卡片，限流避免被當批次查價介面
+    Route::post('/cards', [FavoriteController::class, 'cards'])
+        ->middleware('throttle:60,1')
+        ->name('favorites.cards');
 });
 
 Route::group(['prefix' => 'categories'], function () {

@@ -1,6 +1,6 @@
 @inject('hmallProductPresenter', 'App\Presenters\HmallProductPresenter')
 
-<a class="item" href="{{ $hmallProduct->route_url }}">
+<a class="item" href="{{ $hmallProduct->route_url }}" {!! $itemAttributes ?? '' !!}>
     <div class="ts tiny image">
         <x-lazy-load-image src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
             alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
@@ -17,5 +17,6 @@
         @if ($hmallProduct->is_stockout)
             <div class="extra">已售罄</div>
         @endif
+        {!! $slot ?? '' !!}
     </div>
 </a>

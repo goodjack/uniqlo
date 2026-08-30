@@ -241,6 +241,12 @@
                                         target="_blank" rel="nofollow noopener" aria-label="UNIQLO">前往 UNIQLO 官網<i
                                             class="external icon"></i></a>
                                 @endif
+                                {{-- 買，或等：這是使用者在商品頁的兩個終點動作，所以伺服器端就渲染出來 --}}
+                                <button class="ts basic button" data-favorite-button
+                                    data-brand="{{ $hmallProduct->brand }}"
+                                    data-product-code="{{ $hmallProduct->product_code }}" aria-pressed="false"
+                                    aria-label="Favorite"><i class="heart outline icon"></i><span
+                                        class="label">收藏</span></button>
                                 <a class="ts basic button" id="share" target="_blank" rel="nofollow noopener"
                                     aria-label="Share" style="display: none;"><i class="share icon"></i>分享</a>
                             </div>
@@ -572,6 +578,7 @@
 @endsection
 
 @section('javascript')
+    <script src="{{ asset('js/favorites.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.bundle.min.js"
         integrity="sha512-SuxO9djzjML6b9w9/I07IWnLnQhgyYVSpHZx0JV97kGBfTIsUYlWflyuW4ypnvhBrslz1yJ3R+S14fdCWmSmSA=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
