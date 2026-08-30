@@ -13,6 +13,7 @@ use Google\Analytics\Data\V1beta\Filter\StringFilter;
 use Google\Analytics\Data\V1beta\Filter\StringFilter\MatchType;
 use Google\Analytics\Data\V1beta\FilterExpression;
 use Google\Analytics\Data\V1beta\FilterExpressionList;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -52,6 +53,19 @@ class HmallProductRepository extends Repository
     private const CACHE_KEY_MOST_VISITED_RANKS = 'hmall_product:most_visited_ranks';
 
     private const CACHE_KEY_TOP_WEARING_RANKS = 'hmall_product:top_wearing_ranks';
+
+    /**
+     * 關鍵字比對的欄位。
+     *
+     * 刻意不含 product_name 以外的長文字欄位：LIKE '%詞%' 一律全表掃描，
+     * 每多一欄就多掃一遍。
+     */
+    private const SEARCHABLE_COLUMNS = [
+        'name',
+        'product_name',
+        'code',
+        'product_code',
+    ];
 
     private const SELECT_COLUMNS_FOR_LIST = [
         'hmall_products.id',
@@ -523,6 +537,56 @@ class HmallProductRepository extends Repository
             ]);
             Cache::forever(self::CACHE_KEY_MOST_VISITED, collect([]));
         }
+    }
+
+    /**
+     * 依關鍵字搜尋商品，每個關鍵字都要命中才算符合。
+     *
+     * 比對品名與編號。用 LIKE 而不是全文索引：前後都有萬用字元的
+     * 比對本來就用不到 B-tree，為它加索引只會增加每日爬蟲的寫入成本。
+     *
+     * @param  array<int, string>  $keywords
+     */
+    public function searchByKeywords(array $keywords, int $perPage = 24): LengthAwarePaginator
+    {
+        $query = $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct');
+
+        // 沒有關鍵字時要回空結果，不能因為少了 where 就把整張表撈出來
+        if (empty($keywords)) {
+            $query->whereRaw('1 = 0');
+        }
+
+        foreach ($keywords as $keyword) {
+            $pattern = '%'.$this->escapeLikeWildcards($keyword).'%';
+
+            $query->where(function ($subQuery) use ($pattern) {
+                foreach (self::SEARCHABLE_COLUMNS as $column) {
+                    $subQuery->orWhere($column, 'like', $pattern);
+                }
+
+            });
+        }
+
+        return $query
+            // 還買得到的排前面，其次是評論多的
+            ->orderByRaw('stockout_at IS NOT NULL')
+            ->orderBy('evaluation_count', 'desc')
+            ->orderBy('score', 'desc')
+            ->orderBy('code')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * 跳脫 LIKE 的萬用字元，讓使用者輸入的 % 與 _ 當成一般文字比對。
+     *
+     * 反斜線要先跳脫，否則後面補上的跳脫字元會再被吃掉一次。
+     */
+    private function escapeLikeWildcards(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 
     public function saveProductsFromV3($products, $brand = 'UNIQLO')

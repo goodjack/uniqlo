@@ -48,7 +48,8 @@ Route::group(['prefix' => 'gu-products'], function () {
     Route::get('/{gu_product_code}/style-hints', [StyleHintController::class, 'show'])->name('gu-style-hints.show');
 });
 
-Route::group(['prefix' => 'search'], function () {
+// 搜尋會打到資料庫做全表掃描，限流避免被當成免費的查詢介面
+Route::group(['prefix' => 'search', 'middleware' => 'throttle:30,1'], function () {
     Route::get('/', [SearchController::class, 'index'])->name('search.index');
     Route::get('/keywords', [SearchController::class, 'searchByGoogleCse'])->name('search.google-cse');
     Route::get('/{query}', [SearchController::class, 'show'])->name('search.show');
