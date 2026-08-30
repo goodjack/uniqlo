@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Console\Commands;
 
+use App\Enums\CrawlOutcome;
 use App\Services\HmallProductService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
@@ -31,7 +32,7 @@ class FetchHmallProductsTest extends TestCase
         $mockService->expects($this->once())
             ->method('fetchAllHmallProducts')
             ->with('UNIQLO', true)
-            ->willReturn(true);
+            ->willReturn(CrawlOutcome::Succeeded);
 
         $this->app->instance(HmallProductService::class, $mockService);
 
@@ -43,7 +44,7 @@ class FetchHmallProductsTest extends TestCase
     {
         $mockService = $this->createMock(HmallProductService::class);
         $mockService->method('fetchAllHmallProducts')
-            ->willReturn(true);
+            ->willReturn(CrawlOutcome::Succeeded);
 
         $this->app->instance(HmallProductService::class, $mockService);
 
@@ -56,7 +57,7 @@ class FetchHmallProductsTest extends TestCase
     {
         $mockService = $this->createMock(HmallProductService::class);
         $mockService->method('fetchAllHmallProducts')
-            ->willReturn(false);
+            ->willReturn(CrawlOutcome::Failed);
 
         $this->app->instance(HmallProductService::class, $mockService);
 
@@ -72,7 +73,7 @@ class FetchHmallProductsTest extends TestCase
         $mockService->expects($this->once())
             ->method('fetchAllHmallProducts')
             ->with('UNIQLO', false)
-            ->willReturn(true);
+            ->willReturn(CrawlOutcome::Succeeded);
 
         $this->app->instance(HmallProductService::class, $mockService);
 

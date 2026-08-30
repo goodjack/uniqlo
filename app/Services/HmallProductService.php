@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\CrawlOutcome;
 use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
@@ -61,7 +62,7 @@ class HmallProductService extends Service
         return $this->repository->getStyleHintCount($hmallProduct);
     }
 
-    public function fetchAllHmallProducts($brand = 'UNIQLO', bool $fresh = false): bool
+    public function fetchAllHmallProducts($brand = 'UNIQLO', bool $fresh = false): CrawlOutcome
     {
         $searchApiUrl = $this->getV3SearchApiUrl($brand);
 
@@ -137,7 +138,7 @@ class HmallProductService extends Service
                     ]);
                     report($e);
 
-                    return false;
+                    return CrawlOutcome::Failed;
                 }
 
                 // retry() exhausted - skip page and continue
@@ -161,16 +162,20 @@ class HmallProductService extends Service
             Cache::forget($cacheKey);
             $this->repository->setStockoutHmallProducts($brand);
             logger()->info("Completed fetching Hmall products for {$brand}");
-        } elseif ($hasSucceeded) {
-            // Partial success - preserve checkpoint, skip stockout to avoid false negatives
-            logger()->warning('Some pages failed - preserving checkpoint, skipping stockout', ['brand' => $brand]);
-        } else {
-            logger()->warning('No pages were successfully fetched - preserving checkpoint', ['brand' => $brand]);
 
-            return false;
+            return CrawlOutcome::Succeeded;
         }
 
-        return true;
+        if ($hasSucceeded) {
+            // Partial success - preserve checkpoint, skip stockout to avoid false negatives
+            logger()->error('Some pages failed - preserving checkpoint, skipping stockout', ['brand' => $brand]);
+
+            return CrawlOutcome::PartiallySucceeded;
+        }
+
+        logger()->error('No pages were successfully fetched - preserving checkpoint', ['brand' => $brand]);
+
+        return CrawlOutcome::Failed;
     }
 
     public function fetchAllHmallProductDescriptions(string $brand = 'UNIQLO', bool $updateTimestamps = false, bool $fresh = false): bool

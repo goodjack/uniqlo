@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\CrawlOutcome;
 use App\Events\AppTaskFinished;
 use App\Events\AppTaskStarting;
 use App\Services\HmallProductService;
@@ -26,9 +27,10 @@ class FetchHmallProducts extends Command
     /**
      * Execute the console command.
      *
-     * @return int
+     * 回傳值直接用 CrawlOutcome 的值當 exit code，讓排程在通知裡分得出
+     * 「整支掛掉」與「抓到一部分」。
      */
-    public function handle(HmallProductService $hmallProductService)
+    public function handle(HmallProductService $hmallProductService): int
     {
         $brand = $this->argument('brand');
         $fresh = $this->option('fresh');
@@ -40,14 +42,15 @@ class FetchHmallProducts extends Command
         $this->info("Fetching Hmall products for {$brand}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $succeeded = $hmallProductService->fetchAllHmallProducts($brand, $fresh);
+        $outcome = $hmallProductService->fetchAllHmallProducts($brand, $fresh);
 
-        if ($succeeded) {
+        // 只有整批都抓完才算完成，部分成功交給排程彙總成失敗通知
+        if ($outcome === CrawlOutcome::Succeeded) {
             AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
         }
 
-        $this->info("Fetched Hmall products for {$brand}");
+        $this->info("Fetched Hmall products for {$brand}（{$outcome->label()}）");
 
-        return $succeeded ? 0 : 1;
+        return $outcome->value;
     }
 }
