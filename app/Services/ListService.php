@@ -10,6 +10,8 @@ use Illuminate\Support\Str;
 
 class ListService extends Service
 {
+    public const SORT_PRICE_ASC = 'price-asc';
+
     /** @var HmallProductRepository */
     protected $repository;
 
@@ -63,7 +65,7 @@ class ListService extends Service
         return $this->repository->getOnlineSpecialHmallProducts();
     }
 
-    public function getMostVisitedHmallProducts(int $limit = null)
+    public function getMostVisitedHmallProducts(?int $limit = null)
     {
         return $this->repository->getMostVisitedHmallProducts()->take($limit);
     }
@@ -116,6 +118,23 @@ class ListService extends Service
         });
 
         return $hmallProducts;
+    }
+
+    /**
+     * 依使用者選的軸重新排序，沒選就維持各清單原本的排序。
+     *
+     * 排序要在篩選之後、分組之前。分組用的是 groupBy，它照輸入順序把商品放進
+     * 各性別群組，所以先整體排序、群組內仍然是遞增的。
+     */
+    public function sortHmallProducts(Collection $hmallProducts, ListRequest $listRequest): Collection
+    {
+        if ($listRequest->input('sort') !== self::SORT_PRICE_ASC) {
+            return $hmallProducts;
+        }
+
+        // 用 price 這個 accessor 而不是 min_price 欄位：那欄是 decimal，
+        // PDO 取回來是字串，直接排會變字典順序，「1000.00」會排在「299.00」前面
+        return $hmallProducts->sortBy('price')->values();
     }
 
     public function groupHmallProducts(Collection $hmallProducts): Collection

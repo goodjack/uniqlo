@@ -25,6 +25,7 @@ class ListRequest extends FormRequest
     {
         return [
             'brand' => 'nullable|in:UNIQLO,GU',
+            'sort' => 'nullable|in:price-asc',
         ];
     }
 }

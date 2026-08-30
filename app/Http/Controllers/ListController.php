@@ -165,6 +165,7 @@ class ListController extends Controller
         $useJapanRating = false
     ) {
         $hmallProducts = $this->service->filterHmallProducts($hmallProducts, $listRequest);
+        $hmallProducts = $this->service->sortHmallProducts($hmallProducts, $listRequest);
         $count = count($hmallProducts);
 
         $hmallProductList = $this->service->groupHmallProducts($hmallProducts);

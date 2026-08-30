@@ -20,27 +20,7 @@
 @endsection
 
 @section('css')
-    <style>
-        i.most-reviewed.icon {
-            color: #885A89 !important;
-        }
-
-        i.top-wearing.icon {
-            color: #CC7F49 !important;
-        }
-
-        i.coming-soon.icon {
-            color: #50723C !important;
-        }
-
-        i.online-special.icon {
-            color: #F29E18 !important;
-        }
-
-        i.most-visited.icon {
-            color: #B58105 !important;
-        }
-    </style>
+    @include('partials.list-type-icon-styles')
 @endsection
 
 @section('content')
@@ -52,13 +32,26 @@
                 {!! $description !!}
                 <div class="ts hidden divider"></div>
             @endisset
+            @php
+                // 品牌與排序是兩個獨立的軸，切換其中一個要保留另一個
+                $queryFor = fn (array $changes) => http_build_query(
+                    array_filter(array_merge(request()->only(['brand', 'sort']), $changes))
+                );
+            @endphp
             <div class="ts small very compact buttons">
                 <a class="ts button {{ !in_array(request('brand'), ['UNIQLO', 'GU']) ? 'active' : '' }}"
-                    href="{{ $currentUrl }}">全部</a>
+                    href="{{ $currentUrl }}?{{ $queryFor(['brand' => null]) }}">全部</a>
                 <a class="ts button {{ request('brand') == 'UNIQLO' ? 'active' : '' }}"
-                    href="{{ $currentUrl }}?brand=UNIQLO">UNIQLO</a>
+                    href="{{ $currentUrl }}?{{ $queryFor(['brand' => 'UNIQLO']) }}">UNIQLO</a>
                 <a class="ts button {{ request('brand') == 'GU' ? 'active' : '' }}"
-                    href="{{ $currentUrl }}?brand=GU">GU</a>
+                    href="{{ $currentUrl }}?{{ $queryFor(['brand' => 'GU']) }}">GU</a>
+            </div>
+            <div class="ts hidden divider"></div>
+            <div class="ts small very compact buttons">
+                <a class="ts button {{ request('sort') !== 'price-asc' ? 'active' : '' }}"
+                    href="{{ $currentUrl }}?{{ $queryFor(['sort' => null]) }}">預設排序</a>
+                <a class="ts button {{ request('sort') === 'price-asc' ? 'active' : '' }}"
+                    href="{{ $currentUrl }}?{{ $queryFor(['sort' => 'price-asc']) }}">價格由低到高</a>
             </div>
         </span>
     </div>
