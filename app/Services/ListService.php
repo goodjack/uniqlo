@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ProductTag;
 use App\Http\Requests\ListRequest;
 use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
@@ -83,37 +84,17 @@ class ListService extends Service
             return $hmallProducts;
         }
 
-        $tagMappings = [
-            'limited-offer' => ['is_limited_offer', 'is_app_offer', 'is_ec_only'],
-            'app-offer' => ['is_app_offer'],
-            'ec-only' => ['is_ec_only'],
-            'sale' => ['is_sale'],
-            'new' => ['is_new'],
-            'coming-soon' => ['is_coming_soon'],
-            'multi-buy' => ['is_multi_buy'],
-            'online-special' => ['is_online_special'],
-            'lowest-price' => ['is_at_lowest_price'],
-            'stockout' => ['is_stockout'],
-        ];
+        $selectedTags = ProductTag::fromValues($tags);
 
-        $hmallProducts = $hmallProducts->filter(function ($hmallProduct) use ($tags, $tagMappings) {
-            foreach ($tags as $tag) {
-                if (! isset($tagMappings[$tag])) {
-                    continue;
-                }
+        if (empty($selectedTags)) {
+            return $hmallProducts;
+        }
 
-                // 一個標籤底下的條件是「任一成立」，要跟卡片上那個標籤的顯示判準一致。
-                // 原本寫成「全部成立」，於是清單上 52 件標著「期間限定」的商品，
-                // 用同一個標籤去篩會得到 0 件。
-                foreach ($tagMappings[$tag] as $condition) {
-                    if ($hmallProduct->$condition) {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        });
+        // 多選是「符合任一條件」：頁面本身已經是基礎集合，標籤只是再縮小範圍
+        $hmallProducts = $hmallProducts->filter(
+            fn (HmallProduct $hmallProduct) => collect($selectedTags)
+                ->contains(fn (ProductTag $tag) => $tag->matches($hmallProduct))
+        );
 
         return $hmallProducts;
     }

@@ -5,17 +5,10 @@
      * 用 GET form 而不是 JavaScript：網址帶得走、能分享、能用上一頁，
      * 沒有 JavaScript 也能操作。這個站沒有前端建置流程，也不該為了篩選引入。
      */
-    $tagOptions = [
-        'lowest-price' => '目前史上最低',
-        'limited-offer' => '期間限定',
-        'sale' => '特價',
-        'new' => '新品',
-        'coming-soon' => '即將上市',
-        'multi-buy' => '合購',
-        'online-special' => '網路獨家',
-    ];
+    $tagOptions = collect(\App\Enums\ProductTag::cases())
+        ->mapWithKeys(fn($tag) => [$tag->value => $tag->label()]);
 
-    $selectedTags = array_intersect((array) request('tags', []), array_keys($tagOptions));
+    $selectedTags = array_intersect((array) request('tags', []), $tagOptions->keys()->all());
     // 切換篩選不該丟掉品牌與排序，它們是各自獨立的軸
     $otherParams = request()->except(['tags', 'page']);
 @endphp

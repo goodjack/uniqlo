@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Brand;
+use App\Enums\ProductTag;
+use App\Http\Requests\ListRequest;
 use App\Services\CategoryService;
 
 class CategoryController extends Controller
@@ -30,7 +32,7 @@ class CategoryController extends Controller
      * 分類 code 用官方的原值，不另外維護 slug 對照表：它穩定又自帶層級語意
      * （all_men-tops-polo），標題與 h1 用中文名，搜尋引擎看的是那些。
      */
-    public function show(string $brand, string $code)
+    public function show(ListRequest $listRequest, string $brand, string $code)
     {
         $resolvedBrand = Brand::fromSlug($brand);
 
@@ -49,7 +51,10 @@ class CategoryController extends Controller
             'category' => $category,
             'breadcrumb' => $this->service->getBreadcrumb($category),
             'children' => $this->service->getChildren($category),
-            'hmallProducts' => $this->service->getProducts($category),
+            'hmallProducts' => $this->service->getProducts(
+                $category,
+                ProductTag::fromValues($listRequest->input('tags') ?? [])
+            ),
         ]);
     }
 }

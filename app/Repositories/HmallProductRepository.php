@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Enums\CategoryLevel;
+use App\Enums\ProductTag;
 use App\Models\HmallCategory;
 use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
@@ -576,8 +577,12 @@ class HmallProductRepository extends Repository
      *
      * 排序用官方在該分類內的權重，出來的順序就跟官網一致。
      */
+    /**
+     * @param  array<int, ProductTag>  $tags
+     */
     public function getProductsByCategoryId(
         int $categoryId,
+        array $tags = [],
         int $perPage = 24
     ): LengthAwarePaginator {
         $query = $this->model
@@ -592,6 +597,15 @@ class HmallProductRepository extends Repository
             ->where('category_pivot.hmall_category_id', $categoryId)
             ->where('hmall_products.stock', 'Y')
             ->whereNull('hmall_products.stockout_at');
+
+        // 標籤要在查詢層篩，不能先取一頁再過濾——那會漏掉商品，頁數也會是錯的
+        if (! empty($tags)) {
+            $query->where(function ($group) use ($tags) {
+                foreach ($tags as $tag) {
+                    $tag->applyTo($group);
+                }
+            });
+        }
 
         return $query
             ->orderBy('category_pivot.sort')

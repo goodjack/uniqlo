@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\Brand;
 use App\Enums\CategoryLevel;
+use App\Enums\ProductTag;
 use App\Models\HmallCategory;
 use App\Repositories\HmallCategoryRepository;
 use App\Repositories\HmallProductRepository;
@@ -103,10 +104,14 @@ class CategoryService extends Service
      * 分類頁不提供品牌篩選：兩家的分類 code 各成一套，一個分類只會有一家的商品，
      * 篩選另一家永遠是空的。品牌直接標在標題上。
      */
-    public function getProducts(HmallCategory $category): LengthAwarePaginator
+    /**
+     * @param  array<int, ProductTag>  $tags
+     */
+    public function getProducts(HmallCategory $category, array $tags = []): LengthAwarePaginator
     {
         return $this->hmallProductRepository->getProductsByCategoryId(
             $category->id,
+            $tags,
             self::PRODUCTS_PER_PAGE
         );
     }
