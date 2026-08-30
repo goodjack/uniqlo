@@ -47,6 +47,7 @@ class CategoryController extends Controller
         return view('categories.show', [
             'brand' => $category->brand,
             'category' => $category,
+            'breadcrumb' => $this->service->getBreadcrumb($category),
             'children' => $this->service->getChildren($category),
             'hmallProducts' => $this->service->getProducts($category),
         ]);

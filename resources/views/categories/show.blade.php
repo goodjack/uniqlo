@@ -16,6 +16,29 @@
 @endsection
 
 @section('content')
+    {{-- 從 SEO 進來的人需要知道自己在整棵分類樹的哪裡，也給分類頁彼此建立內部連結 --}}
+    <div class="ts attached padded horizontally fitted fluid segment">
+        <div class="ts container">
+            <div class="ts breadcrumb">
+                <a class="section" href="{{ route('categories.index') }}">商品分類</a>
+                @foreach ($breadcrumb as $crumb)
+                    <i class="right chevron icon divider"></i>
+                    @if ($loop->last)
+                        <div class="active section">{{ $crumb->name }}</div>
+                    @elseif ($crumb->level === \App\Enums\CategoryLevel::Top)
+                        {{-- 頂層沒有自己的頁面，只當文字 --}}
+                        <div class="section">{{ $brand->value }} {{ $crumb->name }}</div>
+                    @else
+                        <a class="section"
+                            href="{{ route('categories.show', ['brand' => $brand->slug(), 'code' => $crumb->code]) }}">
+                            {{ $crumb->name }}
+                        </a>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    </div>
+
     <div class="ts fluid slate">
         <i class="tags faded icon"></i>
         <span class="header">{{ $title }}</span>

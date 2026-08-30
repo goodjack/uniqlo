@@ -137,6 +137,47 @@ class CategoryTest extends TestCase
         );
     }
 
+    /**
+     * 從 SEO 直接進分類頁的人需要知道自己在整棵樹的哪裡。
+     * 頂層沒有自己的頁面，所以只當文字不做連結。
+     */
+    public function test_category_page_shows_a_breadcrumb_back_to_the_root(): void
+    {
+        $this->attachProduct($this->createProduct(), 'all_women-tops-tshirt');
+
+        $response = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops-tshirt']));
+
+        $response->assertOk();
+        $response->assertSee('商品分類');
+        $response->assertSee('女裝');
+        $response->assertSee(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']));
+    }
+
+    /**
+     * 男女適穿的商品會在男裝與女裝樹下各掛一份同名分類，
+     * 商品頁只需要顯示一次。
+     */
+    public function test_product_page_lists_its_categories_without_duplicates(): void
+    {
+        $this->createCategory('all_men-tops', '上衣類', 'all_women', CategoryLevel::One);
+        $this->createCategory('all_men-tops-tshirt', 'T恤', 'all_men-tops', CategoryLevel::Two);
+
+        $product = $this->createProduct(['product_code' => 'u778899']);
+        $this->attachProduct($product, 'all_women-tops-tshirt');
+        $this->attachProduct($product, 'all_men-tops-tshirt');
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u778899']))
+            ->assertOk()
+            ->getContent();
+
+        // 兩個分類都叫「T恤」，只該連到其中一個，不是兩個都列
+        $linksToWomen = str_contains($content, 'categories/uniqlo/all_women-tops-tshirt');
+        $linksToMen = str_contains($content, 'categories/uniqlo/all_men-tops-tshirt');
+
+        $this->assertTrue($linksToWomen || $linksToMen, '商品頁應該列出所屬分類');
+        $this->assertFalse($linksToWomen && $linksToMen, '同名的分類只該出現一次');
+    }
+
     private function createCategory(
         string $code,
         string $name,

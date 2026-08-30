@@ -369,6 +369,12 @@ class HmallProductPresenter
     {
         $lastHmallPriceHistories = $hmallPriceHistories->last();
 
+        // 沒有任何價格歷史就沒有尾段可以畫。正常情況下爬蟲建檔時就會寫一筆，
+        // 但少了它不該讓整個商品頁 500。
+        if ($lastHmallPriceHistories === null) {
+            return null;
+        }
+
         /** @var \Carbon\Carbon $lastHistoryAt */
         $lastHistoryAt = $lastHmallPriceHistories->created_at;
 

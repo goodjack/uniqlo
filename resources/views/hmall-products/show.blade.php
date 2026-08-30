@@ -210,6 +210,21 @@
                                 </div>
                             </div>
                         </h1>
+                        @if ($categories->isNotEmpty())
+                            {{-- 一件商品掛在十幾個分類底下，沒有唯一路徑可以做麵包屑， --}}
+                            {{-- 所以列出可以開頁面的那兩層，讓人往回逛也給分類頁內部連結。 --}}
+                            <div class="ts basic fitted segment">
+                                @foreach ($categories as $category)
+                                    <a class="ts small basic label"
+                                        href="{{ route('categories.show', [
+                                            'brand' => $category->brand->slug(),
+                                            'code' => $category->code,
+                                        ]) }}">
+                                        {{ $category->name }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                     <div class="sixteen wide column">
                         <div class="ts basic fitted segment">

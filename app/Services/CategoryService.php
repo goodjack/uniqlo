@@ -57,6 +57,27 @@ class CategoryService extends Service
             ->values();
     }
 
+    /**
+     * 從自己往上回溯到根，做成麵包屑。
+     *
+     * 分類樹每一層只有一個父分類，所以這條路徑是唯一的。深度上限是防呆——
+     * 資料是爬蟲寫的，萬一 parent_code 兜成環就會轉不出來。
+     *
+     * @return Collection<int, HmallCategory>
+     */
+    public function getBreadcrumb(HmallCategory $category): Collection
+    {
+        $trail = collect([$category]);
+        $current = $category;
+
+        for ($depth = 0; $depth < 5 && $current->parent !== null; $depth++) {
+            $current = $current->parent;
+            $trail->prepend($current);
+        }
+
+        return $trail;
+    }
+
     public function findPageable(Brand $brand, string $code): ?HmallCategory
     {
         return $this->repository->findPageable($brand, $code);
