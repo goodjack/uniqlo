@@ -21,6 +21,7 @@
 
 @section('css')
     @include('partials.list-type-icon-styles')
+    @include('partials.tag-filter-styles')
     <style>
         /*
          * nav 是 60px 的 fixed，性別選單黏在它下面。
@@ -57,7 +58,7 @@
             @php
                 // 品牌與排序是兩個獨立的軸，切換其中一個要保留另一個
                 $queryFor = fn (array $changes) => http_build_query(
-                    array_filter(array_merge(request()->only(['brand', 'sort']), $changes))
+                    array_filter(array_merge(request()->only(['brand', 'sort', 'tags']), $changes))
                 );
             @endphp
             <div class="ts small very compact buttons">
@@ -75,6 +76,8 @@
                 <a class="ts button {{ request('sort') === 'price-asc' ? 'active' : '' }}"
                     href="{{ $currentUrl }}?{{ $queryFor(['sort' => 'price-asc']) }}">價格由低到高</a>
             </div>
+            <div class="ts hidden divider"></div>
+            @include('partials.tag-filter')
         </span>
     </div>
 

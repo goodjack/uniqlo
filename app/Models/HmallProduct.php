@@ -316,6 +316,21 @@ class HmallProduct extends Model
         return "u{$shortCodeNumber}";
     }
 
+    /**
+     * 目前的價格就是有記錄以來的最低。
+     *
+     * 這是給篩選用的，跟卡片上那個「歷史新低價」標籤不同：那個標籤刻意排除官方
+     * 標為特價的商品，否則特價期間整頁會同時掛兩個標籤、互相干擾。但使用者想在
+     * 特價清單裡找「這波真的是史上最低」的商品時，要的正是被那個條件擋掉的東西。
+     */
+    public function getIsAtLowestPriceAttribute(): bool
+    {
+        return $this->min_price !== null
+            && $this->lowest_record_price !== null
+            && $this->min_price === $this->lowest_record_price
+            && $this->lowest_record_price < $this->highest_record_price;
+    }
+
     public function getIsNewHistoricalLowAttribute(): bool
     {
         return $this->lowest_record_price_count === 1

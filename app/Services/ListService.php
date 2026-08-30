@@ -92,6 +92,7 @@ class ListService extends Service
             'coming-soon' => ['is_coming_soon'],
             'multi-buy' => ['is_multi_buy'],
             'online-special' => ['is_online_special'],
+            'lowest-price' => ['is_at_lowest_price'],
             'stockout' => ['is_stockout'],
         ];
 
