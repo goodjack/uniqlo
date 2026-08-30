@@ -102,6 +102,21 @@
     </script>
     <script>
         ts('.ts.dropdown:not(.basic)').dropdown();
+
+        // tocas.js 的 dropdown 沒有 toggle：它每次點擊都先收合所有展開的、再展開
+        // 自己（tocas.js 的 ts.fn.dropdown），所以點第二次還是開著。這裡在捕獲階段
+        // 攔下「已經開著時的點擊」，處理完就擋住它的 handler。
+        document.querySelectorAll('.ts.dropdown:not(.basic)').forEach(function(dropdown) {
+            dropdown.addEventListener('click', function(event) {
+                if (!dropdown.classList.contains('visible')) {
+                    return;
+                }
+
+                event.stopImmediatePropagation();
+                dropdown.classList.remove('visible');
+                dropdown.classList.add('hidden');
+            }, true);
+        });
     </script>
     <script>
         const showOnPx = 100;

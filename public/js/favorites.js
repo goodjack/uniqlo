@@ -63,6 +63,9 @@ window.UqFavorites = (function () {
 
     function paintButton(button, isFavorite) {
         button.classList.toggle('active', isFavorite);
+        // Tocas 的 basic 加 active 會變成深底配深字（實測對比度 1.46，AA 門檻是 4.5）。
+        // 拿掉 basic 之後的 active 是 5.64，可讀。
+        button.classList.toggle('basic', !isFavorite);
         button.querySelector('.label').textContent = isFavorite ? '已收藏' : '收藏';
         button.querySelector('.icon').className = isFavorite ? 'heart icon' : 'heart outline icon';
         button.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
@@ -76,6 +79,39 @@ window.UqFavorites = (function () {
 
         button.addEventListener('click', function () {
             paintButton(button, toggle(brand, code));
+        });
+    }
+
+    /**
+     * 綁定每一列的移除按鈕。
+     *
+     * 移除後只把那一列從畫面拿掉，不重新跟伺服器要一次——清單本來就在瀏覽器裡，
+     * 沒有需要重新對齊的狀態。
+     */
+    function bindRemoveButtons(container, onEmpty) {
+        container.querySelectorAll('[data-favorite-remove]').forEach(function (control) {
+            const remove = function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                toggle(control.dataset.brand, control.dataset.code);
+                const row = control.closest('[data-favorite-key]');
+
+                if (row) {
+                    row.remove();
+                }
+
+                if (container.querySelectorAll('[data-favorite-key]').length === 0) {
+                    onEmpty();
+                }
+            };
+
+            control.addEventListener('click', remove);
+            control.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    remove(event);
+                }
+            });
         });
     }
 
@@ -128,6 +164,13 @@ window.UqFavorites = (function () {
 
         container.innerHTML = html;
         revealLazyImages(container);
+
+        const showEmptyState = function () {
+            empty.hidden = false;
+            summary.textContent = '收藏只存在這個瀏覽器，換裝置看不到';
+        };
+
+        bindRemoveButtons(container, showEmptyState);
 
         // 商品可能已經下架，回來的卡片會比收藏的少
         const rendered = container.querySelectorAll('[data-favorite-key]');
