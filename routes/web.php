@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\HmallProductController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ListController;
@@ -58,6 +59,13 @@ Route::group(['prefix' => 'search', 'middleware' => 'throttle:30,1'], function (
 Route::group(['prefix' => 'pages'], function () {
     Route::get('/changelog', [PageController::class, 'getChangelog'])->name('pages.changelog');
     Route::get('/privacy', [PageController::class, 'getPrivacyPolicy'])->name('pages.privacy-policy');
+});
+
+Route::group(['prefix' => 'categories'], function () {
+    Route::get('/', [CategoryController::class, 'index'])->name('categories.index');
+    Route::get('/{brand}/{code}', [CategoryController::class, 'show'])
+        ->where('brand', 'uniqlo|gu')
+        ->name('categories.show');
 });
 
 Route::group(['prefix' => 'lists'], function () {

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CategoryLevel;
+use App\Models\HmallCategory;
 use App\Models\HmallProduct;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -23,6 +25,30 @@ class SearchTest extends TestCase
             'product_code' => 'u450004',
             'product_name' => '男裝 100% 純棉工作短褲',
         ]);
+    }
+
+    /**
+     * 「外套」這種詞常常只出現在分類名稱、不在品名裡，搜不到會很怪。
+     */
+    public function test_matches_against_the_categories_a_product_belongs_to(): void
+    {
+        $category = HmallCategory::create([
+            'brand' => 'UNIQLO',
+            'code' => 'all_women-outer',
+            'name' => '外套類',
+            'parent_code' => null,
+            'level' => CategoryLevel::One->value,
+        ]);
+
+        HmallProduct::where('code', '450001')->firstOrFail()
+            ->categories()->attach($category->id, ['sort' => '001']);
+
+        $response = $this->get(route('search.show', ['query' => '外套類']));
+
+        $response->assertOk();
+        // 這件商品叫「特級極輕羽絨外套」，靠分類命中的是沒有「外套類」三個字的其他件
+        $response->assertSee('特級極輕羽絨外套');
+        $response->assertDontSee('寬鬆工作短褲');
     }
 
     public function test_keyword_search_returns_matching_products(): void

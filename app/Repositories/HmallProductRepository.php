@@ -540,9 +540,42 @@ class HmallProductRepository extends Repository
     }
 
     /**
+     * 取出某個分類底下還買得到的商品。
+     *
+     * 走 pivot join 直接查資料庫，不走清單頁那套預熱快取：清單頁是「促銷狀態」
+     * 這種每天算一次就好的小集合，分類是商品本體的軸，一個大類可能上千件、
+     * 還要跟品牌與分頁疊加，那是資料庫該做的事。
+     *
+     * 排序用官方在該分類內的權重，出來的順序就跟官網一致。
+     */
+    public function getProductsByCategoryId(
+        int $categoryId,
+        int $perPage = 24
+    ): LengthAwarePaginator {
+        $query = $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
+            ->join(
+                'hmall_category_hmall_product as category_pivot',
+                'category_pivot.hmall_product_id',
+                '=',
+                'hmall_products.id'
+            )
+            ->where('category_pivot.hmall_category_id', $categoryId)
+            ->where('hmall_products.stock', 'Y')
+            ->whereNull('hmall_products.stockout_at');
+
+        return $query
+            ->orderBy('category_pivot.sort')
+            ->orderBy('hmall_products.code')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
      * 依關鍵字搜尋商品，每個關鍵字都要命中才算符合。
      *
-     * 比對品名與編號。用 LIKE 而不是全文索引：前後都有萬用字元的
+     * 比對品名、編號與商品掛的分類名稱。用 LIKE 而不是全文索引：前後都有萬用字元的
      * 比對本來就用不到 B-tree，為它加索引只會增加每日爬蟲的寫入成本。
      *
      * @param  array<int, string>  $keywords
@@ -566,6 +599,23 @@ class HmallProductRepository extends Repository
                     $subQuery->orWhere($column, 'like', $pattern);
                 }
 
+                // 也比對商品掛的分類名稱，讓「外套」這種只出現在分類、
+                // 不出現在品名裡的詞也搜得到。
+                //
+                // 這裡刻意用不相關的子查詢（不引用外層的 hmall_products），
+                // MySQL 才能先把符合的商品 id 一次算完；寫成 whereExists 會變成
+                // 每一筆商品各跑一次子查詢，實測慢十倍以上。
+                $subQuery->orWhereIn('hmall_products.id', function ($ids) use ($pattern) {
+                    $ids->select('search_pivot.hmall_product_id')
+                        ->from('hmall_category_hmall_product as search_pivot')
+                        ->join(
+                            'hmall_categories',
+                            'hmall_categories.id',
+                            '=',
+                            'search_pivot.hmall_category_id'
+                        )
+                        ->where('hmall_categories.name', 'like', $pattern);
+                });
             });
         }
 

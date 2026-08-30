@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\CategoryLevel;
+use App\Repositories\HmallCategoryRepository;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use Spatie\Sitemap\Sitemap;
@@ -13,10 +15,16 @@ class SitemapService extends Service
 
     protected $hmallProductRepository;
 
-    public function __construct(ProductRepository $productRepository, HmallProductRepository $hmallProductRepository)
-    {
+    protected $hmallCategoryRepository;
+
+    public function __construct(
+        ProductRepository $productRepository,
+        HmallProductRepository $hmallProductRepository,
+        HmallCategoryRepository $hmallCategoryRepository
+    ) {
         $this->productRepository = $productRepository;
         $this->hmallProductRepository = $hmallProductRepository;
+        $this->hmallCategoryRepository = $hmallCategoryRepository;
     }
 
     public function make()
@@ -24,6 +32,7 @@ class SitemapService extends Service
         $sitemap = Sitemap::create();
 
         $pages = [
+            'categories',
             'lists/limited-offers',
             'lists/sale',
             'lists/most-reviewed',
@@ -47,6 +56,17 @@ class SitemapService extends Service
             $sitemap->add($page);
         }
 
+        // 分類頁從資料表長出來，新分類會自己進 sitemap，不用回頭改這份清單。
+        // 只收還有商品的分類，避免把點進去是 404 的網址送給搜尋引擎。
+        $categories = $this->hmallCategoryRepository->getCategoriesWithProducts([
+            CategoryLevel::One,
+            CategoryLevel::Two,
+        ]);
+
+        foreach ($categories as $category) {
+            $sitemap->add(Url::create("categories/{$category->brand->slug()}/{$category->code}"));
+        }
+
         $hmallProducts = $this->hmallProductRepository->getAllProductsForSitemap();
 
         foreach ($hmallProducts as $hmallProduct) {
@@ -67,7 +87,7 @@ class SitemapService extends Service
             );
         }
 
-        $sitemapFileName = 'sitemap' . config('app.sitemap_name') . '.xml';
+        $sitemapFileName = 'sitemap'.config('app.sitemap_name').'.xml';
         $sitemap->writeToFile(public_path($sitemapFileName));
     }
 }
