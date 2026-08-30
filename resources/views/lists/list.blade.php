@@ -22,12 +22,25 @@
 @section('css')
     @include('partials.list-type-icon-styles')
     <style>
-        /* nav 是 60px 的 fixed，性別選單黏在它下面 */
+        /*
+         * nav 是 60px 的 fixed，性別選單黏在它下面。
+         * 錨點跳轉要多讓開選單本身的高度，否則跳過去的標題會被它蓋住
+         * （全站預設的 scroll-padding-top 只避開了 nav）。
+         */
+        :root {
+            --fixed-nav-height: 60px;
+            --gender-menu-height: 41px;
+        }
+
         .sticky-gender-menu {
             position: sticky;
-            top: 60px;
+            top: var(--fixed-nav-height);
             z-index: 5;
             background: #fff;
+        }
+
+        html {
+            scroll-padding-top: calc(var(--fixed-nav-height) + var(--gender-menu-height) + 12px);
         }
     </style>
 @endsection

@@ -43,10 +43,6 @@
 
                     <div class="ts hidden divider"></div>
 
-                    <a class="ts mini compact right floated labeled icon button" href="#gender_menu">
-                        <i class="arrow up icon"></i>回到頂部
-                    </a>
-
                     @if (!$loop->last)
                         <div class="ts hidden section divider"></div>
                     @endif
