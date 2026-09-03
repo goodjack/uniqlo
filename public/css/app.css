@@ -53,7 +53,8 @@ i.most-visited.icon {
  * 首頁的商品區塊與可橫向捲動的卡片列。
  * ------------------------------------------------------------------ */
 
-.home-section-header {
+/* 區塊標題那一行：標題靠左、右邊一句灰字。首頁與分類總覽共用 */
+.uq-section-header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;

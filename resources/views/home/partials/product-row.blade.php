@@ -2,7 +2,7 @@
 {{-- 樣式在 public/css/app.css。 --}}
 <div class="ts attached padded horizontally fitted fluid segment">
     <div class="ts container">
-        <div class="home-section-header">
+        <div class="uq-section-header">
             <h2 class="ts large header">
                 <i class="{{ $section['style'] }} {{ $section['icon'] }} icon"></i>
                 {{ $section['title'] }}
