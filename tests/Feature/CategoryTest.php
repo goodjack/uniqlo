@@ -122,6 +122,20 @@ class CategoryTest extends TestCase
     }
 
     /**
+     * 陣列型的 query 參數同樣不該炸掉頁面。篩選表單原本用 request()->except()
+     * 把所有其他參數塞進 hidden input，array 丟給 Blade 轉字串就是 500。
+     */
+    public function test_an_array_query_string_does_not_break_the_category_page(): void
+    {
+        $this->attachProduct($this->createProduct(['brand' => 'UNIQLO', 'name' => '短袖上衣']), 'all_women-tops');
+
+        $response = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?ref[]=x');
+
+        $response->assertOk();
+        $response->assertSee('短袖上衣');
+    }
+
+    /**
      * 官方在該分類內的排序權重決定顯示順序，出來就跟官網一致。
      */
     public function test_products_follow_the_official_sort_within_the_category(): void

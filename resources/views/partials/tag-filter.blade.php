@@ -9,8 +9,14 @@
         ->mapWithKeys(fn($tag) => [$tag->value => $tag->label()]);
 
     $selectedTags = array_intersect((array) request('tags', []), $tagOptions->keys()->all());
-    // 切換篩選不該丟掉品牌與排序，它們是各自獨立的軸
-    $otherParams = request()->except(['tags', 'page']);
+
+    /*
+     * 切換篩選不該丟掉品牌與排序，它們是各自獨立的軸。只帶這兩個、而且只在它們
+     * 是字串時帶：先前用 request()->except() 把所有其他參數原封搬進 hidden input，
+     * 遇到 ?ref[]=x 這種陣列就是把 array 丟給 Blade 轉字串，整頁 500。
+     * lists/list.blade.php 的品牌與排序連結也是同一份白名單。
+     */
+    $otherParams = array_filter(request()->only(['brand', 'sort']), 'is_string');
 @endphp
 
 <form method="GET" action="{{ url()->current() }}" class="tag-filter">
