@@ -110,13 +110,19 @@ class AppSchedule extends Command
     /**
      * 把 exit code 翻成通知裡看得懂的原因。
      *
-     * 「部分成功」要跟「完全失敗」分開：前者靠 checkpoint 下次接著跑通常會自己好，
-     * 後者要立刻看。
+     * 「部分成功」與「完全失敗」要分開，因為要看的東西不同：部分成功代表資料庫裡
+     * 還有昨天的完整資料、而且這一輪刻意沒做缺貨判定，站上顯示的是舊資料；完全
+     * 失敗代表連一頁都沒抓到，通常是被擋。兩種都不會自己好，差別只在急迫程度。
+     *
+     * CrawlOutcome 認得的值一律用它的中文標籤。非爬蟲步驟的 exit code 1 也會被
+     * 標成「完全失敗」——對那些步驟來說 1 本來就是整步失敗，讀起來仍然對。
      */
     private function describeExitCode(int $exitCode): string
     {
-        if ($exitCode === CrawlOutcome::PartiallySucceeded->value) {
-            return CrawlOutcome::PartiallySucceeded->label();
+        $outcome = CrawlOutcome::tryFrom($exitCode);
+
+        if ($outcome !== null && $outcome !== CrawlOutcome::Succeeded) {
+            return $outcome->label();
         }
 
         return "exit code {$exitCode}";

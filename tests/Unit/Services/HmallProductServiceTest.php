@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services;
 
+use App\Enums\CrawlOutcome;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use App\Services\HmallProductService;
@@ -118,6 +119,71 @@ class HmallProductServiceTest extends TestCase
 
         // Checkpoint should be cleared after completion
         $this->assertNull(Cache::get('hmall_products:page:UNIQLO'));
+    }
+
+    /**
+     * 從 checkpoint 續跑、而且每一頁都成功時，不可以做缺貨判定。
+     *
+     * setStockoutHmallProducts 是把 updated_at 比今天早的商品標成下架，前提是
+     * 這一輪從第 1 頁看過整份目錄。續跑只看了後半段，前半段的商品今天一次都沒被
+     * 摸到，照跑就會把它們整批標成下架——整個品牌當天從站上消失。
+     */
+    public function test_a_resumed_crawl_never_marks_products_as_stocked_out()
+    {
+        Cache::set('hmall_products:page:UNIQLO', 3);
+
+        Http::fake([
+            '*' => Http::response([
+                'resp' => [
+                    [
+                        'productList' => [],
+                        'productSum' => 0,
+                    ],
+                ],
+            ]),
+        ]);
+
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        $this->mockHmallRepository->expects($this->never())
+            ->method('setStockoutHmallProducts');
+
+        $outcome = $this->service->fetchAllHmallProducts('UNIQLO');
+
+        // 通知要看得出這次沒做完整掃描
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $outcome);
+        // checkpoint 清掉，明天才會重新從第 1 頁完整掃
+        $this->assertNull(Cache::get('hmall_products:page:UNIQLO'));
+    }
+
+    /**
+     * 從第 1 頁開始、全部成功才是完整掃描，這時候缺貨判定才該跑。
+     */
+    public function test_a_full_clean_crawl_still_marks_products_as_stocked_out()
+    {
+        Cache::flush();
+
+        Http::fake([
+            '*' => Http::response([
+                'resp' => [
+                    [
+                        'productList' => [],
+                        'productSum' => 0,
+                    ],
+                ],
+            ]),
+        ]);
+
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        $this->mockHmallRepository->expects($this->once())
+            ->method('setStockoutHmallProducts')
+            ->with('UNIQLO');
+
+        $this->assertSame(
+            CrawlOutcome::Succeeded,
+            $this->service->fetchAllHmallProducts('UNIQLO')
+        );
     }
 
     public function test_fetch_all_hmall_products_fresh_ignores_checkpoint()

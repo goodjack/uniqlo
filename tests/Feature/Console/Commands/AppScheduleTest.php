@@ -75,8 +75,8 @@ class AppScheduleTest extends TestCase
 
             // hmall-product:fetch 有 UNIQLO 與 GU 兩個步驟，加上 sitemap:generate 共三個
             return count($failedSteps) === 3
-                && in_array('hmall-product:fetch UNIQLO（exit code 1）', $failedSteps, true)
-                && in_array('hmall-product:fetch GU（exit code 1）', $failedSteps, true)
+                && in_array('hmall-product:fetch UNIQLO（完全失敗）', $failedSteps, true)
+                && in_array('hmall-product:fetch GU（完全失敗）', $failedSteps, true)
                 && in_array('sitemap:generate（丟出例外）', $failedSteps, true);
         });
     }
@@ -100,7 +100,7 @@ class AppScheduleTest extends TestCase
             $failedSteps = $event->data['failed_steps'];
 
             return in_array('hmall-product:fetch UNIQLO（部分成功）', $failedSteps, true)
-                && in_array('sitemap:generate（exit code 1）', $failedSteps, true);
+                && in_array('sitemap:generate（完全失敗）', $failedSteps, true);
         });
     }
 

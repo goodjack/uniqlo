@@ -62,6 +62,18 @@ class HmallProductService extends Service
         return $this->repository->getStyleHintCount($hmallProduct);
     }
 
+    /**
+     * 抓一個品牌的完整商品目錄。
+     *
+     * 缺貨判定（setStockoutHmallProducts）只在「這次從第 1 頁開始，而且每一頁
+     * 都成功」時才跑。它的作法是把 updated_at 比今天早的商品標成下架，所以前提
+     * 是這一輪真的把整份目錄看過一遍——少看任何一段，那一段的商品都會被誤判。
+     *
+     * 這個前提原本沒有被檢查，實際會這樣壞：某天中途幾頁失敗，後面成功的頁仍然
+     * 推進 checkpoint，當天結束時 checkpoint 停在最後一頁之後；隔天排程不帶
+     * --fresh，從那裡起跑、只抓到一頁空的、hasFailures 是 false，於是缺貨判定
+     * 照跑，把整個品牌的商品全部標成下架，站上當天整片消失、後天才復原。
+     */
     public function fetchAllHmallProducts($brand = 'UNIQLO', bool $fresh = false): CrawlOutcome
     {
         $searchApiUrl = $this->getV3SearchApiUrl($brand);
@@ -78,7 +90,11 @@ class HmallProductService extends Service
             Cache::forget($cacheKey);
         }
 
-        $page = $fresh ? 1 : (Cache::get($cacheKey) ?? 1);
+        $startPage = (int) ($fresh ? 1 : (Cache::get($cacheKey) ?? 1));
+        // 缺貨判定的前提是「這次真的把整份目錄看過一遍」，所以要記住起點
+        $startedFromFirstPage = $startPage === 1;
+
+        $page = $startPage;
         $productSum = 0;
         $hasSucceeded = false;
         $hasFailures = false;
@@ -158,16 +174,29 @@ class HmallProductService extends Service
         } while ($productSum >= ($page - 1) * $pageSize);
 
         if ($hasSucceeded && ! $hasFailures) {
-            // All pages succeeded - clear checkpoint and run stockout processing
             Cache::forget($cacheKey);
-            $this->repository->setStockoutHmallProducts($brand);
-            logger()->info("Completed fetching Hmall products for {$brand}");
 
-            return CrawlOutcome::Succeeded;
+            if ($startedFromFirstPage) {
+                // 從第 1 頁掃到最後一頁、每頁都成功，這時候「沒看到」才等於下架
+                $this->repository->setStockoutHmallProducts($brand);
+                logger()->info("Completed fetching Hmall products for {$brand}");
+
+                return CrawlOutcome::Succeeded;
+            }
+
+            // 從 checkpoint 續跑：這次只看了目錄的後半段，前半段的商品今天一次都
+            // 沒被 updated_at 摸到，跑缺貨判定會把它們整批標成下架。checkpoint 清掉
+            // 讓明天重新從第 1 頁完整掃，缺貨判定留給那一次。
+            logger()->info('Resumed crawl finished cleanly - stockout deferred to the next full scan', [
+                'brand' => $brand,
+                'started_from_page' => $startPage,
+            ]);
+
+            return CrawlOutcome::PartiallySucceeded;
         }
 
         if ($hasSucceeded) {
-            // Partial success - preserve checkpoint, skip stockout to avoid false negatives
+            // 有幾頁失敗：保留 checkpoint 讓同一天可以接著跑，缺貨判定一樣不做
             logger()->error('Some pages failed - preserving checkpoint, skipping stockout', ['brand' => $brand]);
 
             return CrawlOutcome::PartiallySucceeded;
