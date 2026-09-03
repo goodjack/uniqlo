@@ -154,6 +154,44 @@ class CategoryTest extends TestCase
     }
 
     /**
+     * 品項頁不列出官方的錨點細分。
+     *
+     * 那一層開不出頁面（findPageable 只認 levelOne 與 levelTwo），列出來就是
+     * 一整排 404。本機實測 /categories/uniqlo/all_women-tops-t-shirts 上有 13 個
+     * 這種連結，真實資料裡受影響的品項頁有 246 個。
+     */
+    public function test_a_level_two_page_does_not_link_to_level_three_categories(): void
+    {
+        $this->createCategory('all_women-tops-tshirt-anchor01', '女裝/短袖', 'all_women-tops-tshirt', CategoryLevel::Three);
+
+        $this->attachProduct($this->createProduct(['name' => '長袖T恤']), 'all_women-tops-tshirt');
+        $this->attachProduct($this->createProduct(['name' => '短袖T恤']), 'all_women-tops-tshirt-anchor01');
+
+        $response = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops-tshirt']));
+
+        $response->assertOk();
+        $response->assertDontSee(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops-tshirt-anchor01'])
+        );
+    }
+
+    /**
+     * 大類頁仍然要列出它的品項，那一層開得出頁面，是往下鑽的正常路徑。
+     */
+    public function test_a_level_one_page_still_lists_its_level_two_children(): void
+    {
+        $this->attachProduct($this->createProduct(['name' => '短袖上衣']), 'all_women-tops');
+        $this->attachProduct($this->createProduct(['name' => '長袖T恤']), 'all_women-tops-tshirt');
+
+        $response = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']));
+
+        $response->assertOk();
+        $response->assertSee(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops-tshirt'])
+        );
+    }
+
+    /**
      * 男女適穿的商品會在男裝與女裝樹下各掛一份同名分類，
      * 商品頁只需要顯示一次。
      */

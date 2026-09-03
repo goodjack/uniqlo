@@ -85,12 +85,24 @@ class CategoryService extends Service
     }
 
     /**
+     * 分類頁上讓人往下鑽的子分類。
+     *
+     * 只有大類會列出子分類，品項頁一律回空集合。原因是能開頁面的只有 levelOne
+     * 與 levelTwo（findPageable 就是這麼定的），所以品項頁列出 levelThree 等於
+     * 在畫面上排一整列點下去必然 404 的連結。
+     *
+     * blade 對空集合已經有 @if，不會留下空白區塊。
+     *
      * @return Collection<int, HmallCategory>
      */
     public function getChildren(HmallCategory $category): Collection
     {
+        if ($category->level !== CategoryLevel::One) {
+            return collect();
+        }
+
         return $this->repository->getCategoriesWithProducts(
-            [CategoryLevel::Two, CategoryLevel::Three],
+            [CategoryLevel::Two],
             $category->code
         );
     }
