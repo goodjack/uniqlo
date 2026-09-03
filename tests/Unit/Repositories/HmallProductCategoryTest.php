@@ -85,16 +85,6 @@ class HmallProductCategoryTest extends TestCase
         $this->assertSame('006002009', $anchor->pivot->sort);
     }
 
-    public function test_converts_new_epoch_milliseconds_to_new_at(): void
-    {
-        $this->repository->saveProductsFromV3($this->products());
-
-        $product = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail();
-
-        $this->assertSame('1767573000000', $product->new);
-        $this->assertSame('2026-01-05 08:30:00', $product->new_at->toDateTimeString());
-    }
-
     public function test_resync_drops_categories_the_product_no_longer_belongs_to(): void
     {
         $this->repository->saveProductsFromV3($this->products());

@@ -30,7 +30,6 @@ class HmallProduct extends Model
         'time_limited_begin' => 'datetime',
         'time_limited_end' => 'datetime',
         'stockout_at' => 'datetime',
-        'new_at' => 'datetime',
     ];
 
     public function hmallPriceHistories()

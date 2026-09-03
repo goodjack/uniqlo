@@ -720,7 +720,6 @@ class HmallProductRepository extends Repository
                 $model->evaluation_count = $product->evaluationCount ?? null;
                 $model->sales = $product->sales ?? null;
                 $model->new = $product->new ?? null;
-                $model->new_at = $this->getCarbonOrNull($product->new ?? null);
                 $model->season = $product->season ?? null;
                 $model->style_text = isset($product->styleText) ? json_encode($product->styleText) : null;
                 $model->color_nums = isset($product->colorNums) ? json_encode($product->colorNums) : null;
