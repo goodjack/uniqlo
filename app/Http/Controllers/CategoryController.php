@@ -36,6 +36,10 @@ class CategoryController extends Controller
     {
         $resolvedBrand = Brand::fromSlug($brand);
 
+        // 路由的 ->where('brand', 'uniqlo|gu') 讓這裡今天不可能是 null，所以這行
+        // 沒有測試蓋得到。留著是因為 fromSlug() 的簽章本來就可為 null：路由條件
+        // 哪天放寬，這行讓它照樣出 404，而不是把 null 丟進 findPageable(Brand $brand)
+        // 變成 500。
         abort_if($resolvedBrand === null, 404);
 
         // 分類的身分是品牌加 code，兩者都要對上才是同一個資源

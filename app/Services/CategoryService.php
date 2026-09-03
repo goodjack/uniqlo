@@ -39,21 +39,25 @@ class CategoryService extends Service
     public function getOverview(): Collection
     {
         // 頂層自己有沒有掛到商品不重要，有還在售的大類就該出現在總覽上
-        $ones = $this->repository
-            ->getCategoriesWithProducts([CategoryLevel::One])
-            ->load('parent');
+        $ones = $this->repository->getCategoriesWithProducts([CategoryLevel::One]);
 
         return $ones
-            ->filter(fn (HmallCategory $one) => $one->parent !== null)
+            ->filter(fn (HmallCategory $one) => $one->parent_code !== null)
             // 兩家的分類樹各自獨立，同名的 parent_code 要連品牌一起分組
             ->groupBy(fn (HmallCategory $one) => $one->brand->value.':'.$one->parent_code)
             ->map(fn (Collection $children) => [
+                // 這裡刻意不用 load('parent')：parent 帶了品牌條件，eager load 只會
+                // 拿集合裡第一筆的品牌去套全部，混品牌的集合會整組查不到父分類。
+                // 分組後每一組本來就同品牌同 parent_code，取第一筆查一次就夠，
+                // 查詢次數是頂層分類數而不是大類數。
                 'category' => $children->first()->parent,
                 // 兩家的分類名稱會撞（UNIQLO 的「男裝」與 GU 的「MEN」都是男裝），
                 // 標上品牌使用者才知道自己在看誰的分類
                 'brand' => $children->first()->brand,
                 'children' => $children->values(),
             ])
+            // 父分類不在主檔裡的（爬蟲只寫到子層）不做成群組，沒有標題可以掛
+            ->filter(fn (array $group) => $group['category'] !== null)
             ->sortBy(fn (array $group) => $group['brand']->value.':'.$group['category']->code)
             ->values();
     }
@@ -103,7 +107,8 @@ class CategoryService extends Service
 
         return $this->repository->getCategoriesWithProducts(
             [CategoryLevel::Two],
-            $category->code
+            $category->code,
+            $category->brand
         );
     }
 

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\CategoryLevel;
 use App\Models\HmallCategory;
 use App\Models\HmallProduct;
+use App\Services\CategoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -151,6 +152,35 @@ class CategoryTest extends TestCase
         $response->assertSee('商品分類');
         $response->assertSee('女裝');
         $response->assertSee(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']));
+    }
+
+    /**
+     * 分類的身分是品牌加 code，不是 code 本身。
+     *
+     * 兩家目前只有頂層的 ALL 同名，但沒有任何保證未來不會撞——撞到時父分類與
+     * 子分類都不能串到另一家。這個測試直接建兩個同 code 的分類來釘住。
+     */
+    public function test_a_category_never_borrows_the_other_brands_tree(): void
+    {
+        $this->createCategory('all_top', 'UNIQLO 全部商品', null, CategoryLevel::Top, 'UNIQLO');
+        $this->createCategory('all_top', 'GU 全部商品', null, CategoryLevel::Top, 'GU');
+
+        // 兩家各有一個 code 完全相同的大類，各自掛在自己的頂層底下
+        $uniqloOne = $this->createCategory('shared_tops', '上衣類', 'all_top', CategoryLevel::One, 'UNIQLO');
+        $guOne = $this->createCategory('shared_tops', 'TOPS', 'all_top', CategoryLevel::One, 'GU');
+
+        $this->createCategory('uniqlo_tshirt', 'UNIQLO T恤', 'shared_tops', CategoryLevel::Two, 'UNIQLO');
+        $this->createCategory('gu_tshirt', 'GU T恤', 'shared_tops', CategoryLevel::Two, 'GU');
+
+        $this->attachProduct($this->createProduct(['brand' => 'UNIQLO']), 'uniqlo_tshirt');
+        $this->attachProduct($this->createProduct(['brand' => 'GU']), 'gu_tshirt');
+
+        $this->assertSame('UNIQLO 全部商品', $uniqloOne->parent->name);
+        $this->assertSame('GU 全部商品', $guOne->parent->name);
+
+        $service = app(CategoryService::class);
+        $this->assertSame(['uniqlo_tshirt'], $service->getChildren($uniqloOne)->pluck('code')->all());
+        $this->assertSame(['gu_tshirt'], $service->getChildren($guOne)->pluck('code')->all());
     }
 
     /**

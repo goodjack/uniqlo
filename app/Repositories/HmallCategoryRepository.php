@@ -23,15 +23,22 @@ class HmallCategoryRepository extends Repository
      * 與其定期清理，不如讓所有對外查詢都經過在售商品過濾：分類頁、導覽與 sitemap
      * 就不會出現點進去空無一物的頁面，而且反映的是當下而不是上次清理時的狀態。
      *
+     * 帶 $parentCode 時一定要一起帶 $brand：分類的身分是品牌加 code，光靠
+     * parent_code 會把另一家同名分類的子分類也撈進來。
+     *
      * @param  array<int, CategoryLevel>  $levels
      * @return Collection<int, HmallCategory>
      */
-    public function getCategoriesWithProducts(array $levels, ?string $parentCode = null): Collection
-    {
+    public function getCategoriesWithProducts(
+        array $levels,
+        ?string $parentCode = null,
+        ?Brand $brand = null
+    ): Collection {
         return $this->model
             ->select('hmall_categories.*')
             ->selectRaw('COUNT(DISTINCT hmall_products.id) as hmall_products_count')
             ->when($parentCode !== null, fn ($query) => $query->where('hmall_categories.parent_code', $parentCode))
+            ->when($brand !== null, fn ($query) => $query->where('hmall_categories.brand', $brand->value))
             ->join(
                 'hmall_category_hmall_product as category_pivot',
                 'category_pivot.hmall_category_id',
