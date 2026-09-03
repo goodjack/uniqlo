@@ -109,13 +109,18 @@ class ListServiceTest extends TestCase
     {
         $products = $this->createProductCollection([
             ['sex' => '男裝', 'identity' => '["time_doptimal"]'],
-            ['sex' => '男裝', 'identity' => '["APP"]'],
+            [
+                'sex' => '男裝',
+                'identity' => '[]',
+                'time_limited_begin' => now()->subDay(),
+                'time_limited_end' => now()->addDay(),
+            ],
             ['sex' => '男裝', 'identity' => '["concessional_rate"]'],
         ]);
 
         $filtered = $this->listService->filterHmallProducts($products, $this->listRequest(['tags' => ['limited-offer']]));
 
-        // 前兩件各符合期間限定的其中一種，第三件是一般特價
+        // 前兩件各符合期間限定的其中一種（官方標記、落在檔期內），第三件是一般特價
         $this->assertCount(2, $filtered);
     }
 

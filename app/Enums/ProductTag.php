@@ -14,6 +14,11 @@ use App\Models\HmallProduct;
 enum ProductTag: string
 {
     case LowestPrice = 'lowest-price';
+
+    /**
+     * 期間限定：判準跟限時特價清單頁完全一樣（落在檔期內，或官方標了
+     * time_doptimal）。兩邊用同一組條件，頁面上的商品才必然帶得到這個標籤。
+     */
     case LimitedOffer = 'limited-offer';
     case Sale = 'sale';
     case NewArrival = 'new';
@@ -42,7 +47,7 @@ enum ProductTag: string
     private function identityCodes(): array
     {
         return match ($this) {
-            self::LimitedOffer => ['time_doptimal', 'APP', 'ECONLY'],
+            self::LimitedOffer => ['time_doptimal'],
             self::Sale => ['concessional_rate'],
             self::NewArrival => ['new_product'],
             self::ComingSoon => ['COMING SOON', 'COMING'],
@@ -56,6 +61,10 @@ enum ProductTag: string
     {
         if ($this === self::LowestPrice) {
             return $product->is_at_lowest_price;
+        }
+
+        if ($this === self::LimitedOffer && $this->isWithinLimitedOfferPeriod($product)) {
+            return true;
         }
 
         $identity = json_decode($product->identity ?? '[]') ?: [];
@@ -88,11 +97,41 @@ enum ProductTag: string
             return;
         }
 
+        if ($this === self::LimitedOffer) {
+            // 時間綁成一個值傳下去，SQL 與 matches() 才是同一個時刻
+            $now = now();
+
+            $query->orWhere(function ($period) use ($now) {
+                $period->where('hmall_products.time_limited_begin', '<=', $now)
+                    ->where('hmall_products.time_limited_end', '>=', $now);
+            });
+        }
+
         foreach ($this->identityCodes() as $code) {
             // identity 存的是 JSON 字串，比對時連引號一起比，
             // 否則 APP 會命中 APPLE 這種以它開頭的代碼
             $query->orWhere('hmall_products.identity', 'like', '%"'.$code.'"%');
         }
+    }
+
+    /**
+     * 現在正落在官方的限時特價檔期裡。
+     *
+     * 兩端都要有值：只有開始或只有結束不構成一段檔期，SQL 那邊的 NULL 比較
+     * 也是不成立，兩邊要一致。
+     */
+    private function isWithinLimitedOfferPeriod(HmallProduct $product): bool
+    {
+        $begin = $product->time_limited_begin;
+        $end = $product->time_limited_end;
+
+        if ($begin === null || $end === null) {
+            return false;
+        }
+
+        $now = now();
+
+        return $begin <= $now && $end >= $now;
     }
 
     /**
