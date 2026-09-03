@@ -28,11 +28,13 @@
         {{-- summary 長成旁邊那排品牌／排序按鈕的樣子，否則收合時只剩四個字、看不出可以點 --}}
         <summary>
             <span class="ts small button tag-filter-toggle">
-                <i class="filter icon"></i>篩選商品
+                {{-- 兩顆 icon 純裝飾，可及名稱是「篩選商品」四個字。Tocas 的 icon 是 --}}
+                {{-- icon font 的 ::before 內容，不標 aria-hidden 會被念成一串沒有意義的字元 --}}
+                <i class="filter icon" aria-hidden="true"></i>篩選商品
                 @if (count($selectedTags))
                     <span class="ts mini circular label">已選 {{ count($selectedTags) }}</span>
                 @endif
-                <i class="dropdown icon tag-filter-caret"></i>
+                <i class="dropdown icon tag-filter-caret" aria-hidden="true"></i>
             </span>
         </summary>
 
