@@ -101,7 +101,7 @@ class HmallProductPresenter
             $route = route('lists.limited-offers');
 
             $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #CE5F58;"><i class="certificate icon"></i>';
+            $html .= 'class="ts horizontal basic circular label"><span class="uq-brand-text"><i class="certificate icon"></i>';
             $html .= $message;
             $html .= '</span></a>';
         }
@@ -110,7 +110,7 @@ class HmallProductPresenter
             $route = route('lists.limited-offers');
 
             $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #CE5F58;"><i class="certificate icon"></i>';
+            $html .= 'class="ts horizontal basic circular label"><span class="uq-brand-text"><i class="certificate icon"></i>';
             $html .= 'APP 限定特價';
             $html .= '</span></a>';
         }
@@ -119,7 +119,7 @@ class HmallProductPresenter
             $route = route('lists.limited-offers');
 
             $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #CE5F58;"><i class="certificate icon"></i>';
+            $html .= 'class="ts horizontal basic circular label"><span class="uq-brand-text"><i class="certificate icon"></i>';
             $html .= '網路限定特價';
             $html .= '</span></a>';
         }
