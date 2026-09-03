@@ -94,6 +94,27 @@ window.UqFavorites = (function () {
         button.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
     }
 
+    /**
+     * 卡片上的收藏鈕只有一顆愛心，沒有文字可以換，所以上色跟商品頁那顆不一樣：
+     * 只換 icon 的實心與否，狀態交給 aria-pressed（CSS 也是讀它上色）。
+     * 可及名稱是固定的「收藏 商品名」，不隨狀態改。
+     */
+    function paintCardButton(button, isFavorite) {
+        button.querySelector('.icon').className = isFavorite ? 'heart icon' : 'heart outline icon';
+        button.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
+    }
+
+    function bindCardButton(button) {
+        const brand = button.dataset.brand;
+        const code = button.dataset.productCode;
+
+        paintCardButton(button, has(brand, code));
+
+        button.addEventListener('click', function () {
+            paintCardButton(button, toggle(brand, code));
+        });
+    }
+
     function bindButton(button) {
         const brand = button.dataset.brand;
         const code = button.dataset.productCode;
@@ -253,6 +274,8 @@ window.UqFavorites = (function () {
 
         container.innerHTML = html;
         revealLazyImages(container);
+        // 動態插進來的內容不在 DOMContentLoaded 那一輪裡，要自己綁一次
+        bindAll(container);
 
         // 商品可能已經下架，回來的卡片會比收藏的少
         const rendered = container.querySelectorAll('[data-favorite-key]');
@@ -293,8 +316,14 @@ window.UqFavorites = (function () {
         summary.textContent = summaryFor(rendered.length);
     }
 
-    function bindAll() {
-        document.querySelectorAll('[data-favorite-button]').forEach(bindButton);
+    /**
+     * 綁定範圍內所有的收藏鈕。不給 root 就是整份文件。
+     */
+    function bindAll(root) {
+        const scope = root || document;
+
+        scope.querySelectorAll('[data-favorite-button]').forEach(bindButton);
+        scope.querySelectorAll('[data-favorite-card]').forEach(bindCardButton);
     }
 
     return {
@@ -303,6 +332,7 @@ window.UqFavorites = (function () {
         remove: remove,
         items: items,
         bindButton: bindButton,
+        bindCardButton: bindCardButton,
         bindAll: bindAll,
         renderPage: renderPage,
     };

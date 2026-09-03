@@ -83,6 +83,10 @@
 
     <!-- Tocas JS：模塊與 JavaScript 函式 -->
     <script src="{{ asset('js/tocas.js') }}"></script>
+    {{-- 收藏鈕現在出現在每一頁的商品卡片上，所以這支腳本改由版型統一載入。 --}}
+    {{-- 版號帶檔案的 mtime：它跟頁面上的 id 與 data 屬性是綁在一起的， --}}
+    {{-- 瀏覽器留著舊快取配新 HTML 會找不到元素而中斷。 --}}
+    <script src="{{ asset('js/favorites.js') }}?v={{ filemtime(public_path('js/favorites.js')) }}"></script>
     <script>
         if ('loading' in HTMLImageElement.prototype) {
             const images = document.querySelectorAll('img[loading="lazy"]');

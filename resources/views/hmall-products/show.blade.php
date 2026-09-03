@@ -713,9 +713,6 @@
 @endsection
 
 @section('javascript')
-    {{-- 版號帶檔案的 mtime：這支 JS 跟頁面上的 id 與 data 屬性是綁在一起的， --}}
-    {{-- 瀏覽器留著舊快取配新 HTML 會找不到元素而中斷。 --}}
-    <script src="{{ asset('js/favorites.js') }}?v={{ filemtime(public_path('js/favorites.js')) }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.bundle.min.js"
         integrity="sha512-SuxO9djzjML6b9w9/I07IWnLnQhgyYVSpHZx0JV97kGBfTIsUYlWflyuW4ypnvhBrslz1yJ3R+S14fdCWmSmSA=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>

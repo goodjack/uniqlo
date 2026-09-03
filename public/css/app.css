@@ -382,3 +382,77 @@ html:has(.uq-section-menu) {
 .uq-toolbar[hidden] {
     display: none;
 }
+
+/* ------------------------------------------------------------------
+ * 商品卡片上的收藏鈕。
+ * ------------------------------------------------------------------ */
+
+/*
+ * 整張卡片的點擊區。卡片本身不再是 <a>（收藏鈕不能是連結的子孫），改由這條
+ * 覆蓋整張卡片的連結負責。
+ *
+ * z-index 不能省：Tocas 給 .ts.card > .content 與 .ts.card > .image img 的是
+ * position: relative，兩者在 DOM 上都排在這條連結後面，不抬高的話它們會蓋在
+ * 連結上面、整張卡片點不動。
+ */
+.uq-card-link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+/*
+ * 收藏鈕在圖片左上角，品牌標籤維持右上角。桌機平常低調，游標移到卡片上或
+ * 已經收藏了才提高不透明度；手機沒有 hover，所以一律看得到、而且大一號才點得到。
+ *
+ * 選擇器要帶 .ts.button：Tocas 的 .ts.button 自己就設了 position: relative、
+ * z-index: 1 與 display，單一個 class 的權重蓋不過去——實測收藏鈕會掉到卡片
+ * 最下面（top/left 對沒有定位的元素不生效），而且 z-index 停在 1。
+ */
+.ts.button.uq-card-favorite {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-height: 0;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #dadada;
+    color: #8d8d8d;
+    box-shadow: none;
+}
+
+.ts.button.uq-card-favorite>.icon {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.ts.button.uq-card-favorite[aria-pressed="true"] {
+    color: var(--uq-brand);
+}
+
+.ts.button.uq-card-favorite:hover,
+.ts.button.uq-card-favorite:focus-visible {
+    background: #fff;
+    color: var(--uq-brand);
+}
+
+@media (min-width: 768px) {
+    .ts.button.uq-card-favorite {
+        width: 32px;
+        height: 32px;
+        opacity: 0.7;
+        transition: opacity 0.15s;
+    }
+
+    .uq-card:hover .ts.button.uq-card-favorite,
+    .ts.button.uq-card-favorite:focus-visible,
+    .ts.button.uq-card-favorite[aria-pressed="true"] {
+        opacity: 1;
+    }
+}
