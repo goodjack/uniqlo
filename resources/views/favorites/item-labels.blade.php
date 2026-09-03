@@ -6,10 +6,9 @@
     @include('hmall-products.partials.card-labels', ['hmallProduct' => $hmallProduct])
 </div>
 <div class="extra">
-    {{-- 整列是一個 <a>，按鈕不能用 <button>（巢狀互動元素是無效的 HTML）， --}}
-    {{-- 所以用帶 role 的 span，click 時擋掉連結的預設行為。 --}}
-    <span class="ts mini basic button" data-favorite-remove role="button" tabindex="0"
+    {{-- 整列不再是一個 <a>，這裡就能用真的 <button>：焦點、Enter 與空白鍵都由瀏覽器處理 --}}
+    <button type="button" class="ts mini basic button" data-favorite-remove
         data-brand="{{ $hmallProduct->brand }}" data-code="{{ $hmallProduct->product_code }}">
         <i class="times icon"></i>移除收藏
-    </span>
+    </button>
 </div>

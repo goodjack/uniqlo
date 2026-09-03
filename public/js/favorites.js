@@ -131,12 +131,8 @@ window.UqFavorites = (function () {
                 onChange(container.querySelectorAll('[data-favorite-key]').length);
             };
 
+            // 真的 <button>，Enter 與空白鍵瀏覽器自己會轉成 click，不必另外聽 keydown
             control.addEventListener('click', removeRow);
-            control.addEventListener('keydown', function (event) {
-                if (event.key === 'Enter' || event.key === ' ') {
-                    removeRow(event);
-                }
-            });
         });
     }
 

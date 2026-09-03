@@ -257,10 +257,12 @@
                                             class="external icon"></i></a>
                                 @endif
                                 {{-- 買，或等：這是使用者在商品頁的兩個終點動作，所以伺服器端就渲染出來 --}}
+                                {{-- 不給 aria-label：它會蓋掉看得到的「收藏」，而且切換狀態時不會跟著改， --}}
+                                {{-- 讀螢幕的人會一直聽到 Favorite。可及名稱交給 .label 的文字，favorites.js 兩邊一起換。 --}}
                                 <button class="ts basic button" data-favorite-button
                                     data-brand="{{ $hmallProduct->brand }}"
-                                    data-product-code="{{ $hmallProduct->product_code }}" aria-pressed="false"
-                                    aria-label="Favorite"><i class="heart outline icon"></i><span
+                                    data-product-code="{{ $hmallProduct->product_code }}"
+                                    aria-pressed="false"><i class="heart outline icon"></i><span
                                         class="label">收藏</span></button>
                                 <a class="ts basic button" id="share" target="_blank" rel="nofollow noopener"
                                     aria-label="Share" style="display: none;"><i class="share icon"></i>分享</a>
