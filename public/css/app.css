@@ -50,18 +50,6 @@ i.most-visited.icon {
 }
 
 /* ------------------------------------------------------------------
- * 清單頁的性別選單。它本來就是錨點，捲下去還看得到才像導覽。
- * 跳轉時要讓開的高度是該頁獨有的，留在 lists/list.blade.php。
- * ------------------------------------------------------------------ */
-
-.sticky-gender-menu {
-    position: sticky;
-    top: var(--uq-nav-height);
-    z-index: 5;
-    background: #fff;
-}
-
-/* ------------------------------------------------------------------
  * 首頁的商品區塊與可橫向捲動的卡片列。
  * ------------------------------------------------------------------ */
 
@@ -134,7 +122,7 @@ i.most-visited.icon {
 /* 麵包屑是 container 內的第一行，跟底下的內容之間要有一個呼吸的距離 */
 .uq-breadcrumb {
     display: block;
-    padding: 0.75rem 0 0.25rem;
+    padding: 0.75rem 0 0.5rem;
 }
 
 /*
@@ -344,11 +332,24 @@ i.most-visited.icon {
 }
 
 /*
- * 有 sticky 章節選單的頁面，錨點跳轉要多讓開選單本身的高度，不然跳過去的
- * 標題會被它蓋住（master 版型的預設值只避開了 nav）。
+ * 捲動監聽的錨點。tocas.js 是在錨點捲到視窗頂端 10px 以內才把選單項目標成
+ * active，而頁面頂端有固定導覽列與 sticky 章節選單；直接拿標題當錨點的話，
+ * 標題得先整個滑進選單底下、再往上捲一百多 px 才會換 active（實測點了「女裝」
+ * 之後選單仍然停在「男裝」）。
+ *
+ * 改成一個零高度的標記放在標題前面，往上偏移到「標題剛好貼著章節選單下緣」
+ * 的位置。跳轉與 active 換手用的是同一個位置，所以 scroll-padding-top 不必
+ * 再補一次——補了就是偏移兩倍，跳過去的標題會落到畫面中間。
  */
+.uq-section-anchor {
+    display: block;
+    height: 0;
+    position: relative;
+    top: calc(-1 * (var(--uq-nav-height) + var(--uq-section-menu-height) + 12px));
+}
+
 html:has(.uq-section-menu) {
-    scroll-padding-top: calc(var(--uq-nav-height) + var(--uq-section-menu-height) + 12px);
+    scroll-padding-top: 0;
 }
 
 /*

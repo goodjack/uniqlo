@@ -11,21 +11,23 @@
         'hint' => '試試看少選幾個條件',
     ])
 @else
-    {{-- 捲到下面還看得到，才像導覽而不是一次性的按鈕 --}}
-    <div class="ts small horizontally scrollable evenly divided flatted menu sticky-gender-menu"
-        id="gender_menu">
-        @foreach ($available as $key => $label)
-            <a class="horizontally fitted item" href="#{{ $key }}">
-                {{ $label }}
-                <div class="ts mini circular label" style="margin-left: 4px;">
-                    {{ count($hmallProductList[$key]) }}
-                </div>
-            </a>
-        @endforeach
-    </div>
+    {{-- 性別是這一頁的章節，選單用跟商品頁、分類總覽同一個 partial --}}
+    @include('partials.section-menu', [
+        'id' => 'gender_menu',
+        'items' => $available
+            ->map(fn($label, $key) => [
+                'anchor' => $key,
+                'label' => $label,
+                'count' => count($hmallProductList[$key]),
+            ])
+            ->values()
+            ->all(),
+    ])
+
     <div class="ts active basic horizontally fitted tab segment">
         @foreach ($available as $key => $label)
-            <h2 class="ts large header" id="{{ $key }}">
+            @include('partials.section-anchor', ['anchor' => $key, 'menu' => 'gender_menu'])
+            <h2 class="ts large header">
                 {{ $label }}
                 <div class="inline sub header">共 {{ count($hmallProductList[$key]) }} 件</div>
             </h2>

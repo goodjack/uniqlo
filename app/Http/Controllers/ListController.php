@@ -24,7 +24,7 @@ class ListController extends Controller
             '商品期間限定特價中',
             'negative',
             'certificate',
-            '排序依據：特價幅度 > 評論數 > 評分 > 上架時間'
+            '依特價幅度排序'
         );
     }
 
@@ -38,7 +38,7 @@ class ListController extends Controller
             '商品特價中',
             'primary',
             'shopping basket',
-            '排序依據：特價幅度 > 評論數 > 評分 > 上架時間'
+            '依特價幅度排序'
         );
     }
 
@@ -52,7 +52,7 @@ class ListController extends Controller
             '熱門評論商品',
             'most-reviewed',
             'comments outline',
-            '排序依據：評論數 > 評分 > 上架時間'
+            '依評論數排序'
         );
     }
 
@@ -66,7 +66,7 @@ class ListController extends Controller
             '日本熱門評論商品',
             'most-reviewed',
             'comments outline',
-            '排序依據：日本評論數 > 日本評分 > 評論數 > 評分 > 上架時間<br>以下顯示日本評論數據',
+            '依日本評論數排序，卡片上顯示的是日本的評分與評論數',
             true,
         );
     }
@@ -81,7 +81,7 @@ class ListController extends Controller
             '熱門穿搭商品',
             'top-wearing',
             'camera retro',
-            '排序依據：網友穿搭數 > 評論數 > 評分 > 上架時間'
+            '依網友穿搭數排序'
         );
     }
 
@@ -95,7 +95,7 @@ class ListController extends Controller
             '新款商品',
             'positive',
             'leaf',
-            '排序依據：特價幅度 > 評論數 > 評分 > 上架時間'
+            '依特價幅度排序'
         );
     }
 
@@ -109,7 +109,7 @@ class ListController extends Controller
             '即將上市商品',
             'coming-soon',
             'checked calendar',
-            '排序依據：特價幅度 > 評論數 > 評分 > 上架時間'
+            '依特價幅度排序'
         );
     }
 
@@ -123,7 +123,7 @@ class ListController extends Controller
             '合購商品',
             'info',
             'cubes',
-            '排序依據：評論數 > 評分 > 上架時間'
+            '依評論數排序'
         );
     }
 
@@ -137,7 +137,7 @@ class ListController extends Controller
             '網路獨家販售商品',
             'online-special',
             'tv',
-            '排序依據：特價幅度 > 評論數 > 評分 > 上架時間'
+            '依特價幅度排序'
         );
     }
 
@@ -151,17 +151,26 @@ class ListController extends Controller
             '熱門瀏覽商品',
             'most-visited',
             'chart line',
-            '排序依據：瀏覽次數',
+            '依瀏覽次數排序',
         );
     }
 
+    /**
+     * 每一種清單共用的取資料與渲染。
+     *
+     * $sortSummary 是「預設排序是照什麼排的」一句話，進 slate 的副標
+     * （65 件，依特價幅度排序）。原本這裡傳的是「排序依據：特價幅度 > 評論數 >
+     * 評分 > 上架時間」那種完整權重鏈，寫在標題底下佔一整行，而且使用者選了
+     * 價格排序之後它還在講預設排序，是錯的——所以只留預設排序的說法，實際
+     * 排序由 blade 依 sort 參數決定要不要換句話。
+     */
     private function getList(
         $hmallProducts,
         $listRequest,
         $typeName,
         $typeStyle,
         $typeIcon,
-        $description,
+        $sortSummary,
         $useJapanRating = false
     ) {
         $hmallProducts = $this->service->filterHmallProducts($hmallProducts, $listRequest);
@@ -176,7 +185,7 @@ class ListController extends Controller
             'typeName' => $typeName,
             'typeStyle' => $typeStyle,
             'typeIcon' => $typeIcon,
-            'description' => $description,
+            'sortSummary' => $sortSummary,
             'useJapanRating' => $useJapanRating,
         ]);
     }
