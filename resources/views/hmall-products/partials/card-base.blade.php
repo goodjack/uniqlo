@@ -4,7 +4,7 @@
     $useJapanRating ??= false;
 @endphp
 
-<a class="ts borderless card" href="{{ $hmallProduct->route_url }}" {!! $cardAttributes ?? '' !!}>
+<a class="ts borderless card" href="{{ $hmallProduct->route_url }}">
     <div class="image">
         <x-lazy-load-image src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
             alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
