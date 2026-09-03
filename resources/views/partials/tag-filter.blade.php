@@ -1,60 +1,50 @@
 @php
     /**
-     * 商品標籤篩選。清單頁與分類頁共用同一份定義與外觀。
+     * 商品標籤篩選的 chip 列。清單頁與分類頁共用同一份定義與外觀。
      *
      * 用 GET form 而不是 JavaScript：網址帶得走、能分享、能用上一頁，
      * 沒有 JavaScript 也能操作。這個站沒有前端建置流程，也不該為了篩選引入。
+     *
+     * 展開與收合同樣是純 CSS：下面那個藏起來的勾選框配 partials/tag-filter-button
+     * 的 label，兩個 partial 要成對出現。網址帶 tags[] 時預設就是展開的。
      */
-    $tagOptions = collect(\App\Enums\ProductTag::cases())
-        ->mapWithKeys(fn($tag) => [$tag->value => $tag->label()]);
-
-    $selectedTags = array_intersect((array) request('tags', []), $tagOptions->keys()->all());
+    $tagOptions = \App\Enums\ProductTag::cases();
+    $selectedTags = collect(\App\Enums\ProductTag::fromValues((array) request('tags', [])))
+        ->map->value
+        ->all();
 
     /*
      * 切換篩選不該丟掉品牌與排序，它們是各自獨立的軸。只帶這兩個、而且只在它們
      * 是字串時帶：先前用 request()->except() 把所有其他參數原封搬進 hidden input，
      * 遇到 ?ref[]=x 這種陣列就是把 array 丟給 Blade 轉字串，整頁 500。
-     * lists/list.blade.php 的品牌與排序連結也是同一份白名單。
      */
     $otherParams = array_filter(request()->only(['brand', 'sort']), 'is_string');
 @endphp
 
-<form method="GET" action="{{ url()->current() }}" class="tag-filter">
+{{-- 勾選框要跟 chip 列同一層、而且排在它前面，CSS 的 ~ 才選得到 --}}
+<input type="checkbox" id="uq-tag-filter" class="uq-filter-switch" @checked(! empty($selectedTags))>
+
+<form method="GET" action="{{ url()->current() }}" class="uq-chip-row">
     @foreach ($otherParams as $key => $value)
         <input type="hidden" name="{{ $key }}" value="{{ $value }}">
     @endforeach
 
-    <details @if (!empty($selectedTags)) open @endif>
-        {{-- summary 長成旁邊那排品牌／排序按鈕的樣子，否則收合時只剩四個字、看不出可以點 --}}
-        <summary>
-            <span class="ts small button tag-filter-toggle">
-                {{-- 兩顆 icon 純裝飾，可及名稱是「篩選商品」四個字。Tocas 的 icon 是 --}}
-                {{-- icon font 的 ::before 內容，不標 aria-hidden 會被念成一串沒有意義的字元 --}}
-                <i class="filter icon" aria-hidden="true"></i>篩選商品
-                @if (count($selectedTags))
-                    <span class="ts mini circular label">已選 {{ count($selectedTags) }}</span>
-                @endif
-                <i class="dropdown icon tag-filter-caret" aria-hidden="true"></i>
-            </span>
-        </summary>
+    <div class="uq-chips">
+        @foreach ($tagOptions as $tag)
+            <label class="ts small basic label uq-chip">
+                <input type="checkbox" name="tags[]" value="{{ $tag->value }}"
+                    @checked(in_array($tag->value, $selectedTags, true))>
+                {{ $tag->label() }}
+            </label>
+        @endforeach
+    </div>
 
-        <div class="tag-filter-options">
-            @foreach ($tagOptions as $tag => $label)
-                <label class="ts basic label">
-                    <input type="checkbox" name="tags[]" value="{{ $tag }}"
-                        @checked(in_array($tag, $selectedTags, true))>
-                    {{ $label }}
-                </label>
-            @endforeach
-        </div>
-
-        <div class="tag-filter-actions">
-            <span class="ts tiny disabled text">符合任一條件即顯示</span>
-            <button class="ts small button tag-filter-apply" type="submit">套用篩選</button>
-            @if (!empty($selectedTags))
-                <a class="ts small basic button"
-                    href="{{ url()->current() }}{{ $otherParams ? '?' . http_build_query($otherParams) : '' }}">清除</a>
-            @endif
-        </div>
-    </details>
+    <div class="uq-chip-actions">
+        <span class="ts tiny disabled text">符合任一條件即顯示</span>
+        <button class="ts mini button uq-chip-apply" type="submit">套用</button>
+        @if (! empty($selectedTags))
+            <a class="ts mini basic button"
+                href="{{ url()->current() }}{{ $otherParams ? '?' . http_build_query($otherParams) : '' }}">清除</a>
+        @endif
+    </div>
 </form>

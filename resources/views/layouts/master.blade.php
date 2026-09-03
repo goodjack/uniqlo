@@ -122,6 +122,21 @@
         });
     </script>
     <script>
+        /*
+         * 排序這種「選了就該生效」的下拉。沒有 JavaScript 時旁邊那顆送出鈕是
+         * 唯一的出路，所以是它被藏起來、不是反過來讓下拉在沒有腳本時失效。
+         */
+        document.querySelectorAll('select[data-auto-submit]').forEach(function(select) {
+            select.addEventListener('change', function() {
+                select.form.submit();
+            });
+
+            select.form.querySelectorAll('[data-auto-submit-fallback]').forEach(function(button) {
+                button.hidden = true;
+            });
+        });
+    </script>
+    <script>
         // 章節選單：每頁最多一個，有就把捲動監聽掛上去，active 才會跟著捲動走
         const sectionMenu = document.querySelector('.uq-section-menu');
 

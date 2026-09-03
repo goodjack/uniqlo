@@ -21,7 +21,7 @@ class ListFilterTest extends TestCase
         $response = $this->get(route('lists.sale').'?ref[]=x');
 
         $response->assertOk();
-        $response->assertSee('篩選商品');
+        $response->assertSee('篩選');
     }
 
     /**

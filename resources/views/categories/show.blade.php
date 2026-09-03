@@ -52,8 +52,13 @@
 
     <div class="ts attached padded horizontally fitted fluid segment">
         <div class="ts container">
-            @include('partials.tag-filter')
-            <div class="ts hidden divider"></div>
+            <x-toolbar>
+                <x-slot:end>
+                    @include('partials.tag-filter-button')
+                </x-slot:end>
+
+                @include('partials.tag-filter')
+            </x-toolbar>
 
             @if ($children->isNotEmpty())
                 <div class="ts hidden divider"></div>
