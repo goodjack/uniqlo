@@ -271,12 +271,41 @@ class CategoryTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        // 兩個分類都叫「T恤」，只該連到其中一個，不是兩個都列
-        $linksToWomen = str_contains($content, 'categories/uniqlo/all_women-tops-tshirt');
-        $linksToMen = str_contains($content, 'categories/uniqlo/all_men-tops-tshirt');
+        /*
+         * 只看「所屬分類」那一段。整頁比對會被麵包屑干擾：麵包屑走的是主分類那
+         * 一條路徑，本來就會連到其中一個「T恤」，跟這裡要驗的去重是兩件事。
+         */
+        $links = $this->categoryLinksUnder($content, '所屬分類');
+
+        $this->assertNotEmpty($links, '商品頁應該列出所屬分類');
+
+        $linksToWomen = in_array('all_women-tops-tshirt', $links, true);
+        $linksToMen = in_array('all_men-tops-tshirt', $links, true);
 
         $this->assertTrue($linksToWomen || $linksToMen, '商品頁應該列出所屬分類');
         $this->assertFalse($linksToWomen && $linksToMen, '同名的分類只該出現一次');
+    }
+
+    /**
+     * 抓出某個小標題底下那一段裡的分類連結，只回傳分類 code。
+     *
+     * @return array<int, string>
+     */
+    private function categoryLinksUnder(string $html, string $heading): array
+    {
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$html);
+
+        $xpath = new \DOMXPath($dom);
+        $links = $xpath->query("//h3[normalize-space()='{$heading}']/following-sibling::div[1]//a/@href");
+
+        $codes = [];
+
+        foreach ($links as $href) {
+            $codes[] = basename(parse_url($href->value, PHP_URL_PATH));
+        }
+
+        return $codes;
     }
 
     private function createCategory(

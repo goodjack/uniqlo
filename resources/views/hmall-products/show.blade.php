@@ -17,6 +17,74 @@
 
     $adsenseClientId = config('app.adsense.client_id');
     $adsenseSlotId = config('app.adsense.slot_id');
+
+    $productName = $hmallProductPresenter->getFullName($hmallProduct);
+
+    /*
+     * 麵包屑只走一條分類路徑，規則在 HmallProduct::primaryCategory()。
+     * 商品掛不到任何大類或品項時就只剩首頁那一層，不硬湊一條假的路徑。
+     */
+    $crumbs = array_merge(
+        [\App\Support\Breadcrumb::home()],
+        $categoryTrail->isEmpty() ? [] : [\App\Support\Breadcrumb::link('categories')],
+        $categoryTrail
+            ->map(
+                fn($crumb) => $crumb->level === \App\Enums\CategoryLevel::Top
+                    ? \App\Support\Breadcrumb::text("{$crumb->brand->value} {$crumb->name}")
+                    : [
+                        'label' => $crumb->name,
+                        'url' => route('categories.show', [
+                            'brand' => $crumb->brand->slug(),
+                            'code' => $crumb->code,
+                        ]),
+                    ],
+            )
+            ->all(),
+        [\App\Support\Breadcrumb::text($productName)],
+    );
+
+    $productTagsHtml = trim($hmallProductPresenter->getHmallProductTag($hmallProduct));
+
+    // 商品資訊小表：只列出真的有值的欄位，空的一列比沒有那一列還難讀
+    $productFacts = array_filter([
+        '網路商店編號' => $hmallProduct->product_code,
+        '適穿' => $hmallProduct->sex,
+        '季節' => $hmallProduct->season,
+    ], fn($value) => filled($value));
+
+    /*
+     * 網路商店編號改由上面那張小表呈現，說明文末那一行就重複了，畫面上拿掉。
+     * 只在這裡拿掉、不動 getDescription()：社群分享的描述與爬蟲判斷「說明是不是
+     * 太短」都在讀它的回傳值，改了會一起變。
+     */
+    $descriptionHtml = preg_replace(
+        '/(<br>)*網路商店編號：' . preg_quote($hmallProduct->product_code, '/') . '\s*$/u',
+        '',
+        $hmallProductPresenter->getDescription($hmallProduct),
+    );
+
+    /*
+     * 章節選單的項目要跟底下真的渲染出來的區段一致，所以條件跟各區段的 @if 同一份。
+     * 選單的字比標題短，橫向才排得下。
+     */
+    $sections = collect([
+        ['anchor' => 'videos', 'label' => '商品影片', 'shown' => (bool) optional($japanProduct)->has_videos],
+        [
+            'anchor' => 'photos',
+            'label' => '商品實照',
+            'shown' => (bool) ($colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images),
+        ],
+        ['anchor' => 'styles', 'label' => '官方穿搭', 'shown' => $styles->isNotEmpty()],
+        ['anchor' => 'style-hints', 'label' => '網友穿搭', 'shown' => $styleHints->isNotEmpty()],
+        ['anchor' => 'commonly-styled', 'label' => '經常搭配', 'shown' => $commonlyStyledHmallProducts->isNotEmpty()],
+        ['anchor' => 'related', 'label' => '延伸商品', 'shown' => $relatedHmallProducts->isNotEmpty()],
+        ['anchor' => 'price-history', 'label' => '歷史價格', 'shown' => true],
+        ['anchor' => 'japan', 'label' => '日本版資訊', 'shown' => isset($japanProduct)],
+        ['anchor' => 'legacy', 'label' => '舊系統商品', 'shown' => $relatedProducts->isNotEmpty()],
+    ])
+        ->filter(fn($section) => $section['shown'])
+        ->values()
+        ->all();
 @endphp
 
 @section('title', $hmallProductPresenter->getFullName($hmallProduct))
@@ -156,8 +224,12 @@
         }
 
         @media (min-width: 991px) {
+            /*
+             * 說明很長的時候要收起來，但價格與按鈕搬到上面之後，右欄常常比
+             * 左邊那張圖短——寫死高度會在說明只有一兩行時撐出一大塊空白。
+             */
             #comment {
-                height: 400px;
+                max-height: 400px;
                 overflow: auto;
             }
         }
@@ -170,6 +242,9 @@
 
 @section('content')
     <div class="ts very padded horizontally fitted attached fluid segment">
+        <div class="ts container">
+            @include('partials.breadcrumb', ['crumbs' => $crumbs])
+        </div>
         <div class="ts container relaxed grid">
             <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
                 <div class="ts fluid container">
@@ -186,7 +261,7 @@
                 <div class="ts fluid very narrow container grid">
                     <div class="sixteen wide column">
                         <h1 class="ts dividing big header">
-                            {{ $hmallProductPresenter->getFullName($hmallProduct) }}
+                            {{ $productName }}
                             <div class="sub header">
                                 {{ $hmallProduct->brand }} 商品編號 {{ $hmallProduct->code }}
                                 {!! $hmallProductPresenter->getRatingForProductShow($hmallProduct) !!}
@@ -210,40 +285,17 @@
                                 </div>
                             </div>
                         </h1>
-                        @if ($categories->isNotEmpty())
-                            {{-- 一件商品掛在十幾個分類底下，沒有唯一路徑可以做麵包屑， --}}
-                            {{-- 所以列出可以開頁面的那兩層，讓人往回逛也給分類頁內部連結。 --}}
-                            <div class="ts basic fitted segment">
-                                @foreach ($categories as $category)
-                                    <a class="ts small basic label"
-                                        href="{{ route('categories.show', [
-                                            'brand' => $category->brand->slug(),
-                                            'code' => $category->code,
-                                        ]) }}">
-                                        {{ $category->name }}
-                                    </a>
-                                @endforeach
+                    </div>
+
+                    {{-- 買，或等：這是使用者在商品頁的兩個終點動作，所以緊接在標題底下， --}}
+                    {{-- 不再壓在右欄最下面等人捲過標籤、分類與整段商品說明才看得到。 --}}
+                    <div class="sixteen wide column">
+                        <div class="ts grid">
+                            <div class="four wide column">
+                                <h2>${{ $hmallProduct->price }}</h2>
                             </div>
-                        @endif
-                    </div>
-                    <div class="sixteen wide column">
-                        <div class="ts basic fitted segment">
-                            {!! $hmallProductPresenter->getHmallProductTag($hmallProduct) !!}
-                        </div>
-                    </div>
-                    <div class="sixteen wide column">
-                        <div class="ts basic horizontally fitted segment" id="comment">
-                            <p>{!! $hmallProductPresenter->getDescription($hmallProduct) !!}</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="ts divider"></div>
-                <div class="ts grid">
-                    <div class="four wide column">
-                        <h2>${{ $hmallProduct->price }}</h2>
-                    </div>
-                    <div class="twelve wide column">
-                        <div id="uniqlo-column">
+                            <div class="twelve wide column">
+                                <div id="uniqlo-column">
                             <div class="ts right floated separated stackable buttons">
                                 @if ($hmallProduct->brand === 'GU')
                                     <a class="ts info right labeled icon button"
@@ -267,6 +319,61 @@
                                 <a class="ts basic button" id="share" target="_blank" rel="nofollow noopener"
                                     aria-label="Share" style="display: none;"><i class="share icon"></i>分享</a>
                             </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sixteen wide column">
+                        <div class="ts divider"></div>
+                    </div>
+
+                    @if ($productTagsHtml !== '')
+                        <div class="sixteen wide column">
+                            <h3 class="ts small header">標籤</h3>
+                            <div class="ts basic fitted segment">
+                                {!! $productTagsHtml !!}
+                            </div>
+                        </div>
+                    @endif
+
+                    @if ($categories->isNotEmpty())
+                        {{-- 麵包屑只走一條路徑，這裡列出商品其他掛得上的分類，讓人往回逛 --}}
+                        <div class="sixteen wide column">
+                            <h3 class="ts small header">所屬分類</h3>
+                            <div class="ts basic fitted segment">
+                                @foreach ($categories as $category)
+                                    <a class="ts small basic label"
+                                        href="{{ route('categories.show', [
+                                            'brand' => $category->brand->slug(),
+                                            'code' => $category->code,
+                                        ]) }}">
+                                        {{ $category->name }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    @if (!empty($productFacts))
+                        <div class="sixteen wide column">
+                            <h3 class="ts small header">商品資訊</h3>
+                            <table class="ts small basic table">
+                                <tbody>
+                                    @foreach ($productFacts as $label => $value)
+                                        <tr>
+                                            <td>{{ $label }}</td>
+                                            <td>{{ $value }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+
+                    <div class="sixteen wide column">
+                        <div class="ts basic horizontally fitted segment" id="comment">
+                            <p>{!! $descriptionHtml !!}</p>
                         </div>
                     </div>
                 </div>
@@ -274,9 +381,12 @@
         </div>
     </div>
 
+    @include('partials.section-menu', ['id' => 'product_menu', 'items' => $sections, 'fluid' => true])
+
     @if (optional($japanProduct)->has_videos)
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
+                @include('partials.section-anchor', ['anchor' => 'videos', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">
                     商品影片
                     <div class="inline sub header">日本版</div>
@@ -299,6 +409,7 @@
     @if ($colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images)
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
+                @include('partials.section-anchor', ['anchor' => 'photos', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">商品實照</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
@@ -331,6 +442,7 @@
     @if ($styles->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
+                @include('partials.section-anchor', ['anchor' => 'styles', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">Official Styling 官方精選穿搭</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
@@ -347,6 +459,7 @@
     @if ($styleHints->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
+                @include('partials.section-anchor', ['anchor' => 'style-hints', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">
                     StyleHint 網友穿搭靈感
                     <div class="inline sub header">共 {{ $styleHintCount }} 張</div>
@@ -372,6 +485,7 @@
     @if ($commonlyStyledHmallProducts->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
+                @include('partials.section-anchor', ['anchor' => 'commonly-styled', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">經常搭配商品</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling link cards six">
@@ -384,6 +498,7 @@
     @if ($relatedHmallProducts->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
+                @include('partials.section-anchor', ['anchor' => 'related', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">延伸商品</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling link cards six">
@@ -410,7 +525,8 @@
 
     <div class="ts very padded horizontally fitted attached fluid tertiary segment">
         <div class="ts container">
-            <h2 class="ts large dividing header">歷史價格</h2>
+            @include('partials.section-anchor', ['anchor' => 'price-history', 'menu' => 'product_menu'])
+                <h2 class="ts large dividing header">歷史價格</h2>
             <div class="ts hidden divider"></div>
             <div class="ts fluid container grid">
                 <div class="four wide computer sixteen wide tablet sixteen wide mobile column">
@@ -478,6 +594,7 @@
     @isset($japanProduct)
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
+                @include('partials.section-anchor', ['anchor' => 'japan', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">日本版商品資訊</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts items">
@@ -584,6 +701,7 @@
     @if ($relatedProducts->isNotEmpty())
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
+                @include('partials.section-anchor', ['anchor' => 'legacy', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">舊系統商品</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling link cards six">

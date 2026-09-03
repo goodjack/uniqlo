@@ -137,8 +137,9 @@
         });
     </script>
     <script>
-        // 章節選單：每頁最多一個，有就把捲動監聽掛上去，active 才會跟著捲動走
-        const sectionMenu = document.querySelector('.uq-section-menu');
+        // 章節選單：每頁最多一個，有就把捲動監聽掛上去，active 才會跟著捲動走。
+        // id 在選單本身，不在外面那層負責 sticky 的容器。
+        const sectionMenu = document.querySelector('.uq-section-menu .ts.menu');
 
         if (sectionMenu) {
             ts('body').scrollspy({

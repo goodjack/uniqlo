@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\CategoryLevel;
 use App\Models\HmallProduct;
+use App\Services\CategoryService;
 use App\Services\HmallProductService;
 use Illuminate\Http\Request;
 
@@ -16,9 +17,12 @@ class HmallProductController extends Controller
 
     protected $service;
 
-    public function __construct(HmallProductService $service)
+    protected $categoryService;
+
+    public function __construct(HmallProductService $service, CategoryService $categoryService)
     {
         $this->service = $service;
+        $this->categoryService = $categoryService;
     }
 
     /**
@@ -78,6 +82,9 @@ class HmallProductController extends Controller
             ->unique('name')
             ->take(self::CATEGORY_LINKS_ON_PRODUCT_PAGE);
 
+        // 麵包屑只走一條路徑，規則在 HmallProduct::primaryCategory()
+        $primaryCategory = $hmallProduct->primaryCategory();
+
         return view('hmall-products.show', [
             'hmallProduct' => $hmallProduct,
             'commonlyStyledHmallProducts' => $commonlyStyledHmallProducts,
@@ -89,6 +96,9 @@ class HmallProductController extends Controller
             'hmallPriceHistories' => $hmallPriceHistories,
             'japanProduct' => $hmallProduct->japanProduct,
             'categories' => $categories,
+            'categoryTrail' => $primaryCategory === null
+                ? collect()
+                : $this->categoryService->getBreadcrumb($primaryCategory),
         ]);
     }
 

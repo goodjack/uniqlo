@@ -317,6 +317,10 @@ i.most-visited.icon {
     z-index: 5;
     background: #fff;
     margin: 0 0 1rem;
+}
+
+.uq-section-menu .ts.menu {
+    margin: 0;
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: thin;
