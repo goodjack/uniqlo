@@ -3,7 +3,8 @@
 <div class="ts attached padded horizontally fitted fluid segment">
     <div class="ts container">
         <div class="uq-section-header">
-            <h2 class="ts large header">
+            {{-- 跟分類總覽的群組標題同一種尺寸，區塊標題全站一種樣子 --}}
+            <h2 class="ts medium header">
                 <i class="{{ $section['style'] }} {{ $section['icon'] }} icon"></i>
                 {{ $section['title'] }}
                 <div class="inline sub header">{{ $section['subtitle'] }}</div>
