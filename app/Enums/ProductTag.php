@@ -108,9 +108,11 @@ enum ProductTag: string
         }
 
         foreach ($this->identityCodes() as $code) {
-            // identity 存的是 JSON 字串，比對時連引號一起比，
-            // 否則 APP 會命中 APPLE 這種以它開頭的代碼
-            $query->orWhere('hmall_products.identity', 'like', '%"'.$code.'"%');
+            // identity 是 json 欄位，用 JSON_CONTAINS 比整個陣列元素。
+            // 之前用 LIKE 湊引號能擋掉大部分誤命中，但那是拿字串比對假裝成
+            // 結構比對；真實資料上 ECONLY 就被寫成 LIKE '%ECONLY%' 而誤收了
+            // 14 件 ECONLYAD。
+            $query->orWhereJsonContains('hmall_products.identity', $code);
         }
     }
 

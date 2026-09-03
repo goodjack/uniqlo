@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ProductTag;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -85,12 +86,7 @@ class HmallProduct extends Model
      */
     public function getIsOnlineSpecialAttribute()
     {
-        // UNIQLO: ONLINE SPECIAL
-        // GU: ECONLY
-
-        $identity = json_decode($this->identity);
-
-        return in_array('ONLINE SPECIAL', $identity) || in_array('ECONLY', $identity);
+        return ProductTag::OnlineSpecial->matches($this);
     }
 
     /**
@@ -100,13 +96,14 @@ class HmallProduct extends Model
      */
     public function getIsMultiBuyAttribute()
     {
-        $identity = json_decode($this->identity);
-
-        return in_array('multi_buy', $identity) || in_array('SET', $identity);
+        return ProductTag::MultiBuy->matches($this);
     }
 
     /**
      * Get whether the product is ec only or not.
+     *
+     * ProductTag 沒有對應的 case（ECONLY 在那邊只是「網路獨家」的其中一個代碼，
+     * 不是自己一個標籤），所以這個保留原本的實作。
      *
      * @return bool
      */
@@ -136,12 +133,7 @@ class HmallProduct extends Model
      */
     public function getIsComingSoonAttribute()
     {
-        // UNIQLO: COMING SOON
-        // GU: COMING
-
-        $identity = json_decode($this->identity);
-
-        return in_array('COMING SOON', $identity) || in_array('COMING', $identity);
+        return ProductTag::ComingSoon->matches($this);
     }
 
     /**
@@ -205,13 +197,14 @@ class HmallProduct extends Model
      */
     public function getIsLimitedOfferAttribute()
     {
-        $identity = json_decode($this->identity);
-
-        return in_array('time_doptimal', $identity);
+        return ProductTag::LimitedOffer->matches($this);
     }
 
     /**
      * Get whether the product is app offer or not.
+     *
+     * ProductTag 沒有對應的 case（APP 已經從期間限定拿掉，它講的是通路不是檔期），
+     * 所以這個保留原本的實作。
      *
      * @return bool
      */
@@ -247,9 +240,7 @@ class HmallProduct extends Model
      */
     public function getIsNewAttribute()
     {
-        $identity = json_decode($this->identity);
-
-        return in_array('new_product', $identity);
+        return ProductTag::NewArrival->matches($this);
     }
 
     /**
@@ -259,9 +250,7 @@ class HmallProduct extends Model
      */
     public function getIsSaleAttribute()
     {
-        $identity = json_decode($this->identity);
-
-        return in_array('concessional_rate', $identity);
+        return ProductTag::Sale->matches($this);
     }
 
     /**
@@ -318,6 +307,9 @@ class HmallProduct extends Model
 
     /**
      * 目前的價格就是有記錄以來的最低。
+     *
+     * 這個刻意不委派給 ProductTag::LowestPrice：那個標籤的 matches() 讀的就是
+     * 這個 accessor，反過來委派會無限遞迴。
      *
      * 這是給篩選用的，跟卡片上那個「歷史新低價」標籤不同：那個標籤刻意排除官方
      * 標為特價的商品，否則特價期間整頁會同時掛兩個標籤、互相干擾。但使用者想在

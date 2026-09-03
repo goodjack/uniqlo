@@ -64,15 +64,27 @@ class ProductTagTest extends TestCase
 
     /**
      * identity 的代碼要精準比對，不能命中以它開頭的其他代碼。
-     * ECONLYAD 是真實資料上的反例：本機有 14 件，它們不是網路獨家。
+     *
+     * ECONLYAD 是真實資料上的反例：本機 uniqlo 有 14 件，它們不是網路獨家，
+     * 但舊的裸 LIKE '%ECONLY%' 會把它們收進來（清單頁因此從 92 件變成 106 件）。
+     * SQL 與記憶體兩條路都要驗，只驗一條的話另一條照樣可以錯。
      */
     public function test_identity_codes_are_matched_exactly(): void
     {
-        $this->createProduct(['identity' => '["ECONLYAD"]']);
+        $lookalike = $this->createProduct(['identity' => '["ECONLYAD"]']);
 
+        $this->assertFalse(ProductTag::OnlineSpecial->matches($lookalike));
         $this->assertSame(0, HmallProduct::query()
             ->where(fn ($group) => ProductTag::OnlineSpecial->applyTo($group))
             ->count());
+
+        $real = $this->createProduct(['identity' => '["ECONLY"]']);
+
+        $this->assertTrue(ProductTag::OnlineSpecial->matches($real));
+        $this->assertSame([$real->id], HmallProduct::query()
+            ->where(fn ($group) => ProductTag::OnlineSpecial->applyTo($group))
+            ->pluck('id')
+            ->all());
     }
 
     /**

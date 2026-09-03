@@ -314,17 +314,18 @@ class HmallProductRepository extends Repository
         return Cache::get(self::CACHE_KEY_MOST_VISITED);
     }
 
+    /**
+     * 以下六個清單快取的成員判準一律走 ProductTag：品牌的官方代碼（UNIQLO 是
+     * ONLINE SPECIAL、GU 是 ECONLY 這種對照）全部收在那個 enum 裡，這裡只負責
+     * 排序與快取。標籤條件包在自己的 where() 群組內，OR 不會漏到 stock 與
+     * stockout_at 的條件外面。
+     */
     public function setLimitedOfferHmallProductsCache()
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->where(function ($query) {
-                $query->where(function ($query) {
-                    $query->where('time_limited_begin', '<=', now())
-                        ->where('time_limited_end', '>=', now());
-                })->orWhere('identity', 'like', '%time_doptimal%');
-            })
+            ->where(fn ($query) => ProductTag::LimitedOffer->applyTo($query))
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
             ->orderByRaw('min_price/highest_record_price')
@@ -341,7 +342,7 @@ class HmallProductRepository extends Repository
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->where('identity', 'like', '%concessional_rate%')
+            ->where(fn ($query) => ProductTag::Sale->applyTo($query))
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
             ->orderByRaw('min_price/highest_record_price')
@@ -446,7 +447,7 @@ class HmallProductRepository extends Repository
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->where('identity', 'like', '%new_product%')
+            ->where(fn ($query) => ProductTag::NewArrival->applyTo($query))
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
             ->orderByRaw('min_price/highest_record_price')
@@ -460,13 +461,10 @@ class HmallProductRepository extends Repository
 
     public function setComingSoonHmallProductsCache()
     {
-        // UNIQLO: COMING SOON
-        // GU: COMING
-
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->where('identity', 'like', '%COMING%')
+            ->where(fn ($query) => ProductTag::ComingSoon->applyTo($query))
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
             ->orderByRaw('min_price/highest_record_price')
@@ -483,10 +481,7 @@ class HmallProductRepository extends Repository
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->where(function ($query) {
-                $query->where('identity', 'like', '%multi_buy%')
-                    ->orWhere('identity', 'like', '%SET%');
-            })
+            ->where(fn ($query) => ProductTag::MultiBuy->applyTo($query))
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
             ->orderBy('evaluation_count', 'desc')
@@ -499,16 +494,10 @@ class HmallProductRepository extends Repository
 
     public function setOnlineSpecialHmallProductsCache()
     {
-        // UNIQLO: ONLINE SPECIAL
-        // GU: ECONLY
-
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->where(function ($query) {
-                $query->where('identity', 'like', '%ONLINE SPECIAL%')
-                    ->orWhere('identity', 'like', '%ECONLY%');
-            })
+            ->where(fn ($query) => ProductTag::OnlineSpecial->applyTo($query))
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
             ->orderByRaw('min_price/highest_record_price')
