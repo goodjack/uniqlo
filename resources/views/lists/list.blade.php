@@ -20,28 +20,18 @@
 @endsection
 
 @section('css')
-    @include('partials.list-type-icon-styles')
-    @include('partials.tag-filter-styles')
     <style>
         /*
-         * nav 是 60px 的 fixed，性別選單黏在它下面。
-         * 錨點跳轉要多讓開選單本身的高度，否則跳過去的標題會被它蓋住
-         * （全站預設的 scroll-padding-top 只避開了 nav）。
+         * 只有這一頁有黏在 nav 下面的性別選單，所以錨點跳轉要多讓開選單本身的
+         * 高度，否則跳過去的標題會被它蓋住（全站預設的 scroll-padding-top 只
+         * 避開了 nav）。選單的樣式本身跨頁共用，在 public/css/app.css。
          */
         :root {
-            --fixed-nav-height: 60px;
             --gender-menu-height: 41px;
         }
 
-        .sticky-gender-menu {
-            position: sticky;
-            top: var(--fixed-nav-height);
-            z-index: 5;
-            background: #fff;
-        }
-
         html {
-            scroll-padding-top: calc(var(--fixed-nav-height) + var(--gender-menu-height) + 12px);
+            scroll-padding-top: calc(var(--uq-nav-height) + var(--gender-menu-height) + 12px);
         }
     </style>
 @endsection

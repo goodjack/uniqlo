@@ -2,7 +2,7 @@
 <div class="description">
     @if ($hmallProduct->is_limited_offer || $hmallProduct->is_app_offer || $hmallProduct->is_ec_only)
         <div class="ts horizontal basic circular label">
-            <span style="color: #CE5F58;">
+            <span class="uq-brand-text">
                 {{ $hmallProductPresenter->getLimitedOfferMessage($hmallProduct) }}
             </span>
         </div>
@@ -10,13 +10,13 @@
 
     @if ($hmallProduct->is_app_offer)
         <div class="ts horizontal basic circular label">
-            <span style="color: #CE5F58;">APP 限定特價</span>
+            <span class="uq-brand-text">APP 限定特價</span>
         </div>
     @endif
 
     @if ($hmallProduct->is_ec_only)
         <div class="ts horizontal basic circular label">
-            <span style="color: #CE5F58;">網路限定特價</span>
+            <span class="uq-brand-text">網路限定特價</span>
         </div>
     @endif
 

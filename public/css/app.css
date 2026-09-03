@@ -1,0 +1,229 @@
+/*
+ * 跨頁共用的元件樣式。
+ *
+ * 這個站沒有前端建置流程（沒有 Vite、沒有 Tailwind），CSS 原本有三種擺法：
+ * 成對的樣式 partial、共用的樣式 partial、以及寫在某一頁的 @section('css') 裡
+ * 給另一頁用。要改一個顏色得先猜它住在哪一種。跨頁共用的元件樣式集中到這裡，
+ * 各頁的 @section('css') 只留該頁獨有的。
+ *
+ * 載入順序：Tocas 之後、頁面自己的 @section('css') 之前，所以這裡蓋得掉 Tocas、
+ * 頁面又蓋得掉這裡。
+ */
+
+:root {
+    /* 品牌紅。跟 master.blade.php 的 <meta name="theme-color"> 同一個值 */
+    --uq-brand: #ce5e57;
+    --uq-brand-hover: #b8524c;
+    /* nav 是固定的 60px，master 版型的 body padding 就是照這個數字留的 */
+    --uq-nav-height: 60px;
+}
+
+/* 商品標籤裡的品牌紅文字 */
+.uq-brand-text {
+    color: var(--uq-brand);
+}
+
+/* ------------------------------------------------------------------
+ * 清單類型的 icon 顏色。首頁區塊與清單頁共用同一份定義，改色只改這裡。
+ * ------------------------------------------------------------------ */
+
+i.most-reviewed.icon {
+    color: #885a89 !important;
+}
+
+i.top-wearing.icon {
+    color: #cc7f49 !important;
+}
+
+i.coming-soon.icon {
+    color: #50723c !important;
+}
+
+i.online-special.icon {
+    color: #f29e18 !important;
+}
+
+i.most-visited.icon {
+    color: #b58105 !important;
+}
+
+/* ------------------------------------------------------------------
+ * 清單頁的性別選單。它本來就是錨點，捲下去還看得到才像導覽。
+ * 跳轉時要讓開的高度是該頁獨有的，留在 lists/list.blade.php。
+ * ------------------------------------------------------------------ */
+
+.sticky-gender-menu {
+    position: sticky;
+    top: var(--uq-nav-height);
+    z-index: 5;
+    background: #fff;
+}
+
+/* ------------------------------------------------------------------
+ * 標籤篩選。清單頁與分類頁共用。
+ * ------------------------------------------------------------------ */
+
+/* 上面的品牌與排序按鈕群是置中的，篩選是同一組控制項，對齊要一致 */
+.tag-filter {
+    text-align: center;
+}
+
+.tag-filter summary {
+    cursor: pointer;
+    padding: 0.5rem 0;
+    /* summary 原生的三角標記在 Tocas 底下看不出來，換成右邊自己畫的箭頭 */
+    list-style: none;
+}
+
+.tag-filter summary::-webkit-details-marker {
+    display: none;
+}
+
+.tag-filter summary .tag-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.tag-filter .tag-filter-caret {
+    transition: transform 0.15s;
+}
+
+.tag-filter details[open] .tag-filter-caret {
+    transform: rotate(180deg);
+}
+
+.tag-filter-options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0 0;
+}
+
+.tag-filter-options label {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    /* .ts.label 自帶左右 margin，跟 gap 疊起來每一顆的間距會不一樣 */
+    margin: 0;
+}
+
+/*
+ * checkbox 是藏起來、不是拿掉：display:none 會讓它連鍵盤焦點都拿不到，
+ * 整組篩選就只剩滑鼠能用。作業系統原生的藍色勾選框跟站上的顏色也搭不起來，
+ * 選中與否改由標籤本身的底色表示。
+ */
+.tag-filter-options input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+}
+
+/* 勾起來的要看得出來，不然按了跟沒按一樣 */
+.tag-filter-options label:has(input:checked) {
+    background: var(--uq-brand) !important;
+    border-color: var(--uq-brand) !important;
+    color: #fff !important;
+}
+
+/* 焦點框是藏掉 checkbox 的代價，要在標籤上補回來 */
+.tag-filter-options label:has(input:focus-visible) {
+    outline: 2px solid var(--uq-brand);
+    outline-offset: 2px;
+}
+
+.tag-filter-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+}
+
+/*
+ * 套用鍵原本是 primary，但 primary 的 cyan 在這個站是「特價」「歷史新低價」
+ * 那些狀態標籤的顏色，放在操作按鈕上會被讀成狀態。改用品牌紅，跟選中的標籤同色。
+ */
+.tag-filter-actions .tag-filter-apply,
+.tag-filter-actions .tag-filter-apply:hover,
+.tag-filter-actions .tag-filter-apply:focus,
+.tag-filter-actions .tag-filter-apply:active {
+    background: var(--uq-brand);
+    border-color: var(--uq-brand);
+    color: #fff;
+}
+
+.tag-filter-actions .tag-filter-apply:hover,
+.tag-filter-actions .tag-filter-apply:focus,
+.tag-filter-actions .tag-filter-apply:active {
+    background: var(--uq-brand-hover);
+    border-color: var(--uq-brand-hover);
+}
+
+/* ------------------------------------------------------------------
+ * 首頁的商品區塊與可橫向捲動的卡片列。
+ * ------------------------------------------------------------------ */
+
+.home-section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+/*
+ * 刻意不掛 Tocas 的 doubling／six：那組規則的權重比這裡高、會蓋掉卡片寬度。
+ */
+.home-product-row.ts.cards {
+    --home-row-gap: 1rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scroll-padding-left: 0.5em;
+    /* Tocas 給 .ts.cards 的負 margin 在可捲動容器裡會裁掉第一張卡片 */
+    margin-left: 0;
+    margin-right: 0;
+    padding-bottom: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.home-product-row.ts.cards>.card {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    /* 手機一次露出兩張多一點，半截的第三張就是「可以左右滑」的提示 */
+    width: 42%;
+}
+
+@media (min-width: 768px) {
+    .home-product-row.ts.cards>.card {
+        width: 26%;
+    }
+}
+
+/*
+ * 桌機一次剛好放六張整卡，第七張以後才要捲。半截的卡片在手機是「可以滑」
+ * 的提示，在桌機沒有這個意思——macOS 的 overlay 捲軸平常不顯示，看起來
+ * 就只是版面爆掉。
+ *
+ * Tocas 給 .ts.cards>.card 的間距是 margin 不是 gap，用百分比算六等分
+ * 永遠會差那圈 margin，所以這一檔改成容器出 gap、卡片左右 margin 歸零，
+ * 寬度才除得盡。
+ */
+@media (min-width: 992px) {
+    .home-product-row.ts.cards {
+        column-gap: var(--home-row-gap);
+    }
+
+    .home-product-row.ts.cards>.card {
+        margin-left: 0;
+        margin-right: 0;
+        width: calc((100% - 5 * var(--home-row-gap)) / 6);
+    }
+}

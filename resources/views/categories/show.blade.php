@@ -7,10 +7,6 @@
 
 @section('title', $category->name)
 
-@section('css')
-    @include('partials.tag-filter-styles')
-@endsection
-
 @section('metadata')
     <link rel="canonical" href="{{ $currentUrl }}" />
     <meta name="description" content="{{ $category->name }} 的 UNIQLO 與 GU 商品比價 | UQ 搜尋" />

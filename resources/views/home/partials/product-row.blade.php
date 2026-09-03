@@ -1,5 +1,5 @@
 {{-- 首頁的一個商品區塊：標題、看全部連結、可橫向捲動的卡片列。 --}}
-{{-- 樣式在 home.blade.php 的 @section('css')。 --}}
+{{-- 樣式在 public/css/app.css。 --}}
 <div class="ts attached padded horizontally fitted fluid segment">
     <div class="ts container">
         <div class="home-section-header">

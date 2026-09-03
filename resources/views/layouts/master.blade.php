@@ -29,6 +29,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/2.3.3/tocas.css"
         integrity="sha512-D41DQHff3/kvdRtWlfJ69BltxL2ovJ2hRFiQopYGGiSFgJE4i5Un3qaqlKCAuo+00yaMzdcw7aVRl11taevIdw=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    {{-- 跨頁共用的元件樣式。放在 Tocas 之後才蓋得掉它，放在 @yield('css') 之前才蓋得掉這裡 --}}
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ filemtime(public_path('css/app.css')) }}">
     <style>
         html {
             height: 100%;
