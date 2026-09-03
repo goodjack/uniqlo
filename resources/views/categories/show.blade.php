@@ -71,12 +71,21 @@
                 <div class="ts hidden section divider"></div>
             @endif
 
-            {{-- 分類本來就是單一性別的軸（男裝上衣），不像清單頁需要拆成四段 --}}
-            <div class="ts doubling link cards four">
-                @each('hmall-products.card', $hmallProducts, 'hmallProduct')
-            </div>
+            {{-- 篩到 0 件時整個卡片容器與分頁都不該出現，只留一句話說明現在的狀況 --}}
+            @if ($hmallProducts->isEmpty())
+                @include('partials.empty-state', [
+                    'icon' => 'search faded',
+                    'title' => '沒有符合的商品',
+                    'hint' => '試試看少選幾個條件',
+                ])
+            @else
+                {{-- 分類本來就是單一性別的軸（男裝上衣），不像清單頁需要拆成四段 --}}
+                <div class="ts doubling link cards four">
+                    @each('hmall-products.card', $hmallProducts, 'hmallProduct')
+                </div>
 
-            @include('partials.pagination', ['paginator' => $hmallProducts])
+                @include('partials.pagination', ['paginator' => $hmallProducts])
+            @endif
         </div>
     </div>
 @endsection

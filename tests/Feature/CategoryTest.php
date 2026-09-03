@@ -136,6 +136,25 @@ class CategoryTest extends TestCase
     }
 
     /**
+     * 篩選之後可能一件都不剩。原本這種情況只剩一片空白，使用者看不出是篩太緊
+     * 還是頁面壞掉。文案跟清單頁一致。
+     */
+    public function test_a_category_filtered_down_to_nothing_shows_an_empty_state(): void
+    {
+        // identity 是空陣列，所以不會命中任何標籤
+        $this->attachProduct($this->createProduct(['name' => '短袖上衣']), 'all_women-tops');
+
+        $response = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?tags[]=coming-soon'
+        );
+
+        $response->assertOk();
+        $response->assertDontSee('短袖上衣');
+        $response->assertSee('沒有符合的商品');
+        $response->assertSee('試試看少選幾個條件');
+    }
+
+    /**
      * 官方在該分類內的排序權重決定顯示順序，出來就跟官網一致。
      */
     public function test_products_follow_the_official_sort_within_the_category(): void

@@ -7,15 +7,11 @@
 <div class="ts attached padded horizontally fitted fluid segment">
     <div class="ts container">
         @if ($available->isEmpty())
-            <div class="ts center aligned basic segment">
-                <div class="ts icon header">
-                    <i class="search faded icon"></i>
-                    <div class="content">
-                        沒有符合的商品
-                        <div class="sub header">試試看少選幾個條件</div>
-                    </div>
-                </div>
-            </div>
+            @include('partials.empty-state', [
+                'icon' => 'search faded',
+                'title' => '沒有符合的商品',
+                'hint' => '試試看少選幾個條件',
+            ])
         @else
             {{-- 捲到下面還看得到，才像導覽而不是一次性的按鈕 --}}
             <div class="ts small horizontally scrollable evenly divided flatted menu sticky-gender-menu"

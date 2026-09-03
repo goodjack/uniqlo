@@ -8,15 +8,12 @@
 
             @include('partials.pagination', ['paginator' => $hmallProducts])
         @else
-            <div class="ts center aligned basic segment">
-                <div class="ts icon header">
-                    <i class="search faded icon"></i>
-                    <div class="content">
-                        找不到符合的商品
-                        <div class="sub header">試試看少打幾個字，或換個說法</div>
-                    </div>
-                </div>
-            </div>
+            {{-- 搜尋的空狀態文案跟清單頁不同：這裡要改的是關鍵字，不是勾選的條件 --}}
+            @include('partials.empty-state', [
+                'icon' => 'search faded',
+                'title' => '找不到符合的商品',
+                'hint' => '試試看少打幾個字，或換個說法',
+            ])
         @endif
 
         <div class="ts center aligned basic segment">
