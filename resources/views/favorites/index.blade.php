@@ -53,7 +53,9 @@
 @endsection
 
 @section('javascript')
-    <script src="{{ asset('js/favorites.js') }}"></script>
+    {{-- 版號帶檔案的 mtime：這支 JS 跟頁面上的 id 與 data 屬性是綁在一起的， --}}
+    {{-- 瀏覽器留著舊快取配新 HTML 會找不到元素而中斷。 --}}
+    <script src="{{ asset('js/favorites.js') }}?v={{ filemtime(public_path('js/favorites.js')) }}"></script>
     <script>
         UqFavorites.renderPage({
             cardsUrl: '{{ route('favorites.cards') }}',
