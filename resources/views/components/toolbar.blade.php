@@ -12,7 +12,7 @@
 --}}
 @props(['start' => null, 'end' => null])
 
-<div class="uq-toolbar">
+<div {{ $attributes->merge(['class' => 'uq-toolbar']) }}>
     @if ($start)
         <div class="uq-toolbar-start">{{ $start }}</div>
     @endif

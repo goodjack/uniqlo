@@ -370,3 +370,11 @@ html:has(.uq-section-menu) {
     align-items: center;
     gap: 0.35rem;
 }
+
+/*
+ * 作者樣式的 display 會蓋掉 UA 樣式表的 [hidden]，所以掛 hidden 的工具列要自己
+ * 收起來。收藏頁一件都沒有時整條工具列不該佔版面。
+ */
+.uq-toolbar[hidden] {
+    display: none;
+}

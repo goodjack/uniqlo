@@ -14,7 +14,7 @@ window.UqFavorites = (function () {
      */
     const BATCH_SIZE = 100;
 
-    const DEFAULT_SUMMARY = '收藏只存在這個瀏覽器，換裝置看不到';
+    const DEFAULT_SUMMARY = '只存在這個瀏覽器，換裝置看不到';
 
     /**
      * 隱私模式或使用者關掉網站資料時，localStorage 的存取本身就會丟例外，
@@ -150,6 +150,19 @@ window.UqFavorites = (function () {
      * 三種空的情況要分開講：完全沒收藏、收藏的商品都下架了、以及這次載入失敗。
      * 講成同一句會讓使用者以為自己的收藏不見了。
      */
+    /**
+     * 「全部清除」在工具列上，一件收藏都沒有的時候整條工具列不該佔版面。
+     * 判準看 localStorage 還剩幾筆，不是畫面上還剩幾列——下架的商品換不到卡片，
+     * 本來就不會出現在畫面上，但它們還在收藏裡、還清得掉。
+     */
+    function syncToolbar() {
+        const toolbar = document.getElementById('favorites-toolbar');
+
+        if (toolbar) {
+            toolbar.hidden = items().length === 0;
+        }
+    }
+
     function showState(name, summaryText) {
         ['favorites-empty', 'favorites-gone', 'favorites-error'].forEach(function (id) {
             document.getElementById(id).hidden = id !== name;
@@ -209,9 +222,12 @@ window.UqFavorites = (function () {
             button.onclick = function () {
                 write({});
                 container.innerHTML = '';
+                syncToolbar();
                 showState('favorites-empty', DEFAULT_SUMMARY);
             };
         });
+
+        syncToolbar();
 
         if (wanted.length === 0) {
             loading.hidden = true;
@@ -249,6 +265,8 @@ window.UqFavorites = (function () {
         }
 
         bindRemoveButtons(container, function (remaining) {
+            syncToolbar();
+
             if (remaining > 0) {
                 summary.textContent = summaryFor(remaining);
 
