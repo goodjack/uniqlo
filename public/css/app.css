@@ -16,6 +16,8 @@
     --uq-brand-hover: #b8524c;
     /* nav 是固定的 60px，master 版型的 body padding 就是照這個數字留的 */
     --uq-nav-height: 60px;
+    /* .uq-section-menu 的實際高度。錨點跳轉的 scroll-padding-top 要讓開它 */
+    --uq-section-menu-height: 41px;
 }
 
 /* 商品標籤裡的品牌紅文字 */
@@ -226,4 +228,222 @@ i.most-visited.icon {
         margin-right: 0;
         width: calc((100% - 5 * var(--home-row-gap)) / 6);
     }
+}
+
+/* ------------------------------------------------------------------
+ * 共同骨架：麵包屑、工具列、篩選 chip 列、章節選單。
+ *
+ * Tocas 2.3.3 有 breadcrumb、tabbed menu、label 與 button，這裡只補它沒有的
+ * 三件事：sticky、chip 的勾選外觀、以及工具列的兩側排版。
+ * ------------------------------------------------------------------ */
+
+/* 麵包屑是 container 內的第一行，跟底下的內容之間要有一個呼吸的距離 */
+.uq-breadcrumb {
+    display: block;
+    padding: 0.75rem 0 0.25rem;
+}
+
+/*
+ * 工具列。左側是導覽型控制（換一個就是換一批商品），右側是條件型控制
+ * （改的是同一批商品的呈現方式）；預設插槽的內容（篩選 chip 列）用
+ * flex: 0 0 100% 佔滿一整行，落到工具列下方。
+ */
+.uq-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0 0.5rem;
+}
+
+.uq-toolbar-start,
+.uq-toolbar-end {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.uq-toolbar-end {
+    margin-left: auto;
+}
+
+/* Tocas 給按鈕與按鈕群自帶左右 margin，跟 gap 疊起來間距會不一致 */
+.uq-toolbar .ts.button,
+.uq-toolbar .ts.buttons,
+.uq-toolbar .ts.dropdown,
+.uq-toolbar .ts.label {
+    margin: 0;
+}
+
+/* 手機一行放不下兩側，各自成一排比擠在一起好按 */
+@media (max-width: 767px) {
+
+    .uq-toolbar-start,
+    .uq-toolbar-end {
+        flex: 0 0 100%;
+        margin-left: 0;
+    }
+}
+
+/*
+ * 篩選的展開狀態。純 CSS，沒有 JavaScript 也能開合：勾選框藏起來、工具列裡的
+ * label 當按鈕、chip 列靠 :has() 跟著勾選狀態顯示或隱藏。網址帶 tags[] 時，
+ * blade 直接把勾選框標成 checked，一進頁面就是展開的。
+ *
+ * 這裡不用 <details>：實測 Chrome 152 上，把 details 設成 display: contents
+ * 之後它的內容不會變成外層 flex 容器的項目（flex: 0 0 100% 完全沒作用），
+ * 做不出「按鈕在工具列、chip 列跨整行」這個版面。
+ */
+.uq-filter-switch {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+}
+
+.uq-toolbar:has(.uq-filter-switch:not(:checked)) .uq-chip-row {
+    display: none;
+}
+
+.uq-filter-toggle {
+    cursor: pointer;
+}
+
+/* 焦點框是藏掉勾選框的代價，要在當按鈕用的 label 上補回來 */
+.uq-filter-switch:focus-visible+.uq-filter-toggle {
+    outline: 2px solid var(--uq-brand);
+    outline-offset: 2px;
+}
+
+.uq-chip-row {
+    flex: 0 0 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+.uq-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+/* 手機一行塞不下七個 chip，改成橫向捲動；套用與清除自己落到下一行才按得到 */
+@media (max-width: 767px) {
+    .uq-chips {
+        flex: 1 1 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .uq-chips>.uq-chip {
+        flex: 0 0 auto;
+    }
+}
+
+.uq-chip {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    /* .ts.label 自帶左右 margin，跟 gap 疊起來每一顆的間距會不一樣 */
+    margin: 0;
+    white-space: nowrap;
+}
+
+/*
+ * 勾選框是藏起來、不是拿掉：display: none 會讓它連鍵盤焦點都拿不到，整組篩選
+ * 就只剩滑鼠能用。作業系統原生的藍色勾選框跟站上的顏色也搭不起來，選中與否
+ * 改由 chip 本身的底色表示。
+ */
+.uq-chip input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+}
+
+.uq-chip:has(input:checked) {
+    background: var(--uq-brand) !important;
+    border-color: var(--uq-brand) !important;
+    color: #fff !important;
+}
+
+.uq-chip:has(input:focus-visible) {
+    outline: 2px solid var(--uq-brand);
+    outline-offset: 2px;
+}
+
+.uq-chip-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.uq-chip-actions .ts.button {
+    margin: 0;
+}
+
+/*
+ * 套用鍵原本是 primary，但 primary 的 cyan 在這個站是「特價」「歷史新低價」
+ * 那些狀態標籤的顏色，放在操作按鈕上會被讀成狀態。改用品牌紅，跟選中的 chip 同色。
+ */
+.uq-chip-apply,
+.uq-chip-apply:hover,
+.uq-chip-apply:focus,
+.uq-chip-apply:active {
+    background: var(--uq-brand);
+    border-color: var(--uq-brand);
+    color: #fff;
+}
+
+.uq-chip-apply:hover,
+.uq-chip-apply:focus,
+.uq-chip-apply:active {
+    background: var(--uq-brand-hover);
+    border-color: var(--uq-brand-hover);
+}
+
+/*
+ * 章節選單。Tocas 的 tabbed menu 是透明底又沒有 sticky，兩件都要補；
+ * horizontally scrollable 那個變體的規則明文排除 tabbed，橫向捲動也得自己寫。
+ */
+.uq-section-menu {
+    position: sticky;
+    top: var(--uq-nav-height);
+    z-index: 5;
+    background: #fff;
+    margin: 0 0 1rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+.uq-section-menu .item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.uq-section-menu .ts.mini.circular.label {
+    margin-left: 0.35rem;
+}
+
+/*
+ * 有 sticky 章節選單的頁面，錨點跳轉要多讓開選單本身的高度，不然跳過去的
+ * 標題會被它蓋住（master 版型的預設值只避開了 nav）。
+ */
+html:has(.uq-section-menu) {
+    scroll-padding-top: calc(var(--uq-nav-height) + var(--uq-section-menu-height) + 12px);
 }

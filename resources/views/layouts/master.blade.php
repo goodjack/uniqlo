@@ -122,6 +122,16 @@
         });
     </script>
     <script>
+        // 章節選單：每頁最多一個，有就把捲動監聽掛上去，active 才會跟著捲動走
+        const sectionMenu = document.querySelector('.uq-section-menu');
+
+        if (sectionMenu) {
+            ts('body').scrollspy({
+                target: '#' + sectionMenu.id
+            });
+        }
+    </script>
+    <script>
         const showOnPx = 100;
         const backToTopButton = document.querySelector(".back-to-top")
 
