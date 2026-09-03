@@ -42,7 +42,8 @@ class HmallProductServiceTest extends TestCase
 
         // Mock repositories
         $this->mockHmallRepository = $this->createMock(HmallProductRepository::class);
-        $this->mockHmallRepository->method('saveProductsFromV3')->willReturn(true);
+        // 回傳值是「這一頁有幾件商品寫失敗」，預設一件都沒失敗
+        $this->mockHmallRepository->method('saveProductsFromV3')->willReturn(0);
         $this->mockHmallRepository->method('setStockoutHmallProducts')->willReturn(true);
         $this->mockHmallRepository->method('updateProductDescriptionsFromV3')->willReturn(true);
 
@@ -371,6 +372,47 @@ class HmallProductServiceTest extends TestCase
         $this->service->fetchAllHmallProducts('UNIQLO');
 
         $this->assertEquals(2, $requestCount, 'Should fetch page 1 (25 >= 24) and page 2 (25 >= 24), stop at page 3 (25 < 48)');
+    }
+
+    /**
+     * 逐商品的寫入失敗要讓整頁不算完全成功。
+     *
+     * repository 對單一商品的 save、pivot sync 與價格歷史都包了 try/catch（一筆
+     * 壞資料不該讓同頁其他幾十件也寫不進去），但它原本只寫 log，整頁照樣回報成功、
+     * checkpoint 照樣推進。結果是缺貨判定會拿一份少了幾件的資料去判斷，那幾件
+     * 就被標成下架。
+     */
+    public function test_products_that_fail_to_save_make_the_run_partially_successful()
+    {
+        Cache::flush();
+
+        Http::fake([
+            '*' => Http::response([
+                'resp' => [
+                    [
+                        'productList' => [],
+                        'productSum' => 0,
+                    ],
+                ],
+            ]),
+        ]);
+
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        // 這一輪從第 1 頁開始、HTTP 全部成功，唯一的問題是有一件商品寫不進去
+        $repository = $this->createMock(HmallProductRepository::class);
+        $repository->method('saveProductsFromV3')->willReturn(1);
+        $repository->expects($this->never())->method('setStockoutHmallProducts');
+
+        $service = new HmallProductService($repository, $this->mockProductRepository);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->assertSame(
+            CrawlOutcome::PartiallySucceeded,
+            $service->fetchAllHmallProducts('UNIQLO')
+        );
     }
 
     public function test_all_pages_fail_preserves_checkpoint_and_skips_stockout()

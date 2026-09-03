@@ -105,7 +105,7 @@ class HmallProductService extends Service
             try {
                 $productSum = retry(
                     config('app.crawler.retry.times'),
-                    function ($attempts) use ($searchApiUrl, $brand, $page, $pageSize) {
+                    function ($attempts) use ($searchApiUrl, $brand, $page, $pageSize, &$hasFailures) {
                         $response = Http::withHeaders($this->buildHeaders())
                             ->throw()
                             ->post($searchApiUrl, [
@@ -130,7 +130,20 @@ class HmallProductService extends Service
                             throw new Exception("Product list does not exist. {$response->body()}");
                         }
 
-                        $this->repository->saveProductsFromV3($products, $brand);
+                        // 逐商品的寫入例外在 repository 裡被吞掉了（一筆壞資料不該
+                        // 讓同一頁其他幾十件寫不進去），但這一頁就不能再算完全成功：
+                        // 走既有的部分成功路徑，缺貨判定才不會拿殘缺的資料去判斷。
+                        $failedProducts = $this->repository->saveProductsFromV3($products, $brand);
+
+                        if ($failedProducts > 0) {
+                            $hasFailures = true;
+
+                            logger()->error('Some products on this page could not be saved', [
+                                'brand' => $brand,
+                                'page' => $page,
+                                'failed_products' => $failedProducts,
+                            ]);
+                        }
 
                         return $responseBody->resp[0]->productSum;
                     },

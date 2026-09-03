@@ -670,13 +670,22 @@ class HmallProductRepository extends Repository
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 
-    public function saveProductsFromV3($products, $brand = 'UNIQLO')
+    /**
+     * 寫入一頁商品，回傳寫失敗的筆數。
+     *
+     * 單一商品失敗不中斷整頁——一筆壞資料不該讓同一頁其他幾十件也寫不進去。
+     * 但失敗要讓呼叫端知道：這個回傳值是爬蟲判斷「這一頁到底算不算成功」的依據，
+     * 只寫 log 然後回報成功的話，缺貨判定會拿一份不完整的資料去做判斷。
+     */
+    public function saveProductsFromV3($products, $brand = 'UNIQLO'): int
     {
         // 分類主檔整批先寫，一頁商品只打一次資料庫，而不是每個商品各寫十幾筆。
         // 回傳的 code 對 id 對照表給下面掛關聯用，省掉每個商品各查一次。
         $categoryIds = $this->saveCategoriesFromV3($products, $brand);
 
-        collect($products)->each(function ($product) use ($brand, $categoryIds) {
+        $failedCount = 0;
+
+        collect($products)->each(function ($product) use ($brand, $categoryIds, &$failedCount) {
             try {
                 /** @var HmallProduct $model */
                 $model = $this->model->firstOrNew([
@@ -741,14 +750,18 @@ class HmallProductRepository extends Repository
                 $hmallPriceHistory->max_price = $model->max_price;
                 $model->hmallPriceHistories()->save($hmallPriceHistory);
             } catch (Throwable $e) {
+                $failedCount++;
+
                 Log::error('saveProductsFromHmall error', [
                     'brand' => $brand,
-                    'product_code' => $product->productCode,
+                    'product_code' => $product->productCode ?? null,
                 ]);
 
                 report($e);
             }
         });
+
+        return $failedCount;
     }
 
     public function setStockoutHmallProducts($brand = 'UNIQLO', $updatedIsBefore = null)

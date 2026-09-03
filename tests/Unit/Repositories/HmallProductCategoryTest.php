@@ -157,6 +157,28 @@ class HmallProductCategoryTest extends TestCase
     /**
      * 真實的官方回傳樣本（by-description 的兩筆商品）。
      */
+    /**
+     * 寫不進去的商品要被數出來回報，不能只寫 log 就當這一頁沒事。
+     */
+    public function test_reports_how_many_products_failed_to_save(): void
+    {
+        $products = $this->products();
+
+        // 價格欄位是 decimal，塞進不是數字的值會被 MySQL 擋下來（strict mode）
+        $products[0]->minPrice = '這不是價格';
+
+        $failedCount = $this->repository->saveProductsFromV3($products);
+
+        $this->assertSame(1, $failedCount);
+        // 同一頁其他商品照樣要寫進去，一筆壞資料不該拖垮整頁
+        $this->assertSame(count($products) - 1, HmallProduct::count());
+    }
+
+    public function test_reports_zero_when_every_product_saves(): void
+    {
+        $this->assertSame(0, $this->repository->saveProductsFromV3($this->products()));
+    }
+
     private function products(): array
     {
         $json = file_get_contents(base_path('tests/stubs/hmall-search-v3-response.json'));
