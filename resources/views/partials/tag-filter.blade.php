@@ -25,11 +25,15 @@
     @endforeach
 
     <details @if (!empty($selectedTags)) open @endif>
+        {{-- summary 長成旁邊那排品牌／排序按鈕的樣子，否則收合時只剩四個字、看不出可以點 --}}
         <summary>
-            篩選商品
-            @if (count($selectedTags))
-                <span class="ts mini circular label">已選 {{ count($selectedTags) }}</span>
-            @endif
+            <span class="ts small button tag-filter-toggle">
+                <i class="filter icon"></i>篩選商品
+                @if (count($selectedTags))
+                    <span class="ts mini circular label">已選 {{ count($selectedTags) }}</span>
+                @endif
+                <i class="dropdown icon tag-filter-caret"></i>
+            </span>
         </summary>
 
         <div class="tag-filter-options">
@@ -44,7 +48,7 @@
 
         <div class="tag-filter-actions">
             <span class="ts tiny disabled text">符合任一條件即顯示</span>
-            <button class="ts small primary button" type="submit">套用篩選</button>
+            <button class="ts small button tag-filter-apply" type="submit">套用篩選</button>
             @if (!empty($selectedTags))
                 <a class="ts small basic button"
                     href="{{ url()->current() }}{{ $otherParams ? '?' . http_build_query($otherParams) : '' }}">清除</a>
