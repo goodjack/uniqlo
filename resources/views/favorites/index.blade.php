@@ -31,15 +31,18 @@
                 'icon' => 'archive faded',
                 'title' => '收藏的商品都已經下架了',
                 'hint' => '官網已經買不到這些商品，可以把它們從收藏移除',
-                'slot' => '<button class="ts basic button" id="favorites-clear">清空收藏</button>',
+                'slot' => '<button class="ts basic button" data-favorites-clear>清空收藏</button>',
             ])
 
+            {{-- 載入失敗也要能清空：只給「重新載入」的話，一按就錯的狀態沒有出路 --}}
             @include('partials.empty-state', [
                 'attributes' => 'id="favorites-error" hidden',
                 'icon' => 'warning circle faded',
                 'title' => '暫時載入不到收藏',
                 'hint' => '收藏清單還在你的瀏覽器裡，沒有遺失',
-                'slot' => '<button class="ts basic button" id="favorites-retry">重新載入</button>',
+                'slot' =>
+                    '<button class="ts basic button" id="favorites-retry">重新載入</button>' .
+                    ' <button class="ts basic button" data-favorites-clear>清空收藏</button>',
             ])
 
             <div class="ts center aligned basic segment" id="favorites-loading">

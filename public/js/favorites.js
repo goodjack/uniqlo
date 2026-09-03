@@ -1,11 +1,20 @@
 /**
  * 收藏清單。
  *
- * 整份清單只存在使用者自己的瀏覽器，不會送到伺服器；伺服器只會收到一串商品編號
- * 用來換卡片。收藏時的價格也存在這裡，收藏頁靠它算出「跟你收藏時比降了多少」。
+ * 整份清單只存在使用者自己的瀏覽器，不會送到伺服器；伺服器只會收到一批品牌加
+ * 商品編號用來換卡片。每一筆只存品牌、商品編號與加入時間——收藏頁刻意不顯示
+ * 任何價格，所以這裡也沒有價格可以存。
  */
 window.UqFavorites = (function () {
     const STORAGE_KEY = 'uq-favorites';
+
+    /**
+     * 後端一次最多收 100 件，超過整批 422。收藏數量由使用者決定，所以這裡
+     * 分批送再把卡片接起來，不讓「收藏很多」變成整頁載入失敗。
+     */
+    const BATCH_SIZE = 100;
+
+    const DEFAULT_SUMMARY = '收藏只存在這個瀏覽器，換裝置看不到';
 
     /**
      * 隱私模式或使用者關掉網站資料時，localStorage 的存取本身就會丟例外，
@@ -55,6 +64,20 @@ window.UqFavorites = (function () {
         return has(brand, code);
     }
 
+    /**
+     * 明確地移除，不是切換。收藏頁的移除鈕不能用 toggle：使用者在另一個分頁
+     * 已經移掉同一件商品時，toggle 會把它加回去。
+     *
+     * 回傳是否真的寫進去了，呼叫端才能決定要不要動畫面。
+     */
+    function remove(brand, code) {
+        const favorites = read();
+
+        delete favorites[keyOf(brand, code)];
+
+        return write(favorites);
+    }
+
     function items() {
         return Object.values(read()).map(function (item) {
             return { brand: item.brand, code: item.code };
@@ -86,30 +109,32 @@ window.UqFavorites = (function () {
      * 綁定每一列的移除按鈕。
      *
      * 移除後只把那一列從畫面拿掉，不重新跟伺服器要一次——清單本來就在瀏覽器裡，
-     * 沒有需要重新對齊的狀態。
+     * 沒有需要重新對齊的狀態。onChange 收到的是畫面上還剩幾列。
      */
-    function bindRemoveButtons(container, onEmpty) {
+    function bindRemoveButtons(container, onChange) {
         container.querySelectorAll('[data-favorite-remove]').forEach(function (control) {
-            const remove = function (event) {
+            const removeRow = function (event) {
                 event.preventDefault();
                 event.stopPropagation();
 
-                toggle(control.dataset.brand, control.dataset.code);
+                // 寫不進去就不要動畫面：那一件其實還在收藏裡，重新整理會再出現
+                if (!remove(control.dataset.brand, control.dataset.code)) {
+                    return;
+                }
+
                 const row = control.closest('[data-favorite-key]');
 
                 if (row) {
                     row.remove();
                 }
 
-                if (container.querySelectorAll('[data-favorite-key]').length === 0) {
-                    onEmpty();
-                }
+                onChange(container.querySelectorAll('[data-favorite-key]').length);
             };
 
-            control.addEventListener('click', remove);
+            control.addEventListener('click', removeRow);
             control.addEventListener('keydown', function (event) {
                 if (event.key === 'Enter' || event.key === ' ') {
-                    remove(event);
+                    removeRow(event);
                 }
             });
         });
@@ -139,31 +164,17 @@ window.UqFavorites = (function () {
         }
     }
 
-    async function renderPage(options) {
-        const container = document.getElementById('favorites-cards');
-        const loading = document.getElementById('favorites-loading');
-        const summary = document.getElementById('favorites-summary');
-        const wanted = items();
+    function summaryFor(count) {
+        return '共 ' + count + ' 件，只存在這個瀏覽器';
+    }
 
-        loading.hidden = true;
-        container.innerHTML = '';
-
-        document.getElementById('favorites-retry').onclick = function () {
-            renderPage(options);
-        };
-        document.getElementById('favorites-clear').onclick = function () {
-            write({});
-            showState('favorites-empty', '收藏只存在這個瀏覽器，換裝置看不到');
-        };
-
-        if (wanted.length === 0) {
-            showState('favorites-empty', '收藏只存在這個瀏覽器，換裝置看不到');
-            return;
-        }
-
+    /**
+     * 一批一批換卡片，任一批失敗就整個失敗——只渲染一半的清單比讀不到更難懂。
+     */
+    async function fetchCards(options, wanted) {
         let html = '';
 
-        try {
+        for (let start = 0; start < wanted.length; start += BATCH_SIZE) {
             const response = await fetch(options.cardsUrl, {
                 method: 'POST',
                 headers: {
@@ -171,25 +182,65 @@ window.UqFavorites = (function () {
                     'X-CSRF-TOKEN': options.csrfToken,
                     'X-Requested-With': 'XMLHttpRequest',
                 },
-                body: JSON.stringify({ items: wanted }),
+                body: JSON.stringify({ items: wanted.slice(start, start + BATCH_SIZE) }),
             });
 
             if (!response.ok) {
                 throw new Error('HTTP ' + response.status);
             }
 
-            html = await response.text();
+            html += await response.text();
+        }
+
+        return html;
+    }
+
+    async function renderPage(options) {
+        const container = document.getElementById('favorites-cards');
+        const loading = document.getElementById('favorites-loading');
+        const summary = document.getElementById('favorites-summary');
+        const wanted = items();
+
+        container.innerHTML = '';
+        showState(null);
+
+        document.getElementById('favorites-retry').onclick = function () {
+            renderPage(options);
+        };
+
+        // 清空鈕在「都已下架」與「載入失敗」兩種狀態各有一顆，所以用屬性不用 id
+        document.querySelectorAll('[data-favorites-clear]').forEach(function (button) {
+            button.onclick = function () {
+                write({});
+                container.innerHTML = '';
+                showState('favorites-empty', DEFAULT_SUMMARY);
+            };
+        });
+
+        if (wanted.length === 0) {
+            loading.hidden = true;
+            showState('favorites-empty', DEFAULT_SUMMARY);
+
+            return;
+        }
+
+        // 「載入中」要在等回應的時候看得到，所以顯示與收起都夾著 fetch
+        loading.hidden = false;
+
+        let html;
+
+        try {
+            html = await fetchCards(options, wanted);
         } catch (e) {
             showState('favorites-error', '收藏清單還在你的瀏覽器裡');
+
             return;
+        } finally {
+            loading.hidden = true;
         }
 
         container.innerHTML = html;
         revealLazyImages(container);
-
-        bindRemoveButtons(container, function () {
-            showState('favorites-empty', '收藏只存在這個瀏覽器，換裝置看不到');
-        });
 
         // 商品可能已經下架，回來的卡片會比收藏的少
         const rendered = container.querySelectorAll('[data-favorite-key]');
@@ -197,19 +248,50 @@ window.UqFavorites = (function () {
         // 有收藏、但回來的卡片是空的，代表那些商品都下架了
         if (rendered.length === 0) {
             showState('favorites-gone');
+
             return;
         }
 
+        bindRemoveButtons(container, function (remaining) {
+            if (remaining > 0) {
+                summary.textContent = summaryFor(remaining);
+
+                return;
+            }
+
+            /*
+             * 畫面上沒有列了不代表收藏是空的：下架的商品換不到卡片，本來就
+             * 不會出現在畫面上。判準要看 localStorage 還剩幾筆，否則 5 筆收藏
+             * 有 3 筆下架時，移完 2 列會說「還沒有收藏任何商品」，重新整理
+             * 又變成「都已下架」。
+             */
+            if (items().length === 0) {
+                showState('favorites-empty', DEFAULT_SUMMARY);
+
+                return;
+            }
+
+            showState('favorites-gone');
+        });
+
         showState(null);
 
-        summary.textContent = '共 ' + rendered.length + ' 件，只存在這個瀏覽器';
+        summary.textContent = summaryFor(rendered.length);
     }
 
     function bindAll() {
         document.querySelectorAll('[data-favorite-button]').forEach(bindButton);
     }
 
-    return { has: has, toggle: toggle, items: items, bindButton: bindButton, bindAll: bindAll, renderPage: renderPage };
+    return {
+        has: has,
+        toggle: toggle,
+        remove: remove,
+        items: items,
+        bindButton: bindButton,
+        bindAll: bindAll,
+        renderPage: renderPage,
+    };
 })();
 
 document.addEventListener('DOMContentLoaded', function () {
