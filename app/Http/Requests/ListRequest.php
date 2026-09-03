@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\Brand;
 use App\Enums\ProductTag;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -26,7 +27,8 @@ class ListRequest extends FormRequest
     public function rules()
     {
         return [
-            'brand' => 'nullable|in:UNIQLO,GU',
+            // 可選的品牌就是 Brand enum 的那兩個，不另外維護一份字串清單
+            'brand' => ['nullable', Rule::enum(Brand::class)],
             'sort' => 'nullable|in:price-asc',
             'tags' => 'nullable|array|max:'.count(ProductTag::cases()),
             // 可選的標籤就是 enum 定義的那些，不另外維護一份清單。

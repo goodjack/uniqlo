@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Brand;
 use App\Repositories\HmallProductRepository;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class FavoriteController extends Controller
 {
@@ -39,7 +41,7 @@ class FavoriteController extends Controller
     {
         $validated = $request->validate([
             'items' => ['required', 'array', 'max:'.self::MAX_CODES],
-            'items.*.brand' => ['required', 'string', 'in:UNIQLO,GU'],
+            'items.*.brand' => ['required', Rule::enum(Brand::class)],
             'items.*.code' => ['required', 'string', 'max:191'],
         ]);
 

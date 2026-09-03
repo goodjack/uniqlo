@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\Brand;
 use App\Enums\CrawlOutcome;
 use App\Events\AppTaskFailed;
 use Illuminate\Console\Command;
@@ -9,30 +10,6 @@ use Throwable;
 
 class AppSchedule extends Command
 {
-    /**
-     * 每日排程的步驟，順序即執行順序。
-     *
-     * 前面的爬蟲失敗不會擋住後面的快取重建與 sitemap：資料庫裡還有昨天的完整資料，
-     * 讓快取跟著資料庫走，比讓整條排程斷在第一步安全。
-     */
-    private const STEPS = [
-        ['hmall-product:fetch', ['brand' => 'UNIQLO']],
-        ['hmall-product:fetch', ['brand' => 'GU']],
-        ['hmall-product-description:fetch', ['brand' => 'UNIQLO']],
-        ['hmall-product-description:fetch', ['brand' => 'GU']],
-        ['japan-product:fetch', ['brand' => 'UNIQLO']],
-        ['japan-product:fetch', ['brand' => 'GU']],
-        ['hmall-product:cache'],
-        ['hmall-product:cache-most-visited'],
-        ['sitemap:generate'],
-        ['style:fetch', ['brand' => 'UNIQLO']],
-        ['style:fetch', ['brand' => 'GU']],
-        ['style-hint:fetch', ['country' => 'us']],
-        ['style-hint:fetch', ['country' => 'jp']],
-        ['style-hint-ugc:fetch', ['brand' => 'UNIQLO', '--only-recent' => true, '--is-scheduled' => true]],
-        ['style-hint-ugc:fetch', ['brand' => 'GU', '--only-recent' => true, '--is-scheduled' => true]],
-    ];
-
     /**
      * The name and signature of the console command.
      *
@@ -52,9 +29,10 @@ class AppSchedule extends Command
      */
     public function handle(): int
     {
+        $steps = self::steps();
         $failedSteps = [];
 
-        foreach (self::STEPS as $step) {
+        foreach ($steps as $step) {
             $command = $step[0];
             $arguments = $step[1] ?? [];
 
@@ -69,9 +47,41 @@ class AppSchedule extends Command
             return self::SUCCESS;
         }
 
-        $this->reportFailures($failedSteps);
+        $this->reportFailures($failedSteps, count($steps));
 
         return self::FAILURE;
+    }
+
+    /**
+     * 每日排程的步驟，順序即執行順序。
+     *
+     * 前面的爬蟲失敗不會擋住後面的快取重建與 sitemap：資料庫裡還有昨天的完整資料，
+     * 讓快取跟著資料庫走，比讓整條排程斷在第一步安全。
+     *
+     * 寫成方法而不是 const：const 運算式要到 PHP 8.3 才能取 enum 的 ->value，
+     * 而 composer.json 宣告支援的是 ^8.1。
+     *
+     * @return array<int, array{0: string, 1?: array<string, mixed>}>
+     */
+    private static function steps(): array
+    {
+        return [
+            ['hmall-product:fetch', ['brand' => Brand::Uniqlo->value]],
+            ['hmall-product:fetch', ['brand' => Brand::Gu->value]],
+            ['hmall-product-description:fetch', ['brand' => Brand::Uniqlo->value]],
+            ['hmall-product-description:fetch', ['brand' => Brand::Gu->value]],
+            ['japan-product:fetch', ['brand' => Brand::Uniqlo->value]],
+            ['japan-product:fetch', ['brand' => Brand::Gu->value]],
+            ['hmall-product:cache'],
+            ['hmall-product:cache-most-visited'],
+            ['sitemap:generate'],
+            ['style:fetch', ['brand' => Brand::Uniqlo->value]],
+            ['style:fetch', ['brand' => Brand::Gu->value]],
+            ['style-hint:fetch', ['country' => 'us']],
+            ['style-hint:fetch', ['country' => 'jp']],
+            ['style-hint-ugc:fetch', ['brand' => Brand::Uniqlo->value, '--only-recent' => true, '--is-scheduled' => true]],
+            ['style-hint-ugc:fetch', ['brand' => Brand::Gu->value, '--only-recent' => true, '--is-scheduled' => true]],
+        ];
     }
 
     /**
@@ -140,18 +150,18 @@ class AppSchedule extends Command
     /**
      * @param  array<int, string>  $failedSteps
      */
-    private function reportFailures(array $failedSteps): void
+    private function reportFailures(array $failedSteps, int $totalSteps): void
     {
-        $this->error(sprintf('%d of %d scheduled steps failed', count($failedSteps), count(self::STEPS)));
+        $this->error(sprintf('%d of %d scheduled steps failed', count($failedSteps), $totalSteps));
 
         logger()->error('Daily schedule finished with failures', [
             'failed_steps' => $failedSteps,
-            'total_steps' => count(self::STEPS),
+            'total_steps' => $totalSteps,
         ]);
 
         AppTaskFailed::dispatch(class_basename(__CLASS__), null, null, [
             'failed_steps' => $failedSteps,
-            'total_steps' => count(self::STEPS),
+            'total_steps' => $totalSteps,
         ]);
     }
 }

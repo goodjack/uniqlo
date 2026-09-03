@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Console\ClosureCommand;
 use Illuminate\Support\Facades\Event;
-use ReflectionClass;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class AppScheduleTest extends TestCase
@@ -147,15 +147,13 @@ class AppScheduleTest extends TestCase
     }
 
     /**
-     * 依 AppSchedule::STEPS 的順序取出指令名，排程增減步驟時測試自動跟上。
+     * 依 AppSchedule::steps() 的順序取出指令名，排程增減步驟時測試自動跟上。
      *
      * @return array<int, string>
      */
     private function stepCommands(): array
     {
-        $steps = (new ReflectionClass(AppSchedule::class))
-            ->getReflectionConstant('STEPS')
-            ->getValue();
+        $steps = (new ReflectionMethod(AppSchedule::class, 'steps'))->invoke(null);
 
         return array_map(fn (array $step) => $step[0], $steps);
     }
