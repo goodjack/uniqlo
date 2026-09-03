@@ -17,6 +17,7 @@
          * 那組規則的權重比這裡高、會蓋掉下面的寬度設定。
          */
         .home-product-row.ts.cards {
+            --home-row-gap: 1rem;
             flex-wrap: nowrap;
             overflow-x: auto;
             overscroll-behavior-x: contain;
@@ -43,15 +44,24 @@
             }
         }
 
+        /*
+         * 桌機一次剛好放六張整卡，第七張以後才要捲。半截的卡片在手機是「可以滑」
+         * 的提示，在桌機沒有這個意思——macOS 的 overlay 捲軸平常不顯示，看起來
+         * 就只是版面爆掉。
+         *
+         * Tocas 給 .ts.cards>.card 的間距是 margin 不是 gap，用百分比算六等分
+         * 永遠會差那圈 margin，所以這一檔改成容器出 gap、卡片左右 margin 歸零，
+         * 寬度才除得盡。
+         */
         @media (min-width: 992px) {
-            .home-product-row.ts.cards>.card {
-                width: 21%;
+            .home-product-row.ts.cards {
+                column-gap: var(--home-row-gap);
             }
-        }
 
-        @media (min-width: 1200px) {
             .home-product-row.ts.cards>.card {
-                width: 16.2%;
+                margin-left: 0;
+                margin-right: 0;
+                width: calc((100% - 5 * var(--home-row-gap)) / 6);
             }
         }
     </style>
