@@ -149,6 +149,20 @@
             ts('body').scrollspy({
                 target: '#' + sectionMenu.id
             });
+
+            // scrollspy 判斷 active 的條件是「這一段的錨點捲到離容器頂 10px 以
+            // 內」，初始化當下就算對每個錨點都跑過一次同樣的判斷，頁面剛載入、
+            // 使用者還沒捲動時第一段通常在畫面中段而不是頂端，條件不成立，選單
+            // 就完全沒有 active、看起來像純文字。這裡補上：初始化後如果還沒有
+            // 任何一項是 active，先讓第一項頂著，之後使用者一捲動就交還給
+            // scrollspy 接手（它會依實際位置正確地加或拿掉 active）。
+            if (!sectionMenu.querySelector('.item.active')) {
+                const firstItem = sectionMenu.querySelector('.item');
+
+                if (firstItem) {
+                    firstItem.classList.add('active');
+                }
+            }
         }
     </script>
     <script>

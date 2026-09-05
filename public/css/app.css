@@ -337,6 +337,19 @@ i.most-visited.icon {
 }
 
 /*
+ * Tocas 的 tabbed active 樣式很淡：底色跟選單本身一樣是白色，只剩一圈很淺的
+ * 邊框加粗體，在這個選單裡幾乎看不出來哪一項是 active。改用品牌色頂一條線、
+ * 文字也換成品牌色，跟站上其他「目前選中」的標記（篩選 chip、排序按鈕）同一
+ * 套視覺語言。Tocas 自己的 active 規則有四層 .active 疊出來的高特異性，這裡要
+ * 用 !important 才蓋得過去。
+ */
+.uq-section-menu .ts.menu.tabbed .item.active {
+    color: var(--uq-brand) !important;
+    font-weight: 700 !important;
+    border-bottom: 2px solid var(--uq-brand) !important;
+}
+
+/*
  * 捲動監聽的錨點。tocas.js 是在錨點捲到視窗頂端 10px 以內才把選單項目標成
  * active，而頁面頂端有固定導覽列與 sticky 章節選單；直接拿標題當錨點的話，
  * 標題得先整個滑進選單底下、再往上捲一百多 px 才會換 active（實測點了「女裝」
