@@ -19,12 +19,12 @@
 @if (count($items) > 1)
     <div class="uq-section-menu">
         <div class="{{ $fluid ? 'ts container' : 'uq-section-menu-inner' }}">
-            <div class="ts small tabbed menu" id="{{ $id }}">
+            <div class="ts pointing secondary menu" id="{{ $id }}">
                 @foreach ($items as $item)
                     <a class="item" href="#{{ $item['anchor'] }}">
                         {{ $item['label'] }}
                         @isset($item['count'])
-                            <div class="ts mini circular label">{{ $item['count'] }}</div>
+                            <span class="uq-count">{{ $item['count'] }}</span>
                         @endisset
                     </a>
                 @endforeach

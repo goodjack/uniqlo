@@ -613,45 +613,65 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
 }
 
 /*
- * 章節選單。Tocas 的 tabbed menu 是透明底又沒有 sticky，兩件都要補；
- * horizontally scrollable 那個變體的規則明文排除 tabbed，橫向捲動也得自己寫。
+ * 章節選單。用 Tocas 的 pointing secondary menu 當底：它已經有「目前這一段」
+ * 的底線語彙，剩下的三件事要自己補——sticky、橫向捲動、以及顏色換成站上的
+ * 品牌紅（Tocas 給的是 #404040 深灰，跟沒有 active 幾乎看不出差別）。
+ *
+ * 覆寫一律疊到 .ts.menu.pointing.secondary 才寫得動：Tocas 自己的規則就是四個
+ * class 起跳（.ts.menu.pointing.secondary .item 是五個），只寫 .uq-section-menu
+ * .item 兩個 class 的話 padding 與 margin 都會靜靜地被它蓋掉，選單高度就跟
+ * --uq-section-menu-height 對不起來、錨點跳轉會偏。
  */
 .uq-section-menu {
     position: sticky;
     top: var(--uq-nav-height);
-    z-index: 5;
-    background: #fff;
+    z-index: 10;
     margin: 0 0 1rem;
+    border-bottom: 1px solid var(--uq-line);
+    background: #fff;
 }
 
-.uq-section-menu .ts.menu {
+.uq-section-menu .ts.menu.pointing.secondary {
     margin: 0;
+    /* 那條 1px 灰線改掛在 sticky 的外層，橫著跨整頁比只跨 container 好看 */
+    border-bottom: 0;
     flex-wrap: nowrap;
     overflow-x: auto;
-    scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
+    font-size: 14px;
+    white-space: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
-.uq-section-menu .item {
+.uq-section-menu .ts.menu.pointing.secondary::-webkit-scrollbar {
+    display: none;
+}
+
+.uq-section-menu .ts.menu.pointing.secondary .item {
     flex: 0 0 auto;
+    margin: 0 24px 0 0;
+    padding: 12px 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--uq-text);
+    /* 明寫行高，選單高度才算得出來：20 + 12 + 12 + 1px 底線 = 45px */
+    line-height: 20px;
     white-space: nowrap;
 }
 
-.uq-section-menu .ts.mini.circular.label {
-    margin-left: 0.35rem;
+/*
+ * Tocas 的底線是 .item.active:before 一塊絕對定位在 item 盒子外面（bottom: -2px）
+ * 的方塊，而這個選單為了手機橫向捲動有 overflow-x: auto，盒子外的東西會被裁掉。
+ * 改用 inset 陰影畫在 item 自己的底部 2px，剛好疊在外層那條灰線上面。
+ */
+.uq-section-menu .ts.menu.pointing.secondary .item:before {
+    display: none;
 }
 
-/*
- * Tocas 的 tabbed active 樣式很淡：底色跟選單本身一樣是白色，只剩一圈很淺的
- * 邊框加粗體，在這個選單裡幾乎看不出來哪一項是 active。改用品牌色頂一條線、
- * 文字也換成品牌色，跟站上其他「目前選中」的標記（篩選 chip、排序按鈕）同一
- * 套視覺語言。Tocas 自己的 active 規則有四層 .active 疊出來的高特異性，這裡要
- * 用 !important 才蓋得過去。
- */
-.uq-section-menu .ts.menu.tabbed .item.active {
-    color: var(--uq-brand) !important;
-    font-weight: 700 !important;
-    border-bottom: 2px solid var(--uq-brand) !important;
+.uq-section-menu .ts.menu.pointing.secondary .item.active {
+    box-shadow: inset 0 -2px 0 var(--uq-brand);
+    color: var(--uq-ink);
+    font-weight: 600;
 }
 
 /*
