@@ -490,6 +490,30 @@ i.most-visited.icon {
 }
 
 /*
+ * 桌機：start 的 pill 一多（分類頁最多到八顆）就會比 end 先撐爆一整行的
+ * 寬度。.uq-toolbar 預設的 flex-wrap: wrap 這時會判定「這一行放不下」，
+ * 把 end 整顆擠去下一行、自己單獨佔一排——但其實只要讓 start 自己內部
+ * 換行就夠了。做法：容器改 nowrap 逼 start／end 留在同一排，start 用
+ * flex: 1 1 auto 吃滿剩餘寬度、多出來的 pill 靠自己的 flex-wrap: wrap
+ * 換到第二行，end 用 flex: 0 0 auto 固定寬度、留在第一排最右邊；
+ * align-items 改頂端對齊，start 換行變高時 end 才不會被拉去置中。
+ */
+@media (min-width: 768px) {
+    .uq-toolbar {
+        flex-wrap: nowrap;
+        align-items: flex-start;
+    }
+
+    .uq-toolbar-start {
+        flex: 1 1 auto;
+    }
+
+    .uq-toolbar-end {
+        flex: 0 0 auto;
+    }
+}
+
+/*
  * 手機一行放不下兩側，各自成一排；那一排自己橫向捲動而不是換行，工具列才
  * 不會愈長愈高把商品擠下去。捲軸藏起來——macOS 的 overlay 捲軸平常本來就
  * 不顯示，其他平台留一條灰槓在這裡只是雜訊。
