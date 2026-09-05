@@ -21,7 +21,7 @@ class ListController extends Controller
         return $this->getList(
             $hmallProducts,
             $listRequest,
-            '商品期間限定特價中',
+            '期間限定特價',
             'negative',
             'certificate',
             '依特價幅度排序'
@@ -35,7 +35,7 @@ class ListController extends Controller
         return $this->getList(
             $hmallProducts,
             $listRequest,
-            '商品特價中',
+            '特價商品',
             'primary',
             'shopping basket',
             '依特價幅度排序'
@@ -49,7 +49,7 @@ class ListController extends Controller
         return $this->getList(
             $hmallProducts,
             $listRequest,
-            '熱門評論商品',
+            '熱門評論',
             'most-reviewed',
             'comments outline',
             '依評論數排序'
@@ -63,7 +63,7 @@ class ListController extends Controller
         return $this->getList(
             $hmallProducts,
             $listRequest,
-            '日本熱門評論商品',
+            '日本熱門評論',
             'most-reviewed',
             'comments outline',
             '依日本評論數排序，卡片上顯示的是日本的評分與評論數',
@@ -78,7 +78,7 @@ class ListController extends Controller
         return $this->getList(
             $hmallProducts,
             $listRequest,
-            '熱門穿搭商品',
+            '熱門穿搭',
             'top-wearing',
             'camera retro',
             '依網友穿搭數排序'
@@ -106,7 +106,7 @@ class ListController extends Controller
         return $this->getList(
             $hmallProducts,
             $listRequest,
-            '即將上市商品',
+            '即將上市',
             'coming-soon',
             'checked calendar',
             '依特價幅度排序'
@@ -134,7 +134,7 @@ class ListController extends Controller
         return $this->getList(
             $hmallProducts,
             $listRequest,
-            '網路獨家販售商品',
+            '網路獨家',
             'online-special',
             'tv',
             '依特價幅度排序'
@@ -148,7 +148,7 @@ class ListController extends Controller
         return $this->getList(
             $hmallProducts,
             $listRequest,
-            '熱門瀏覽商品',
+            '熱門瀏覽',
             'most-visited',
             'chart line',
             '依瀏覽次數排序',
