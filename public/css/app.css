@@ -342,8 +342,12 @@ i.most-visited.icon {
     color: rgba(255, 255, 255, 0.72);
 }
 
-/* 分頁。三顆 .uq-control 並排，跟工具列上的控制項長成同一個樣子 */
-.uq-pagination {
+/*
+ * 分頁。三顆 .uq-control 並排，跟工具列上的控制項長成同一個樣子。
+ * 選擇器要疊到 .ts.segment：它自己就設了 display: block，只寫一個 class 的話
+ * flex 不會生效，三顆之間的距離會變成 inline 元素之間那個空白字元。
+ */
+.ts.segment.uq-pagination {
     display: flex;
     justify-content: center;
     gap: 8px;
