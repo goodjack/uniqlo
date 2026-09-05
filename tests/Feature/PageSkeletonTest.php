@@ -199,7 +199,8 @@ class PageSkeletonTest extends TestCase
      */
     public function test_a_long_description_is_rendered_and_clamped(): void
     {
-        $this->seedProduct(['instruction' => str_repeat('這是一段夠長的商品說明文字。', 20)]);
+        // 收合框是八行左右，這裡塞四十段、遠超過門檻，估算再怎麼保守都會收合
+        $this->seedProduct(['instruction' => str_repeat('這是一段夠長的商品說明文字。', 40)]);
 
         $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
             ->assertOk()
@@ -208,6 +209,58 @@ class PageSkeletonTest extends TestCase
         $this->assertSame(1, $this->countNodes($content, '//*[contains(@class, "uq-description")]'));
         $this->assertSame(1, $this->countNodes($content, '//div[@class="uq-clamp"]'), '桌機收合的外層');
         $this->assertSame(1, $this->countNodes($content, '//details[contains(@class, "uq-clamp-more")]'));
+    }
+
+    /**
+     * 收合框是 200px、大約八行。說明短到收起來也遮不住東西的時候不該長出
+     * 「顯示更多」——那顆按下去畫面不會變。
+     *
+     * 說明裡常常一行一句，所以行數要照 <br> 拆開來估，不能只乘字數：這一段
+     * 只有三十幾個字，但它是十行。
+     */
+    public function test_a_short_description_is_not_clamped(): void
+    {
+        $this->seedProduct(['instruction' => '這是一段短說明。']);
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, $this->countNodes($content, '//*[contains(@class, "uq-description")]'));
+        $this->assertSame(0, $this->countNodes($content, '//div[@class="uq-clamp"]'), '短說明不該收合');
+
+        $this->seedShortLinesProduct();
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990002']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, $this->countNodes($content, '//div[@class="uq-clamp"]'), '十行的說明要收合');
+    }
+
+    /**
+     * 期間限定的截止日那一行只在檔期內出現。它跟「期間限定特價」那個標籤讀的是
+     * 同一個時間窗（limited_offer_end_date 這個 accessor 檔期外回傳 null），
+     * 檔期過了不會剩一行日期孤零零掛在價格底下。
+     */
+    public function test_the_limited_offer_deadline_only_shows_within_the_offer_window(): void
+    {
+        $this->seedProduct([
+            'time_limited_begin' => now()->subDays(10),
+            'time_limited_end' => now()->subDay(),
+        ]);
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-price-note")]'), '檔期過了不該留下截止日');
+        // 整頁比對抓不到：頁尾的導覽本來就有「期間限定特價商品」這個入口
+        $this->assertSame(
+            0,
+            $this->countNodes($content, '//*[contains(@class, "uq-price-row")]//*[contains(@class, "uq-label")]'),
+            '檔期過了價格旁邊也不該有期間限定的標籤'
+        );
     }
 
     public function test_a_product_without_a_description_renders_no_description_block(): void
@@ -299,6 +352,19 @@ class PageSkeletonTest extends TestCase
             $category = HmallCategory::where('brand', 'UNIQLO')->where('code', $code)->firstOrFail();
             $product->categories()->attach($category->id, ['sort' => $sort]);
         }
+    }
+
+    /**
+     * 一行一句、總共十行的說明。字數只有三十幾個，但排出來是十行——行數的估算
+     * 要照 <br> 拆才抓得到這種。
+     */
+    private function seedShortLinesProduct(): void
+    {
+        $this->seedProduct([
+            'product_code' => 'u990002',
+            'code' => '990002',
+            'instruction' => implode('<br>', array_fill(0, 10, '短短一行')),
+        ]);
     }
 
     private function createCategory(

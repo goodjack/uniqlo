@@ -64,12 +64,23 @@
     );
 
     /*
-     * 說明是空的就整塊不渲染（本機的資料就是這樣，正式機有）。夠長才收合：
-     * 兩三行的說明長出一顆「顯示更多」比直接攤開還煩。
+     * 說明是空的就整塊不渲染（本機的資料就是這樣，正式機有）。
+     *
+     * 夠長才收合，而且門檻要抓在「收起來真的會遮住東西」那條線上：收合框是
+     * 200px、行高 23.8px，大約八行；右欄桌機約 630px 寬、14px 的中文一行放得下
+     * 四十幾個字。字數乘一乘就好的話會漏掉 <br>——說明裡常常一行一句，一百字
+     * 可能就已經十行了，所以照 <br> 拆開來一段一段估行數。
+     *
+     * 這是估算不是量測，寧可保守：門檻沒到就整段攤開，最多是右欄長一點；估錯
+     * 方向的另一邊是長出一顆按了畫面不會變的「顯示更多」。
      */
     $descriptionText = trim(strip_tags($descriptionHtml));
     $hasDescription = $descriptionText !== '';
-    $isLongDescription = mb_strlen($descriptionText) > 160;
+
+    $descriptionLines = collect(preg_split('/<br\s*\/?>/i', $descriptionHtml))
+        ->map(fn ($line) => max(1, (int) ceil(mb_strlen(trim(strip_tags($line))) / 42)))
+        ->sum();
+    $isLongDescription = $descriptionLines > 8;
 
     /*
      * 章節選單的項目要跟底下真的渲染出來的區段一致，所以條件跟各區段的 @if 同一份。
@@ -288,6 +299,8 @@
                         @endforeach
                     </div>
 
+                    {{-- limited_offer_end_date 這個 accessor 本身就只在檔期內回傳日期，檔期過了是 null， --}}
+                    {{-- 所以這一行不會在沒有「期間限定特價」標籤的時候單獨留著 --}}
                     @if ($hmallProduct->limited_offer_end_date)
                         <div class="uq-price-note">{{ $hmallProductPresenter->getLimitedOfferMessage($hmallProduct) }}</div>
                     @endif
