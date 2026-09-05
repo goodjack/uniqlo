@@ -79,6 +79,17 @@
     outline-offset: 2px;
 }
 
+/*
+ * Tocas 有一條 a:focus,a:active{border:0}，權重比單一個 class 高，連結型的控制項
+ * （品牌 pill、子分類 pill）一被聚焦整圈邊框就消失、寬高跟著縮 2px。這裡只補回
+ * 線寬與線型，顏色留給 .active 之類的規則自己決定。
+ */
+a.uq-control:focus,
+a.uq-control:active {
+    border-width: 1px;
+    border-style: solid;
+}
+
 /* 品牌切換與子分類的入口。選中的那顆用深色實心，跟站上其他強調色分工 */
 .uq-pill.active {
     background: var(--uq-ink);
@@ -151,7 +162,7 @@
  * 商品頁的商品資訊。用 <dl> 不用 <table>：這是一組名稱與值的對照，不是有列
  * 有欄的表格；桌機兩欄排，手機自己掉回一欄。
  */
-.uq-facts {
+dl.uq-facts {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     column-gap: 24px;
@@ -233,6 +244,12 @@
 
 .uq-clamp-more>summary::-webkit-details-marker {
     display: none;
+}
+
+/* Tocas 有 details,summary{outline:none}，鍵盤走到這顆會完全看不出焦點在哪 */
+.uq-clamp-more>summary:focus-visible {
+    outline: 2px solid var(--uq-brand);
+    outline-offset: 2px;
 }
 
 /* 兩段文字都擺著、用開合狀態切換，比 ::after 的 content 可靠：讀螢幕讀得到真的文字 */
@@ -325,42 +342,26 @@ i.most-visited.icon {
     color: rgba(255, 255, 255, 0.72);
 }
 
-/*
- * 分頁。跟工具列上的控制項對齊高度、字級與圓角，一頁上只有一種按鈕的樣子。
- * 選擇器要疊到 .ts.buttons .button 才寫得動 Tocas 給群組成員的規則。
- */
-.uq-pagination .ts.buttons .button {
-    display: inline-flex;
-    align-items: center;
+/* 分頁。三顆 .uq-control 並排，跟工具列上的控制項長成同一個樣子 */
+.uq-pagination {
+    display: flex;
     justify-content: center;
-    box-sizing: border-box;
-    height: var(--uq-control-h);
-    min-height: 0;
-    padding: 0 16px;
-    border-color: var(--uq-line);
-    background: #fff;
-    color: var(--uq-text);
-    font-size: 13px;
-    box-shadow: none;
+    gap: 8px;
 }
 
-.uq-pagination .ts.buttons .button:first-child {
-    border-top-left-radius: 999px;
-    border-bottom-left-radius: 999px;
+.uq-pagination-current {
+    color: var(--uq-muted);
+    cursor: default;
 }
 
-.uq-pagination .ts.buttons .button:last-child {
-    border-top-right-radius: 999px;
-    border-bottom-right-radius: 999px;
-}
-
-.uq-pagination .ts.buttons a.button:hover {
-    border-color: var(--uq-muted);
-    color: var(--uq-ink);
-}
-
-.uq-pagination .ts.buttons .disabled.button {
+.uq-pagination-disabled {
     color: var(--uq-line);
+    cursor: default;
+}
+
+.uq-pagination-disabled:hover,
+.uq-pagination-current:hover {
+    border-color: var(--uq-line);
 }
 
 /*
@@ -426,7 +427,7 @@ i.most-visited.icon {
  * 麵包屑。只有分類頁與商品頁有，位置固定在 container 內的第一行。整條都是
  * 灰的：它是回頭路不是這一頁的主角，顏色一重就會跟底下的標題搶。
  */
-.uq-breadcrumb {
+.ts.breadcrumb.uq-breadcrumb {
     display: block;
     margin: 16px 0 8px;
 }
@@ -497,6 +498,8 @@ i.most-visited.icon {
         flex-wrap: nowrap;
         margin-left: 0;
         overflow-x: auto;
+        /* 捲動容器會把溢出的東西裁掉，焦點外框需要這 3px 才不會被切掉上下緣 */
+        padding: 3px 0;
         scrollbar-width: none;
         -ms-overflow-style: none;
     }
@@ -681,6 +684,11 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
     color: var(--uq-ink);
 }
 
+.uq-chip-clear:focus-visible {
+    outline: 2px solid var(--uq-brand);
+    outline-offset: 2px;
+}
+
 /*
  * 套用鍵原本是 primary，但 primary 的 cyan 在這個站是「特價」「歷史新低價」
  * 那些狀態標籤的顏色，放在操作按鈕上會被讀成狀態。改用品牌紅。
@@ -862,8 +870,16 @@ html:has(.uq-section-menu) {
     margin-top: 6px;
 }
 
-/* 收起來的那幾個標籤：滑過去用 title 看完整清單，手機進商品頁看 */
+/*
+ * 收起來的那幾個標籤：滑過去用 title 看完整清單，手機進商品頁看。
+ *
+ * z-index 要抬到 .uq-card-link 上面，不然滑鼠命中的是那條覆蓋整張卡片、沒有
+ * title 的連結，提示永遠不會出現。代價是這一小塊（約 34×18px）不再是卡片的
+ * 點擊區——title 是設計稿指定的機制，不能動的話這顆標籤就沒有意義。
+ */
 .ts.basic.label.uq-label.uq-label-more {
+    position: relative;
+    z-index: 2;
     cursor: default;
 }
 
@@ -924,10 +940,20 @@ html:has(.uq-section-menu) {
     color: var(--uq-brand);
 }
 
-.ts.button.uq-card-favorite:hover,
+/*
+ * Tocas 的按鈕 hover 是 .ts.button:not(.visible):not(.hidden):not(.active):not(:active):not(.opinion):hover，
+ * 六個條件疊出來的權重比兩個 class 高很多，不照它的形狀寫的話滑過去會變成灰底灰字
+ * ——已收藏的紅色愛心會在滑鼠移上去的瞬間變灰，剛好跟它要表達的意思相反。
+ */
+.ts.button.uq-card-favorite:not(.visible):not(.hidden):not(.active):not(:active):not(.opinion):hover,
 .ts.button.uq-card-favorite:focus-visible {
     border-color: var(--uq-muted);
     background: #fff;
+    color: var(--uq-muted);
+}
+
+.ts.button.uq-card-favorite[aria-pressed="true"]:not(.visible):not(.hidden):not(.active):not(:active):not(.opinion):hover {
+    color: var(--uq-brand);
 }
 
 /* 手機沒有 hover，按鈕大一號才點得到 */
@@ -1045,10 +1071,13 @@ html:has(.uq-section-menu) {
     font-size: 14px;
 }
 
-.uq-cta-primary:hover,
-.uq-cta-primary:focus {
-    background: var(--uq-brand-hover);
+a.uq-cta-primary:hover,
+a.uq-cta-primary:focus,
+a.uq-cta-primary:active {
+    border-width: 1px;
+    border-style: solid;
     border-color: var(--uq-brand-hover);
+    background: var(--uq-brand-hover);
     color: #fff;
 }
 
@@ -1084,8 +1113,8 @@ html:has(.uq-section-menu) {
     background: var(--uq-line);
 }
 
-.uq-product-info .uq-facts {
-    margin-top: 20px;
+.uq-product-info dl.uq-facts {
+    margin: 20px 0 0;
 }
 
 /* 分類是往回逛的入口，不是這個商品的屬性，所以是一行文字連結不是一排 pill */
@@ -1129,31 +1158,15 @@ html:has(.uq-section-menu) {
 }
 
 /*
- * 章節標題右側的動作鈕（首頁的「看全部」、網友穿搭的「查看列表」）。
- * .uq-h2 是 flex，Tocas 的 right floated 在裡面沒有作用；高度與圓角跟工具列上
- * 的控制項對齊，全站的小按鈕只有一種樣子。
+ * 章節標題右側的動作鈕（首頁的「看全部」、網友穿搭的「查看列表」）。它本身就是
+ * 一顆 .uq-control，這裡只負責把它推到那一行的右端——.uq-h2 是 flex，Tocas 的
+ * right floated 在裡面沒有作用。
  */
-.uq-h2 .ts.button.uq-h2-action {
-    display: inline-flex;
-    align-items: center;
-    box-sizing: border-box;
-    height: var(--uq-control-h);
-    min-height: 0;
+.uq-h2 .uq-h2-action {
     margin: 0 0 0 auto;
-    padding: 0 14px;
-    border: 1px solid var(--uq-line);
-    border-radius: 999px;
-    background: #fff;
-    color: var(--uq-text);
-    font-size: 13px;
 }
 
-.uq-h2 .ts.button.uq-h2-action:hover {
-    border-color: var(--uq-muted);
-    color: var(--uq-ink);
-}
-
-.uq-h2 .ts.button.uq-h2-action>.icon {
+.uq-h2 .uq-h2-action>.icon {
     margin: 0 6px 0 0;
     font-size: 13px;
 }

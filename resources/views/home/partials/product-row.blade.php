@@ -8,7 +8,7 @@
             <i class="{{ $section['style'] }} {{ $section['icon'] }} icon"></i>
             {{ $section['title'] }}
             <span class="uq-count">{{ $section['subtitle'] }}</span>
-            <a class="ts mini basic button uq-h2-action" href="{{ route($section['route']) }}">看全部</a>
+            <a class="uq-control uq-h2-action" href="{{ route($section['route']) }}">看全部</a>
         </h2>
 
         <div class="ts link cards home-product-row">

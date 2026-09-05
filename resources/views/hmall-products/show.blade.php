@@ -322,8 +322,9 @@
                         <button class="ts basic button uq-cta-secondary" data-favorite-button
                             data-brand="{{ $hmallProduct->brand }}" data-product-code="{{ $hmallProduct->product_code }}"
                             aria-pressed="false"><i class="heart outline icon"></i><span class="label">收藏</span></button>
-                        <a class="ts basic button uq-cta-secondary" id="share" target="_blank" rel="nofollow noopener"
-                            aria-label="分享" style="display: none;"><i class="share icon"></i>分享</a>
+                        {{-- 沒有 href 的 <a> 拿不到鍵盤焦點，Web Share 這顆本來就是動作不是連結 --}}
+                        <button type="button" class="ts basic button uq-cta-secondary" id="share"
+                            style="display: none;"><i class="share icon" aria-hidden="true"></i>分享</button>
                     </div>
 
                     <div class="uq-product-rule"></div>
@@ -455,7 +456,7 @@
                 <h2 class="unstyled uq-h2">
                     StyleHint 網友穿搭靈感
                     <span class="uq-count">共 {{ $styleHintCount }} 張</span>
-                    <a class="ts mini basic button uq-h2-action"
+                    <a class="uq-control uq-h2-action"
                         href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
                         <i class="camera retro icon" aria-hidden="true"></i>查看列表
                     </a>

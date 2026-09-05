@@ -20,7 +20,9 @@
 @endphp
 
 @if (!empty($tags))
-    <div class="description uq-card-labels">
+    {{-- 不掛 Tocas 的 .description：.ts.card>.content>.meta+.description 會用 .85em 的 --}}
+    {{-- margin 蓋掉這裡的間距，首頁那種沒有價格列的卡片就會跟 meta 黏在一起 --}}
+    <div class="uq-card-labels">
         @foreach ($shown as $tag)
             <span class="ts mini basic label uq-label @if ($tag['price']) uq-label-price @endif"
                 @isset($tag['title']) title="{{ $tag['title'] }}" @endisset>{{ $tag['text'] }}</span>
