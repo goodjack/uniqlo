@@ -317,7 +317,7 @@
 
                     {{-- 說明是這一頁的正文，本機沒有這個欄位的資料、正式機有，空的就整塊不渲染 --}}
                     @if ($hasDescription)
-                        <div class="@if ($isLongDescription) uq-clamp @endif">
+                        <div @class(['uq-clamp' => $isLongDescription])>
                             <div class="uq-description">{!! $descriptionHtml !!}</div>
                             @if ($isLongDescription)
                                 <details class="uq-clamp-more">

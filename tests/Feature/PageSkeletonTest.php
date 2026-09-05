@@ -10,9 +10,10 @@ use Tests\TestCase;
 
 /**
  * 全站共同骨架的驗收：麵包屑只出現在分類樹上的那兩頁、最後一層都是當頁，
- * 卡片上的收藏鈕不會變成連結的子孫。
+ * 卡片上的收藏鈕不會變成連結的子孫、卡片標籤最多兩個，商品頁右欄不再靠
+ * 小標題分段。
  *
- * 這兩件事都是「改一頁很容易忘記另外六頁」的類型，所以用一組測試把七種頁面
+ * 這些都是「改一頁很容易忘記另外六頁」的類型，所以用一組測試把七種頁面
  * 一起釘住，而不是各自散在各頁的測試裡。
  */
 class PageSkeletonTest extends TestCase
@@ -118,6 +119,110 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
+     * 一張卡片上七八個標籤的時候，第三個以後沒有人在讀，只是把品名跟價格往下推。
+     * 留兩個、其餘收成一顆「+N」，完整清單放進 title 讓滑鼠使用者查得到。
+     */
+    public function test_a_card_shows_at_most_two_labels_and_folds_the_rest(): void
+    {
+        $this->seedProduct(['identity' => json_encode([
+            'time_doptimal', 'concessional_rate', 'new_product', 'multi_buy', 'revision',
+        ])]);
+
+        $content = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']))
+            ->assertOk()
+            ->getContent();
+
+        $labels = $this->xpath($content)
+            ->query('(//*[contains(@class, "uq-card-labels")])[1]/span');
+
+        $this->assertSame(3, $labels->length, '一張卡片上最多兩個標籤加一顆 +N');
+        $this->assertSame('+3', trim($labels->item(2)->textContent));
+
+        $title = $labels->item(2)->attributes->getNamedItem('title')->value;
+
+        foreach (['新款商品', '合購商品', '修改褲長'] as $folded) {
+            $this->assertStringContainsString($folded, $title, "收起來的標籤要寫進 title：{$folded}");
+        }
+    }
+
+    /**
+     * 收藏清單一列只有一件商品，標籤攤開來看得完——而且那正是使用者追蹤它的原因。
+     */
+    public function test_the_favorites_list_shows_every_label(): void
+    {
+        $this->seedProduct(['identity' => json_encode([
+            'time_doptimal', 'concessional_rate', 'new_product', 'multi_buy', 'revision',
+        ])]);
+
+        $content = $this->postJson(route('favorites.cards'), [
+            'items' => [['brand' => 'UNIQLO', 'code' => 'u990001']],
+        ])->assertOk()->getContent();
+
+        $labels = $this->xpath($content)->query('//*[contains(@class, "uq-card-labels")]/span');
+
+        $this->assertSame(5, $labels->length, '收藏清單不收合標籤');
+        $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-label-more")]'));
+    }
+
+    /**
+     * 商品頁右欄原本每一段各有一個小標題（標籤、所屬分類、商品資訊），三個標題
+     * 加起來比它們標的內容還長。每一段長什麼樣子就說明它是什麼，標題全部拿掉。
+     */
+    public function test_the_product_page_right_column_has_no_section_headings(): void
+    {
+        $this->seedProduct();
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        foreach (['標籤', '所屬分類', '商品資訊'] as $heading) {
+            $this->assertSame(
+                0,
+                $this->countNodes($content, "//h3[normalize-space()='{$heading}']"),
+                "商品頁不該還有「{$heading}」這個小標題"
+            );
+        }
+
+        $this->assertGreaterThan(
+            0,
+            $this->countNodes($content, '//dl[contains(@class, "uq-facts")]/div/dt'),
+            '商品資訊改用 dl 呈現，不用 table'
+        );
+        $this->assertSame(0, $this->countNodes($content, '//table[contains(@class, "basic")]'));
+    }
+
+    /**
+     * 商品說明是這一頁的正文。夠長就在桌機收合成一段加「顯示更多」，空的整塊不渲染。
+     *
+     * 本機資料庫沒有這個欄位的內容（正式機有），所以自己塞一段進去。
+     */
+    public function test_a_long_description_is_rendered_and_clamped(): void
+    {
+        $this->seedProduct(['instruction' => str_repeat('這是一段夠長的商品說明文字。', 20)]);
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, $this->countNodes($content, '//*[contains(@class, "uq-description")]'));
+        $this->assertSame(1, $this->countNodes($content, '//div[@class="uq-clamp"]'), '桌機收合的外層');
+        $this->assertSame(1, $this->countNodes($content, '//details[contains(@class, "uq-clamp-more")]'));
+    }
+
+    public function test_a_product_without_a_description_renders_no_description_block(): void
+    {
+        $this->seedProduct();
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-description")]'));
+        $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-clamp-more")]'));
+    }
+
+    /**
      * 卡片整張的點擊區是那條覆蓋連結，不是包住整張卡片的 <a>。
      */
     public function test_the_card_is_clickable_through_an_overlay_link(): void
@@ -170,9 +275,12 @@ class PageSkeletonTest extends TestCase
         return new \DOMXPath($dom);
     }
 
-    private function seedProduct(): void
+    /**
+     * @param  array<string, mixed>  $overrides  這一個案例才需要的欄位（標籤用的 identity、說明用的 instruction）
+     */
+    private function seedProduct(array $overrides = []): void
     {
-        $product = HmallProduct::unguarded(fn () => HmallProduct::create([
+        $product = HmallProduct::unguarded(fn () => HmallProduct::create(array_merge([
             'brand' => 'UNIQLO',
             'name' => '短袖上衣',
             'product_name' => '短袖上衣',
@@ -185,7 +293,7 @@ class PageSkeletonTest extends TestCase
             'min_price' => 990,
             'lowest_record_price' => 990,
             'highest_record_price' => 990,
-        ]));
+        ], $overrides)));
 
         foreach (['all_women' => '001', 'all_women-tops' => '001', 'all_women-tops-tshirt' => '001'] as $code => $sort) {
             $category = HmallCategory::where('brand', 'UNIQLO')->where('code', $code)->firstOrFail();
