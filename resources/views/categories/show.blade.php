@@ -69,9 +69,9 @@
                 <x-slot:end>
                     @include('partials.tag-filter-button')
                 </x-slot:end>
-
-                @include('partials.tag-filter')
             </x-toolbar>
+
+            @include('partials.tag-filter')
 
             {{-- 篩到 0 件時整個卡片容器與分頁都不該出現，只留一句話說明現在的狀況 --}}
             @if ($hmallProducts->isEmpty())

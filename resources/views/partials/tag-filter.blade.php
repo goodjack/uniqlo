@@ -7,6 +7,9 @@
      *
      * 展開與收合同樣是純 CSS：下面那個藏起來的勾選框配 partials/tag-filter-button
      * 的 label，兩個 partial 要成對出現。網址帶 tags[] 時預設就是展開的。
+     *
+     * 這個 partial 是工具列的兄弟節點、不是它的子節點：面板有自己的底色與圓角，
+     * 掛在工具列裡會被那條 border-bottom 切在中間。
      */
     $tagOptions = \App\Enums\ProductTag::cases();
     $selectedTags = collect(\App\Enums\ProductTag::fromValues((array) request('tags', [])))
@@ -31,7 +34,7 @@
 
     <div class="uq-chips">
         @foreach ($tagOptions as $tag)
-            <label class="ts small basic label uq-chip">
+            <label class="uq-chip">
                 <input type="checkbox" name="tags[]" value="{{ $tag->value }}"
                     @checked(in_array($tag->value, $selectedTags, true))>
                 {{ $tag->label() }}
@@ -39,12 +42,16 @@
         @endforeach
     </div>
 
-    <div class="uq-chip-actions">
-        <span class="ts tiny disabled text">符合任一條件即顯示</span>
-        <button class="ts mini button uq-chip-apply" type="submit">套用</button>
-        @if (! empty($selectedTags))
-            <a class="ts mini basic button"
-                href="{{ url()->current() }}{{ $otherParams ? '?' . http_build_query($otherParams) : '' }}">清除</a>
-        @endif
+    <div class="uq-chip-footer">
+        {{-- 多選是聯集不是交集，這句話是使用者勾第二個之前唯一看得到的說明 --}}
+        <span class="uq-chip-hint">符合任一條件即顯示</span>
+
+        <div class="uq-chip-actions">
+            @if (! empty($selectedTags))
+                <a class="uq-chip-clear"
+                    href="{{ url()->current() }}{{ $otherParams ? '?' . http_build_query($otherParams) : '' }}">清除</a>
+            @endif
+            <button class="uq-chip-apply" type="submit">套用</button>
+        </div>
     </div>
 </form>

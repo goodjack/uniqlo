@@ -352,15 +352,16 @@ i.most-visited.icon {
 
 /*
  * 工具列。左側是導覽型控制（換一個就是換一批商品），右側是條件型控制
- * （改的是同一批商品的呈現方式）；預設插槽的內容（篩選 chip 列）用
- * flex: 0 0 100% 佔滿一整行，落到工具列下方。
+ * （改的是同一批商品的呈現方式）。一行放得下，底下一條線把它跟內容分開。
  */
 .uq-toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0 0.5rem;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--uq-line);
 }
 
 .uq-toolbar-start,
@@ -368,10 +369,11 @@ i.most-visited.icon {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
     min-width: 0;
 }
 
+/* 只有右側時也要靠右：space-between 對單一子元素是靠左 */
 .uq-toolbar-end {
     margin-left: auto;
 }
@@ -384,24 +386,58 @@ i.most-visited.icon {
     margin: 0;
 }
 
-/* 手機一行放不下兩側，各自成一排比擠在一起好按 */
+/*
+ * 手機一行放不下兩側，各自成一排；那一排自己橫向捲動而不是換行，工具列才
+ * 不會愈長愈高把商品擠下去。捲軸藏起來——macOS 的 overlay 捲軸平常本來就
+ * 不顯示，其他平台留一條灰槓在這裡只是雜訊。
+ */
 @media (max-width: 767px) {
 
     .uq-toolbar-start,
     .uq-toolbar-end {
         flex: 0 0 100%;
+        flex-wrap: nowrap;
         margin-left: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
     }
+
+    .uq-toolbar-start::-webkit-scrollbar,
+    .uq-toolbar-end::-webkit-scrollbar {
+        display: none;
+    }
+
+    .uq-toolbar-start>*,
+    .uq-toolbar-end>* {
+        flex: 0 0 auto;
+    }
+}
+
+/* 排序的下拉。原生 <select> 加自己的箭頭，跟旁邊兩顆長成同一個樣子 */
+.uq-control.uq-sort {
+    display: inline-block;
+    padding: 0 28px 0 14px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23767676'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    -webkit-appearance: none;
+    appearance: none;
+    text-align: left;
+}
+
+.uq-filter-toggle>.icon {
+    margin: 0 6px 0 0;
+    font-size: 13px;
 }
 
 /*
  * 篩選的展開狀態。純 CSS，沒有 JavaScript 也能開合：勾選框藏起來、工具列裡的
- * label 當按鈕、chip 列靠 :has() 跟著勾選狀態顯示或隱藏。網址帶 tags[] 時，
- * blade 直接把勾選框標成 checked，一進頁面就是展開的。
+ * label 當按鈕、篩選面板靠 ~ 跟著勾選狀態顯示或隱藏。網址帶 tags[] 時，blade
+ * 直接把勾選框標成 checked，一進頁面就是展開的。
  *
  * 這裡不用 <details>：實測 Chrome 152 上，把 details 設成 display: contents
- * 之後它的內容不會變成外層 flex 容器的項目（flex: 0 0 100% 完全沒作用），
- * 做不出「按鈕在工具列、chip 列跨整行」這個版面。
+ * 之後它的內容不會變成外層 flex 容器的項目，做不出這個版面。
  */
 .uq-filter-switch {
     position: absolute;
@@ -420,45 +456,51 @@ i.most-visited.icon {
 }
 
 /*
- * 焦點框是藏掉勾選框的代價，要在當按鈕用的 label 上補回來。勾選框跟 label 不
- * 相鄰（一個在工具列下方、一個在右側），所以用 :has() 從共同的祖先往下選。
+ * 焦點框與展開狀態的邊框都要從勾選框推到它的 label 上，但兩者不相鄰（勾選框
+ * 在工具列後面、label 在工具列裡），所以從 body 用 :has() 往下選。一頁只有
+ * 一顆篩選鈕，選得夠精準。
  */
-.uq-toolbar:has(.uq-filter-switch:focus-visible) .uq-filter-toggle {
+body:has(.uq-filter-switch:focus-visible) .uq-filter-toggle {
     outline: 2px solid var(--uq-brand);
     outline-offset: 2px;
 }
 
+body:has(.uq-filter-switch:checked) .uq-filter-toggle {
+    border-color: var(--uq-ink);
+}
+
+/* 篩選面板。灰底把一整組條件框成一塊，跟上面的工具列分開 */
 .uq-chip-row {
-    flex: 0 0 100%;
-    /*
-     * flex 項目的 min-width 預設是 auto，會被裡面那排不換行的 chip 撐開；實測
-     * 390 寬時整條列變成 434px，連帶把 .ts.container 與固定導覽列一起撐出畫面
-     * （scrollWidth 448）。歸零之後才輪得到 .uq-chips 自己的橫向捲動。
-     */
-    min-width: 0;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem;
-    padding-bottom: 0.5rem;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: var(--uq-panel);
 }
 
 .uq-chips {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.4rem;
+    gap: 8px;
+    flex: 1 1 100%;
     min-width: 0;
 }
 
-/* 手機一行塞不下七個 chip，改成橫向捲動；套用與清除自己落到下一行才按得到 */
+/* 手機一行塞不下七個 chip，改成橫向捲動 */
 @media (max-width: 767px) {
     .uq-chips {
-        flex: 1 1 100%;
         flex-wrap: nowrap;
         overflow-x: auto;
-        scrollbar-width: thin;
-        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .uq-chips::-webkit-scrollbar {
+        display: none;
     }
 
     .uq-chips>.uq-chip {
@@ -467,13 +509,22 @@ i.most-visited.icon {
 }
 
 .uq-chip {
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
     position: relative;
-    /* .ts.label 自帶左右 margin，跟 gap 疊起來每一顆的間距會不一樣 */
+    height: 30px;
     margin: 0;
+    padding: 0 12px;
+    border: 1px solid var(--uq-line);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--uq-text);
+    font-size: 13px;
+    line-height: 1;
     white-space: nowrap;
+    cursor: pointer;
 }
 
 /*
@@ -490,9 +541,10 @@ i.most-visited.icon {
 }
 
 .uq-chip:has(input:checked) {
-    background: var(--uq-brand) !important;
-    border-color: var(--uq-brand) !important;
-    color: #fff !important;
+    background: var(--uq-brand-soft);
+    border-color: var(--uq-brand);
+    color: var(--uq-brand);
+    font-weight: 600;
 }
 
 .uq-chip:has(input:focus-visible) {
@@ -500,28 +552,56 @@ i.most-visited.icon {
     outline-offset: 2px;
 }
 
+/* 說明與操作各佔面板底下一行的兩端 */
+.uq-chip-footer {
+    display: flex;
+    flex: 1 1 100%;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.uq-chip-hint {
+    color: var(--uq-muted);
+    font-size: 12px;
+}
+
 .uq-chip-actions {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 12px;
     margin-left: auto;
 }
 
-.uq-chip-actions .ts.button {
-    margin: 0;
+/* 清除是「還原」不是「送出」，用文字連結跟旁邊那顆實心鈕分出輕重 */
+.uq-chip-clear {
+    color: var(--uq-muted);
+    font-size: 13px;
+}
+
+.uq-chip-clear:hover {
+    color: var(--uq-ink);
 }
 
 /*
  * 套用鍵原本是 primary，但 primary 的 cyan 在這個站是「特價」「歷史新低價」
- * 那些狀態標籤的顏色，放在操作按鈕上會被讀成狀態。改用品牌紅，跟選中的 chip 同色。
+ * 那些狀態標籤的顏色，放在操作按鈕上會被讀成狀態。改用品牌紅。
  */
-.uq-chip-apply,
-.uq-chip-apply:hover,
-.uq-chip-apply:focus,
-.uq-chip-apply:active {
+.uq-chip-apply {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: 30px;
+    margin: 0;
+    padding: 0 16px;
+    border: 1px solid var(--uq-brand);
+    border-radius: 999px;
     background: var(--uq-brand);
-    border-color: var(--uq-brand);
     color: #fff;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
 }
 
 .uq-chip-apply:hover,
@@ -529,6 +609,7 @@ i.most-visited.icon {
 .uq-chip-apply:active {
     background: var(--uq-brand-hover);
     border-color: var(--uq-brand-hover);
+    color: #fff;
 }
 
 /*
@@ -594,22 +675,11 @@ html:has(.uq-section-menu) {
     scroll-padding-top: 0;
 }
 
-/*
- * Tocas 的 basic 按鈕群在 active 時是 #414141 底配 #272727 字（對比 1.4:1，
- * AA 門檻是 4.5）。這跟 favorites.js 早就記過的是同一個缺陷，選中的那顆改成
- * 實心深灰配白字。選擇器要疊到跟 Tocas 一樣多的 .active 才蓋得過去。
- */
-.uq-toolbar .ts.buttons.basic .button.active.active.active.active {
-    background: #5a5a5a;
-    border-color: #5a5a5a;
-    color: #fff;
-}
-
 /* 排序的下拉與它的無腳本送出鈕是一組，不要被工具列的 gap 拆開太遠 */
 .uq-sort-form {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 6px;
 }
 
 /*

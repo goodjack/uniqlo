@@ -50,18 +50,19 @@
 
             <x-toolbar>
                 <x-slot:start>
-                    <div class="ts small basic buttons">
-                        <a class="ts button {{ $currentBrand === null ? 'active' : '' }}"
-                            href="{{ $currentUrl }}?{{ $queryFor(['brand' => null]) }}">全部</a>
-                        <a class="ts button {{ $currentBrand === 'UNIQLO' ? 'active' : '' }}"
-                            href="{{ $currentUrl }}?{{ $queryFor(['brand' => 'UNIQLO']) }}">UNIQLO</a>
-                        <a class="ts button {{ $currentBrand === 'GU' ? 'active' : '' }}"
-                            href="{{ $currentUrl }}?{{ $queryFor(['brand' => 'GU']) }}">GU</a>
-                    </div>
+                    {{-- 三顆分開的 pill 不是連在一起的按鈕群：連著的那組會被讀成一顆分段控制項， --}}
+                    {{-- 但這裡每一顆都是各自的網址、按了是換頁 --}}
+                    <a class="uq-control uq-pill {{ $currentBrand === null ? 'active' : '' }}"
+                        href="{{ $currentUrl }}?{{ $queryFor(['brand' => null]) }}">全部</a>
+                    <a class="uq-control uq-pill {{ $currentBrand === 'UNIQLO' ? 'active' : '' }}"
+                        href="{{ $currentUrl }}?{{ $queryFor(['brand' => 'UNIQLO']) }}">UNIQLO</a>
+                    <a class="uq-control uq-pill {{ $currentBrand === 'GU' ? 'active' : '' }}"
+                        href="{{ $currentUrl }}?{{ $queryFor(['brand' => 'GU']) }}">GU</a>
                 </x-slot:start>
 
                 <x-slot:end>
-                    {{-- Tocas 的 basic dropdown 就是套了樣式的原生 <select>，不吃 JavaScript --}}
+                    {{-- 原生 <select>，不吃 JavaScript。不掛 Tocas 的 dropdown：那組規則自帶 --}}
+                    {{-- 高度、圓角與箭頭，蓋起來比從 .uq-control 長還費事 --}}
                     <form method="GET" action="{{ $currentUrl }}" class="uq-sort-form">
                         @if ($currentBrand)
                             <input type="hidden" name="brand" value="{{ $currentBrand }}">
@@ -70,19 +71,19 @@
                             <input type="hidden" name="tags[]" value="{{ $tagValue }}">
                         @endforeach
 
-                        <select class="ts small basic dropdown" name="sort" data-auto-submit aria-label="排序方式">
+                        <select class="uq-control uq-sort" name="sort" data-auto-submit aria-label="排序方式">
                             <option value="" @selected(request('sort') !== 'price-asc')>排序：預設</option>
                             <option value="price-asc" @selected(request('sort') === 'price-asc')>排序：價格由低到高</option>
                         </select>
                         {{-- 沒有 JavaScript 時這顆是唯一的出路，有的時候 master 版型會把它藏起來 --}}
-                        <button class="ts small basic button" type="submit" data-auto-submit-fallback>套用</button>
+                        <button class="uq-control" type="submit" data-auto-submit-fallback>套用</button>
                     </form>
 
                     @include('partials.tag-filter-button')
                 </x-slot:end>
-
-                @include('partials.tag-filter')
             </x-toolbar>
+
+            @include('partials.tag-filter')
 
             @include('lists.cards', ['hmallProductList' => $hmallProductList])
         </div>
