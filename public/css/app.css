@@ -14,15 +14,239 @@
     /* 品牌紅。跟 master.blade.php 的 <meta name="theme-color"> 同一個值 */
     --uq-brand: #ce5e57;
     --uq-brand-hover: #b8524c;
+    /* 選中的 chip 底色。品牌紅的淡版，看得出來選中又不會搶掉 CTA */
+    --uq-brand-soft: #fbeceb;
+    /* 標題、價格與選中 pill 的底色 */
+    --uq-ink: #1f1f1f;
+    --uq-text: #333333;
+    /* 元資料、計數、麵包屑連結 */
+    --uq-muted: #767676;
+    /* 全站唯一的線色：分隔線與控制項邊框都用它 */
+    --uq-line: #e4e4e4;
+    /* 篩選面板的底色 */
+    --uq-panel: #f6f6f6;
+    --uq-radius: 6px;
+    /* 工具列上三種控制項的統一高度 */
+    --uq-control-h: 32px;
     /* nav 是固定的 60px，master 版型的 body padding 就是照這個數字留的 */
     --uq-nav-height: 60px;
     /* .uq-section-menu 的實際高度。錨點跳轉的 scroll-padding-top 要讓開它 */
-    --uq-section-menu-height: 41px;
+    --uq-section-menu-height: 45px;
 }
 
 /* 商品標籤裡的品牌紅文字 */
 .uq-brand-text {
     color: var(--uq-brand);
+}
+
+/* ------------------------------------------------------------------
+ * 基礎元件。全站的控制項共用同一個高度、同一個圓角、同一個強調色，
+ * 所以這一段刻意不掛 Tocas 的 .ts.button／.ts.label——那組規則自己帶
+ * padding、margin、邊框與 hover 底色，疊上來每一顆都要再蓋一次。
+ * ------------------------------------------------------------------ */
+
+/*
+ * 工具列上的控制項：品牌 pill、排序下拉、篩選鈕共用這一組尺寸與邊框。
+ * <a>、<button>、<label>、<select> 四種標籤都套得上去。
+ */
+.uq-control {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: var(--uq-control-h);
+    margin: 0;
+    padding: 0 14px;
+    border: 1px solid var(--uq-line);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--uq-text);
+    font-size: 13px;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: none;
+}
+
+.uq-control:hover {
+    border-color: var(--uq-muted);
+    color: var(--uq-text);
+}
+
+.uq-control:focus-visible {
+    outline: 2px solid var(--uq-brand);
+    outline-offset: 2px;
+}
+
+/* 品牌切換與子分類的入口。選中的那顆用深色實心，跟站上其他強調色分工 */
+.uq-pill.active {
+    background: var(--uq-ink);
+    border-color: var(--uq-ink);
+    color: #fff;
+}
+
+/* 分類頁與分類總覽的子分類 pill 數量多，小一號才排得下 */
+.uq-pill-small {
+    height: 28px;
+    padding: 0 12px;
+    font-size: 12px;
+}
+
+/* 篩選鈕上的已選數量 */
+.uq-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-width: 18px;
+    height: 18px;
+    margin-left: 6px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--uq-brand);
+    color: #fff;
+    font-size: 11px;
+    line-height: 1;
+}
+
+/* 件數、個數這類次要數字。以前用圓形 label，那個形狀在句子裡太重 */
+.uq-count {
+    margin-left: 4px;
+    color: var(--uq-muted);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+/* 章節標題。清單頁的性別段、分類總覽的群組、商品頁的章節共用同一種 */
+.uq-h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 40px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--uq-line);
+    color: var(--uq-ink);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.uq-h2 .uq-count {
+    font-size: 13px;
+}
+
+/* 標題那一行右側的計數（分類總覽的「20 個分類」） */
+.uq-h2 .uq-count-end {
+    margin-left: auto;
+}
+
+/*
+ * 商品頁的商品資訊。用 <dl> 不用 <table>：這是一組名稱與值的對照，不是有列
+ * 有欄的表格；桌機兩欄排，手機自己掉回一欄。
+ */
+.uq-facts {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 24px;
+    margin: 0;
+}
+
+.uq-facts>div {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--uq-line);
+}
+
+.uq-facts dt {
+    color: var(--uq-muted);
+    font-size: 12px;
+}
+
+.uq-facts dd {
+    margin: 0;
+    color: var(--uq-text);
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    .uq-facts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/*
+ * 商品說明的收合。<details> 沒展開時只渲染 summary，所以說明本體要放在
+ * details 外面、由外層的 :has(details[open]) 解鎖高度——把說明包進 details
+ * 的話沒展開就整段不見，做不出「先露出 200px」。
+ *
+ * 手機不收合：那裡沒有右欄要跟左邊圖片對齊的問題，多按一下反而礙事。
+ */
+.uq-description {
+    color: var(--uq-text);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.uq-clamp {
+    position: relative;
+}
+
+.uq-clamp>.uq-description {
+    max-height: 200px;
+    overflow: hidden;
+}
+
+/* 漸層遮罩掛在外層而不是說明本體上：本體 overflow: hidden 會把它一起裁掉 */
+.uq-clamp::after {
+    content: '';
+    position: absolute;
+    top: 144px;
+    right: 0;
+    left: 0;
+    height: 56px;
+    background: linear-gradient(rgba(255, 255, 255, 0), #fff);
+    pointer-events: none;
+}
+
+.uq-clamp:has(details[open])>.uq-description {
+    max-height: none;
+}
+
+.uq-clamp:has(details[open])::after {
+    content: none;
+}
+
+.uq-clamp-more>summary {
+    display: inline-block;
+    padding-top: 8px;
+    color: var(--uq-brand);
+    font-size: 13px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.uq-clamp-more>summary::-webkit-details-marker {
+    display: none;
+}
+
+/* 兩段文字都擺著、用開合狀態切換，比 ::after 的 content 可靠：讀螢幕讀得到真的文字 */
+.uq-clamp-more:not([open]) .uq-clamp-hide,
+.uq-clamp-more[open] .uq-clamp-show {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .uq-clamp>.uq-description {
+        max-height: none;
+    }
+
+    .uq-clamp::after {
+        content: none;
+    }
+
+    .uq-clamp-more {
+        display: none;
+    }
 }
 
 /* ------------------------------------------------------------------
