@@ -353,19 +353,20 @@ i.most-visited.icon {
     margin: 16px 0 8px;
 }
 
-.uq-breadcrumb .section {
+/* 選擇器要疊到 .ts.breadcrumb 才寫得動：Tocas 的 a.section 是三個 class 加一個標籤 */
+.ts.breadcrumb.uq-breadcrumb .section {
     color: var(--uq-text);
 }
 
-.uq-breadcrumb a.section {
+.ts.breadcrumb.uq-breadcrumb a.section {
     color: var(--uq-muted);
 }
 
-.uq-breadcrumb a.section:hover {
+.ts.breadcrumb.uq-breadcrumb a.section:hover {
     color: var(--uq-ink);
 }
 
-.uq-breadcrumb .divider {
+.ts.breadcrumb.uq-breadcrumb .divider {
     color: var(--uq-line);
 }
 
@@ -804,30 +805,197 @@ html:has(.uq-section-menu) {
 }
 
 /* ------------------------------------------------------------------
- * 商品頁右欄的手機版微調：操作鈕排版、麵包屑最後一項截斷。
- * 桌機版（≥ 768px）不動，Tocas 的預設在那個寬度沒有這兩個問題。
+ * 商品頁右欄與章節。
+ *
+ * 右欄的順序是「這是什麼 → 多少錢 → 買或等 → 說明 → 規格 → 往回逛」，
+ * 每一段只有一種強調：標題靠字級、價格靠字重、CTA 靠品牌色，其他全是灰的。
  * ------------------------------------------------------------------ */
 
+.uq-product-title {
+    margin: 0;
+    color: var(--uq-ink);
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.uq-product-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    color: var(--uq-muted);
+    font-size: 13px;
+}
+
+/* 中點是分隔符不是內容，用 ::before 產生，複製這一行文字時不會被帶走 */
+.uq-product-meta>span+span::before {
+    content: '·';
+    margin-right: 6px;
+    color: var(--uq-line);
+}
+
+.uq-share {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+}
+
+.uq-share .ts.button {
+    margin: 0;
+}
+
+.uq-price-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.uq-price {
+    color: var(--uq-ink);
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
 /*
- * 「前往官網」「收藏」「分享」三顆鈕。Tocas 的 stackable 在手機版一律直立
- * 層疊、三顆等重量疊成三排太重——前往官網是唯一的購買動作，維持滿版；
- * 收藏跟分享是次要動作，並排各半版。
+ * 狀態標籤。只有價格類（歷史新低、期間限定、特價）用品牌紅——那三個回答的是
+ * 「這個價錢划不划算」，跟旁邊的價格是同一件事；其餘一律灰的。
+ */
+/* 選擇器要疊到四個 class：Tocas 的 .ts.basic.label 就是三個，兩個蓋不過去 */
+.ts.basic.label.uq-label {
+    margin: 0;
+    border-radius: 4px;
+    border-color: var(--uq-muted);
+    background: #fff;
+    color: var(--uq-muted);
+    font-weight: 400;
+}
+
+.ts.basic.label.uq-label.uq-label-price {
+    border-color: var(--uq-brand);
+    color: var(--uq-brand);
+}
+
+.uq-price-note {
+    margin-top: 6px;
+    color: var(--uq-muted);
+    font-size: 13px;
+}
+
+/* 買，或等。前往官網是唯一的購買動作，收藏與分享是次要動作 */
+.uq-cta-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.uq-cta-primary {
+    display: inline-flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+    height: 40px;
+    padding: 0 16px;
+    border: 1px solid var(--uq-brand);
+    border-radius: var(--uq-radius);
+    background: var(--uq-brand);
+    color: #fff;
+    font-size: 14px;
+}
+
+.uq-cta-primary:hover,
+.uq-cta-primary:focus {
+    background: var(--uq-brand-hover);
+    border-color: var(--uq-brand-hover);
+    color: #fff;
+}
+
+.ts.button.uq-cta-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: 40px;
+    min-height: 0;
+    margin: 0;
+    border-radius: var(--uq-radius);
+}
+
+/*
+ * 手機版：三顆等重量疊成三排太重——前往官網維持滿版，收藏跟分享並排各半。
+ * 沒有 Web Share API 的瀏覽器不會顯示分享，那時收藏就是半版的一顆。
  */
 @media (max-width: 767px) {
-    #uniqlo-column .ts.stackable.buttons {
+    .uq-cta-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 0.65em;
     }
 
-    #uniqlo-column .ts.stackable.buttons>.ts.button {
-        margin: 0;
-    }
-
-    /* 前往官網（UNIQLO 或 GU 版本）永遠是這組鈕的第一顆，跨兩欄維持滿版 */
-    #uniqlo-column .ts.stackable.buttons>a:first-child {
+    .uq-cta-primary {
         grid-column: 1 / -1;
     }
+}
+
+.uq-product-rule {
+    height: 1px;
+    margin: 20px 0;
+    background: var(--uq-line);
+}
+
+.uq-product-info .uq-facts {
+    margin-top: 20px;
+}
+
+/* 分類是往回逛的入口，不是這個商品的屬性，所以是一行文字連結不是一排 pill */
+.uq-categories-line {
+    margin-top: 16px;
+    color: var(--uq-text);
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+.uq-categories-label {
+    margin-right: 6px;
+    color: var(--uq-muted);
+    font-size: 12px;
+}
+
+.uq-categories-line a {
+    color: var(--uq-text);
+}
+
+.uq-categories-line a:hover {
+    text-decoration: underline;
+}
+
+.uq-categories-line a+a::before {
+    content: '·';
+    margin: 0 6px;
+    color: var(--uq-line);
+}
+
+/*
+ * 章節區塊。原本是灰白交錯的 tertiary segment，一路捲下去像在看不同的網站；
+ * 全部白底之後由 .uq-h2 那條線負責分段，48px 的間距負責呼吸。
+ */
+.uq-product-section {
+    padding-bottom: 24px;
+}
+
+.uq-product-section .uq-h2 {
+    margin-top: 48px;
+}
+
+/* 章節標題右側的動作鈕。.uq-h2 是 flex，Tocas 的 right floated 在裡面沒有作用 */
+.uq-h2 .uq-h2-action {
+    margin: 0 0 0 auto;
 }
 
 /*

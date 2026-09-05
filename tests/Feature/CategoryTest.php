@@ -272,10 +272,10 @@ class CategoryTest extends TestCase
             ->getContent();
 
         /*
-         * 只看「所屬分類」那一段。整頁比對會被麵包屑干擾：麵包屑走的是主分類那
-         * 一條路徑，本來就會連到其中一個「T恤」，跟這裡要驗的去重是兩件事。
+         * 只看分類那一行。整頁比對會被麵包屑干擾：麵包屑走的是主分類那一條
+         * 路徑，本來就會連到其中一個「T恤」，跟這裡要驗的去重是兩件事。
          */
-        $links = $this->categoryLinksUnder($content, '所屬分類');
+        $links = $this->categoryLinksInLine($content);
 
         $this->assertNotEmpty($links, '商品頁應該列出所屬分類');
 
@@ -287,17 +287,20 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 抓出某個小標題底下那一段裡的分類連結，只回傳分類 code。
+     * 抓出商品頁「分類」那一行裡的分類連結，只回傳分類 code。
+     *
+     * 原本是用「所屬分類」那個小標題定位。第二輪 UI 把三個小標題（標籤、
+     * 所屬分類、商品資訊）都拿掉了，改由那一行自己的 class 定位。
      *
      * @return array<int, string>
      */
-    private function categoryLinksUnder(string $html, string $heading): array
+    private function categoryLinksInLine(string $html): array
     {
         $dom = new \DOMDocument;
         @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$html);
 
         $xpath = new \DOMXPath($dom);
-        $links = $xpath->query("//h3[normalize-space()='{$heading}']/following-sibling::div[1]//a/@href");
+        $links = $xpath->query("//*[contains(@class, 'uq-categories-line')]//a/@href");
 
         $codes = [];
 
