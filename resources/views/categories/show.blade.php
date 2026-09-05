@@ -49,46 +49,44 @@
         </span>
     </div>
 
-    <div class="ts attached padded horizontally fitted fluid segment">
-        <div class="ts container">
-            @include('partials.breadcrumb', ['crumbs' => $crumbs])
+    <div class="ts container uq-page">
+        @include('partials.breadcrumb', ['crumbs' => $crumbs])
 
-            <x-toolbar>
-                @if ($children->isNotEmpty())
-                    <x-slot:start>
-                        {{-- 往下鑽的入口。小一號的 pill：一個分類底下常常十幾個子分類，跟 --}}
-                        {{-- 清單頁那三顆品牌 pill 同尺寸的話會把工具列撐成三排 --}}
-                        @foreach ($children as $child)
-                            <a class="uq-control uq-pill uq-pill-small" href="{{ $categoryUrl($child->code) }}">
-                                {{ $child->name }}
-                                <span class="uq-count">{{ $child->hmall_products_count }}</span>
-                            </a>
-                        @endforeach
-                    </x-slot:start>
-                @endif
-
-                <x-slot:end>
-                    @include('partials.tag-filter-button')
-                </x-slot:end>
-            </x-toolbar>
-
-            @include('partials.tag-filter')
-
-            {{-- 篩到 0 件時整個卡片容器與分頁都不該出現，只留一句話說明現在的狀況 --}}
-            @if ($hmallProducts->isEmpty())
-                @include('partials.empty-state', [
-                    'icon' => 'search faded',
-                    'title' => '沒有符合的商品',
-                    'hint' => '試試看少選幾個條件',
-                ])
-            @else
-                {{-- 分類本來就是單一性別的軸（男裝上衣），不像清單頁需要拆成四段 --}}
-                <div class="ts doubling link cards four">
-                    @each('hmall-products.card', $hmallProducts, 'hmallProduct')
-                </div>
-
-                @include('partials.pagination', ['paginator' => $hmallProducts])
+        <x-toolbar>
+            @if ($children->isNotEmpty())
+                <x-slot:start>
+                    {{-- 往下鑽的入口。小一號的 pill：一個分類底下常常十幾個子分類，跟 --}}
+                    {{-- 清單頁那三顆品牌 pill 同尺寸的話會把工具列撐成三排 --}}
+                    @foreach ($children as $child)
+                        <a class="uq-control uq-pill uq-pill-small" href="{{ $categoryUrl($child->code) }}">
+                            {{ $child->name }}
+                            <span class="uq-count">{{ $child->hmall_products_count }}</span>
+                        </a>
+                    @endforeach
+                </x-slot:start>
             @endif
-        </div>
+
+            <x-slot:end>
+                @include('partials.tag-filter-button')
+            </x-slot:end>
+        </x-toolbar>
+
+        @include('partials.tag-filter')
+
+        {{-- 篩到 0 件時整個卡片容器與分頁都不該出現，只留一句話說明現在的狀況 --}}
+        @if ($hmallProducts->isEmpty())
+            @include('partials.empty-state', [
+                'icon' => 'search faded',
+                'title' => '沒有符合的商品',
+                'hint' => '試試看少選幾個條件',
+            ])
+        @else
+            {{-- 分類本來就是單一性別的軸（男裝上衣），不像清單頁需要拆成四段 --}}
+            <div class="ts doubling link cards four">
+                @each('hmall-products.card', $hmallProducts, 'hmallProduct')
+            </div>
+
+        @include('partials.pagination', ['paginator' => $hmallProducts])
+        @endif
     </div>
 @endsection

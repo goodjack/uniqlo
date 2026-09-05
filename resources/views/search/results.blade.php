@@ -24,19 +24,17 @@
         <span class="description">{{ $subtitle }}</span>
     </div>
 
-    <div class="ts attached padded horizontally fitted fluid segment">
-        <div class="ts container">
-            @if (!empty($ignoredKeywords))
-                <div class="ts small info message">
-                    關鍵字最多 {{ count($keywords) }} 個，這次沒有用到「{{ implode('」「', $ignoredKeywords) }}」
-                </div>
-            @endif
+    <div class="ts container uq-page">
+        @if (!empty($ignoredKeywords))
+            <div class="ts small info message">
+                關鍵字最多 {{ count($keywords) }} 個，這次沒有用到「{{ implode('」「', $ignoredKeywords) }}」
+            </div>
+        @endif
 
-            @if ($isProductCodeSearch)
-                @include('search.cards', ['hmallProducts' => $hmallProducts, 'products' => $products])
-            @else
-                @include('search.keyword-cards', ['hmallProducts' => $hmallProducts, 'query' => $query])
-            @endif
-        </div>
+        @if ($isProductCodeSearch)
+        @include('search.cards', ['hmallProducts' => $hmallProducts, 'products' => $products])
+        @else
+        @include('search.keyword-cards', ['hmallProducts' => $hmallProducts, 'query' => $query])
+        @endif
     </div>
 @endsection

@@ -24,26 +24,17 @@
             ->all(),
     ])
 
-    <div class="ts active basic horizontally fitted tab segment">
-        @foreach ($available as $key => $label)
-            @include('partials.section-anchor', ['anchor' => $key, 'menu' => 'gender_menu'])
-            <h2 class="ts large header">
-                {{ $label }}
-                <div class="inline sub header">共 {{ count($hmallProductList[$key]) }} 件</div>
-            </h2>
-            <div class="ts doubling link cards four">
-                @foreach ($hmallProductList[$key] as $hmallProduct)
-                    @include('hmall-products.card', ['hmallProduct' => $hmallProduct])
-                @endforeach
-            </div>
-
-            <div class="ts hidden divider"></div>
-
-            @if (!$loop->last)
-                <div class="ts hidden section divider"></div>
-            @endif
-        @endforeach
-
-        <div class="ts hidden divider"></div>
-    </div>
+    {{-- 段與段之間的距離由 .uq-h2 的上緣間距負責，不再靠一層 tab segment 加幾條隱形分隔線 --}}
+    @foreach ($available as $key => $label)
+        @include('partials.section-anchor', ['anchor' => $key, 'menu' => 'gender_menu'])
+        <h2 class="unstyled uq-h2">
+            {{ $label }}
+            <span class="uq-count">{{ count($hmallProductList[$key]) }} 件</span>
+        </h2>
+        <div class="ts doubling link cards four">
+            @foreach ($hmallProductList[$key] as $hmallProduct)
+                @include('hmall-products.card', ['hmallProduct' => $hmallProduct])
+            @endforeach
+        </div>
+    @endforeach
 @endif

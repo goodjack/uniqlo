@@ -442,10 +442,9 @@
                 <h2 class="unstyled uq-h2">
                     StyleHint 網友穿搭靈感
                     <span class="uq-count">共 {{ $styleHintCount }} 張</span>
-                    <a class="ts mini basic icon labeled button uq-h2-action"
+                    <a class="ts mini basic button uq-h2-action"
                         href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
-                        <i class="camera retro icon"></i>
-                        查看列表
+                        <i class="camera retro icon" aria-hidden="true"></i>查看列表
                     </a>
                 </h2>
                 <div class="ts hidden divider"></div>

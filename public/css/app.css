@@ -283,12 +283,13 @@ i.most-visited.icon {
  * 首頁的商品區塊與可橫向捲動的卡片列。
  * ------------------------------------------------------------------ */
 
-/* 區塊標題那一行：標題靠左、右邊一句灰字或一顆按鈕 */
-.uq-section-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
+/*
+ * 每一頁的內容容器。slate 底下原本還包了一層 attached padded segment，那層帶
+ * 一條上邊線與一大塊上下 padding，跟 slate 自己的邊界疊在一起；拿掉之後只剩
+ * container，內容跟 slate 的距離由這 8px 決定。
+ */
+.uq-page {
+    padding-top: 8px;
 }
 
 /* 分類總覽的一個群組。群組之間靠這段距離分開，不再各自框一個 segment */
@@ -1111,9 +1112,34 @@ html:has(.uq-section-menu) {
     margin-top: 48px;
 }
 
-/* 章節標題右側的動作鈕。.uq-h2 是 flex，Tocas 的 right floated 在裡面沒有作用 */
-.uq-h2 .uq-h2-action {
+/*
+ * 章節標題右側的動作鈕（首頁的「看全部」、網友穿搭的「查看列表」）。
+ * .uq-h2 是 flex，Tocas 的 right floated 在裡面沒有作用；高度與圓角跟工具列上
+ * 的控制項對齊，全站的小按鈕只有一種樣子。
+ */
+.uq-h2 .ts.button.uq-h2-action {
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    height: var(--uq-control-h);
+    min-height: 0;
     margin: 0 0 0 auto;
+    padding: 0 14px;
+    border: 1px solid var(--uq-line);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--uq-text);
+    font-size: 13px;
+}
+
+.uq-h2 .ts.button.uq-h2-action:hover {
+    border-color: var(--uq-muted);
+    color: var(--uq-ink);
+}
+
+.uq-h2 .ts.button.uq-h2-action>.icon {
+    margin: 0 6px 0 0;
+    font-size: 13px;
 }
 
 /*
