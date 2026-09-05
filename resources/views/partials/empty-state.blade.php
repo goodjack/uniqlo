@@ -7,7 +7,7 @@
     slot        可選，狀態底下的按鈕
     attributes  可選，原樣輸出到最外層；收藏頁靠 id 與 hidden 切換三種狀態
 --}}
-<div class="ts center aligned basic segment" {!! $attributes ?? '' !!}>
+<div class="ts center aligned basic segment uq-empty" {!! $attributes ?? '' !!}>
     <div class="ts icon header">
         <i class="{{ $icon }} icon"></i>
         <div class="content">

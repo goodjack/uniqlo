@@ -284,6 +284,22 @@ i.most-visited.icon {
  * ------------------------------------------------------------------ */
 
 /*
+ * 空狀態。Tocas 的 icon header 是深灰配黑字，在一片白的頁面中間比實際內容還重。
+ * icon 退到灰、標題退到正文色，讓底下那句「你可以做什麼」才是眼睛停的地方。
+ */
+.uq-empty .ts.icon.header>.icon {
+    color: var(--uq-muted);
+}
+
+.uq-empty .ts.icon.header {
+    color: var(--uq-text);
+}
+
+.uq-empty .ts.icon.header .sub.header {
+    color: var(--uq-muted);
+}
+
+/*
  * 每一頁的內容容器。slate 底下原本還包了一層 attached padded segment，那層帶
  * 一條上邊線與一大塊上下 padding，跟 slate 自己的邊界疊在一起；拿掉之後只剩
  * container，內容跟 slate 的距離由這 8px 決定。
