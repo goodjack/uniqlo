@@ -1,6 +1,6 @@
 {{-- Tocas 風格的簡易分頁。Laravel 內建的分頁樣板都是 Bootstrap 或 Tailwind，這個專案兩者都沒有。 --}}
 @if ($paginator->hasPages())
-    <div class="ts center aligned basic segment">
+    <div class="ts center aligned basic segment uq-pagination">
         <div class="ts small buttons">
             @if ($paginator->onFirstPage())
                 <div class="ts disabled button">上一頁</div>

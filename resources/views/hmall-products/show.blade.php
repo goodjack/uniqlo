@@ -253,7 +253,7 @@
             <div class="nine wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
                 <div class="uq-product-info">
                     {{-- 不加 dividing 線：底下的價格列自己就是一個層次，兩條線疊起來太吵 --}}
-                    <h1 class="uq-product-title">{{ $productName }}</h1>
+                    <h1 class="unstyled uq-product-title">{{ $productName }}</h1>
 
                     <div class="uq-product-meta">
                         <span>{{ $hmallProduct->brand }}</span>
@@ -366,7 +366,7 @@
         <div class="uq-product-section">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'videos', 'menu' => 'product_menu'])
-                <h2 class="uq-h2">
+                <h2 class="unstyled uq-h2">
                     商品影片
                     <span class="uq-count">日本版</span>
                 </h2>
@@ -389,7 +389,7 @@
         <div class="uq-product-section">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'photos', 'menu' => 'product_menu'])
-                <h2 class="uq-h2">商品實照</h2>
+                <h2 class="unstyled uq-h2">商品實照</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
                     @if ($colorNums)
@@ -422,7 +422,7 @@
         <div class="uq-product-section">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'styles', 'menu' => 'product_menu'])
-                <h2 class="uq-h2">Official Styling 官方精選穿搭</h2>
+                <h2 class="unstyled uq-h2">Official Styling 官方精選穿搭</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
                     @foreach ($styles as $key => $style)
@@ -439,7 +439,7 @@
         <div class="uq-product-section">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'style-hints', 'menu' => 'product_menu'])
-                <h2 class="uq-h2">
+                <h2 class="unstyled uq-h2">
                     StyleHint 網友穿搭靈感
                     <span class="uq-count">共 {{ $styleHintCount }} 張</span>
                     <a class="ts mini basic icon labeled button uq-h2-action"
@@ -465,7 +465,7 @@
         <div class="uq-product-section">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'commonly-styled', 'menu' => 'product_menu'])
-                <h2 class="uq-h2">經常搭配商品</h2>
+                <h2 class="unstyled uq-h2">經常搭配商品</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling link cards six">
                     @each('hmall-products.simple-card', $commonlyStyledHmallProducts, 'hmallProduct')
@@ -478,7 +478,7 @@
         <div class="uq-product-section">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'related', 'menu' => 'product_menu'])
-                <h2 class="uq-h2">延伸商品</h2>
+                <h2 class="unstyled uq-h2">延伸商品</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling link cards six">
                     @each('hmall-products.card', $relatedHmallProducts, 'hmallProduct')
@@ -505,7 +505,7 @@
     <div class="uq-product-section">
         <div class="ts container">
             @include('partials.section-anchor', ['anchor' => 'price-history', 'menu' => 'product_menu'])
-                <h2 class="uq-h2">歷史價格</h2>
+                <h2 class="unstyled uq-h2">歷史價格</h2>
             <div class="ts hidden divider"></div>
             <div class="ts fluid container grid">
                 <div class="four wide computer sixteen wide tablet sixteen wide mobile column">
@@ -574,7 +574,7 @@
         <div class="uq-product-section">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'japan', 'menu' => 'product_menu'])
-                <h2 class="uq-h2">日本版商品資訊</h2>
+                <h2 class="unstyled uq-h2">日本版商品資訊</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts items">
                     <div class="item">
@@ -681,7 +681,7 @@
         <div class="uq-product-section">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'legacy', 'menu' => 'product_menu'])
-                <h2 class="uq-h2">舊系統商品</h2>
+                <h2 class="unstyled uq-h2">舊系統商品</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling link cards six">
                     @each('products.card', $relatedProducts, 'product')

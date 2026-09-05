@@ -118,9 +118,15 @@
     font-weight: 400;
 }
 
-/* 章節標題。清單頁的性別段、分類總覽的群組、商品頁的章節共用同一種 */
+/*
+ * 章節標題。清單頁的性別段、分類總覽的群組、商品頁的章節共用同一種。
+ *
+ * 標籤上要一起掛 Tocas 的 unstyled：它的 h1/h2 規則寫成 h2:not(.unstyled):not(.ts)，
+ * 權重比單一個 class 高，不退出的話字級一直是它的 2.143rem。
+ */
 .uq-h2 {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
     gap: 0.5rem;
     margin: 40px 0 16px;
@@ -277,12 +283,67 @@ i.most-visited.icon {
  * 首頁的商品區塊與可橫向捲動的卡片列。
  * ------------------------------------------------------------------ */
 
-/* 區塊標題那一行：標題靠左、右邊一句灰字。首頁與分類總覽共用 */
+/* 區塊標題那一行：標題靠左、右邊一句灰字或一顆按鈕 */
 .uq-section-header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 1rem;
+}
+
+/* 分類總覽的一個群組。群組之間靠這段距離分開，不再各自框一個 segment */
+.uq-category-group {
+    margin-bottom: 32px;
+}
+
+/* 一排可以換行的 pill：分類總覽的子分類、分類頁工具列的子分類共用 */
+.uq-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* pill 裡的計數是附註不是標籤，在深色的選中狀態下也要跟著變白 */
+.uq-pill.active .uq-count {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+/*
+ * 分頁。跟工具列上的控制項對齊高度、字級與圓角，一頁上只有一種按鈕的樣子。
+ * 選擇器要疊到 .ts.buttons .button 才寫得動 Tocas 給群組成員的規則。
+ */
+.uq-pagination .ts.buttons .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: var(--uq-control-h);
+    min-height: 0;
+    padding: 0 16px;
+    border-color: var(--uq-line);
+    background: #fff;
+    color: var(--uq-text);
+    font-size: 13px;
+    box-shadow: none;
+}
+
+.uq-pagination .ts.buttons .button:first-child {
+    border-top-left-radius: 999px;
+    border-bottom-left-radius: 999px;
+}
+
+.uq-pagination .ts.buttons .button:last-child {
+    border-top-right-radius: 999px;
+    border-bottom-right-radius: 999px;
+}
+
+.uq-pagination .ts.buttons a.button:hover {
+    border-color: var(--uq-muted);
+    color: var(--uq-ink);
+}
+
+.uq-pagination .ts.buttons .disabled.button {
+    color: var(--uq-line);
 }
 
 /*
@@ -867,6 +928,7 @@ html:has(.uq-section-menu) {
  * 每一段只有一種強調：標題靠字級、價格靠字重、CTA 靠品牌色，其他全是灰的。
  * ------------------------------------------------------------------ */
 
+/* 同樣要掛 unstyled 退出 Tocas 的 h1 規則，見 .uq-h2 的說明 */
 .uq-product-title {
     margin: 0;
     color: var(--uq-ink);

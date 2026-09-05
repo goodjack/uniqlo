@@ -43,25 +43,25 @@
             @foreach ($groups as $group)
                 @include('partials.section-anchor', ['anchor' => $anchorFor($group), 'menu' => 'group_menu'])
 
-                <div class="ts basic segment">
-                    <div class="uq-section-header">
-                        <h2 class="ts medium header">
-                            {{ $group['category']->name }}
-                            {{-- 品牌顏色跟商品卡片右上角那顆一致：UNIQLO 紅、GU 藍 --}}
-                            <div class="ts mini @if ($group['brand'] === Brand::Gu) info @else negative @endif label">
-                                {{ $group['brand']->value }}
-                            </div>
-                        </h2>
-                        <span class="ts tiny disabled text">{{ count($group['children']) }} 個分類</span>
-                    </div>
+                <div class="uq-category-group">
+                    <h2 class="unstyled uq-h2">
+                        {{ $group['category']->name }}
+                        {{-- 品牌顏色跟商品卡片右上角那顆一致：UNIQLO 紅、GU 藍 --}}
+                        <div class="ts mini @if ($group['brand'] === Brand::Gu) info @else negative @endif label">
+                            {{ $group['brand']->value }}
+                        </div>
+                        <span class="uq-count uq-count-end">{{ count($group['children']) }} 個分類</span>
+                    </h2>
 
-                    @foreach ($group['children'] as $child)
-                        <a class="ts small basic label"
-                            href="{{ route('categories.show', ['brand' => $group['brand']->slug(), 'code' => $child->code]) }}">
-                            {{ $child->name }}
-                            <span class="detail">{{ $child->hmall_products_count }}</span>
-                        </a>
-                    @endforeach
+                    <div class="uq-pill-row">
+                        @foreach ($group['children'] as $child)
+                            <a class="uq-control uq-pill uq-pill-small"
+                                href="{{ route('categories.show', ['brand' => $group['brand']->slug(), 'code' => $child->code]) }}">
+                                {{ $child->name }}
+                                <span class="uq-count">{{ $child->hmall_products_count }}</span>
+                            </a>
+                        @endforeach
+                    </div>
                 </div>
             @endforeach
         </div>

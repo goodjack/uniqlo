@@ -56,11 +56,12 @@
             <x-toolbar>
                 @if ($children->isNotEmpty())
                     <x-slot:start>
-                        {{-- 往下鑽的入口。用 label 不用 button：件數要靠 label 的 detail 顯示 --}}
+                        {{-- 往下鑽的入口。小一號的 pill：一個分類底下常常十幾個子分類，跟 --}}
+                        {{-- 清單頁那三顆品牌 pill 同尺寸的話會把工具列撐成三排 --}}
                         @foreach ($children as $child)
-                            <a class="ts small basic label" href="{{ $categoryUrl($child->code) }}">
+                            <a class="uq-control uq-pill uq-pill-small" href="{{ $categoryUrl($child->code) }}">
                                 {{ $child->name }}
-                                <span class="detail">{{ $child->hmall_products_count }}</span>
+                                <span class="uq-count">{{ $child->hmall_products_count }}</span>
                             </a>
                         @endforeach
                     </x-slot:start>
