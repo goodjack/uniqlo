@@ -469,3 +469,45 @@ html:has(.uq-section-menu) {
         opacity: 1;
     }
 }
+
+/* ------------------------------------------------------------------
+ * 商品頁右欄的手機版微調：操作鈕排版、麵包屑最後一項截斷。
+ * 桌機版（≥ 768px）不動，Tocas 的預設在那個寬度沒有這兩個問題。
+ * ------------------------------------------------------------------ */
+
+/*
+ * 「前往官網」「收藏」「分享」三顆鈕。Tocas 的 stackable 在手機版一律直立
+ * 層疊、三顆等重量疊成三排太重——前往官網是唯一的購買動作，維持滿版；
+ * 收藏跟分享是次要動作，並排各半版。
+ */
+@media (max-width: 767px) {
+    #uniqlo-column .ts.stackable.buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65em;
+    }
+
+    #uniqlo-column .ts.stackable.buttons>.ts.button {
+        margin: 0;
+    }
+
+    /* 前往官網（UNIQLO 或 GU 版本）永遠是這組鈕的第一顆，跨兩欄維持滿版 */
+    #uniqlo-column .ts.stackable.buttons>a:first-child {
+        grid-column: 1 / -1;
+    }
+}
+
+/*
+ * 麵包屑最後一項（當頁，不是連結）在商品頁常常是完整商品名，390 寬時擠不進
+ * 第一行、整個換到第二行還是占滿整排。截斷成單行比讓它獨佔一整排好讀。
+ */
+@media (max-width: 767px) {
+    .uq-breadcrumb .active.section {
+        display: inline-block;
+        max-width: 60vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: bottom;
+    }
+}
