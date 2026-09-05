@@ -344,10 +344,29 @@ i.most-visited.icon {
  * 三件事：sticky、chip 的勾選外觀、以及工具列的兩側排版。
  * ------------------------------------------------------------------ */
 
-/* 麵包屑是 container 內的第一行，跟底下的內容之間要有一個呼吸的距離 */
+/*
+ * 麵包屑。只有分類頁與商品頁有，位置固定在 container 內的第一行。整條都是
+ * 灰的：它是回頭路不是這一頁的主角，顏色一重就會跟底下的標題搶。
+ */
 .uq-breadcrumb {
     display: block;
-    padding: 0.75rem 0 0.5rem;
+    margin: 16px 0 8px;
+}
+
+.uq-breadcrumb .section {
+    color: var(--uq-text);
+}
+
+.uq-breadcrumb a.section {
+    color: var(--uq-muted);
+}
+
+.uq-breadcrumb a.section:hover {
+    color: var(--uq-ink);
+}
+
+.uq-breadcrumb .divider {
+    color: var(--uq-line);
 }
 
 /*

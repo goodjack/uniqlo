@@ -1,5 +1,7 @@
 {{--
-    麵包屑。除了首頁以外每一頁都有，位置固定在 container 內的第一行。
+    麵包屑。只有分類頁與商品頁有：那兩頁是分類樹上的一個位置，往上一層是有意義的
+    去處。清單、搜尋、收藏、分類總覽都是從導覽列直接進來的單層頁面，加一條「首頁 ›
+    自己」只是佔一行。
 
     crumbs  陣列，每一筆是 ['label' => string, 'url' => ?string]。
             url 是 null 的那幾層只當文字（例如導覽的分組名、沒有自己頁面的頂層分類）。
@@ -17,7 +19,7 @@
             @endif
 
             @unless ($loop->last)
-                <i class="right chevron icon divider" aria-hidden="true"></i>
+                <i class="angle right icon divider" aria-hidden="true"></i>
             @endunless
         @endforeach
     </nav>

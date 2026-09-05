@@ -9,8 +9,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * 全站共同骨架的驗收：每一頁都有麵包屑、最後一層都是當頁，卡片上的收藏鈕
- * 不會變成連結的子孫。
+ * 全站共同骨架的驗收：麵包屑只出現在分類樹上的那兩頁、最後一層都是當頁，
+ * 卡片上的收藏鈕不會變成連結的子孫。
  *
  * 這兩件事都是「改一頁很容易忘記另外六頁」的類型，所以用一組測試把七種頁面
  * 一起釘住，而不是各自散在各頁的測試裡。
@@ -28,11 +28,33 @@ class PageSkeletonTest extends TestCase
         $this->createCategory('all_women-tops-tshirt', 'T恤', 'all_women-tops', CategoryLevel::Two);
     }
 
-    public function test_the_home_page_has_no_breadcrumb(): void
-    {
-        $content = $this->get(route('home'))->assertOk()->getContent();
+    /**
+     * 麵包屑是分類樹上的位置，往上一層要是有意義的去處。首頁是起點；清單、
+     * 搜尋、收藏、分類總覽都是從導覽列直接進來的單層頁面，一條「首頁 › 自己」
+     * 只是佔一行。
+     *
+     * @dataProvider pagesWithoutBreadcrumb
+     */
+    public function test_pages_outside_the_category_tree_have_no_breadcrumb(
+        string $name,
+        array $parameters
+    ): void {
+        $this->seedProduct();
 
-        $this->assertSame([], $this->crumbs($content), '首頁是麵包屑的起點，自己不需要');
+        $content = $this->get(route($name, $parameters))->assertOk()->getContent();
+
+        $this->assertSame([], $this->crumbs($content), "{$name} 不該有麵包屑");
+    }
+
+    public static function pagesWithoutBreadcrumb(): array
+    {
+        return [
+            '首頁' => ['home', []],
+            '清單頁' => ['lists.sale', []],
+            '分類總覽' => ['categories.index', []],
+            '搜尋結果' => ['search.show', ['query' => '外套']],
+            '收藏' => ['favorites.index', []],
+        ];
     }
 
     /**
@@ -59,11 +81,7 @@ class PageSkeletonTest extends TestCase
     public static function pagesWithBreadcrumb(): array
     {
         return [
-            '清單頁' => ['lists.sale', [], '特價'],
-            '分類總覽' => ['categories.index', [], '商品分類'],
             '分類頁' => ['categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops'], '上衣類'],
-            '搜尋結果' => ['search.show', ['query' => '外套'], '外套'],
-            '收藏' => ['favorites.index', [], '收藏'],
             // 商品頁的當頁那一層是完整商品名，也就是性別加名稱
             '商品頁' => ['uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001'], '女裝 短袖上衣'],
         ];

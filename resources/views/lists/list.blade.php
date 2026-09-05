@@ -16,11 +16,6 @@
 
     // 副標講的是實際排序，不是預設排序：使用者選了價格排序之後還寫預設就是錯的
     $sortText = request('sort') === 'price-asc' ? '依價格由低到高排序' : $sortSummary;
-
-    $crumbs = array_merge(
-        [\App\Support\Breadcrumb::home()],
-        \App\Support\Breadcrumb::currentList(),
-    );
 @endphp
 
 @section('title', $title)
@@ -46,8 +41,6 @@
 
     <div class="ts attached padded horizontally fitted fluid segment">
         <div class="ts container">
-            @include('partials.breadcrumb', ['crumbs' => $crumbs])
-
             <x-toolbar>
                 <x-slot:start>
                     {{-- 三顆分開的 pill 不是連在一起的按鈕群：連著的那組會被讀成一顆分段控制項， --}}

@@ -1,11 +1,5 @@
 @extends('layouts.master')
 
-@php
-    use App\Support\Breadcrumb;
-
-    $crumbs = [Breadcrumb::home(), Breadcrumb::link('favorites')];
-@endphp
-
 @section('title', '我的收藏')
 
 @section('metadata')
@@ -22,8 +16,6 @@
 
     <div class="ts attached padded horizontally fitted fluid segment">
         <div class="ts container">
-            @include('partials.breadcrumb', ['crumbs' => $crumbs])
-
             {{-- 一件都沒有的時候整條工具列不出現，favorites.js 有東西可以列才打開 --}}
             <x-toolbar id="favorites-toolbar" hidden>
                 <x-slot:end>

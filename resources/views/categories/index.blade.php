@@ -2,14 +2,11 @@
 
 @php
     use App\Enums\Brand;
-    use App\Support\Breadcrumb;
 
     $currentUrl = url()->current();
 
     // 兩家的分類名稱會撞（UNIQLO 的「女裝」與 GU 的「WOMEN」），錨點要連品牌一起編
     $anchorFor = fn($group) => "group-{$group['brand']->slug()}-{$group['category']->code}";
-
-    $crumbs = [Breadcrumb::home(), Breadcrumb::text('商品分類')];
 @endphp
 
 @section('title', '商品分類')
@@ -30,8 +27,6 @@
 
     <div class="ts attached padded horizontally fitted fluid segment">
         <div class="ts container">
-            @include('partials.breadcrumb', ['crumbs' => $crumbs])
-
             {{-- 十一個群組一路捲下去很容易迷路，選單留在畫面上當定位器 --}}
             @include('partials.section-menu', [
                 'id' => 'group_menu',

@@ -1,16 +1,11 @@
 @extends('layouts.master')
 
 @php
-    use App\Support\Breadcrumb;
-
     $title = $isProductCodeSearch ? "商品編號 {$query} 的搜尋結果" : "「{$query}」的搜尋結果";
 
     $subtitle = $isProductCodeSearch
         ? "商品編號 {$query}"
         : "「{$query}」共 {$hmallProducts->total()} 件";
-
-    // 搜尋本身沒有自己的頁面（/search 會轉回首頁），所以那一層只當文字
-    $crumbs = [Breadcrumb::home(), Breadcrumb::text('搜尋'), Breadcrumb::text($query)];
 @endphp
 
 @section('title', $title)
@@ -31,8 +26,6 @@
 
     <div class="ts attached padded horizontally fitted fluid segment">
         <div class="ts container">
-            @include('partials.breadcrumb', ['crumbs' => $crumbs])
-
             @if (!empty($ignoredKeywords))
                 <div class="ts small info message">
                     關鍵字最多 {{ count($keywords) }} 個，這次沒有用到「{{ implode('」「', $ignoredKeywords) }}」
