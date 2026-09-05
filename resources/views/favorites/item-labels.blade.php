@@ -3,7 +3,8 @@
     <div class="ts mini @if ($hmallProduct->brand === 'GU') info @else negative @endif label">
         {{ $hmallProduct->brand }}
     </div>
-    @include('hmall-products.partials.card-labels', ['hmallProduct' => $hmallProduct])
+    {{-- 一列只有一件商品，標籤攤開來看得完，也正是使用者追蹤它的原因 --}}
+    @include('hmall-products.partials.card-labels', ['hmallProduct' => $hmallProduct, 'tagLimit' => 0])
 </div>
 <div class="extra">
     {{-- 整列不再是一個 <a>，這裡就能用真的 <button>：焦點、Enter 與空白鍵都由瀏覽器處理 --}}

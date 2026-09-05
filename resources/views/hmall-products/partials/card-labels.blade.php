@@ -1,90 +1,34 @@
 @inject('hmallProductPresenter', 'App\Presenters\HmallProductPresenter')
-<div class="description">
-    @if ($hmallProduct->is_limited_offer || $hmallProduct->is_app_offer || $hmallProduct->is_ec_only)
-        <div class="ts horizontal basic circular label">
-            <span class="uq-brand-text">
-                {{ $hmallProductPresenter->getLimitedOfferMessage($hmallProduct) }}
-            </span>
-        </div>
-    @endif
 
-    @if ($hmallProduct->is_app_offer)
-        <div class="ts horizontal basic circular label">
-            <span class="uq-brand-text">APP 限定特價</span>
-        </div>
-    @endif
+@php
+    /**
+     * 商品的狀態標籤。順序與文案由 HmallProductPresenter::getProductTags() 決定，
+     * 卡片與收藏列表共用。
+     *
+     * tagLimit  最多顯示幾個，其餘收成一顆「+N」（滑過去用 title 看得到是哪些）。
+     *           0 代表不限制，收藏列表用這個——那裡一列只有一件商品，攤開來看
+     *           得完，也正是使用者追蹤它的原因。
+     *
+     * 一張卡片上七八個標籤的時候，第三個以後其實沒有人在讀，只是把品名跟價格
+     * 往下推。留兩個：一個講價格、一個講其他，剛好是使用者掃卡片時要的資訊量。
+     */
+    $tagLimit ??= 2;
+    $tags = $hmallProductPresenter->getProductTags($hmallProduct);
 
-    @if ($hmallProduct->is_ec_only)
-        <div class="ts horizontal basic circular label">
-            <span class="uq-brand-text">網路限定特價</span>
-        </div>
-    @endif
+    $shown = $tagLimit > 0 ? array_slice($tags, 0, $tagLimit) : $tags;
+    $hidden = $tagLimit > 0 ? array_slice($tags, $tagLimit) : [];
+@endphp
 
-    @if ($hmallProduct->is_sale)
-        <div class="ts horizontal basic circular label">
-            <span style="color: #00ADEA;">特價商品</span>
-        </div>
-    @endif
+@if (!empty($tags))
+    <div class="description uq-card-labels">
+        @foreach ($shown as $tag)
+            <span class="ts mini basic label uq-label @if ($tag['price']) uq-label-price @endif"
+                @isset($tag['title']) title="{{ $tag['title'] }}" @endisset>{{ $tag['text'] }}</span>
+        @endforeach
 
-    @if ($hmallProduct->is_new_historical_low)
-        <div class="ts horizontal basic circular label">
-            <span style="color: #00ADEA;">歷史新低價</span>
-        </div>
-    @endif
-
-    @if ($hmallProduct->is_new)
-        <div class="ts horizontal basic circular label">
-            <span style="color: #8BB96E;">新款商品</span>
-        </div>
-    @endif
-
-    @if ($hmallProduct->is_coming_soon)
-        <div class="ts horizontal basic circular label">
-            <span style="color: #50723C;">即將上市</span>
-        </div>
-    @endif
-
-    @if ($hmallProduct->is_multi_buy)
-        <div class="ts horizontal basic circular label">
-            <span style="color: #79A8B9;">合購商品</span>
-        </div>
-    @endif
-
-    @if ($hmallProduct->is_online_special)
-        <div class="ts horizontal basic circular label">
-            <span style="color: #F29E18;">網路獨家販售</span>
-        </div>
-    @endif
-
-    @if ($hmallProduct->is_stockout)
-        <div class="ts horizontal basic circular label">
-            <span style="color: #5A5A5A;">已售罄</span>
-        </div>
-    @endif
-
-    @if ($hmallProduct->top_wearing_rank)
-        <div class="ts horizontal basic circular label" title="穿搭 TOP {{ $hmallProduct->top_wearing_rank }}"
-            aria-label="穿搭 TOP {{ $hmallProduct->top_wearing_rank }}">
-            <span style="color: #CC7F49;">
-                @if ($hmallProduct->top_wearing_rank <= 50)
-                    穿搭 TOP {{ $hmallProduct->top_wearing_rank }}
-                @else
-                    熱門穿搭
-                @endif
-            </span>
-        </div>
-    @endif
-
-    @if ($hmallProduct->most_visited_rank)
-        <div class="ts horizontal basic circular label" title="瀏覽 TOP {{ $hmallProduct->most_visited_rank }}"
-            aria-label="瀏覽 TOP {{ $hmallProduct->most_visited_rank }}">
-            <span style="color: #B58105;">
-                @if ($hmallProduct->most_visited_rank <= 50)
-                    瀏覽 TOP {{ $hmallProduct->most_visited_rank }}
-                @else
-                    熱門瀏覽
-                @endif
-            </span>
-        </div>
-    @endif
-</div>
+        @if (!empty($hidden))
+            <span class="ts mini basic label uq-label uq-label-more"
+                title="{{ implode('、', array_column($hidden, 'text')) }}">+{{ count($hidden) }}</span>
+        @endif
+    </div>
+@endif

@@ -731,6 +731,69 @@ html:has(.uq-section-menu) {
 }
 
 /* ------------------------------------------------------------------
+ * 商品卡片。圖片是主角，底下四行資訊各有各的輕重：品名 › 價格 › 元資料與標籤。
+ * ------------------------------------------------------------------ */
+
+/* Tocas 給 .card > .content 的是四邊 padding，卡片之間就多了兩圈看不見的空白 */
+.ts.card.uq-card>.content {
+    padding: 12px 0 0;
+    border: 0;
+}
+
+.uq-card-name {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    color: var(--uq-ink);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.ts.card.uq-card .meta.uq-card-meta {
+    margin-top: 4px;
+    color: var(--uq-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.uq-card-price {
+    margin-top: 6px;
+    color: var(--uq-ink);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* 歷史價格區間是現價的註腳 */
+.uq-card-price-range {
+    margin-left: 4px;
+    color: var(--uq-muted);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+/* 現在的價格已經高於歷史最低，那個數字才是使用者要等的目標 */
+.uq-card-price-low {
+    color: #8bb96e;
+}
+
+.uq-card-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+/* 收起來的那幾個標籤：滑過去用 title 看完整清單，手機進商品頁看 */
+.ts.basic.label.uq-label.uq-label-more {
+    cursor: default;
+}
+
+.uq-card-brand {
+    opacity: 0.92;
+}
+
+/* ------------------------------------------------------------------
  * 商品卡片上的收藏鈕。
  * ------------------------------------------------------------------ */
 
@@ -749,8 +812,8 @@ html:has(.uq-section-menu) {
 }
 
 /*
- * 收藏鈕在圖片左上角，品牌標籤維持右上角。桌機平常低調，游標移到卡片上或
- * 已經收藏了才提高不透明度；手機沒有 hover，所以一律看得到、而且大一號才點得到。
+ * 收藏鈕在圖片左上角，品牌標籤維持右上角。底色是半透明白：底下是商品照片，
+ * 純白會在淺色背景的照片上整顆消失。
  *
  * 選擇器要帶 .ts.button：Tocas 的 .ts.button 自己就設了 position: relative、
  * z-index: 1 與 display，單一個 class 的權重蓋不過去——實測收藏鈕會掉到卡片
@@ -758,8 +821,8 @@ html:has(.uq-section-menu) {
  */
 .ts.button.uq-card-favorite {
     position: absolute;
-    top: 0.5rem;
-    left: 0.5rem;
+    top: 8px;
+    left: 8px;
     z-index: 2;
     display: flex;
     align-items: center;
@@ -768,15 +831,15 @@ html:has(.uq-section-menu) {
     height: 36px;
     min-height: 0;
     padding: 0;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid #dadada;
-    color: #8d8d8d;
+    border: 1px solid var(--uq-line);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--uq-muted);
     box-shadow: none;
 }
 
 .ts.button.uq-card-favorite>.icon {
     margin: 0;
-    font-size: 1rem;
+    font-size: 14px;
 }
 
 .ts.button.uq-card-favorite[aria-pressed="true"] {
@@ -785,22 +848,15 @@ html:has(.uq-section-menu) {
 
 .ts.button.uq-card-favorite:hover,
 .ts.button.uq-card-favorite:focus-visible {
+    border-color: var(--uq-muted);
     background: #fff;
-    color: var(--uq-brand);
 }
 
+/* 手機沒有 hover，按鈕大一號才點得到 */
 @media (min-width: 768px) {
     .ts.button.uq-card-favorite {
         width: 32px;
         height: 32px;
-        opacity: 0.7;
-        transition: opacity 0.15s;
-    }
-
-    .uq-card:hover .ts.button.uq-card-favorite,
-    .ts.button.uq-card-favorite:focus-visible,
-    .ts.button.uq-card-favorite[aria-pressed="true"] {
-        opacity: 1;
     }
 }
 
