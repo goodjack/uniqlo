@@ -56,6 +56,13 @@ class HmallProductRepository extends Repository
     private const CACHE_KEY_TOP_WEARING_RANKS = 'hmall_product:top_wearing_ranks';
 
     /**
+     * 商品列表分頁的預設每頁筆數。分類頁與搜尋結果頁共用同一個值，
+     * 呼叫端（CategoryService、SearchService）都是明確傳這個常數進來，
+     * 這裡的預設值只是保底，不要讓兩邊各自寫一份 24。
+     */
+    public const PRODUCTS_PER_PAGE = 24;
+
+    /**
      * 關鍵字比對的欄位。
      *
      * 刻意不含 product_name 以外的長文字欄位：LIKE '%詞%' 一律全表掃描，
@@ -589,7 +596,7 @@ class HmallProductRepository extends Repository
     public function getProductsByCategoryId(
         int $categoryId,
         array $tags = [],
-        int $perPage = 24,
+        int $perPage = self::PRODUCTS_PER_PAGE,
         ?string $q = null
     ): LengthAwarePaginator {
         $query = $this->model
@@ -683,7 +690,7 @@ class HmallProductRepository extends Repository
      *
      * @param  array<int, string>  $keywords
      */
-    public function searchByKeywords(array $keywords, int $perPage = 24): LengthAwarePaginator
+    public function searchByKeywords(array $keywords, int $perPage = self::PRODUCTS_PER_PAGE): LengthAwarePaginator
     {
         $query = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)

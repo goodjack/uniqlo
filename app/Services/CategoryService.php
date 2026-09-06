@@ -14,8 +14,6 @@ use Illuminate\Support\Collection;
 
 class CategoryService extends Service
 {
-    private const PRODUCTS_PER_PAGE = 24;
-
     /**
      * 商品頁列出幾個分類連結。再多就從導覽變成雜訊。
      */
@@ -253,7 +251,7 @@ class CategoryService extends Service
         return $this->hmallProductRepository->getProductsByCategoryId(
             $category->id,
             $tags,
-            self::PRODUCTS_PER_PAGE,
+            HmallProductRepository::PRODUCTS_PER_PAGE,
             $q
         );
     }

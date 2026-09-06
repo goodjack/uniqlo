@@ -16,8 +16,6 @@ class SearchService extends Service
      */
     private const MAX_KEYWORDS = 5;
 
-    private const RESULTS_PER_PAGE = 24;
-
     /** @var HmallProductRepository */
     protected $repository;
 
@@ -30,7 +28,7 @@ class SearchService extends Service
     {
         return $this->repository->searchByKeywords(
             $this->tokenize($query),
-            self::RESULTS_PER_PAGE
+            HmallProductRepository::PRODUCTS_PER_PAGE
         );
     }
 
