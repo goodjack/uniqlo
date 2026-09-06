@@ -1023,10 +1023,31 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
     margin-top: 8px;
 }
 
+/*
+ * 原價刪除線不用 text-decoration：12px 數字加中文時瀏覽器把線畫在 x-height，
+ * 看起來像底線。改用 ::after 畫在 50% 高度；align-self 讓它在 flex column 裡
+ * 只佔文字寬度，不然線會拉滿整張卡。
+ */
 .uq-card-origin {
+    position: relative;
+    display: inline-block;
+    align-self: flex-start;
+    line-height: 1.4;
     color: var(--uq-text-2);
     font-size: 12px;
     font-weight: 400;
+    text-decoration: none;
+}
+
+.uq-card-origin::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: currentColor;
+    transform: translateY(-50%);
 }
 
 .uq-card-now {
@@ -1244,11 +1265,30 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
     margin-top: 20px;
 }
 
-/* 原價：刪除線，跟卡片的 .uq-card-origin 是同一組規則 */
+/*
+ * 原價：跟卡片的 .uq-card-origin 是同一組規則，含同一套 ::after 刪除線
+ * 定位修正，理由見 .uq-card-origin 上面的註解。
+ */
 .uq-price-origin {
+    position: relative;
+    display: inline-block;
+    align-self: flex-start;
+    line-height: 1.4;
     color: var(--uq-text-2);
     font-size: 12px;
     font-weight: 400;
+    text-decoration: none;
+}
+
+.uq-price-origin::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: currentColor;
+    transform: translateY(-50%);
 }
 
 /* 預設是沒有優惠的墨色；有優惠時 blade 會多加 .uq-brand-text（見上面的
