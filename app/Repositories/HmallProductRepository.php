@@ -572,7 +572,8 @@ class HmallProductRepository extends Repository
     public function getProductsByCategoryId(
         int $categoryId,
         array $tags = [],
-        int $perPage = 24
+        int $perPage = 24,
+        ?string $q = null
     ): LengthAwarePaginator {
         $query = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
@@ -596,11 +597,37 @@ class HmallProductRepository extends Repository
             });
         }
 
+        // 分類內搜尋同樣要在查詢層做，理由跟標籤一樣：分頁後才篩會漏商品
+        if (filled($q)) {
+            $this->applyKeywordFilterForCategory($query, $q);
+        }
+
         return $query
             ->orderBy('category_pivot.sort')
             ->orderBy('hmall_products.code')
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    /**
+     * 分類頁的關鍵字篩選：多個空白分開的詞要全部命中，比對品名與編號。
+     *
+     * 跟 searchByKeywords() 不同的是這裡不比對分類名稱：使用者已經在這個分類
+     * 裡，篩的是「這個分類內」符合關鍵字的商品，不需要再擴大到別的分類。
+     */
+    private function applyKeywordFilterForCategory($query, string $q): void
+    {
+        $keywords = preg_split('/\s+/u', trim($q), -1, PREG_SPLIT_NO_EMPTY);
+
+        foreach ($keywords as $keyword) {
+            $pattern = '%'.$this->escapeLikeWildcards($keyword).'%';
+
+            $query->where(function ($subQuery) use ($pattern) {
+                $subQuery->where('hmall_products.name', 'like', $pattern)
+                    ->orWhere('hmall_products.code', 'like', $pattern)
+                    ->orWhere('hmall_products.product_code', 'like', $pattern);
+            });
+        }
     }
 
     /**
@@ -772,7 +799,7 @@ class HmallProductRepository extends Repository
                     return;
                 }
 
-                $hmallPriceHistory = new HmallPriceHistory();
+                $hmallPriceHistory = new HmallPriceHistory;
                 $hmallPriceHistory->min_price = $model->min_price;
                 $hmallPriceHistory->max_price = $model->max_price;
                 $model->hmallPriceHistories()->save($hmallPriceHistory);
