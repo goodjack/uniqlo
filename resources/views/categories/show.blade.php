@@ -82,9 +82,16 @@
                 @endif
 
                 {{--
-                    篩這一頁：分類頁是資料庫分頁查詢（HmallProductRepository::getProductsByCategoryId()），
-                    q 進 SQL 篩全分類，但前端即時篩只能篩「已經載入的這一頁」24 件，
-                    所以 placeholder 直接寫明白，不要讓人以為是篩整個分類。
+                    在這個分類裡找：分類頁是資料庫分頁查詢
+                    （HmallProductRepository::getProductsByCategoryId()），q 進 SQL
+                    篩的是整個分類，不是畫面上這一頁載入到的商品，所以輸入框不掛
+                    list-search.js 用來啟用即時篩的 data-instant-filter（前端即時篩
+                    只能篩到已經渲染出來的這一頁，誤導使用者以為篩了整個分類——
+                    站主試用後的裁決）。純 GET 表單，按 Enter 或沒有 JS 時都送出
+                    交給後端；換關鍵字等於重新送出這個表單、網址沒帶 page，會自動
+                    落回第 1 頁，跟品牌／標籤／排序共用同一套機制（見上面
+                    partials.tag-filter 的 otherParams）。分頁與 tags[] 一起帶著走
+                    靠 repository 的 withQueryString()，不用在這裡另外處理。
                 --}}
                 <form method="GET" action="{{ $currentUrl }}" class="uq-search-form">
                     @foreach ($selectedTagValues as $tagValue)
@@ -93,7 +100,7 @@
 
                     <i class="search icon" aria-hidden="true"></i>
                     <input type="search" name="q" class="uq-control uq-search-input" value="{{ $currentQ }}"
-                        placeholder="篩這一頁的商品…" maxlength="50" aria-label="篩這一頁的商品">
+                        placeholder="在這個分類裡找…" maxlength="50" aria-label="在這個分類裡找">
                     @if ($currentQ !== '')
                         <a class="uq-search-clear" href="{{ $currentUrl }}?{{ $queryFor(['q' => null]) }}"
                             aria-label="清除搜尋">&times;</a>

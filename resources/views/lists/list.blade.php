@@ -95,8 +95,8 @@
                     @endforeach
 
                     <i class="search icon" aria-hidden="true"></i>
-                    <input type="search" name="q" class="uq-control uq-search-input" value="{{ $currentQ }}"
-                        placeholder="在這個清單裡找…" maxlength="50" aria-label="在這個清單裡找">
+                    <input type="search" name="q" class="uq-control uq-search-input" data-instant-filter
+                        value="{{ $currentQ }}" placeholder="在這個清單裡找…" maxlength="50" aria-label="在這個清單裡找">
                     @if ($currentQ !== '')
                         <a class="uq-search-clear" href="{{ $currentUrl }}?{{ $queryFor(['q' => null]) }}"
                             aria-label="清除搜尋">&times;</a>
