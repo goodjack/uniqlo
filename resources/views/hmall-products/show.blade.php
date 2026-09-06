@@ -45,6 +45,10 @@
 
     $productTags = $hmallProductPresenter->getProductTags($hmallProduct);
 
+    // 原價只在有資料且大於現價時顯示，跟卡片上 card-extra-content.blade.php 是同一條規則
+    $hasOriginPrice = $hmallProduct->origin_price !== null
+        && (float) $hmallProduct->origin_price > $hmallProduct->price;
+
     // 商品資訊小表：只列出真的有值的欄位，空的一列比沒有那一列還難讀
     $productFacts = array_filter([
         '網路商店編號' => $hmallProduct->product_code,
@@ -290,19 +294,36 @@
                         </div>
                     </div>
 
-                    {{-- 狀態標籤緊接在價格右邊：它們講的都是「這個價錢是怎麼來的」 --}}
+                    {{--
+                        跟卡片同一份規格：有優惠時原價一行刪除線在上、現價
+                        24px 粗體優惠色在下（優惠色掛既有的 .uq-brand-text
+                        工具類別）；沒有優惠就只有現價，維持 #222。
+                    --}}
                     <div class="uq-price-row">
-                        <span class="uq-price">${{ $hmallProduct->price }}</span>
-                        @foreach ($productTags as $tag)
-                            <span class="ts small basic label uq-label @if ($tag['price']) uq-label-price @endif"
-                                @isset($tag['title']) title="{{ $tag['title'] }}" @endisset>{{ $tag['text'] }}</span>
-                        @endforeach
+                        @if ($hasOriginPrice)
+                            <del class="uq-price-origin">原價 ${{ (int) $hmallProduct->origin_price }}</del>
+                        @endif
+                        <span class="uq-price @if ($hasOriginPrice) uq-brand-text @endif">${{ $hmallProduct->price }}</span>
                     </div>
 
-                    {{-- limited_offer_end_date 這個 accessor 本身就只在檔期內回傳日期，檔期過了是 null， --}}
-                    {{-- 所以這一行不會在沒有「期間限定特價」標籤的時候單獨留著 --}}
-                    @if ($hmallProduct->limited_offer_end_date)
-                        <div class="uq-price-note">{{ $hmallProductPresenter->getLimitedOfferMessage($hmallProduct) }}</div>
+                    {{--
+                        狀態行緊接在價格下面，跟卡片同規則：優惠類（tag.price
+                        為真）13px 優惠色，其餘 12px 灰階，都不掛邊框。
+                        limited_offer_end_date 這個 accessor 本身就只在檔期內
+                        回傳日期，檔期過了是 null，所以截止日那一行不會在沒有
+                        「期間限定特價」標籤的時候單獨留著。
+                    --}}
+                    @if (!empty($productTags) || $hmallProduct->limited_offer_end_date)
+                        <div class="uq-price-status">
+                            @foreach ($productTags as $tag)
+                                <div class="uq-price-status-item @if ($tag['price']) uq-price-status-price @endif"
+                                    @isset($tag['title']) title="{{ $tag['title'] }}" @endisset>{{ $tag['text'] }}</div>
+                            @endforeach
+                            @if ($hmallProduct->limited_offer_end_date)
+                                <div class="uq-price-status-item uq-price-status-price uq-price-note">
+                                    {{ $hmallProductPresenter->getLimitedOfferMessage($hmallProduct) }}</div>
+                            @endif
+                        </div>
                     @endif
 
                     {{-- 買，或等：這是使用者在商品頁的兩個終點動作，所以緊接在價格底下， --}}

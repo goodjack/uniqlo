@@ -40,6 +40,15 @@
     --uq-text: #333333;
     /* 元資料、計數、麵包屑連結 */
     --uq-muted: #767676;
+    /* 卡片與商品頁的次要文字（適穿列、原價刪除線、狀態行裡非優惠的項目）。
+       跟 --uq-muted 分開設是因為要單獨調整卡片的資訊層級，不想連帶動到麵包屑
+       這類已經驗收過的既有元件 */
+    --uq-text-2: #666666;
+    /* 優惠價與優惠狀態文字專用的深色版。--uq-brand（#ce5e57）當按鈕底色沒問題，
+       但縮成 12-18px 的文字在白底只有約 3.9:1，離 AA 門檻 4.5:1 還差一截；這個
+       深化版實測 5.2:1。小字（優惠價、期間限定這類狀態文字）只用這個、不要用
+       --uq-brand，--uq-brand 留給有足夠面積的按鈕與大色塊 */
+    --uq-brand-text: #b5423b;
     /* 全站唯一的線色：分隔線與控制項邊框都用它 */
     --uq-line: #e4e4e4;
     /* 篩選面板的底色 */
@@ -53,9 +62,9 @@
     --uq-section-menu-height: 45px;
 }
 
-/* 商品標籤裡的品牌紅文字 */
+/* 商品標籤裡的優惠文字，見上面 --uq-brand-text 的說明：這裡故意不接 --uq-brand */
 .uq-brand-text {
-    color: var(--uq-brand);
+    color: var(--uq-brand-text);
 }
 
 /* ------------------------------------------------------------------
@@ -600,6 +609,19 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
 }
 
 /*
+ * 卡片 grid 的桌機欄距。Tocas 給 .ts.cards>.card 的 margin 是 .875em .5em——
+ * 上下 14px 疊起來剛好是列距要的 28px，不用另外設；左右 8px 疊起來只有
+ * 16px，桌機要的欄距是 24px，所以只加寬左右。手機維持 Tocas 預設的 16px，
+ * 版面窄、卡片本來就擠。
+ */
+@media (min-width: 768px) {
+    .ts.link.cards>.card.uq-card {
+        margin-left: 12px;
+        margin-right: 12px;
+    }
+}
+
+/*
  * Tocas 的 .ts.cards 自己就是負 margin（margin: -0.875em -0.5em，抵掉第一張
  * 卡片自己的正 margin，讓卡片跟容器邊緣切齊），這條負 margin 會跟前面的
  * 工具列／篩選面板的 margin-bottom 疊在一起做 collapse——正負相抵之後，
@@ -895,13 +917,38 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
 }
 
 /* ------------------------------------------------------------------
- * 商品卡片。圖片是主角，底下四行資訊各有各的輕重：品名 › 價格 › 元資料與標籤。
+ * 商品卡片 v3。基準是官網清單頁的資訊層級：圖片之後，主要資訊（品名、
+ * 現價）要比次要資訊（適穿、狀態文字、評分與編號）搶眼，靠字級／字重／
+ * 顏色三個一起讓出落差，不是疊邊框或底色去強調次要資訊。GPT-6 Astra 對照
+ * 官網抓出的問題正好相反：主要資訊被壓弱、次要資訊卻掛了 Tocas 的
+ * .ts.mini.label 邊框（實測只有 9px）——這裡整組拿掉那層邊框，狀態改成
+ * 純文字行，字級與顏色照「這是不是在幫使用者省錢」分兩級。
+ *
+ * 由上到下：圖片 → 適穿列（含收藏愛心）→ 品名 → 價格 → 狀態行 → 末行
+ * （評分＋編號）。文字組「內」用 4px（例如原價與現價之間、狀態行每一項
+ * 之間），組跟組「之間」用 8px（適穿列、品名、價格、狀態行、末行，彼此
+ * 都是 margin-top: 8px）。
  * ------------------------------------------------------------------ */
 
-/* Tocas 給 .card > .content 的是四邊 padding，卡片之間就多了兩圈看不見的空白 */
+/* Tocas 給 .card > .content 的是四邊 padding，卡片之間就多了兩圈看不見的空白；
+   圖下 8px 由這個 padding-top 負責，第一個子元素（適穿列）不用再疊 margin */
 .ts.card.uq-card>.content {
-    padding: 12px 0 0;
+    padding: 8px 0 0;
     border: 0;
+}
+
+/* 適穿列：左邊是適穿文字，右邊是收藏愛心 */
+.uq-card-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.uq-card-fit {
+    color: var(--uq-text-2);
+    font-size: 12px;
+    font-weight: 400;
 }
 
 .uq-card-name {
@@ -909,47 +956,98 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
-    color: var(--uq-ink);
-    font-size: 14px;
-    line-height: 1.4;
-}
-
-.ts.card.uq-card .meta.uq-card-meta {
-    margin-top: 4px;
-    color: var(--uq-muted);
-    font-size: 12px;
-    line-height: 1.5;
+    margin-top: 8px;
+    color: #222;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.45;
 }
 
 .uq-card-price {
-    margin-top: 6px;
-    color: var(--uq-ink);
-    font-size: 15px;
-    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
 }
 
-/* 歷史價格區間是現價的註腳 */
-.uq-card-price-range {
-    margin-left: 4px;
-    color: var(--uq-muted);
+.uq-card-origin {
+    color: var(--uq-text-2);
     font-size: 12px;
     font-weight: 400;
 }
 
-/* 現在的價格已經高於歷史最低，那個數字才是使用者要等的目標 */
-.uq-card-price-low {
-    color: #8bb96e;
+.uq-card-now {
+    color: var(--uq-brand-text);
+    font-size: 18px;
+    font-weight: 700;
 }
 
-.uq-card-labels {
+/* 沒有原價可以刪的時候現價是 .uq-card-price 唯一的子元素——沒有優惠就不套優惠色 */
+.uq-card-price .uq-card-now:only-child {
+    color: #222;
+}
+
+/*
+ * 狀態行：一項一行、全部顯示，接受卡片高度不齊（收合到「兩個以外」那版
+ * 被站主判定是退步，這裡沿用「攤開來看得完」的既有決定）。優惠類
+ * （tag.price 為真：期間限定、特價、歷史新低這些）用優惠色 13px，其餘一律
+ * --uq-text-2 12px；兩者都不掛邊框，跟官網一樣是純文字。
+ *
+ * card-labels.blade.php 這個 partial 也被 favorites/item-labels.blade.php
+ * 拿去放收藏清單那種橫向的 .item 列，不是這次改的 card-base。預設維持原本
+ * 會換行的橫向排列，只在卡片（.ts.card）裡才疊成直的一行一項——這條規則
+ * 只套 v3 卡片，不改到收藏清單既有的版面。
+ */
+.uq-card-status {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    margin-top: 6px;
+    margin-top: 8px;
 }
 
-.uq-card-brand {
-    opacity: 0.92;
+.ts.card .uq-card-status {
+    flex-direction: column;
+    flex-wrap: nowrap;
+}
+
+.uq-card-status-item {
+    color: var(--uq-text-2);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.uq-card-status-item.uq-card-status-price {
+    color: var(--uq-brand-text);
+    font-size: 13px;
+}
+
+/* 末行：評分加編號，沒評分就只剩編號。中點分隔沿用 .uq-product-meta 那組寫法 */
+.uq-card-tail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    color: var(--uq-text-2);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.uq-card-tail>span+span::before {
+    content: '·';
+    margin-right: 4px;
+    color: var(--uq-text-2);
+}
+
+/*
+ * 11px／600、不透明底：拿掉舊版的 opacity: 0.92，官網的角標是實色。
+ * 選擇器要疊上 .ts.mini.label：Tocas 的 .ts.mini.label{font-size:.64286rem}
+ * 是 (0,3,0)、.ts.label{font-weight:500} 是 (0,2,0)，單一個 .uq-card-brand
+ * 蓋不過去（實測角標還是停在 9px／500）。
+ */
+.ts.mini.label.uq-card-brand {
+    font-size: 11px;
+    font-weight: 600;
 }
 
 /*
@@ -988,62 +1086,49 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
 }
 
 /*
- * 收藏鈕在圖片左上角，品牌標籤維持右上角。底色是半透明白：底下是商品照片，
- * 純白會在淺色背景的照片上整顆消失。
+ * v3 把收藏鈕從圖片上搬到圖下的適穿列，不再需要絕對定位蓋在照片上、也不再
+ * 需要半透明白底。視覺 icon 20px，但點擊區要有 44×44px（WCAG 2.5.8 的
+ * 建議尺寸），用負 margin 把多出來的 padding 吃掉，適穿列的視覺高度才不會
+ * 被撐到 44px——負 margin 同時抵掉上下（維持列高）跟右邊（讓 icon 貼齊卡片
+ * 右緣，而不是連 44px 的空白也一起貼齊）。
  *
- * 選擇器要帶 .ts.button：Tocas 的 .ts.button 自己就設了 position: relative、
- * z-index: 1 與 display，單一個 class 的權重蓋不過去——實測收藏鈕會掉到卡片
- * 最下面（top/left 對沒有定位的元素不生效），而且 z-index 停在 1。
+ * position: relative + z-index: 2 不能省：.uq-card-link 蓋在整張卡片上是
+ * z-index: 1，適穿列跟這顆按鈕沒有另外定位的話會被那條連結蓋住，點下去變成
+ * 導去商品頁而不是收藏——這正是舊版收藏鈕原本就要處理的問題，搬位置不代表
+ * 這個問題消失。
  */
-.ts.button.uq-card-favorite {
-    position: absolute;
-    top: 8px;
-    left: 8px;
+.uq-card-heart {
+    position: relative;
     z-index: 2;
-    display: flex;
+    display: inline-flex;
+    flex: none;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    min-height: 0;
+    width: 44px;
+    height: 44px;
+    /* margin-left: auto 而不是靠 .uq-card-row 的 justify-content:space-between：
+       適穿是空字串時（sex 沒資料）列裡只剩這顆按鈕，space-between 單一個子
+       元素會貼去最左邊，愛心就跑到左上角去了 */
+    margin: -12px -12px -12px auto;
     padding: 0;
-    border: 1px solid var(--uq-line);
-    background: rgba(255, 255, 255, 0.92);
-    color: var(--uq-muted);
-    box-shadow: none;
+    border: 0;
+    background: none;
+    color: var(--uq-text-2);
+    cursor: pointer;
 }
 
-.ts.button.uq-card-favorite>.icon {
+.uq-card-heart>.icon {
     margin: 0;
-    font-size: 14px;
+    font-size: 20px;
 }
 
-.ts.button.uq-card-favorite[aria-pressed="true"] {
+.uq-card-heart[aria-pressed="true"] {
     color: var(--uq-brand);
 }
 
-/*
- * Tocas 的按鈕 hover 是 .ts.button:not(.visible):not(.hidden):not(.active):not(:active):not(.opinion):hover，
- * 六個條件疊出來的權重比兩個 class 高很多，不照它的形狀寫的話滑過去會變成灰底灰字
- * ——已收藏的紅色愛心會在滑鼠移上去的瞬間變灰，剛好跟它要表達的意思相反。
- */
-.ts.button.uq-card-favorite:not(.visible):not(.hidden):not(.active):not(:active):not(.opinion):hover,
-.ts.button.uq-card-favorite:focus-visible {
-    border-color: var(--uq-muted);
-    background: #fff;
-    color: var(--uq-muted);
-}
-
-.ts.button.uq-card-favorite[aria-pressed="true"]:not(.visible):not(.hidden):not(.active):not(:active):not(.opinion):hover {
-    color: var(--uq-brand);
-}
-
-/* 手機沒有 hover，按鈕大一號才點得到 */
-@media (min-width: 768px) {
-    .ts.button.uq-card-favorite {
-        width: 32px;
-        height: 32px;
-    }
+.uq-card-heart:focus-visible {
+    outline: 2px solid var(--uq-brand);
+    outline-offset: 2px;
 }
 
 /* ------------------------------------------------------------------
@@ -1094,39 +1179,50 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 12px;
+    gap: 8px;
     margin-top: 20px;
 }
 
+/* 原價：刪除線，跟卡片的 .uq-card-origin 是同一組規則 */
+.uq-price-origin {
+    color: var(--uq-text-2);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+/* 預設是沒有優惠的墨色；有優惠時 blade 會多加 .uq-brand-text（見上面的
+   說明），把顏色換成優惠色——跟卡片的 .uq-card-now 用 :only-child 判斷不同，
+   這裡直接掛既有的 .uq-brand-text 工具類別，商品頁的價格區才驗得到「這裡有
+   優惠色」這件事，不必回頭猜 CSS 選擇器 */
 .uq-price {
-    color: var(--uq-ink);
-    font-size: 28px;
+    color: #222;
+    font-size: 24px;
     font-weight: 700;
     line-height: 1.1;
 }
 
 /*
- * 狀態標籤。只有價格類（歷史新低、期間限定、特價）用品牌紅——那三個回答的是
- * 「這個價錢划不划算」，跟旁邊的價格是同一件事；其餘一律灰的。
+ * 狀態行：跟卡片同規則（見 .uq-card-status 的說明），優惠類（tag.price 為真：
+ * 期間限定、特價、歷史新低）用優惠色 13px，其餘一律 --uq-text-2 12px。期間
+ * 限定的截止日也算優惠類，跟其他狀態行一起放在同一份清單裡——.uq-price-note
+ * 這個 class 名稱留著讓既有測試（檔期過了要消失）繼續對得到，樣式已經併進
+ * .uq-price-status-item。
  */
-/* 選擇器要疊到四個 class：Tocas 的 .ts.basic.label 就是三個，兩個蓋不過去 */
-.ts.basic.label.uq-label {
-    margin: 0;
-    border-radius: 4px;
-    border-color: var(--uq-muted);
-    background: #fff;
-    color: var(--uq-muted);
+.uq-price-status {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.uq-price-status-item {
+    color: var(--uq-text-2);
+    font-size: 12px;
     font-weight: 400;
 }
 
-.ts.basic.label.uq-label.uq-label-price {
-    border-color: var(--uq-brand);
-    color: var(--uq-brand);
-}
-
-.uq-price-note {
-    margin-top: 6px;
-    color: var(--uq-muted);
+.uq-price-status-item.uq-price-status-price {
+    color: var(--uq-brand-text);
     font-size: 13px;
 }
 
