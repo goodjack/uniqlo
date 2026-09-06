@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use App\Repositories\HmallProductRepository;
 use App\Services\SearchService;
 use Illuminate\Http\Request;
 
@@ -19,12 +18,9 @@ class SearchController extends Controller
 
     protected $searchService;
 
-    protected $repository;
-
-    public function __construct(SearchService $searchService, HmallProductRepository $repository)
+    public function __construct(SearchService $searchService)
     {
         $this->searchService = $searchService;
-        $this->repository = $repository;
     }
 
     public function index(Request $request)
@@ -38,7 +34,7 @@ class SearchController extends Controller
         if (is_numeric($query)) {
             // 一頁常共用多個貨號，所以命中判準跟 showProductCodeResults() 是同一條查詢：
             // code 精準符合或 name 裡帶著這組號碼。舊軌 Product 維持精準比對不變。
-            $results = $this->repository->findHmallProductsByCodeOrSharedNumber($query)
+            $results = $this->searchService->findHmallProductsByCodeOrSharedNumber($query)
                 ->concat(Product::select('id')->where('id', $query)->get());
 
             if ($results->count() === 1) {
@@ -82,7 +78,7 @@ class SearchController extends Controller
         return view('search.results', [
             'query' => $query,
             'isProductCodeSearch' => true,
-            'hmallProducts' => $this->repository->findHmallProductsByCodeOrSharedNumber($query),
+            'hmallProducts' => $this->searchService->findHmallProductsByCodeOrSharedNumber($query),
             'products' => Product::where('id', 'like', "{$query}%")->get(),
         ]);
     }
