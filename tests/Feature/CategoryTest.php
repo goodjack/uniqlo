@@ -217,6 +217,125 @@ class CategoryTest extends TestCase
     }
 
     /**
+     * 分類頁的 q 要進 SQL 篩，比對品名與編號，跟清單頁走 Collection 篩是不同路徑
+     * （HmallProductRepository::getProductsByCategoryId() vs ListService::filterHmallProducts()）。
+     */
+    public function test_q_filters_the_category_by_name(): void
+    {
+        $this->attachProduct($this->createProduct(['name' => '牛仔超寬版短褲', 'code' => '359225']), 'all_women-tops');
+        $this->attachProduct($this->createProduct(['name' => 'AIRism 圓領T恤', 'code' => '474238']), 'all_women-tops');
+
+        $response = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?q='.urlencode('短褲')
+        );
+
+        $response->assertOk();
+        $response->assertSee('牛仔超寬版短褲');
+        $response->assertDontSee('AIRism');
+    }
+
+    public function test_q_filters_the_category_by_code(): void
+    {
+        $this->attachProduct($this->createProduct(['name' => '牛仔超寬版短褲', 'code' => '359225']), 'all_women-tops');
+        $this->attachProduct($this->createProduct(['name' => 'AIRism 圓領T恤', 'code' => '474238']), 'all_women-tops');
+
+        $response = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?q=474238'
+        );
+
+        $response->assertOk();
+        $response->assertSee('AIRism');
+        $response->assertDontSee('牛仔超寬版短褲');
+    }
+
+    /**
+     * 多個空白分開的詞要全部命中，跟清單頁的語意一致。
+     */
+    public function test_q_with_multiple_keywords_requires_all_of_them(): void
+    {
+        $this->attachProduct($this->createProduct(['name' => '牛仔超寬版短褲', 'code' => '359225']), 'all_women-tops');
+        $this->attachProduct($this->createProduct(['name' => '亞麻混紡短褲', 'code' => '483042']), 'all_women-tops');
+        $this->attachProduct($this->createProduct(['name' => 'AIRism 圓領T恤', 'code' => '474238']), 'all_women-tops');
+
+        $response = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops'])
+                .'?q='.urlencode('短褲 牛仔')
+        );
+
+        $response->assertOk();
+        $response->assertSee('牛仔超寬版短褲');
+        $response->assertDontSee('亞麻混紡短褲');
+        $response->assertDontSee('AIRism');
+    }
+
+    /**
+     * q 跟標籤各自獨立生效，兩個條件都要滿足才留下來。
+     */
+    public function test_q_and_tags_apply_together_on_the_category_page(): void
+    {
+        $this->attachProduct($this->createProduct([
+            'name' => '特價短褲',
+            'code' => '111111',
+            'identity' => json_encode(['concessional_rate']),
+        ]), 'all_women-tops');
+        $this->attachProduct($this->createProduct([
+            'name' => '一般短褲',
+            'code' => '222222',
+            'identity' => '[]',
+        ]), 'all_women-tops');
+        $this->attachProduct($this->createProduct([
+            'name' => '特價上衣',
+            'code' => '333333',
+            'identity' => json_encode(['concessional_rate']),
+        ]), 'all_women-tops');
+
+        $response = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops'])
+                .'?q='.urlencode('短褲').'&tags[]=sale'
+        );
+
+        $response->assertOk();
+        $response->assertSee('特價短褲');
+        $response->assertDontSee('一般短褲');
+        $response->assertDontSee('特價上衣');
+    }
+
+    /**
+     * q 找不到符合的商品時要換成空狀態，文案點名關鍵字。
+     */
+    public function test_q_with_no_match_shows_the_empty_state_on_the_category_page(): void
+    {
+        $this->attachProduct($this->createProduct(['name' => '牛仔超寬版短褲']), 'all_women-tops');
+
+        $response = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops'])
+                .'?q='.urlencode('這個關鍵字不會有任何商品符合')
+        );
+
+        $response->assertOk();
+        $response->assertSee('沒有符合「這個關鍵字不會有任何商品符合」的商品');
+    }
+
+    /**
+     * 帶 q 的分類頁是既有分類的重組，不該被搜尋引擎索引。
+     */
+    public function test_a_category_page_with_q_is_not_indexed(): void
+    {
+        $this->attachProduct($this->createProduct(['name' => '牛仔超寬版短褲']), 'all_women-tops');
+
+        $withQuery = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?q='.urlencode('短褲')
+        )->assertOk()->getContent();
+
+        $withoutQuery = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops'])
+        )->assertOk()->getContent();
+
+        $this->assertStringContainsString('noindex', $withQuery);
+        $this->assertStringNotContainsString('noindex', $withoutQuery);
+    }
+
+    /**
      * 官方在該分類內的排序權重決定顯示順序，出來就跟官網一致。
      */
     public function test_products_follow_the_official_sort_within_the_category(): void
