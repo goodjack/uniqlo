@@ -198,6 +198,29 @@ class CategoryTest extends TestCase
     }
 
     /**
+     * 第三輪 UI 把分類頁的分頁換成跟 style-hints 頁共用的 markup
+     * （Tocas 的 .ts.icon.button 上一頁／頁碼／下一頁），不再是自訂的三顆
+     * pill。這裡塞超過一頁（24 件）的商品，確認新元件真的接上去了。
+     */
+    public function test_category_page_uses_the_shared_pagination_component(): void
+    {
+        foreach (range(1, 25) as $index) {
+            $this->attachProduct($this->createProduct([
+                'code' => "45900{$index}",
+                'product_code' => "u45900{$index}",
+            ]), 'all_women-tops');
+        }
+
+        $content = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('ts small buttons', $content);
+        $this->assertStringContainsString('icon button', $content);
+        $this->assertStringNotContainsString('uq-pagination-current', $content);
+    }
+
+    /**
      * 從 SEO 直接進分類頁的人需要知道自己在整棵樹的哪裡。
      * 頂層沒有自己的頁面，所以只當文字不做連結。
      */
