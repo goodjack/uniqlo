@@ -566,8 +566,7 @@ class HmallProductRepository extends Repository
      * 還要跟品牌與分頁疊加，那是資料庫該做的事。
      *
      * 排序用官方在該分類內的權重，出來的順序就跟官網一致。
-     */
-    /**
+     *
      * @param  array<int, ProductTag>  $tags
      */
     public function getProductsByCategoryId(
