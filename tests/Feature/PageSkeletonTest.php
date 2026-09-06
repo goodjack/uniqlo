@@ -228,7 +228,7 @@ class PageSkeletonTest extends TestCase
             ->getContent();
 
         $this->assertSame(1, $this->countNodes($content, '//*[contains(@class, "uq-description")]'));
-        $this->assertSame(1, $this->countNodes($content, '//div[@class="uq-clamp"]'), '桌機收合的外層');
+        $this->assertSame(1, $this->countNodes($content, '//div[contains(concat(\' \', normalize-space(@class), \' \'), \' uq-clamp \')]'), '桌機收合的外層');
         $this->assertSame(1, $this->countNodes($content, '//details[contains(@class, "uq-clamp-more")]'));
     }
 
@@ -248,7 +248,7 @@ class PageSkeletonTest extends TestCase
             ->getContent();
 
         $this->assertSame(1, $this->countNodes($content, '//*[contains(@class, "uq-description")]'));
-        $this->assertSame(0, $this->countNodes($content, '//div[@class="uq-clamp"]'), '短說明不該收合');
+        $this->assertSame(0, $this->countNodes($content, '//div[contains(concat(\' \', normalize-space(@class), \' \'), \' uq-clamp \')]'), '短說明不該收合');
 
         $this->seedShortLinesProduct();
 
@@ -256,7 +256,7 @@ class PageSkeletonTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertSame(1, $this->countNodes($content, '//div[@class="uq-clamp"]'), '十行的說明要收合');
+        $this->assertSame(1, $this->countNodes($content, '//div[contains(concat(\' \', normalize-space(@class), \' \'), \' uq-clamp \')]'), '十行的說明要收合');
     }
 
     /**
@@ -307,7 +307,7 @@ class PageSkeletonTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertGreaterThan(0, $this->countNodes($content, '//div[contains(@class, "uq-card")]/a[@class="uq-card-link"]'));
+        $this->assertGreaterThan(0, $this->countNodes($content, '//div[contains(@class, "uq-card")]/a[contains(concat(\' \', normalize-space(@class), \' \'), \' uq-card-link \')]'));
     }
 
     /**
