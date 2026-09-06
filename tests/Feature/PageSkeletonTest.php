@@ -373,12 +373,9 @@ class PageSkeletonTest extends TestCase
     /**
      * 有原價且原價高於現價的商品，卡片要用 <del> 畫出來，不是純文字寫「原價」。
      *
-     * 直接 render hmall-products.card，不透過分類頁那條路徑：
-     * HmallProductRepository::SELECT_COLUMNS_FOR_LIST（全站清單查詢共用同一份）
-     * 沒有列出 origin_price，這欄位在分類、搜尋、清單、首頁、延伸商品這些走
-     * 清單查詢的頁面上永遠是 null，卡片模板本身收不收得到值是另一回事——這裡
-     * 驗的是模板邏輯，清單頁實際吃不到欄位這件事在回報裡另外說明，修法要動
-     * app/Repositories/HmallProductRepository.php，不在這輪的檔案範圍內。
+     * 直接 render hmall-products.card，不透過分類頁那條路徑：這裡驗的是卡片
+     * 模板本身收到 origin_price 時的邏輯，跟清單查詢實際查不查得到這個欄位
+     * 是兩件事，分開驗。
      */
     public function test_a_card_with_an_origin_price_renders_a_del(): void
     {

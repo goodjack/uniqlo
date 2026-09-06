@@ -44,8 +44,7 @@ enum ProductTag: string
      *
      * 一個標籤有兩個代碼，是因為兩家的命名不同（COMING SOON 對 COMING、
      * ONLINE SPECIAL 對 ECONLY）。但代碼不是品牌獨佔的，不要照著品牌去簡化：
-     * 本機 uniqlo 資料庫 2026-09-03 的快照裡，ECONLY 在 UNIQLO 有 38 件、
-     * GU 有 54 件，兩家都在用；COMING 則是 GU 專有（118 件、UNIQLO 0 件）。
+     * ECONLY 在 UNIQLO 與 GU 兩家都在用；COMING 則是 GU 專有。
      * 所以判斷一律兩個代碼都比，不看 brand。
      *
      * @return array<int, string>
@@ -53,11 +52,11 @@ enum ProductTag: string
     private function identityCodes(): array
     {
         return match ($this) {
-            // 官方標的限時特價，兩家都有（UNIQLO 47、GU 13）
+            // 官方標的限時特價，兩家都有
             self::LimitedOffer => ['time_doptimal'],
-            // 特價，兩家都有（UNIQLO 489、GU 220）
+            // 特價，兩家都有
             self::Sale => ['concessional_rate'],
-            // 新品，兩家都有（UNIQLO 98、GU 57）
+            // 新品，兩家都有
             self::NewArrival => ['new_product'],
             // COMING SOON 是 UNIQLO 的寫法、COMING 是 GU 的
             self::ComingSoon => ['COMING SOON', 'COMING'],
