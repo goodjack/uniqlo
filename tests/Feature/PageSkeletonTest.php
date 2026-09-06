@@ -119,10 +119,10 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 一張卡片上七八個標籤的時候，第三個以後沒有人在讀，只是把品名跟價格往下推。
-     * 留兩個、其餘收成一顆「+N」，完整清單放進 title 讓滑鼠使用者查得到。
+     * 第三輪 UI 拿掉「最多兩個加 +N」：站主判定高低不齊比漏資訊好接受，
+     * 分類頁、清單頁與收藏清單現在全部一樣，標籤攤開來看得完。
      */
-    public function test_a_card_shows_at_most_two_labels_and_folds_the_rest(): void
+    public function test_a_card_shows_every_label(): void
     {
         $this->seedProduct(['identity' => json_encode([
             'time_doptimal', 'concessional_rate', 'new_product', 'multi_buy', 'revision',
@@ -135,14 +135,8 @@ class PageSkeletonTest extends TestCase
         $labels = $this->xpath($content)
             ->query('(//*[contains(@class, "uq-card-labels")])[1]/span');
 
-        $this->assertSame(3, $labels->length, '一張卡片上最多兩個標籤加一顆 +N');
-        $this->assertSame('+3', trim($labels->item(2)->textContent));
-
-        $title = $labels->item(2)->attributes->getNamedItem('title')->value;
-
-        foreach (['新款商品', '合購商品', '修改褲長'] as $folded) {
-            $this->assertStringContainsString($folded, $title, "收起來的標籤要寫進 title：{$folded}");
-        }
+        $this->assertSame(5, $labels->length, '卡片上的標籤不再收合');
+        $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-label-more")]'));
     }
 
     /**

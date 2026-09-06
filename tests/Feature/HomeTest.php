@@ -25,6 +25,25 @@ class HomeTest extends TestCase
         }
     }
 
+    /**
+     * 第三輪 UI 把首頁從橫向捲動列改回 master 的桌機六格 grid，手機靠
+     * doubling 自然變兩格；這裡釘住區塊用的是哪個 Tocas class 組合，
+     * 不讓它又被換回自訂的橫向捲動版型。
+     */
+    public function test_each_section_uses_the_six_column_grid(): void
+    {
+        $this->mockListService();
+
+        $response = $this->get(route('home'));
+
+        $this->assertGreaterThan(
+            0,
+            substr_count($response->getContent(), 'ts doubling link cards six'),
+            '首頁每個區塊都該是 ts doubling link cards six'
+        );
+        $response->assertDontSee('home-product-row');
+    }
+
     public function test_each_section_links_to_its_list_page(): void
     {
         $this->mockListService();
@@ -48,15 +67,15 @@ class HomeTest extends TestCase
         $response->assertSee('限時特價');
     }
 
-    public function test_section_shows_at_most_twelve_cards(): void
+    public function test_section_shows_at_most_six_cards(): void
     {
         $this->mockListService(['getLimitedOfferHmallProducts' => 30]);
 
         $response = $this->get(route('home'));
 
-        // 每張卡片一個 route_url 連結，第一個區塊被截到 12 張，
-        // 其餘三個區塊各 2 張，總共 18 個商品連結。
-        $this->assertSame(18, substr_count($response->getContent(), 'hmall-products/'));
+        // 每張卡片一個 route_url 連結，第一個區塊被截到桌機一排的 6 張，
+        // 其餘三個區塊各 2 張，總共 12 個商品連結。
+        $this->assertSame(12, substr_count($response->getContent(), 'hmall-products/'));
     }
 
     /**
