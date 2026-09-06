@@ -342,6 +342,41 @@ class CategoryTest extends TestCase
     }
 
     /**
+     * 第三輪 UI 修正：分類那一行的「·」分隔符要是相鄰的 <span>，不是塞進
+     * <a> 裡的 ::before，不然 hover 底線會連著這個點一起畫出來。
+     */
+    public function test_the_categories_line_separator_is_not_inside_the_link(): void
+    {
+        $product = $this->createProduct(['product_code' => 'u778900']);
+        $this->attachProduct($product, 'all_women-tops');
+        $this->attachProduct($product, 'all_women-tops-tshirt');
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u778900']))
+            ->assertOk()
+            ->getContent();
+
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$content);
+        $xpath = new \DOMXPath($dom);
+
+        $links = $xpath->query('//*[contains(@class, "uq-categories-line")]//a');
+
+        $this->assertGreaterThan(1, $links->length, '這則測試需要至少兩個分類連結才驗得出分隔符');
+
+        foreach ($links as $link) {
+            $this->assertStringNotContainsString(
+                '·',
+                $link->textContent,
+                '分隔符不該出現在連結文字裡'
+            );
+        }
+
+        $separators = $xpath->query('//*[contains(@class, "uq-categories-line")]//*[contains(@class, "uq-sep")]');
+
+        $this->assertGreaterThan(0, $separators->length, '分隔符要是獨立的 span');
+    }
+
+    /**
      * 抓出商品頁「分類」那一行裡的分類連結，只回傳分類 code。
      *
      * 原本是用「所屬分類」那個小標題定位。第二輪 UI 把三個小標題（標籤、

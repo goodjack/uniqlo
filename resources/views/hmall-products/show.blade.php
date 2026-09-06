@@ -361,6 +361,10 @@
                         <div class="uq-categories-line">
                             <span class="uq-categories-label">分類</span>
                             @foreach ($categories as $category)
+                                {{-- 分隔符是 <a> 的兄弟節點，不塞進連結裡：hover 的底線才不會連著它畫 --}}
+                                @unless ($loop->first)
+                                    <span class="uq-sep">·</span>
+                                @endunless
                                 <a
                                     href="{{ route('categories.show', [
                                         'brand' => $category->brand->slug(),
