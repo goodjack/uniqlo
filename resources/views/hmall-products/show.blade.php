@@ -210,13 +210,15 @@
             color: var(--uq-muted);
         }
 
+        /* LINE 品牌綠 #06b833 在白底只有 2.65:1，hover 的圖示看不清楚；
+           加深到 #05a52f 是 3.06:1，過 3:1 的非文字對比門檻 */
         #line:hover {
             background: #fff !important;
-            color: #06b833 !important;
+            color: #05a52f !important;
         }
 
         #line:active {
-            color: #05a52f !important;
+            color: #048a27 !important;
         }
 
         .ts.button.coming-soon.positive {
