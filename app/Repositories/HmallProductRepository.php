@@ -141,6 +141,23 @@ class HmallProductRepository extends Repository
         return $hmallProduct->styleHints()->count();
     }
 
+    /**
+     * 商品身上掛的分類，只留大類與品項層。
+     *
+     * 只到 levelTwo 為止：levelThree 是官方的錨點細分，不是使用者會想點進去
+     * 逛的分類。去重與上限交給呼叫端（見 CategoryService::getCategoryLinksForProductPage）。
+     *
+     * @return Collection<int, HmallCategory>
+     */
+    public function getCategoriesForProductPage(HmallProduct $hmallProduct): Collection
+    {
+        return $hmallProduct->categories()
+            ->whereIn('level', [CategoryLevel::One->value, CategoryLevel::Two->value])
+            ->orderBy('level', 'desc')
+            ->orderBy('code')
+            ->get();
+    }
+
     public function getRelatedHmallProductsForProduct(Product $product)
     {
         $relatedId = substr($product->id, 0, 6);

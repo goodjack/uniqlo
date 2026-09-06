@@ -111,6 +111,62 @@ class CategoryServiceTest extends TestCase
         $this->assertSame('feature-new-women', $this->service->getPrimaryCategory($product)->code);
     }
 
+    /**
+     * 商品頁的分類連結只到品項層為止，錨點層（levelThree）不是使用者會想
+     * 點進去逛的分類，不該出現在連結列表裡。
+     */
+    public function test_product_page_category_links_exclude_level_three(): void
+    {
+        $this->createCategory('all_women-tops-anchor', '女裝/男女適穿', 'all_women-tops', CategoryLevel::Three);
+
+        $product = $this->createProduct(['gender' => '女裝']);
+        $this->attach($product, 'all_women-tops', '014001999');
+        $this->attach($product, 'all_women-tops-tshirt', '014001999');
+        $this->attach($product, 'all_women-tops-anchor', '014001999');
+
+        $links = $this->service->getCategoryLinksForProductPage($product);
+
+        // orderBy('level', 'desc') 先列品項層（T恤），再列大類（上衣類）
+        $this->assertSame(['T恤', '上衣類'], $links->pluck('name')->values()->all());
+    }
+
+    /**
+     * 男女適穿的商品在男裝、女裝樹下各掛一份同名分類，畫面上只留一個，
+     * 不然會看到兩個一模一樣的連結。
+     */
+    public function test_product_page_category_links_deduplicate_by_name(): void
+    {
+        $this->createCategory('all_men', '男裝', null, CategoryLevel::Top);
+        $this->createCategory('all_men-tops', '上衣類', 'all_men', CategoryLevel::One);
+
+        $product = $this->createProduct(['gender' => '男女適穿']);
+        $this->attach($product, 'all_women-tops', '014001999');
+        $this->attach($product, 'all_men-tops', '014001999');
+
+        $links = $this->service->getCategoryLinksForProductPage($product);
+
+        $this->assertCount(1, $links);
+    }
+
+    /**
+     * 再多分類連結就從導覽變成雜訊，上限是 5 個。
+     */
+    public function test_product_page_category_links_are_capped_at_five(): void
+    {
+        $product = $this->createProduct(['gender' => '女裝']);
+        $this->attach($product, 'all_women-tops', '014001999');
+        $this->attach($product, 'all_women-tops-tshirt', '014001999');
+
+        for ($i = 1; $i <= 5; $i++) {
+            $this->createCategory("all_women-extra{$i}", "分類{$i}", 'all_women', CategoryLevel::One);
+            $this->attach($product, "all_women-extra{$i}", '014001999');
+        }
+
+        $links = $this->service->getCategoryLinksForProductPage($product);
+
+        $this->assertCount(5, $links);
+    }
+
     private function createCategory(
         string $code,
         string $name,
