@@ -22,6 +22,7 @@ class ListController extends Controller
             $hmallProducts,
             $listRequest,
             '期間限定特價',
+            '商品期間限定特價中',
             'negative',
             'certificate',
             '依特價幅度排序'
@@ -36,6 +37,7 @@ class ListController extends Controller
             $hmallProducts,
             $listRequest,
             '特價商品',
+            '商品特價中',
             'primary',
             'shopping basket',
             '依特價幅度排序'
@@ -50,6 +52,7 @@ class ListController extends Controller
             $hmallProducts,
             $listRequest,
             '熱門評論',
+            '熱門評論商品',
             'most-reviewed',
             'comments outline',
             '依評論數排序'
@@ -64,6 +67,7 @@ class ListController extends Controller
             $hmallProducts,
             $listRequest,
             '日本熱門評論',
+            '日本熱門評論商品',
             'most-reviewed',
             'comments outline',
             '依日本評論數排序，卡片上顯示的是日本的評分與評論數',
@@ -79,6 +83,7 @@ class ListController extends Controller
             $hmallProducts,
             $listRequest,
             '熱門穿搭',
+            '熱門穿搭商品',
             'top-wearing',
             'camera retro',
             '依網友穿搭數排序'
@@ -92,6 +97,7 @@ class ListController extends Controller
         return $this->getList(
             $hmallProducts,
             $listRequest,
+            '新款商品',
             '新款商品',
             'positive',
             'leaf',
@@ -107,6 +113,7 @@ class ListController extends Controller
             $hmallProducts,
             $listRequest,
             '即將上市',
+            '即將上市商品',
             'coming-soon',
             'checked calendar',
             '依特價幅度排序'
@@ -120,6 +127,7 @@ class ListController extends Controller
         return $this->getList(
             $hmallProducts,
             $listRequest,
+            '合購商品',
             '合購商品',
             'info',
             'cubes',
@@ -135,6 +143,7 @@ class ListController extends Controller
             $hmallProducts,
             $listRequest,
             '網路獨家',
+            '網路獨家販售商品',
             'online-special',
             'tv',
             '依特價幅度排序'
@@ -149,6 +158,7 @@ class ListController extends Controller
             $hmallProducts,
             $listRequest,
             '熱門瀏覽',
+            '熱門瀏覽商品',
             'most-visited',
             'chart line',
             '依瀏覽次數排序',
@@ -157,6 +167,11 @@ class ListController extends Controller
 
     /**
      * 每一種清單共用的取資料與渲染。
+     *
+     * $typeName 是頁面上看到的標題（「期間限定特價」），$titleName 是 <title>
+     * 與社群描述用的句型（「65 件商品期間限定特價中」）。兩者分開是因為頁面標題
+     * 底下還有一行副標可以講件數與排序，<title> 只有一行、要能單獨讀懂——master
+     * 就是後面那種句型，這裡把它留給 <title>。
      *
      * $sortSummary 是「預設排序是照什麼排的」一句話，進 slate 的副標
      * （65 件，依特價幅度排序）。原本這裡傳的是「排序依據：特價幅度 > 評論數 >
@@ -168,6 +183,7 @@ class ListController extends Controller
         $hmallProducts,
         $listRequest,
         $typeName,
+        $titleName,
         $typeStyle,
         $typeIcon,
         $sortSummary,
@@ -183,6 +199,7 @@ class ListController extends Controller
             'hmallProductList' => $hmallProductList,
             'count' => $count,
             'typeName' => $typeName,
+            'titleName' => $titleName,
             'typeStyle' => $typeStyle,
             'typeIcon' => $typeIcon,
             'sortSummary' => $sortSummary,

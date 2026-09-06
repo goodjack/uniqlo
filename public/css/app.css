@@ -146,6 +146,13 @@ a.uq-control:active {
     line-height: 1;
 }
 
+/* 空的性別段。「男裝 0 件」也是資訊，所以段落照出、內容寫一句話 */
+.uq-none {
+    margin: 12px 0 0;
+    color: var(--uq-text-2);
+    font-size: 14px;
+}
+
 /* 件數、個數這類次要數字。以前用圓形 label，那個形狀在句子裡太重 */
 .uq-count {
     margin-left: 4px;
@@ -516,6 +523,11 @@ i.most-visited.icon {
  * 不顯示，其他平台留一條灰槓在這裡只是雜訊。
  */
 @media (max-width: 767px) {
+
+    /* 手機上這三顆是用手指點的，40px 比桌機的 32px 接近 44px 的觸控建議 */
+    :root {
+        --uq-control-h: 40px;
+    }
 
     .uq-toolbar-start,
     .uq-toolbar-end {
