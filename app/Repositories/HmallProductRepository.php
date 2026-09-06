@@ -75,6 +75,7 @@ class HmallProductRepository extends Repository
         'hmall_products.product_code',
         'hmall_products.name',
         'hmall_products.min_price',
+        'hmall_products.origin_price',
         'hmall_products.lowest_record_price',
         'hmall_products.highest_record_price',
         'hmall_products.lowest_record_price_count',
