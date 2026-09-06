@@ -1,22 +1,21 @@
 /**
- * 清單頁與分類頁的「在這個清單裡找」。
+ * 清單頁的「在這個清單裡找」：邊打邊篩畫面上已經渲染好的卡片，不打 API。
  *
- * 邊打邊篩畫面上已經渲染好的卡片，不打 API：伺服器端已經在 q 這個 GET
- * 參數上做了同樣的篩選（清單頁篩品名／編號，分類頁篩品名／編號的 SQL
- * LIKE），這裡只是讓使用者在按 Enter、送出表單之前就先看到結果，加速
- * 「打字→看結果」這個迴圈。按 Enter 或沒有 JavaScript 時，表單照樣用
- * GET 送出、換一頁真正命中資料庫／預熱好的清單。
+ * 啟用靠輸入框身上的 [data-instant-filter]，這支腳本不判斷「現在是哪一
+ * 頁」。只掛在一次載入全部卡片的頁面（清單頁）——伺服器端的 q 參數走
+ * Collection 篩，跟這裡篩的是同一份完整資料，先看到的結果不會跟按 Enter
+ * 之後拿到的不一致。
  *
- * 分類頁的即時篩只篩「這一頁已經載入的商品」（分頁通常一頁 24 件），
- * 不是整個分類——分類頁的 placeholder 已經寫明「篩這一頁的商品」，
- * 這裡不用再另外處理分頁造成的落差。
+ * 分類頁有分頁，畫面上永遠只有這一頁載入到的商品，即時篩只能篩到這一頁
+ * 會誤導使用者以為篩了整個分類，所以分類頁的輸入框不掛
+ * [data-instant-filter]，單純是一個 GET 表單、按 Enter 交給後端對全分類
+ * 下 SQL LIKE（站主試用後的裁決；曾經試過停止輸入後自動送出表單，但整頁
+ * 自動 submit 會打斷中文輸入法組字與游標焦點，改回單純 Enter 送出）。
+ *
+ * 按 Enter 或沒有 JavaScript 時都一樣：表單照常用 GET 送出。
  */
 (function () {
-    const searchInputs = document.querySelectorAll('.uq-search-input');
-
-    if (!searchInputs.length) {
-        return;
-    }
+    const instantFilterInputs = document.querySelectorAll('[data-instant-filter]');
 
     function normalize(value) {
         return value.trim().toLowerCase();
@@ -24,10 +23,8 @@
 
     /**
      * 依關鍵字顯示或隱藏卡片，並且在某個性別段的卡片全部被藏起來時，
-     * 把那一段的標題跟章節選單的項目也一起藏起來。
-     *
-     * 分類頁沒有性別分段（data-gender-heading 找不到任何元素），
-     * 下半段的 forEach 直接是空的，不影響上半段的卡片篩選。
+     * 把那一段的標題跟章節選單的項目也一起藏起來。只有清單頁的輸入框
+     * 會掛 data-instant-filter，分類頁不會走到這裡。
      */
     function filterCards(keyword) {
         const cards = document.querySelectorAll('[data-card-name]');
@@ -60,7 +57,7 @@
         });
     }
 
-    searchInputs.forEach(function (input) {
+    instantFilterInputs.forEach(function (input) {
         input.addEventListener('input', function () {
             filterCards(normalize(input.value));
         });

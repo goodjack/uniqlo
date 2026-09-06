@@ -37,6 +37,19 @@ class ListSearchTest extends TestCase
         $this->assertStringNotContainsString('牛仔超寬版短褲', $content);
     }
 
+    /**
+     * 清單頁一次載入全部卡片，跟有分頁的分類頁不同，即時篩不會誤導使用者——
+     * 輸入框要掛 list-search.js 用來啟用即時篩的 data-instant-filter。
+     */
+    public function test_the_search_input_enables_instant_filtering(): void
+    {
+        $this->seedSaleProduct(['name' => '牛仔超寬版短褲', 'code' => '359225', 'sex' => '男裝']);
+
+        $content = $this->get(route('lists.sale'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-instant-filter', $content);
+    }
+
     public function test_q_and_brand_and_sort_and_tags_all_apply_together(): void
     {
         $this->seedSaleProduct([

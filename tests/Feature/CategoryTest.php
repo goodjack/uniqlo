@@ -336,6 +336,110 @@ class CategoryTest extends TestCase
     }
 
     /**
+     * 分類頁有分頁，前端即時篩只能篩到已經渲染出來的這一頁，會讓使用者誤以為篩了
+     * 整個分類（站主試用後的裁決）。輸入框不該掛 list-search.js 用來啟用即時篩的
+     * data-instant-filter，q 表單本身要留著、純 Enter 送出（曾經試過停止輸入後
+     * 自動 submit，但會打斷中文輸入法組字與游標焦點，站主與 Codex 對讀後撤回）。
+     */
+    public function test_the_search_input_does_not_enable_instant_filtering(): void
+    {
+        $this->attachProduct($this->createProduct(['name' => '牛仔超寬版短褲']), 'all_women-tops');
+
+        $content = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops'])
+        )->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('data-instant-filter', $content);
+        $this->assertStringNotContainsString('data-debounce-submit', $content);
+        $this->assertStringContainsString('name="q"', $content);
+    }
+
+    /**
+     * 換關鍵字等於重新送出搜尋表單，表單網址（$currentUrl = url()->current()）
+     * 沒帶 page，等於送出後永遠落回第 1 頁——跟品牌／標籤／排序共用同一套機制，
+     * 這裡只驗證分類頁的搜尋表單也遵守同一條規則。
+     */
+    public function test_the_search_form_action_has_no_page_query_so_a_new_keyword_lands_on_page_one(): void
+    {
+        $this->attachProduct($this->createProduct(['name' => '牛仔超寬版短褲']), 'all_women-tops');
+
+        $content = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?q=短褲&page=3'
+        )->assertOk()->getContent();
+
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$content);
+        $xpath = new \DOMXPath($dom);
+
+        $form = $xpath->query("//form[contains(@class, 'uq-search-form')]")->item(0);
+
+        $this->assertNotNull($form);
+        $this->assertStringNotContainsString('page', (string) $form->getAttribute('action'));
+    }
+
+    /**
+     * 分頁連結要保留 q，不然翻到第 2 頁就掉字——這是 repository 的
+     * withQueryString() 負責的，這裡驗證分類頁真的走到這條路徑。
+     */
+    public function test_pagination_links_keep_the_q_parameter(): void
+    {
+        for ($i = 1; $i <= 30; $i++) {
+            $this->attachProduct($this->createProduct(['name' => "短褲 {$i} 號"]), 'all_women-tops');
+        }
+
+        $content = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?q='.urlencode('短褲')
+        )->assertOk()->getContent();
+
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$content);
+        $xpath = new \DOMXPath($dom);
+
+        $pageTwoLinks = $xpath->query("//div[contains(@class, 'uq-pagination')]//a[contains(text(), '2')]");
+
+        $this->assertGreaterThan(0, $pageTwoLinks->length);
+
+        $href = $pageTwoLinks->item(0)->getAttribute('href');
+
+        $this->assertStringContainsString('page=2', $href);
+        $this->assertStringContainsString('q=', $href);
+    }
+
+    /**
+     * q 跟 tags[] 各自獨立生效、兩個條件都要滿足才留下來——
+     * test_q_and_tags_apply_together_on_the_category_page() 已經驗過伺服器端邏輯，
+     * 這裡再確認分頁連結把兩者都一起帶著走，不是只顧其中一個。
+     */
+    public function test_pagination_links_keep_both_q_and_tags(): void
+    {
+        for ($i = 1; $i <= 30; $i++) {
+            $this->attachProduct($this->createProduct([
+                'name' => "特價短褲 {$i} 號",
+                'identity' => json_encode(['concessional_rate']),
+            ]), 'all_women-tops');
+        }
+
+        $content = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops'])
+                .'?q='.urlencode('短褲').'&tags[]=sale'
+        )->assertOk()->getContent();
+
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$content);
+        $xpath = new \DOMXPath($dom);
+
+        $pageTwoLinks = $xpath->query("//div[contains(@class, 'uq-pagination')]//a[contains(text(), '2')]");
+
+        $this->assertGreaterThan(0, $pageTwoLinks->length);
+
+        $href = $pageTwoLinks->item(0)->getAttribute('href');
+
+        $this->assertStringContainsString('page=2', $href);
+        $this->assertStringContainsString('tags%5B0%5D=sale', $href);
+        $this->assertStringContainsString('q=', $href);
+    }
+
+    /**
      * 官方在該分類內的排序權重決定顯示順序，出來就跟官網一致。
      */
     public function test_products_follow_the_official_sort_within_the_category(): void
