@@ -133,12 +133,13 @@ class CategoryService extends Service
      *
      * @param  array<int, ProductTag>  $tags
      */
-    public function getProducts(HmallCategory $category, array $tags = []): LengthAwarePaginator
+    public function getProducts(HmallCategory $category, array $tags = [], ?string $q = null): LengthAwarePaginator
     {
         return $this->hmallProductRepository->getProductsByCategoryId(
             $category->id,
             $tags,
-            self::PRODUCTS_PER_PAGE
+            self::PRODUCTS_PER_PAGE,
+            $q
         );
     }
 }

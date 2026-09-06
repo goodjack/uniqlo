@@ -59,7 +59,8 @@ class CategoryController extends Controller
             // 它一致（Laravel 預設是 3，會多擠出好幾顆按鈕）。
             'hmallProducts' => $this->service->getProducts(
                 $category,
-                ProductTag::fromValues($listRequest->input('tags') ?? [])
+                ProductTag::fromValues($listRequest->input('tags') ?? []),
+                $listRequest->input('q')
             )->onEachSide(1),
         ]);
     }
