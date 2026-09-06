@@ -82,8 +82,8 @@ class HmallProductController extends Controller
             ->unique('name')
             ->take(self::CATEGORY_LINKS_ON_PRODUCT_PAGE);
 
-        // 麵包屑只走一條路徑，規則在 HmallProduct::primaryCategory()
-        $primaryCategory = $hmallProduct->primaryCategory();
+        // 麵包屑只走一條路徑，規則在 CategoryService::getPrimaryCategory()
+        $primaryCategory = $this->categoryService->getPrimaryCategory($hmallProduct);
 
         return view('hmall-products.show', [
             'hmallProduct' => $hmallProduct,

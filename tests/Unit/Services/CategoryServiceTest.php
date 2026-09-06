@@ -1,10 +1,11 @@
 <?php
 
-namespace Tests\Unit\Models;
+namespace Tests\Unit\Services;
 
 use App\Enums\CategoryLevel;
 use App\Models\HmallCategory;
 use App\Models\HmallProduct;
+use App\Services\CategoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,13 +15,17 @@ use Tests\TestCase;
  * 一件商品掛十幾個分類、官方沒有給主分類，所以規則是自己定的，這裡把三種
  * 情況釘住：選得到品項層、只剩大類、以及兩層都沒有。
  */
-class HmallProductPrimaryCategoryTest extends TestCase
+class CategoryServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    private CategoryService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->service = app(CategoryService::class);
 
         // 女裝那一棵：頂層 → 大類 → 品項
         $this->createCategory('all_women', '女裝', null, CategoryLevel::Top);
@@ -47,7 +52,7 @@ class HmallProductPrimaryCategoryTest extends TestCase
         $this->attach($product, 'all_women-tops', '014001999');
         $this->attach($product, 'all_women-tops-tshirt', '014001999');
 
-        $this->assertSame('all_women-tops-tshirt', $product->primaryCategory()->code);
+        $this->assertSame('all_women-tops-tshirt', $this->service->getPrimaryCategory($product)->code);
     }
 
     /**
@@ -59,7 +64,7 @@ class HmallProductPrimaryCategoryTest extends TestCase
         $this->attach($product, 'all_women', '014001999');
         $this->attach($product, 'all_women-tops', '014001999');
 
-        $this->assertSame('all_women-tops', $product->primaryCategory()->code);
+        $this->assertSame('all_women-tops', $this->service->getPrimaryCategory($product)->code);
     }
 
     /**
@@ -70,7 +75,7 @@ class HmallProductPrimaryCategoryTest extends TestCase
         $product = $this->createProduct(['gender' => '女裝']);
         $this->attach($product, 'all_women', '014001999');
 
-        $this->assertNull($product->primaryCategory());
+        $this->assertNull($this->service->getPrimaryCategory($product));
     }
 
     /**
@@ -89,7 +94,7 @@ class HmallProductPrimaryCategoryTest extends TestCase
         $this->attach($product, 'all_women-inner', '008004001008004009');
         $this->attach($product, 'all_women-inner-heattech', '008004001008004009');
 
-        $this->assertSame('all_women-inner-heattech', $product->primaryCategory()->code);
+        $this->assertSame('all_women-inner-heattech', $this->service->getPrimaryCategory($product)->code);
     }
 
     /**
@@ -103,7 +108,7 @@ class HmallProductPrimaryCategoryTest extends TestCase
         $this->attach($product, 'feature-new', '002001035');
         $this->attach($product, 'feature-new-women', '002001035');
 
-        $this->assertSame('feature-new-women', $product->primaryCategory()->code);
+        $this->assertSame('feature-new-women', $this->service->getPrimaryCategory($product)->code);
     }
 
     private function createCategory(
