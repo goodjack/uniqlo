@@ -139,9 +139,8 @@ class HmallProductPresenter
      *   color  文字色，直接寫進 style。哪一色代表什麼見上面的顏色常數
      *   icon   Tocas 的 icon class。商品頁畫在文字前面，卡片不畫
      *   url    有對應清單頁時給。商品頁據此做成連結，點得回那個清單
-     *   title  文字被縮短過時的完整說明（穿搭 TOP 51 以後只寫「熱門穿搭」）
      *
-     * @return array<int, array{text: string, color: string, icon: string, url: string|null, title: string|null}>
+     * @return array<int, array{text: string, color: string, icon: string, url: string|null}>
      */
     public function getProductTags($hmallProduct, bool $forProductPage = false): array
     {
@@ -151,10 +150,9 @@ class HmallProductPresenter
             string $text,
             string $color,
             string $icon,
-            ?string $url = null,
-            ?string $title = null
+            ?string $url = null
         ) use (&$tags) {
-            $tags[] = ['text' => $text, 'color' => $color, 'icon' => $icon, 'url' => $url, 'title' => $title];
+            $tags[] = ['text' => $text, 'color' => $color, 'icon' => $icon, 'url' => $url];
         };
 
         if ($hmallProduct->is_new_historical_low) {
@@ -214,22 +212,20 @@ class HmallProductPresenter
         if ($hmallProduct->top_wearing_rank) {
             $rank = $hmallProduct->top_wearing_rank;
             $add(
-                $rank <= 50 ? "穿搭 TOP {$rank}" : '熱門穿搭',
+                "穿搭 TOP {$rank}",
                 self::COLOR_TOP_WEARING,
                 'camera retro',
-                route('lists.top-wearing'),
-                "穿搭 TOP {$rank}"
+                route('lists.top-wearing')
             );
         }
 
         if ($hmallProduct->most_visited_rank) {
             $rank = $hmallProduct->most_visited_rank;
             $add(
-                $rank <= 50 ? "瀏覽 TOP {$rank}" : '熱門瀏覽',
+                "瀏覽 TOP {$rank}",
                 self::COLOR_MOST_VISITED,
                 'chart line',
-                route('lists.most-visited'),
-                "瀏覽 TOP {$rank}"
+                route('lists.most-visited')
             );
         }
 

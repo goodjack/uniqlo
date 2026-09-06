@@ -19,8 +19,7 @@
 @if (!empty($tags))
     <div class="uq-card-status">
         @foreach ($tags as $tag)
-            <span class="uq-card-status-item" style="color: {{ $tag['color'] }};"
-                @isset($tag['title']) title="{{ $tag['title'] }}" @endisset>{{ $tag['text'] }}</span>
+            <span class="uq-card-status-item" style="color: {{ $tag['color'] }};">{{ $tag['text'] }}</span>
         @endforeach
     </div>
 @endif
