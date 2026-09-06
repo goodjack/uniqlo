@@ -258,7 +258,11 @@ class PageSkeletonTest extends TestCase
 
     /**
      * 商品頁右欄原本每一段各有一個小標題（標籤、所屬分類、商品資訊），三個標題
-     * 加起來比它們標的內容還長。每一段長什麼樣子就說明它是什麼，標題全部拿掉。
+     * 加起來比它們標的內容還長，那三個 <h3> 拿掉了。
+     *
+     * 商品資訊與分類後來整段搬出右欄、變成 hero 底下的第一個章節（見
+     * test_the_facts_live_in_their_own_section），所以「商品資訊」這四個字現在
+     * 是章節標題 <h2>，不是右欄裡的小標題。
      */
     public function test_the_product_page_right_column_has_no_section_headings(): void
     {
@@ -282,6 +286,42 @@ class PageSkeletonTest extends TestCase
             '商品資訊改用 dl 呈現，不用 table'
         );
         $this->assertSame(0, $this->countNodes($content, '//table[contains(@class, "basic")]'));
+    }
+
+    /**
+     * 商品資訊（網路商店編號、適穿、季節）與分類那一行是屬性資料，不是站在價格
+     * 前面決定要不要買的當下要看的東西，所以搬出 hero 右欄，跟商品實照、歷史價格
+     * 一樣是往下讀的章節，並排在章節選單的第一項。
+     *
+     * hero 右欄只剩：標題、元資料列、價格與狀態行、CTA 列、分隔線、商品說明。
+     */
+    public function test_the_facts_live_in_their_own_section(): void
+    {
+        $this->seedProduct();
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(
+            0,
+            $this->countNodes($content, '//*[contains(@class, "uq-product-info")]//dl[contains(@class, "uq-facts")]'),
+            '商品資訊不留在 hero 右欄'
+        );
+        $this->assertSame(
+            1,
+            $this->countNodes(
+                $content,
+                '//*[contains(@class, "uq-product-section")]//dl[contains(@class, "uq-facts")]'
+            ),
+            '商品資訊在自己的章節裡'
+        );
+        $this->assertSame(
+            1,
+            $this->countNodes($content, '//h2[contains(@class, "uq-h2")][normalize-space()="商品資訊"]'),
+            '章節標題用跟其他章節同一種 h2'
+        );
+        $this->assertSame(1, $this->countNodes($content, '//*[@id="facts"]'), '章節有錨點');
     }
 
     /**

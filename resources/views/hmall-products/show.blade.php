@@ -92,6 +92,11 @@
      * 選單的字比標題短，橫向才排得下。
      */
     $sections = collect([
+        [
+            'anchor' => 'facts',
+            'label' => '商品資訊',
+            'shown' => ! empty($productFacts) || $categories->isNotEmpty(),
+        ],
         ['anchor' => 'videos', 'label' => '商品影片', 'shown' => (bool) optional($japanProduct)->has_videos],
         [
             'anchor' => 'photos',
@@ -376,42 +381,57 @@
                             @endif
                         </div>
                     @endif
-
-                    @if (!empty($productFacts))
-                        {{-- 一組名稱對一個值，不是有列有欄的表格，所以用 dl 不用 table --}}
-                        <dl class="uq-facts">
-                            @foreach ($productFacts as $label => $value)
-                                <div>
-                                    <dt>{{ $label }}</dt>
-                                    <dd>{{ $value }}</dd>
-                                </div>
-                            @endforeach
-                        </dl>
-                    @endif
-
-                    @if ($categories->isNotEmpty())
-                        {{-- 麵包屑只走一條路徑，這裡列出商品其他掛得上的分類，讓人往回逛 --}}
-                        <div class="uq-categories-line">
-                            <span class="uq-categories-label">分類</span>
-                            @foreach ($categories as $category)
-                                {{-- 分隔符是 <a> 的兄弟節點，不塞進連結裡：hover 的底線才不會連著它畫 --}}
-                                @unless ($loop->first)
-                                    <span class="uq-sep">·</span>
-                                @endunless
-                                <a
-                                    href="{{ route('categories.show', [
-                                        'brand' => $category->brand->slug(),
-                                        'code' => $category->code,
-                                    ]) }}">{{ $category->name }}</a>
-                            @endforeach
-                        </div>
-                    @endif
                 </div>
             </div>
         </div>
     </div>
 
     @include('partials.section-menu', ['id' => 'product_menu', 'items' => $sections])
+
+    @if (!empty($productFacts) || $categories->isNotEmpty())
+        {{--
+            商品資訊與分類本來擠在 hero 右欄的最底下。它們是這件商品的屬性與
+            往回逛的入口，不是站在價格前面決定要不要買的當下要看的東西，所以
+            跟商品實照、歷史價格一樣做成往下讀的章節。
+        --}}
+        <div class="uq-product-section">
+            <div class="ts container">
+                @include('partials.section-anchor', ['anchor' => 'facts', 'menu' => 'product_menu'])
+                <h2 class="unstyled uq-h2">商品資訊</h2>
+                <div class="ts hidden divider"></div>
+
+                @if (!empty($productFacts))
+                    {{-- 一組名稱對一個值，不是有列有欄的表格，所以用 dl 不用 table --}}
+                    <dl class="uq-facts">
+                        @foreach ($productFacts as $label => $value)
+                            <div>
+                                <dt>{{ $label }}</dt>
+                                <dd>{{ $value }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
+                @endif
+
+                @if ($categories->isNotEmpty())
+                    {{-- 麵包屑只走一條路徑，這裡列出商品其他掛得上的分類，讓人往回逛 --}}
+                    <div class="uq-categories-line">
+                        <span class="uq-categories-label">分類</span>
+                        @foreach ($categories as $category)
+                            {{-- 分隔符是 <a> 的兄弟節點，不塞進連結裡：hover 的底線才不會連著它畫 --}}
+                            @unless ($loop->first)
+                                <span class="uq-sep">·</span>
+                            @endunless
+                            <a
+                                href="{{ route('categories.show', [
+                                    'brand' => $category->brand->slug(),
+                                    'code' => $category->code,
+                                ]) }}">{{ $category->name }}</a>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
 
     @if (optional($japanProduct)->has_videos)
         <div class="uq-product-section">

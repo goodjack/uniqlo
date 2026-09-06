@@ -1412,20 +1412,6 @@ a.uq-cta-primary:active {
     background: var(--uq-line);
 }
 
-.uq-product-info dl.uq-facts {
-    margin: 20px 0 0;
-}
-
-/*
- * 分隔線後面直接接資訊清單時（沒有商品說明插在中間），兩者的距離要是
- * 16px——跟上面 .uq-product-info dl.uq-facts 那條給「說明接資訊清單」用
- * 的 20px 不是同一個交界，選擇器要疊上 .uq-product-rule 這個相鄰兄弟
- * 才蓋得掉它。
- */
-.uq-product-rule + dl.uq-facts {
-    margin-top: 16px;
-}
-
 /* 分類是往回逛的入口，不是這個商品的屬性，所以是一行文字連結不是一排 pill */
 .uq-categories-line {
     margin-top: 16px;
