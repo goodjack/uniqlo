@@ -1,5 +1,4 @@
-{{-- 首頁的一個商品區塊：標題、看全部連結、可橫向捲動的卡片列。 --}}
-{{-- 樣式在 public/css/app.css。 --}}
+{{-- 首頁的一個商品區塊：標題、看全部連結、一排卡片 grid。 --}}
 <div class="ts attached padded horizontally fitted fluid segment">
     <div class="ts container">
         {{-- 跟分類總覽的群組標題同一種樣子，區塊標題全站一種 --}}
@@ -11,7 +10,7 @@
             <a class="uq-control uq-h2-action" href="{{ route($section['route']) }}">看全部</a>
         </h2>
 
-        <div class="ts link cards home-product-row">
+        <div class="ts doubling link cards six">
             @each('hmall-products.simple-card', $section['products'], 'hmallProduct')
         </div>
     </div>

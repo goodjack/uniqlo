@@ -8,10 +8,10 @@ use Illuminate\Support\Collection;
 class HomeController extends Controller
 {
     /**
-     * 首頁每個區塊顯示幾張卡片。橫向捲動一次露出 2 到 6 張（依螢幕寬），
-     * 12 張約等於滑動兩到三次，再多使用者不會捲完。
+     * 首頁每個區塊顯示幾張卡片。桌機是 .ts.doubling.link.cards.six，一排剛好
+     * 六張放滿，不用再往下捲；手機 doubling 成兩欄，一區塊三排。
      */
-    private const PRODUCTS_PER_SECTION = 12;
+    private const PRODUCTS_PER_SECTION = 6;
 
     protected $listService;
 
