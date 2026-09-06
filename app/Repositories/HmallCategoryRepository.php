@@ -50,6 +50,14 @@ class HmallCategoryRepository extends Repository
             ->where('hmall_products.stock', 'Y')
             ->whereNull('hmall_products.stockout_at')
             ->groupBy('hmall_categories.id')
+            /*
+             * 商品多的分類排前面。照 code 排等於照官方的內部編號排，使用者
+             * 看到的第一個常常是只有兩三件商品的冷門分類；在這一頁「有多少
+             * 東西可以逛」是唯一有意義的份量指標。
+             *
+             * 數量相同時再照 code，排序才在同一份資料上穩定（分頁與測試靠這個）。
+             */
+            ->orderByDesc('hmall_products_count')
             ->orderBy('hmall_categories.code')
             ->get();
     }

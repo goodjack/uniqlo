@@ -85,16 +85,22 @@ class CategoryService extends Service
             // 父分類不在主檔裡的（爬蟲只寫到子層）不做成群組，沒有標題可以掛
             ->filter(fn (array $group) => $group['category'] !== null)
             /*
-             * 先 UNIQLO 再 GU，各自的群組照官方 code 排。
+             * 先 UNIQLO 再 GU，各品牌內部照大類數多的排前面。
              *
              * 品牌不能照字串排：'GU' < 'UNIQLO'，GU 會排在前面，但這個站的主體是
              * UNIQLO（商品數是 GU 的好幾倍），使用者打開總覽第一眼該看到它。
+             *
+             * 品牌之內改照大類數，不再照官方 code：code 是官方的內部編號，對
+             * 使用者沒有先後可言，照它排會把只有一兩個大類的小群組排到男裝、
+             * 女裝前面。大類數多的群組同時也是內容最多的，值得先看到。
+             * 數量相同時退回 code，排序才穩定。
              */
-            ->sortBy(fn (array $group) => sprintf(
-                '%d:%s',
-                $group['brand'] === Brand::Uniqlo ? 0 : 1,
-                $group['category']->code
-            ))
+            ->sortBy([
+                fn (array $a, array $b) => ($a['brand'] === Brand::Uniqlo ? 0 : 1)
+                    <=> ($b['brand'] === Brand::Uniqlo ? 0 : 1),
+                fn (array $a, array $b) => $b['children']->count() <=> $a['children']->count(),
+                fn (array $a, array $b) => $a['category']->code <=> $b['category']->code,
+            ])
             ->values();
     }
 

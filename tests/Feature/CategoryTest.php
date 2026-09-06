@@ -145,6 +145,57 @@ class CategoryTest extends TestCase
     }
 
     /**
+     * 同一個品牌之內，大類多的群組排前面。
+     *
+     * 原本照官方的 code 排。code 是官方的內部編號，對使用者沒有先後可言：
+     * 'all_men' < 'all_women' 只是字串比較的結果，不代表男裝該排在女裝前面。
+     * 這裡讓女裝有三個大類、男裝只有一個，照 code 排會是男裝在前，照大類數
+     * 排才會是女裝在前。
+     */
+    public function test_the_overview_puts_groups_with_more_child_categories_first(): void
+    {
+        $this->createCategory('all_men', '男裝', null, CategoryLevel::Top);
+        $this->createCategory('all_men-tops', '男裝上衣類', 'all_men', CategoryLevel::One);
+        $this->createCategory('all_women-bottoms', '下身類', 'all_women', CategoryLevel::One);
+        $this->createCategory('all_women-inner', '內衣類', 'all_women', CategoryLevel::One);
+
+        foreach (['all_men-tops', 'all_women-tops', 'all_women-bottoms', 'all_women-inner'] as $code) {
+            $this->attachProduct($this->createProduct(), $code);
+        }
+
+        $groups = app(CategoryService::class)->getOverview();
+
+        $this->assertSame(
+            ['all_women', 'all_men'],
+            $groups->pluck('category.code')->all(),
+            '三個大類的女裝要排在只有一個大類的男裝前面'
+        );
+    }
+
+    /**
+     * 子分類照商品數多的排前面，不再照官方 code。
+     *
+     * 分類總覽的子分類列與分類頁的子分類列走的是同一支查詢
+     * （HmallCategoryRepository::getCategoriesWithProducts），所以這裡驗一次。
+     * T恤兩件、襯衫一件；照 code 排會是襯衫在前（'...-shirt' < '...-tshirt'），
+     * 照商品數排才會是 T恤在前。
+     */
+    public function test_child_categories_are_ordered_by_how_many_products_they_have(): void
+    {
+        $this->createCategory('all_women-tops-shirt', '襯衫', 'all_women-tops', CategoryLevel::Two);
+
+        $this->attachProduct($this->createProduct(['name' => '長袖T恤']), 'all_women-tops-tshirt');
+        $this->attachProduct($this->createProduct(['name' => '短袖T恤']), 'all_women-tops-tshirt');
+        $this->attachProduct($this->createProduct(['name' => '素面襯衫']), 'all_women-tops-shirt');
+
+        $parent = HmallCategory::where('brand', 'UNIQLO')->where('code', 'all_women-tops')->firstOrFail();
+        $children = app(CategoryService::class)->getChildren($parent);
+
+        $this->assertSame(['all_women-tops-tshirt', 'all_women-tops-shirt'], $children->pluck('code')->all());
+        $this->assertSame([2, 1], $children->pluck('hmall_products_count')->map(fn ($n) => (int) $n)->all());
+    }
+
+    /**
      * 第三輪 UI 修正：章節選單的 sticky 外層要站在頁面 container 外面，
      * 自己再包一層 container，白底跟底線才是滿版而不是只跨中間那欄。
      */
