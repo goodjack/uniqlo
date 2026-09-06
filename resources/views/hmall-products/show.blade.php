@@ -21,7 +21,7 @@
     $productName = $hmallProductPresenter->getFullName($hmallProduct);
 
     /*
-     * 麵包屑只走一條分類路徑，規則在 HmallProduct::primaryCategory()。
+     * 麵包屑只走一條分類路徑，規則在 CategoryService::getPrimaryCategory()。
      * 商品掛不到任何大類或品項時就只剩首頁那一層，不硬湊一條假的路徑。
      */
     $crumbs = array_merge(
