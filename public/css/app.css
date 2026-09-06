@@ -181,13 +181,40 @@ a.uq-control:active {
     line-height: 1.4;
 }
 
-.uq-h2 .uq-count {
+.uq-h2 .uq-count,
+.uq-h3 .uq-count {
     font-size: 13px;
 }
 
 /* 標題那一行右側的計數（分類總覽的「20 個分類」） */
-.uq-h2 .uq-count-end {
+.uq-h2 .uq-count-end,
+.uq-h3 .uq-count-end {
     margin-left: auto;
+}
+
+/*
+ * 分類總覽的品牌區塊標題。兩家的分類樹各自獨立，先 UNIQLO 再 GU 各一塊。
+ * 顏色跟卡片右上角的品牌角標同一組：UNIQLO 紅、GU 藍，都用白底可讀的深色版。
+ */
+.uq-brand-h2 {
+    color: var(--uq-brand-text);
+}
+
+.uq-brand-h2.uq-brand-gu {
+    color: var(--uq-info-text);
+}
+
+/* 品牌區塊裡的群組標題。比品牌標題小一級，也不再各自掛品牌標籤 */
+.uq-h3 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 24px 0 12px;
+    color: var(--uq-ink);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
 }
 
 /*
@@ -904,6 +931,20 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
     display: none;
 }
 
+/*
+ * 選單裡的分段小標（分類總覽的品牌名）。它不是 .item，所以 scrollspy 的
+ * a[href='#…'] 掃不到它，也不會被挑成 active。
+ */
+.uq-section-menu .ts.menu.pointing.secondary .uq-menu-heading {
+    flex: 0 0 auto;
+    align-self: center;
+    margin: 0 12px 0 0;
+    color: var(--uq-muted);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
 .uq-section-menu .ts.menu.pointing.secondary .item {
     flex: 0 0 auto;
     margin: 0 24px 0 0;
@@ -961,7 +1002,7 @@ html:has(.uq-section-menu) {
  * 間距歸零，第二段以後的間距不動。
  */
 .uq-section-menu + .ts.container>.uq-section-anchor:first-child+.uq-h2,
-.uq-section-menu + .ts.container>.uq-section-anchor:first-child+.uq-category-group>.uq-h2,
+.uq-section-menu + .ts.container>.uq-h2:first-child,
 .uq-section-menu + .uq-product-section .uq-h2 {
     margin-top: 0;
 }
