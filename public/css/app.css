@@ -703,12 +703,17 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
  * class 起跳（.ts.menu.pointing.secondary .item 是五個），只寫 .uq-section-menu
  * .item 兩個 class 的話 padding 與 margin 都會靜靜地被它蓋掉，選單高度就跟
  * --uq-section-menu-height 對不起來、錨點跳轉會偏。
+ *
+ * z-index 只給 5：Tocas 的導覽列（.ts.top.fixed.menu）跟它的下拉選單
+ * （.ts.dropdown 與裡面的 .menu）都是 9，這裡曾經給到 10、比兩者都高，
+ * 導覽列的下拉一展開就被這條 sticky 選單蓋住。5 蓋得過一般內容，蓋不過
+ * 導覽列跟它的下拉。
  */
 .uq-section-menu {
     position: sticky;
     top: var(--uq-nav-height);
-    z-index: 10;
-    margin: 0 0 1rem;
+    z-index: 5;
+    margin: 0 0 24px;
     border-bottom: 1px solid var(--uq-line);
     background: #fff;
 }
@@ -775,6 +780,30 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
 
 html:has(.uq-section-menu) {
     scroll-padding-top: 0;
+}
+
+/*
+ * 章節選單底下到第一段內容要是 24px，那個距離已經由 .uq-section-menu 自己的
+ * margin-bottom 出了。問題是第一段的標題（.uq-h2 或 .uq-product-section 裡的
+ * .uq-h2）自己也有 40px／48px 的上緣間距——那是「段落與段落之間」的距離，
+ * 疊在第一段前面就變成 64／72px。三種頁面各自的巢狀結構長得不一樣，所以
+ * 分三條選擇器分別點名「選單後面那個 container 的第一段」，只把它的上緣
+ * 間距歸零，第二段以後的間距不動。
+ */
+.uq-section-menu + .ts.container>.uq-section-anchor:first-child+.uq-h2,
+.uq-section-menu + .ts.container>.uq-section-anchor:first-child+.uq-category-group>.uq-h2,
+.uq-section-menu + .uq-product-section .uq-h2 {
+    margin-top: 0;
+}
+
+/*
+ * 工具列跟章節選單同一頁時（目前只有清單頁），工具列自己的底線不畫：兩條
+ * 線隔著不到 24px 幾乎貼在一起，看起來像重複的分隔線。用 :has() 而不是
+ * 相鄰選擇器，是因為工具列跟選單中間隔著篩選面板（收合時也還在 DOM 裡，
+ * 只是 display: none），不是真的相鄰兄弟。
+ */
+body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
+    border-bottom: 0;
 }
 
 /* 排序的下拉與它的無腳本送出鈕是一組，不要被工具列的 gap 拆開太遠 */

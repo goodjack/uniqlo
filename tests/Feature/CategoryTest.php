@@ -109,6 +109,32 @@ class CategoryTest extends TestCase
     }
 
     /**
+     * 第三輪 UI 修正：章節選單的 sticky 外層要站在頁面 container 外面，
+     * 自己再包一層 container，白底跟底線才是滿版而不是只跨中間那欄。
+     */
+    public function test_the_section_menu_sits_outside_the_page_container(): void
+    {
+        $this->createCategory('women_all', 'WOMEN', null, CategoryLevel::Top, 'GU');
+        $this->createCategory('women_knitandcardigan', '針織上衣', 'women_all', CategoryLevel::One, 'GU');
+
+        $this->attachProduct($this->createProduct(['brand' => 'UNIQLO']), 'all_women-tops');
+        $this->attachProduct($this->createProduct(['brand' => 'GU']), 'women_knitandcardigan');
+
+        $content = $this->get(route('categories.index'))->assertOk()->getContent();
+
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$content);
+        $xpath = new \DOMXPath($dom);
+
+        $nested = $xpath->query(
+            '//*[contains(concat(" ", normalize-space(@class), " "), " container ")]'.
+            '//*[contains(@class, "uq-section-menu")]'
+        );
+
+        $this->assertSame(0, $nested->length, '章節選單不該巢狀在任何 container 元素底下');
+    }
+
+    /**
      * 分類本身有商品時，帶著任何未知的 query string 進來都不該變成 404。
      */
     public function test_an_unknown_query_string_does_not_turn_the_page_into_404(): void

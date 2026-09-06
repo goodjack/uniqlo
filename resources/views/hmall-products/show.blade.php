@@ -374,7 +374,7 @@
         </div>
     </div>
 
-    @include('partials.section-menu', ['id' => 'product_menu', 'items' => $sections, 'fluid' => true])
+    @include('partials.section-menu', ['id' => 'product_menu', 'items' => $sections])
 
     @if (optional($japanProduct)->has_videos)
         <div class="uq-product-section">

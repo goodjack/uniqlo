@@ -25,20 +25,21 @@
         <span class="description">只列出目前還買得到商品的分類</span>
     </div>
 
-    <div class="ts container uq-page">
-        {{-- 十一個群組一路捲下去很容易迷路，選單留在畫面上當定位器 --}}
-        @include('partials.section-menu', [
-            'id' => 'group_menu',
-            'items' => $groups
-                ->map(
-                    fn($group) => [
-                        'anchor' => $anchorFor($group),
-                        'label' => $group['category']->name,
-                    ],
-                )
-                ->all(),
-        ])
+    {{-- 十一個群組一路捲下去很容易迷路，選單留在畫面上當定位器。這個 partial --}}
+    {{-- 自己站在 container 外面、自帶內層 container，白底跟底線才是滿版 --}}
+    @include('partials.section-menu', [
+        'id' => 'group_menu',
+        'items' => $groups
+            ->map(
+                fn($group) => [
+                    'anchor' => $anchorFor($group),
+                    'label' => $group['category']->name,
+                ],
+            )
+            ->all(),
+    ])
 
+    <div class="ts container">
         @foreach ($groups as $group)
             @include('partials.section-anchor', ['anchor' => $anchorFor($group), 'menu' => 'group_menu'])
 

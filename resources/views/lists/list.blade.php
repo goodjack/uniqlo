@@ -16,6 +16,14 @@
 
     // 副標講的是實際排序，不是預設排序：使用者選了價格排序之後還寫預設就是錯的
     $sortText = request('sort') === 'price-asc' ? '依價格由低到高排序' : $sortSummary;
+
+    /*
+     * 章節選單跟正文共用同一份「有商品的性別」清單，抬到這裡算一次就好；
+     * 也才能讓選單站在 container 外面、正文站在另一個 container 裡面
+     * （見下面 section-menu 的說明）。
+     */
+    $genders = ['men' => '男裝', 'women' => '女裝', 'kids' => '童裝', 'baby' => '嬰幼兒'];
+    $availableGenders = collect($genders)->filter(fn ($label, $key) => count($hmallProductList[$key]) > 0);
 @endphp
 
 @section('title', $title)
@@ -76,7 +84,28 @@
         </x-toolbar>
 
         @include('partials.tag-filter')
+    </div>
 
-        @include('lists.cards', ['hmallProductList' => $hmallProductList])
+    @unless ($availableGenders->isEmpty())
+        {{-- 性別是這一頁的章節，選單用跟商品頁、分類總覽同一個 partial。它自己 --}}
+        {{-- 站在上面那個 container 外面，白底跟底線才是滿版、不是只跨中間那欄 --}}
+        @include('partials.section-menu', [
+            'id' => 'gender_menu',
+            'items' => $availableGenders
+                ->map(fn ($label, $key) => [
+                    'anchor' => $key,
+                    'label' => $label,
+                    'count' => count($hmallProductList[$key]),
+                ])
+                ->values()
+                ->all(),
+        ])
+    @endunless
+
+    <div class="ts container">
+        @include('lists.cards', [
+            'hmallProductList' => $hmallProductList,
+            'availableGenders' => $availableGenders,
+        ])
     </div>
 @endsection
