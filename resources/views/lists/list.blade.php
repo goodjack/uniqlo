@@ -2,7 +2,9 @@
 
 @php
     $currentUrl = url()->current();
-    $title = "{$count} 件{$typeName}";
+    // <title> 與社群描述照 master 的句型（「65 件商品期間限定特價中」），
+    // 頁面上的標題維持新版的「期間限定特價」加副標
+    $title = "{$count} 件{$titleName}";
 
     // 品牌、排序與標籤是三個獨立的軸，切換其中一個要保留另外兩個
     $queryFor = fn(array $changes) => http_build_query(
@@ -18,12 +20,14 @@
     $sortText = request('sort') === \App\Services\ListService::SORT_PRICE_ASC ? '依價格由低到高排序' : $sortSummary;
 
     /*
-     * 章節選單跟正文共用同一份「有商品的性別」清單，抬到這裡算一次就好；
-     * 也才能讓選單站在 container 外面、正文站在另一個 container 裡面
-     * （見下面 section-menu 的說明）。
+     * 四個性別段一律都出現，沒有商品的那段寫「沒有商品」——「男裝 0 件」本身
+     * 就是資訊，master 也是四段都列。整頁一件都沒有（通常是標籤篩太窄）才換成
+     * 空狀態，那是另一回事。
+     *
+     * 章節選單跟正文共用同一份清單，抬到這裡算一次就好；也才能讓選單站在
+     * container 外面、正文站在另一個 container 裡面（見下面 section-menu 的說明）。
      */
-    $genders = ['men' => '男裝', 'women' => '女裝', 'kids' => '童裝', 'baby' => '嬰幼兒'];
-    $availableGenders = collect($genders)->filter(fn ($label, $key) => count($hmallProductList[$key]) > 0);
+    $genders = collect(['men' => '男裝', 'women' => '女裝', 'kids' => '童裝', 'baby' => '嬰幼兒']);
 @endphp
 
 @section('title', $title)
@@ -86,12 +90,12 @@
         @include('partials.tag-filter')
     </div>
 
-    @unless ($availableGenders->isEmpty())
+    @if ($count > 0)
         {{-- 性別是這一頁的章節，選單用跟商品頁、分類總覽同一個 partial。它自己 --}}
         {{-- 站在上面那個 container 外面，白底跟底線才是滿版、不是只跨中間那欄 --}}
         @include('partials.section-menu', [
             'id' => 'gender_menu',
-            'items' => $availableGenders
+            'items' => $genders
                 ->map(fn ($label, $key) => [
                     'anchor' => $key,
                     'label' => $label,
@@ -100,12 +104,13 @@
                 ->values()
                 ->all(),
         ])
-    @endunless
+    @endif
 
     <div class="ts container">
         @include('lists.cards', [
             'hmallProductList' => $hmallProductList,
-            'availableGenders' => $availableGenders,
+            'genders' => $genders,
+            'count' => $count,
         ])
     </div>
 @endsection
