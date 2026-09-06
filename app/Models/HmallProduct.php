@@ -27,8 +27,8 @@ class HmallProduct extends Model
      * 商品的性別對應到哪些頂層分類。
      *
      * 兩家的頂層 code 各成一套（UNIQLO 是 all_men、GU 是 men_all），名稱也不同
-     * （男裝／MEN），所以用 code 對照而不是比名稱。值是本機資料庫 2026-09 快照裡
-     * 實際存在的頂層分類；對不到的性別（包含空字串）就不套性別條件。
+     * （男裝／MEN），所以用 code 對照而不是比名稱。值是本機資料庫實際存在的
+     * 頂層分類；對不到的性別（包含空字串）就不套性別條件。
      */
     private const GENDER_TOP_CATEGORIES = [
         '男裝' => ['all_men', 'men_all'],
