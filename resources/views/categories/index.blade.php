@@ -53,10 +53,10 @@
                     <span class="uq-count uq-count-end">{{ count($group['children']) }} 個分類</span>
                 </h2>
 
-                <div class="uq-pill-row">
+                {{-- pill 太搶戲：這裡是往下鑽的入口，不是需要勾選的篩選條件，一行文字連結就夠 --}}
+                <div class="uq-cat-list">
                     @foreach ($group['children'] as $child)
-                        <a class="uq-control uq-pill uq-pill-small"
-                            href="{{ route('categories.show', ['brand' => $group['brand']->slug(), 'code' => $child->code]) }}">
+                        <a href="{{ route('categories.show', ['brand' => $group['brand']->slug(), 'code' => $child->code]) }}">
                             {{ $child->name }}
                             <span class="uq-count">{{ $child->hmall_products_count }}</span>
                         </a>
