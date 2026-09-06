@@ -92,91 +92,157 @@ class HmallProductPresenter
         return route('uniqlo-style-hints.show', ['uniqlo_product_code' => $hmallProduct->product_code]);
     }
 
+    /*
+     * 標籤顏色。master 是一色一義（期間限定紅、特價與歷史新低同一個藍、新款綠……），
+     * 不是「價格類一色、其餘灰」的兩色系統：同色代表同一件事，改色等於改語意。
+     *
+     * 藍色是唯一的例外：master 的 #00ADEA 放在白底上對比只有 2.4:1，13px 的字讀不清，
+     * 所以白底的字改用加深版的 --uq-info-text（#0087B8，對比 4.6:1）。GU 角標那種
+     * 實心底色維持 #00ADEA，那是底色不是字色，沒有對比問題。
+     */
+    private const COLOR_OFFER = '#CE5F58';
+
+    private const COLOR_PRICE = 'var(--uq-info-text)';
+
+    private const COLOR_NEW = '#8BB96E';
+
+    private const COLOR_COMING_SOON = '#50723C';
+
+    private const COLOR_MULTI_BUY = '#79A8B9';
+
+    /*
+     * 網路獨家在 master 是兩個值：卡片是 #F29E18（跟清單頁的 icon、商品頁那顆
+     * online-special 按鈕同色），商品頁的標籤是 #79A8B9（跟合購同色）。兩邊都照
+     * 各自的原樣還原，不併成一色——併色是再設計。
+     */
+    private const COLOR_ONLINE_SPECIAL_CARD = '#F29E18';
+
+    private const COLOR_ONLINE_SPECIAL_PRODUCT = '#79A8B9';
+
+    private const COLOR_NEUTRAL = '#5A5A5A';
+
+    private const COLOR_TOP_WEARING = '#CC7F49';
+
+    private const COLOR_MOST_VISITED = '#B58105';
+
     /**
      * 商品的狀態標籤，依「使用者最在意什麼」排序：省多少錢 › 買不買得到 › 其他屬性。
      *
-     * 卡片與商品頁都全部顯示，兩邊共用這一份順序與文案，同一件商品在列表與
-     * 內頁強調的才會是同一件事。
+     * 卡片與商品頁共用這一份順序與文案，同一件商品在列表與內頁強調的才會是同一
+     * 件事。差別只有最後那六個屬性標籤（豐富尺碼、男女適穿、旗艦店款、大型店商品、
+     * 特定店商品、修改褲長）：$forProductPage 為真才給。那六個講的是這件商品怎麼買、
+     * 怎麼改，是決定要不要買的時候才要看的細節，master 也只有商品頁列。
      *
      * 每一筆：
      *   text   顯示文字
-     *   price  是不是價格類（歷史新低、期間限定、特價）。只有價格類用品牌紅
-     *   url    有對應清單頁時給，沒有的就只是一塊標籤
+     *   color  文字色，直接寫進 style。哪一色代表什麼見上面的顏色常數
+     *   icon   Tocas 的 icon class。商品頁畫在文字前面，卡片不畫
+     *   url    有對應清單頁時給。商品頁據此做成連結，點得回那個清單
      *   title  文字被縮短過時的完整說明（穿搭 TOP 51 以後只寫「熱門穿搭」）
      *
-     * @return array<int, array{text: string, price: bool, url: string|null, title: string|null}>
+     * @return array<int, array{text: string, color: string, icon: string, url: string|null, title: string|null}>
      */
-    public function getProductTags($hmallProduct): array
+    public function getProductTags($hmallProduct, bool $forProductPage = false): array
     {
         $tags = [];
 
-        $add = function (string $text, bool $price = false, ?string $url = null, ?string $title = null) use (&$tags) {
-            $tags[] = ['text' => $text, 'price' => $price, 'url' => $url, 'title' => $title];
+        $add = function (
+            string $text,
+            string $color,
+            string $icon,
+            ?string $url = null,
+            ?string $title = null
+        ) use (&$tags) {
+            $tags[] = ['text' => $text, 'color' => $color, 'icon' => $icon, 'url' => $url, 'title' => $title];
         };
 
         if ($hmallProduct->is_new_historical_low) {
-            $add('歷史新低價', true);
+            $add('歷史新低價', self::COLOR_PRICE, 'arrow down');
         }
 
         if ($hmallProduct->is_limited_offer) {
-            $add('期間限定特價', true, route('lists.limited-offers'));
+            // 截止日寫在標籤上，master 的卡片就是這樣：在列表上看得到哪天結束，
+            // 才決定得了要不要現在買。沒有檔期日期時退回「期間限定特價」
+            $add(
+                $this->getLimitedOfferMessage($hmallProduct),
+                self::COLOR_OFFER,
+                'certificate',
+                route('lists.limited-offers')
+            );
         }
 
         if ($hmallProduct->is_sale) {
-            $add('特價商品', true, route('lists.sale'));
+            $add('特價商品', self::COLOR_PRICE, 'shopping basket', route('lists.sale'));
         }
 
         if ($hmallProduct->is_new) {
-            $add('新款商品', false, route('lists.new'));
+            $add('新款商品', self::COLOR_NEW, 'leaf', route('lists.new'));
         }
 
         if ($hmallProduct->is_coming_soon) {
-            $add('即將上市', false, route('lists.coming-soon'));
+            $add('即將上市', self::COLOR_COMING_SOON, 'checked calendar', route('lists.coming-soon'));
         }
 
         if ($hmallProduct->is_multi_buy) {
-            $add('合購商品', false, route('lists.multi-buy'));
+            $add('合購商品', self::COLOR_MULTI_BUY, 'cubes', route('lists.multi-buy'));
         }
 
         if ($hmallProduct->is_online_special) {
-            $add('網路獨家販售', false, route('lists.online-special'));
+            $color = $forProductPage ? self::COLOR_ONLINE_SPECIAL_PRODUCT : self::COLOR_ONLINE_SPECIAL_CARD;
+            $add('網路獨家販售', $color, 'tv', route('lists.online-special'));
         }
 
         if ($hmallProduct->is_app_offer) {
-            $add('APP 限定特價', false, route('lists.limited-offers'));
+            $add('APP 限定特價', self::COLOR_OFFER, 'certificate', route('lists.limited-offers'));
         }
 
         if ($hmallProduct->is_ec_only) {
-            $add('網路限定特價', false, route('lists.limited-offers'));
+            $add('網路限定特價', self::COLOR_OFFER, 'certificate', route('lists.limited-offers'));
         }
 
         if ($hmallProduct->is_stockout) {
-            $add('已售罄');
+            $add('已售罄', self::COLOR_NEUTRAL, 'archive');
         }
 
         if ($hmallProduct->top_wearing_rank) {
             $rank = $hmallProduct->top_wearing_rank;
-            $add($rank <= 50 ? "穿搭 TOP {$rank}" : '熱門穿搭', false, route('lists.top-wearing'), "穿搭 TOP {$rank}");
+            $add(
+                $rank <= 50 ? "穿搭 TOP {$rank}" : '熱門穿搭',
+                self::COLOR_TOP_WEARING,
+                'camera retro',
+                route('lists.top-wearing'),
+                "穿搭 TOP {$rank}"
+            );
         }
 
         if ($hmallProduct->most_visited_rank) {
             $rank = $hmallProduct->most_visited_rank;
-            $add($rank <= 50 ? "瀏覽 TOP {$rank}" : '熱門瀏覽', false, route('lists.most-visited'), "瀏覽 TOP {$rank}");
+            $add(
+                $rank <= 50 ? "瀏覽 TOP {$rank}" : '熱門瀏覽',
+                self::COLOR_MOST_VISITED,
+                'chart line',
+                route('lists.most-visited'),
+                "瀏覽 TOP {$rank}"
+            );
+        }
+
+        if (! $forProductPage) {
+            return $tags;
         }
 
         // 尺碼與通路這些屬性沒有對應的清單頁，也沒有輕重之分，一起排在最後
         $attributes = [
-            'is_extended_size' => '豐富尺碼',
-            'is_unisex' => '男女適穿',
-            'is_super_large' => '旗艦店款',
-            'is_ec_big' => '大型店商品',
-            'is_ec_selected' => '特定店商品',
-            'is_revision' => '修改褲長',
+            'is_extended_size' => ['豐富尺碼', 'external square'],
+            'is_unisex' => ['男女適穿', 'venus mars'],
+            'is_super_large' => ['旗艦店款', 'diamond'],
+            'is_ec_big' => ['大型店商品', 'diamond'],
+            'is_ec_selected' => ['特定店商品', 'diamond'],
+            'is_revision' => ['修改褲長', 'cut'],
         ];
 
-        foreach ($attributes as $attribute => $text) {
+        foreach ($attributes as $attribute => [$text, $icon]) {
             if ($hmallProduct->{$attribute}) {
-                $add($text);
+                $add($text, self::COLOR_NEUTRAL, $icon);
             }
         }
 

@@ -3,17 +3,33 @@
     // 沒打折的商品這欄常常跟現價相等甚至是 null，那種不算「有優惠」
     $hasOriginPrice = $hmallProduct->origin_price !== null
         && (float) $hmallProduct->origin_price > $hmallProduct->price;
+
+    // 歷史高低一樣就沒有區間可講（只記錄過一次價格的商品就是這樣）
+    $hasPriceRange = $hmallProduct->highest_record_price !== $hmallProduct->lowest_record_price;
+
+    // 現價還高於歷史最低，代表「還可以再等」，master 用綠字標那個最低價
+    $isAboveLowestRecord = $hmallProduct->price > $hmallProduct->lowest_record_price;
 @endphp
+{{-- master 用一條隱形分隔線把品名與價格分開，比 8px 的 margin 多留一點空間 --}}
+<div class="ts hidden divider"></div>
 {{--
-    現價是卡片上第二重要的資訊（第一是圖）。跟官網一樣：有優惠時原價一行
-    刪除線在上、現價一行加粗在下；沒有原價可刪就只剩現價一行，優惠色跟著
-    拿掉（見 app.css 的 .uq-card-now:only-child）。舊版在這裡放的是歷史
-    高低價區間，跟官網的資訊層級對不起來，v3 拿掉、換成原價／現價。
+    比價站的卡片要回答兩件事：現在多少錢、這個價位在它自己的歷史裡算便宜嗎。
+    所以第一行是歷史區間（$歷史最高 - $歷史最低），第二行是原價刪除線加現價。
+    區間那一行是 master 的做法，v3 拿掉過，但那是這個站存在的理由，還原回來。
 --}}
 <div class="uq-card-price">
-    @if ($hasOriginPrice)
-        <del class="uq-card-origin">原價 ${{ (int) $hmallProduct->origin_price }}</del>
+    @if ($hasPriceRange)
+        <div class="uq-card-range">
+            ${{ (int) $hmallProduct->highest_record_price }}
+            -
+            <span @if ($isAboveLowestRecord) style="color: #8BB96E;" @endif>${{ (int) $hmallProduct->lowest_record_price }}</span>
+        </div>
     @endif
-    <span class="uq-card-now">${{ $hmallProduct->price }}</span>
+    <div class="uq-card-now-row">
+        @if ($hasOriginPrice)
+            <del class="uq-card-origin">原價 ${{ (int) $hmallProduct->origin_price }}</del>
+        @endif
+        <span class="uq-card-now">${{ $hmallProduct->price }}</span>
+    </div>
 </div>
 @include('hmall-products.partials.card-labels')

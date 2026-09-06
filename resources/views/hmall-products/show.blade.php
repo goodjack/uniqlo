@@ -43,7 +43,7 @@
         [\App\Support\Breadcrumb::text($productName)],
     );
 
-    $productTags = $hmallProductPresenter->getProductTags($hmallProduct);
+    $productTags = $hmallProductPresenter->getProductTags($hmallProduct, true);
 
     // 原價只在有資料且大於現價時顯示，跟卡片上 card-extra-content.blade.php 是同一條規則
     $hasOriginPrice = $hmallProduct->origin_price !== null
@@ -70,10 +70,11 @@
     /*
      * 說明是空的就整塊不渲染（本機的資料就是這樣，正式機有）。
      *
-     * 夠長才收合，而且門檻要抓在「收起來真的會遮住東西」那條線上：收合框是
-     * 200px、行高 23.8px，大約八行；右欄桌機約 630px 寬、14px 的中文一行放得下
-     * 四十幾個字。字數乘一乘就好的話會漏掉 <br>——說明裡常常一行一句，一百字
-     * 可能就已經十行了，所以照 <br> 拆開來一段一段估行數。
+     * 夠長才收合，而且門檻要抓在「收起來真的會遮住東西」那條線上：收合框照
+     * master 是 400px、行高 23.8px（14px 乘 1.7），放得下十六行多一點，所以超過
+     * 十六行才收；右欄桌機約 630px 寬、14px 的中文一行放得下四十幾個字。字數
+     * 乘一乘就好的話會漏掉 <br>——說明裡常常一行一句，一百字可能就已經十行了，
+     * 所以照 <br> 拆開來一段一段估行數。
      *
      * 這是估算不是量測，寧可保守：門檻沒到就整段攤開，最多是右欄長一點；估錯
      * 方向的另一邊是長出一顆按了畫面不會變的「顯示更多」。
@@ -84,7 +85,7 @@
     $descriptionLines = collect(preg_split('/<br\s*\/?>/i', $descriptionHtml))
         ->map(fn ($line) => max(1, (int) ceil(mb_strlen(trim(strip_tags($line))) / 42)))
         ->sum();
-    $isLongDescription = $descriptionLines > 8;
+    $isLongDescription = $descriptionLines > 16;
 
     /*
      * 章節選單的項目要跟底下真的渲染出來的區段一致，所以條件跟各區段的 @if 同一份。
@@ -311,22 +312,27 @@
                     </div>
 
                     {{--
-                        狀態行緊接在價格下面，跟卡片同規則：優惠類（tag.price
-                        為真）13px 優惠色，其餘 12px 灰階，都不掛邊框。
-                        limited_offer_end_date 這個 accessor 本身就只在檔期內
-                        回傳日期，檔期過了是 null，所以截止日那一行不會在沒有
-                        「期間限定特價」標籤的時候單獨留著。
+                        狀態行緊接在價格下面，跟卡片同一組顏色：一色一義，由
+                        presenter 決定（期間限定紅、特價與歷史新低同一個藍……），
+                        都不掛邊框。截止日現在寫在「期間限定」那個標籤本身
+                        （截至 MM/DD 限定價格），不再另外多一行；檔期過了
+                        is_limited_offer 就是 false，那個標籤連同日期一起消失。
                     --}}
-                    @if (!empty($productTags) || $hmallProduct->limited_offer_end_date)
+                    @if (!empty($productTags))
                         <div class="uq-price-status">
                             @foreach ($productTags as $tag)
-                                <div class="uq-price-status-item @if ($tag['price']) uq-price-status-price @endif"
-                                    @isset($tag['title']) title="{{ $tag['title'] }}" @endisset>{{ $tag['text'] }}</div>
+                                @if ($tag['url'])
+                                    {{-- 有對應清單頁的標籤就是那個清單的入口，master 一直是連結，v3 只是漏讀 presenter 算好的 url --}}
+                                    <a class="uq-price-status-item" href="{{ $tag['url'] }}"
+                                        style="color: {{ $tag['color'] }};"
+                                        @isset($tag['title']) title="{{ $tag['title'] }}" @endisset><i
+                                            class="{{ $tag['icon'] }} icon"></i>{{ $tag['text'] }}</a>
+                                @else
+                                    <div class="uq-price-status-item" style="color: {{ $tag['color'] }};"
+                                        @isset($tag['title']) title="{{ $tag['title'] }}" @endisset><i
+                                            class="{{ $tag['icon'] }} icon"></i>{{ $tag['text'] }}</div>
+                                @endif
                             @endforeach
-                            @if ($hmallProduct->limited_offer_end_date)
-                                <div class="uq-price-status-item uq-price-status-price uq-price-note">
-                                    {{ $hmallProductPresenter->getLimitedOfferMessage($hmallProduct) }}</div>
-                            @endif
                         </div>
                     @endif
 
