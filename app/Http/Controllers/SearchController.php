@@ -92,7 +92,9 @@ class SearchController extends Controller
             'keywords' => $keywords,
             // 超過上限的關鍵字會被丟掉，那要讓使用者看得到，不然結果會莫名其妙
             'ignoredKeywords' => $this->searchService->ignoredKeywords($query),
-            'hmallProducts' => $this->searchService->searchHmallProducts($query),
+            // 分頁沿用 style-hints 頁那份共用 markup，onEachSide(1) 讓頁碼視窗跟它
+            // 一致（Laravel 預設是 3，會多擠出好幾顆按鈕）。
+            'hmallProducts' => $this->searchService->searchHmallProducts($query)->onEachSide(1),
         ]);
     }
 }

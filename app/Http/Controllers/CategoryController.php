@@ -55,10 +55,12 @@ class CategoryController extends Controller
             'category' => $category,
             'breadcrumb' => $this->service->getBreadcrumb($category),
             'children' => $this->service->getChildren($category),
+            // 分頁改沿用 style-hints 頁那份共用 markup，onEachSide(1) 讓頁碼視窗跟
+            // 它一致（Laravel 預設是 3，會多擠出好幾顆按鈕）。
             'hmallProducts' => $this->service->getProducts(
                 $category,
                 ProductTag::fromValues($listRequest->input('tags') ?? [])
-            ),
+            )->onEachSide(1),
         ]);
     }
 }

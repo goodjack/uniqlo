@@ -343,29 +343,13 @@ i.most-visited.icon {
 }
 
 /*
- * 分頁。三顆 .uq-control 並排，跟工具列上的控制項長成同一個樣子。
- * 選擇器要疊到 .ts.segment：它自己就設了 display: block，只寫一個 class 的話
- * flex 不會生效，三顆之間的距離會變成 inline 元素之間那個空白字元。
+ * 分頁。現在跟 style-hints 頁共用同一份 markup（Tocas 的 .ts.icon.button
+ * 上一頁／頁碼／下一頁），不用再自己配色——disabled／active 兩種狀態
+ * Tocas 都有現成的樣子。這裡只補一件事：跟上面卡片 grid 的距離。
+ * 選擇器疊到 .ts.segment 才蓋得動它自己的 1rem 上下 margin。
  */
 .ts.segment.uq-pagination {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-}
-
-.uq-pagination-current {
-    color: var(--uq-muted);
-    cursor: default;
-}
-
-.uq-pagination-disabled {
-    color: var(--uq-line);
-    cursor: default;
-}
-
-.uq-pagination-disabled:hover,
-.uq-pagination-current:hover {
-    border-color: var(--uq-line);
+    margin-top: 32px;
 }
 
 /* ------------------------------------------------------------------
