@@ -119,6 +119,33 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
+     * HmallProductPresenter::getProductTags() 以前直接 or 了 is_app_offer／
+     * is_ec_only，跟 ProductTag::LimitedOffer->matches()（見
+     * tests/Unit/Enums/ProductTagTest.php 的 test_app_and_ec_only_are_no_longer_limited_offers）
+     * 各自認定不同：identity 只有 APP 的商品在清單頁與篩選不算期間限定，
+     * 卡片上卻掛著「期間限定特價」。兩個判準已經統一成同一個 matches()，
+     * APP 限定商品現在只掛「APP 限定特價」。
+     */
+    public function test_a_card_with_only_the_app_identity_does_not_get_the_limited_offer_label(): void
+    {
+        $this->seedProduct(['identity' => json_encode(['APP'])]);
+
+        $content = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(
+            0,
+            $this->countNodes($content, '//*[contains(@class, "uq-card-status-item")][text()="期間限定特價"]'),
+            'identity 只有 APP 不該掛期間限定特價'
+        );
+        $this->assertSame(
+            1,
+            $this->countNodes($content, '//*[contains(@class, "uq-card-status-item")][text()="APP 限定特價"]')
+        );
+    }
+
+    /**
      * 第三輪 UI 拿掉「最多兩個加 +N」：站主判定高低不齊比漏資訊好接受，
      * 分類頁、清單頁與收藏清單現在全部一樣，標籤攤開來看得完。
      */
