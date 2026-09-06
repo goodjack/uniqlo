@@ -609,15 +609,68 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
 }
 
 /*
- * 卡片 grid 的桌機欄距。Tocas 給 .ts.cards>.card 的 margin 是 .875em .5em——
- * 上下 14px 疊起來剛好是列距要的 28px，不用另外設；左右 8px 疊起來只有
- * 16px，桌機要的欄距是 24px，所以只加寬左右。手機維持 Tocas 預設的 16px，
- * 版面窄、卡片本來就擠。
+ * 卡片 grid 的桌機欄距。真正吃到的是 Tocas 給 .four／.six 這組數量 class 的
+ * .ts.four.cards>.card（不是不帶數量 class 的 .ts.cards>.card），margin 是
+ * .75em .75em；這裡根字體是 14px（html{font-size:14px}），換算左右各
+ * 10.5px，兩張卡疊起來只有 21px，桌機要的欄距是 24px，所以蓋成固定 12px。
+ * 手機維持 Tocas 預設，版面窄、卡片本來就擠。
  */
 @media (min-width: 768px) {
     .ts.link.cards>.card.uq-card {
         margin-left: 12px;
         margin-right: 12px;
+    }
+
+    /*
+     * Tocas 的容器負 margin 是照同一個 .75em 反推的，卡片自己的 margin
+     * 蓋成固定值之後，容器這邊也要跟著蓋，卡片才能齊平貼著容器邊緣
+     * （跟下面「Tocas 的 .ts.cards 自己就是負 margin」是同一個道理）。用
+     * :has() 只挑會受影響的 uq-card 卡片 grid，「舊系統商品」那組卡片
+     * （.ts.flatted.card，也共用 .ts.link.cards 容器）維持 Tocas 原生數值。
+     */
+    .ts.link.cards:has(>.card.uq-card) {
+        margin-left: -12px;
+        margin-right: -12px;
+    }
+}
+
+/*
+ * 上面把卡片自己的邊界 margin 從 Tocas 的 .75em(10.5px) 蓋成固定 12px，
+ * 但 Tocas 算寬度用的公式（calc(25% - (.75em * 2))，或 tablet 斷點的
+ * doubling 版本）沒有跟著變，還是照舊的間距扣，每張卡都多佔了一點寬度，
+ * 橫向累積起來超過 100%，整排就少擠出一欄——2026-09 UX4 複測先在桌機
+ * 1280px 抓到「四欄擠成三欄」，往下比對才發現 768–991px 的 tablet 斷點
+ * 更嚴重：doubling 把「四」收成兩欄、「六」收成三欄時一樣沒改寬度公式，
+ * 溢出量比桌機大，兩欄整個擠成一欄、三欄擠成兩欄。這裡把兩個斷點的寬度
+ * 公式一起換成用固定 24px 反推，各自對齊自己斷點的實際欄數。
+ *
+ * 手機 <768px 的 doubling 是唯一沒動過欄距（維持 Tocas 預設 16px 總寬），
+ * 兩張卡片自己就沒有多佔寬度的問題，維持 Tocas 原生行為不動。
+ *
+ * tablet 這段的選擇器要多掛一個 .doubling：Tocas 這個斷點真正生效的是
+ * .ts.cards.doubling.four:not(.waterfall)>.card 那條，比不帶 .doubling
+ * 的 .ts.four.cards>.card.uq-card 特異性更高（多了 .doubling 和
+ * :not(.waterfall) 兩個），一開始漏掉這個、寫成跟桌機那段一樣的選擇器，
+ * 畫面完全沒變化——後來比對 tablet 斷點才抓到蓋不掉。加上 .doubling 之後
+ * 特異性打平，app.css 後載入的贏。
+ */
+@media (min-width: 768px) and (max-width: 991px) {
+    .ts.doubling.four.cards>.card.uq-card {
+        width: calc(50% - 24px);
+    }
+
+    .ts.doubling.six.cards>.card.uq-card {
+        width: calc(33.33333% - 24px);
+    }
+}
+
+@media (min-width: 992px) {
+    .ts.four.cards>.card.uq-card {
+        width: calc(25% - 24px);
+    }
+
+    .ts.six.cards>.card.uq-card {
+        width: calc(16.66667% - 24px);
     }
 }
 
