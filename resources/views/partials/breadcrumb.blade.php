@@ -8,7 +8,8 @@
             最後一筆一律是當頁：不做連結、標 aria-current="page"。
 --}}
 @if (!empty($crumbs))
-    <nav class="ts small breadcrumb uq-breadcrumb" aria-label="麵包屑">
+    {{-- 不加 small：Tocas 的 .ts.small.breadcrumb 是 13px，低於站上 14px 的地板 --}}
+    <nav class="ts breadcrumb" aria-label="麵包屑">
         @foreach ($crumbs as $crumb)
             @if ($loop->last)
                 <div class="active section" aria-current="page">{{ $crumb['label'] }}</div>

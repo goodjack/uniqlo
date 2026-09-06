@@ -63,17 +63,18 @@
         </span>
     </div>
 
-    <div class="ts container uq-page">
+    <div class="ts container">
         <x-toolbar>
             <x-slot:start>
-                {{-- 三顆分開的 pill 不是連在一起的按鈕群：連著的那組會被讀成一顆分段控制項， --}}
-                {{-- 但這裡每一顆都是各自的網址、按了是換頁 --}}
-                <a class="uq-control uq-pill {{ $currentBrand === null ? 'active' : '' }}"
-                    href="{{ $currentUrl }}?{{ $queryFor(['brand' => null]) }}">全部</a>
-                <a class="uq-control uq-pill {{ $currentBrand === 'UNIQLO' ? 'active' : '' }}"
-                    href="{{ $currentUrl }}?{{ $queryFor(['brand' => 'UNIQLO']) }}">UNIQLO</a>
-                <a class="uq-control uq-pill {{ $currentBrand === 'GU' ? 'active' : '' }}"
-                    href="{{ $currentUrl }}?{{ $queryFor(['brand' => 'GU']) }}">GU</a>
+                {{-- 品牌切換回 master 的 Tocas 按鈕群，選中的那顆掛 Tocas 的 .active --}}
+                <div class="ts small basic buttons">
+                    <a class="ts button {{ $currentBrand === null ? 'active' : '' }}"
+                        href="{{ $currentUrl }}?{{ $queryFor(['brand' => null]) }}">全部</a>
+                    <a class="ts button {{ $currentBrand === 'UNIQLO' ? 'active' : '' }}"
+                        href="{{ $currentUrl }}?{{ $queryFor(['brand' => 'UNIQLO']) }}">UNIQLO</a>
+                    <a class="ts button {{ $currentBrand === 'GU' ? 'active' : '' }}"
+                        href="{{ $currentUrl }}?{{ $queryFor(['brand' => 'GU']) }}">GU</a>
+                </div>
 
                 {{--
                     在這個清單裡找。GET 表單搭配前端即時篩（list-search.js）：
@@ -83,7 +84,7 @@
                     是獨立的軸，所以要帶上其他三個的隱藏欄位，其他三個的連結／
                     表單也要把 q 帶著（見上面 $queryFor 與下面 uq-sort-form）。
                 --}}
-                <form method="GET" action="{{ $currentUrl }}" class="uq-search-form">
+                <form method="GET" action="{{ $currentUrl }}" class="ts input uq-search-form">
                     @if ($currentBrand)
                         <input type="hidden" name="brand" value="{{ $currentBrand }}">
                     @endif
@@ -95,7 +96,7 @@
                     @endforeach
 
                     <i class="search icon" aria-hidden="true"></i>
-                    <input type="search" name="q" class="uq-control uq-search-input" data-instant-filter
+                    <input type="search" name="q" class="uq-search-input" data-instant-filter
                         value="{{ $currentQ }}" placeholder="在這個清單裡找…" maxlength="50" aria-label="在這個清單裡找">
                     @if ($currentQ !== '')
                         <a class="uq-search-clear" href="{{ $currentUrl }}?{{ $queryFor(['q' => null]) }}"
@@ -105,8 +106,8 @@
             </x-slot:start>
 
             <x-slot:end>
-                {{-- 原生 <select>，不吃 JavaScript。不掛 Tocas 的 dropdown：那組規則自帶 --}}
-                {{-- 高度、圓角與箭頭，蓋起來比從 .uq-control 長還費事 --}}
+                {{-- 原生 <select>，不吃 JavaScript。外觀用 Tocas 的 .ts.basic.dropdown， --}}
+                {{-- 它本來就是給 <select> 用的，連下拉箭頭都畫好了 --}}
                 <form method="GET" action="{{ $currentUrl }}" class="uq-sort-form">
                     @if ($currentBrand)
                         <input type="hidden" name="brand" value="{{ $currentBrand }}">
@@ -118,12 +119,12 @@
                         <input type="hidden" name="q" value="{{ $currentQ }}">
                     @endif
 
-                    <select class="uq-control uq-sort" name="sort" data-auto-submit aria-label="排序方式">
+                    <select class="ts basic dropdown" name="sort" data-auto-submit aria-label="排序方式">
                         <option value="" @selected(request('sort') !== \App\Services\ListService::SORT_PRICE_ASC)>排序：預設</option>
                         <option value="{{ \App\Services\ListService::SORT_PRICE_ASC }}" @selected(request('sort') === \App\Services\ListService::SORT_PRICE_ASC)>排序：價格由低到高</option>
                     </select>
                     {{-- 沒有 JavaScript 時這顆是唯一的出路，有的時候 master 版型會把它藏起來 --}}
-                    <button class="uq-control" type="submit" data-auto-submit-fallback>套用</button>
+                    <button class="ts basic button" type="submit" data-auto-submit-fallback>套用</button>
                 </form>
 
                 @include('partials.tag-filter-button')

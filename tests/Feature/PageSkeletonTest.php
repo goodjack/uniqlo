@@ -20,6 +20,16 @@ class PageSkeletonTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * 卡片與收藏列上的狀態標籤。外觀回到 Tocas 原生的
+     * .ts.horizontal.basic.circular.label，一色一義的顏色寫在裡層 <span>
+     * 的 style 上（見 hmall-products/partials/card-labels.blade.php）。
+     *
+     * 認 horizontal 加 circular 這個組合，不是只認 .label：頁首 slate 與圖片
+     * 右上角的品牌角標也都是 .ts.label，只有狀態標籤是這個組合。
+     */
+    private const CARD_LABEL_XPATH = '//*[contains(@class, "horizontal")][contains(@class, "circular")][contains(@class, "label")]';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -136,12 +146,12 @@ class PageSkeletonTest extends TestCase
 
         $this->assertSame(
             0,
-            $this->countNodes($content, '//*[contains(@class, "uq-card-status-item")][text()="期間限定特價"]'),
+            $this->countNodes($content, self::CARD_LABEL_XPATH.'/span[normalize-space()="期間限定特價"]'),
             'identity 只有 APP 不該掛期間限定特價'
         );
         $this->assertSame(
             1,
-            $this->countNodes($content, '//*[contains(@class, "uq-card-status-item")][text()="APP 限定特價"]')
+            $this->countNodes($content, self::CARD_LABEL_XPATH.'/span[normalize-space()="APP 限定特價"]')
         );
     }
 
@@ -159,8 +169,7 @@ class PageSkeletonTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $labels = $this->xpath($content)
-            ->query('(//*[contains(@class, "uq-card-status")])[1]/span');
+        $labels = $this->xpath($content)->query(self::CARD_LABEL_XPATH);
 
         // 四個：期間限定、特價、新款、合購。revision 是屬性標籤，只在商品頁
         $this->assertSame(4, $labels->length, '卡片上的標籤不再收合');
@@ -184,7 +193,8 @@ class PageSkeletonTest extends TestCase
             1,
             $this->countNodes(
                 $content,
-                '//a[contains(@class, "uq-price-status-item")][@href="'.route('lists.sale').'"][normalize-space()="特價商品"]'
+                '//a[contains(@class, "circular")][contains(@class, "label")]'.
+                '[@href="'.route('lists.sale').'"][normalize-space()="特價商品"]'
             ),
             '特價商品要連回特價清單'
         );
@@ -194,14 +204,15 @@ class PageSkeletonTest extends TestCase
             1,
             $this->countNodes(
                 $content,
-                '//a[contains(@class, "uq-price-status-item")][@href="'.route('lists.sale').'"]/i[contains(@class, "shopping")]'
+                '//a[contains(@class, "circular")][contains(@class, "label")]'.
+                '[@href="'.route('lists.sale').'"]//i[contains(@class, "shopping")]'
             ),
             '標籤前面要有 icon'
         );
 
         $this->assertSame(
             0,
-            $this->countNodes($content, '//a[contains(@class, "uq-price-status-item")][normalize-space()="修改褲長"]'),
+            $this->countNodes($content, '//a[contains(@class, "circular")][contains(@class, "label")][normalize-space()="修改褲長"]'),
             '沒有對應清單頁的標籤不做成連結'
         );
     }
@@ -221,7 +232,7 @@ class PageSkeletonTest extends TestCase
 
         $this->assertSame(
             0,
-            $this->countNodes($cardContent, '//*[contains(@class, "uq-card-status-item")][text()="修改褲長"]'),
+            $this->countNodes($cardContent, self::CARD_LABEL_XPATH.'/span[normalize-space()="修改褲長"]'),
             '卡片不掛屬性標籤'
         );
 
@@ -231,7 +242,7 @@ class PageSkeletonTest extends TestCase
 
         $this->assertSame(
             1,
-            $this->countNodes($productContent, '//*[contains(@class, "uq-price-status-item")][normalize-space()="修改褲長"]'),
+            $this->countNodes($productContent, self::CARD_LABEL_XPATH.'/span[normalize-space()="修改褲長"]'),
             '商品頁還是要列出屬性標籤'
         );
     }
@@ -249,7 +260,7 @@ class PageSkeletonTest extends TestCase
             'items' => [['brand' => 'UNIQLO', 'code' => 'u990001']],
         ])->assertOk()->getContent();
 
-        $labels = $this->xpath($content)->query('//*[contains(@class, "uq-card-status")]/span');
+        $labels = $this->xpath($content)->query(self::CARD_LABEL_XPATH);
 
         // 四個：期間限定、特價、新款、合購。revision 是屬性標籤，只在商品頁
         $this->assertSame(4, $labels->length, '收藏清單不收合標籤');
@@ -269,13 +280,13 @@ class PageSkeletonTest extends TestCase
         foreach (['男裝', '女裝', '童裝', '嬰幼兒'] as $gender) {
             $this->assertSame(
                 1,
-                $this->countNodes($content, "//h2[contains(@class, 'uq-h2')][starts-with(normalize-space(), '{$gender}')]"),
+                $this->countNodes($content, "//h2[@data-gender-heading][starts-with(normalize-space(), '{$gender}')]"),
                 "{$gender} 那一段要在"
             );
         }
 
         // 只有女裝那件商品，其餘三段都是「沒有商品」
-        $this->assertSame(3, $this->countNodes($content, "//*[contains(@class, 'uq-none')]"));
+        $this->assertSame(3, substr_count($content, '<p>沒有商品</p>'));
     }
 
     /**
@@ -322,10 +333,9 @@ class PageSkeletonTest extends TestCase
 
         $this->assertGreaterThan(
             0,
-            $this->countNodes($content, '//dl[contains(@class, "uq-facts")]/div/dt'),
-            '商品資訊改用 dl 呈現，不用 table'
+            $this->countNodes($content, '//table[contains(@class, "uq-facts")]//tr/td'),
+            '商品資訊改用 Tocas 的 definition table 呈現'
         );
-        $this->assertSame(0, $this->countNodes($content, '//table[contains(@class, "basic")]'));
     }
 
     /**
@@ -345,69 +355,46 @@ class PageSkeletonTest extends TestCase
 
         $this->assertSame(
             0,
-            $this->countNodes($content, '//*[contains(@class, "uq-product-info")]//dl[contains(@class, "uq-facts")]'),
+            $this->countNodes($content, '//*[@id="comment"]//table[contains(@class, "uq-facts")]'),
             '商品資訊不留在 hero 右欄'
         );
         $this->assertSame(
             1,
             $this->countNodes(
                 $content,
-                '//*[contains(@class, "uq-product-section")]//dl[contains(@class, "uq-facts")]'
+                '//*[@id="facts"]/following::table[contains(@class, "uq-facts")]'
             ),
-            '商品資訊在自己的章節裡'
+            '商品資訊在自己的章節裡、排在錨點後面'
         );
         $this->assertSame(
             1,
-            $this->countNodes($content, '//h2[contains(@class, "uq-h2")][normalize-space()="商品資訊"]'),
-            '章節標題用跟其他章節同一種 h2'
+            $this->countNodes($content, '//h2[contains(@class, "header")][normalize-space()="商品資訊"]'),
+            '章節標題用跟其他章節同一種 Tocas 標題'
         );
         $this->assertSame(1, $this->countNodes($content, '//*[@id="facts"]'), '章節有錨點');
     }
 
     /**
-     * 商品說明是這一頁的正文。夠長就在桌機收合成一段加「顯示更多」，空的整塊不渲染。
+     * 商品說明是這一頁的正文，住在 master 的 #comment 框裡。
+     *
+     * 那個框在桌機是固定 400px、超出自己捲（見 show.blade.php 的 @section('css')），
+     * 這就是「描述短的時候上下也很平衡」的來源：右欄總高度不隨說明長短變動，
+     * 價格與 CTA 固定落在圖片底部附近。所以說明長短都是同一種呈現，不再有自訂
+     * 的「顯示更多」收合。
      *
      * 本機資料庫沒有這個欄位的內容（正式機有），所以自己塞一段進去。
      */
-    public function test_a_long_description_is_rendered_and_clamped(): void
+    public function test_the_description_sits_in_the_fixed_comment_box(): void
     {
-        // 收合框是十六行左右，這裡塞一百段、遠超過門檻，估算再怎麼保守都會收合
         $this->seedProduct(['instruction' => str_repeat('這是一段夠長的商品說明文字。', 100)]);
 
         $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
             ->assertOk()
             ->getContent();
 
-        $this->assertSame(1, $this->countNodes($content, '//*[contains(@class, "uq-description")]'));
-        $this->assertSame(1, $this->countNodes($content, '//div[contains(concat(\' \', normalize-space(@class), \' \'), \' uq-clamp \')]'), '桌機收合的外層');
-        $this->assertSame(1, $this->countNodes($content, '//details[contains(@class, "uq-clamp-more")]'));
-    }
-
-    /**
-     * 收合框照 master 是 400px、大約十六行。說明短到收起來也遮不住東西的時候
-     * 不該長出「顯示更多」——那顆按下去畫面不會變。
-     *
-     * 說明裡常常一行一句，所以行數要照 <br> 拆開來估，不能只乘字數：第二段
-     * 只有六十幾個字，但它是二十行。
-     */
-    public function test_a_short_description_is_not_clamped(): void
-    {
-        $this->seedProduct(['instruction' => '這是一段短說明。']);
-
-        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
-            ->assertOk()
-            ->getContent();
-
-        $this->assertSame(1, $this->countNodes($content, '//*[contains(@class, "uq-description")]'));
-        $this->assertSame(0, $this->countNodes($content, '//div[contains(concat(\' \', normalize-space(@class), \' \'), \' uq-clamp \')]'), '短說明不該收合');
-
-        $this->seedShortLinesProduct();
-
-        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990002']))
-            ->assertOk()
-            ->getContent();
-
-        $this->assertSame(1, $this->countNodes($content, '//div[contains(concat(\' \', normalize-space(@class), \' \'), \' uq-clamp \')]'), '二十行的說明要收合');
+        $this->assertSame(1, $this->countNodes($content, '//*[@id="comment"]'), '說明在 #comment 框裡');
+        $this->assertStringContainsString('這是一段夠長的商品說明文字。', $content);
+        $this->assertSame(0, $this->countNodes($content, '//details'), '不再有自訂的顯示更多收合');
     }
 
     /**
@@ -434,7 +421,7 @@ class PageSkeletonTest extends TestCase
             1,
             $this->countNodes(
                 $content,
-                '//*[contains(@class, "uq-price-status-item")][normalize-space()="截至 '.$endsAt->format('m/d').' 限定價格"]'
+                self::CARD_LABEL_XPATH.'/span[normalize-space()="截至 '.$endsAt->format('m/d').' 限定價格"]'
             ),
             '檔期內的標籤要寫出截止日'
         );
@@ -451,21 +438,9 @@ class PageSkeletonTest extends TestCase
         // 整頁比對抓不到：頁尾的導覽本來就有「期間限定特價商品」這個入口
         $this->assertSame(
             0,
-            $this->countNodes($content, '//*[contains(@class, "uq-price-status")]/*'),
-            '檔期過了價格下面不該留下任何狀態行'
+            $this->countNodes($content, self::CARD_LABEL_XPATH),
+            '檔期過了標題底下不該留下任何狀態標籤'
         );
-    }
-
-    public function test_a_product_without_a_description_renders_no_description_block(): void
-    {
-        $this->seedProduct();
-
-        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
-            ->assertOk()
-            ->getContent();
-
-        $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-description")]'));
-        $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-clamp-more")]'));
     }
 
     /**
@@ -483,8 +458,8 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * v3 版把收藏鈕從圖片上搬到圖下的適穿列，圖片容器不該再有它；而且它
-     * 要是真的 <button>，不是套了 icon 的 <a> 或 <div>。
+     * 收藏鈕擺在卡片內容區、不疊在照片上，所以圖片容器不該有它；而且它要是
+     * 真的 <button>，不是套了 icon 的 <a> 或 <div>。
      *
      * @dataProvider pagesWithCards
      */
@@ -507,7 +482,8 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 品名是卡片最主要的資訊，v3 版要看得到 .uq-card-name。
+     * 品名是卡片最主要的資訊。版面回到 Tocas 的 .ts.card 預設之後，品名是
+     * .smaller.header，不再是自訂的 .uq-card-name。
      *
      * @dataProvider pagesWithCards
      */
@@ -517,14 +493,17 @@ class PageSkeletonTest extends TestCase
 
         $content = $this->get(route($name, $parameters))->assertOk()->getContent();
 
-        $this->assertGreaterThan(0, $this->countNodes($content, '//*[contains(@class, "uq-card-name")]'));
+        $this->assertGreaterThan(
+            0,
+            $this->countNodes($content, '//div[contains(@class, "header")][contains(@class, "smaller")]')
+        );
     }
 
     /**
-     * 狀態行 v3 版改成純文字，不該再掛 Tocas 的 .label 邊框——品牌角標例外，
-     * 那是圖片右上角的既有設計，不是這次改的狀態行。
+     * 狀態標籤用 Tocas 原生的 .ts.horizontal.basic.circular.label，跟 master
+     * 一樣，不是自己寫一套純文字的狀態行。
      */
-    public function test_a_card_has_no_boxed_status_labels(): void
+    public function test_a_card_uses_tocas_labels_for_its_status(): void
     {
         $this->seedProduct(['identity' => json_encode(['time_doptimal', 'concessional_rate'])]);
 
@@ -532,24 +511,26 @@ class PageSkeletonTest extends TestCase
             ->assertOk()
             ->getContent();
 
+        // 期間限定與特價兩顆，都要是 Tocas 的 horizontal basic circular label
         $this->assertSame(
-            0,
+            2,
             $this->countNodes(
                 $content,
-                '//*[contains(@class, "uq-card")]//*[contains(concat(" ", normalize-space(@class), " "), " label ")][not(contains(@class, "uq-card-brand"))]'
-            ),
-            '狀態行不該還有 Tocas 的 .label 邊框（品牌角標除外）'
+                '//*[contains(@class, "description")]/div[contains(@class, "ts")][contains(@class, "horizontal")]'.
+                '[contains(@class, "basic")][contains(@class, "circular")][contains(@class, "label")]'
+            )
         );
     }
 
     /**
-     * 有原價且原價高於現價的商品，卡片要用 <del> 畫出來，不是純文字寫「原價」。
+     * 卡片不重複講同一件事：歷史區間已經把最高與最低寫出來了，不再另外放一條
+     * 「原價 $XXX」的刪除線。官方的 origin_price 常常就等於歷史最高，兩行讀
+     * 起來是同一個意思。
      *
      * 直接 render hmall-products.card，不透過分類頁那條路徑：這裡驗的是卡片
-     * 模板本身收到 origin_price 時的邏輯，跟清單查詢實際查不查得到這個欄位
-     * 是兩件事，分開驗。
+     * 模板本身的呈現，跟清單查詢查得到哪些欄位是兩件事，分開驗。
      */
-    public function test_a_card_with_an_origin_price_renders_a_del(): void
+    public function test_a_card_does_not_repeat_the_origin_price(): void
     {
         $hmallProduct = HmallProduct::unguarded(fn () => HmallProduct::create([
             'brand' => 'UNIQLO',
@@ -561,19 +542,30 @@ class PageSkeletonTest extends TestCase
             'stock' => 'Y',
             'min_price' => 490,
             'origin_price' => 790,
+            'highest_record_price' => 790,
+            'lowest_record_price' => 390,
         ]));
 
         $html = view('hmall-products.card', ['hmallProduct' => $hmallProduct])->render();
 
-        $this->assertSame(1, $this->countNodes($html, '//del[contains(@class, "uq-card-origin")]'));
-        $this->assertStringContainsString('790', $html);
+        $this->assertSame(0, $this->countNodes($html, '//del'), '卡片不該有原價刪除線');
+        $this->assertStringNotContainsString('原價', $html);
+
+        // 區間那一行還在：現價 490、歷史 790 – 390，而且現價高於歷史最低要染綠
+        $range = $this->xpath($html)->query('//div[contains(@class, "sub")][contains(@class, "header")]');
+        $this->assertSame(1, $range->length);
+        $this->assertStringContainsString('790', $range->item(0)->textContent);
+        $this->assertStringContainsString('390', $range->item(0)->textContent);
+        $this->assertStringContainsString('#8BB96E', $html, '現價還高於歷史最低時，最低價染綠');
     }
 
     /**
-     * 商品頁的現價在有優惠時要換成優惠色，掛的是既有的 .uq-brand-text 工具
-     * 類別，不是另外發明一個等效但驗不到的顏色規則。
+     * 商品頁的價格回到 master：分隔線底下一個 <h2>，只寫現價，沒有原價那一行。
+     *
+     * 原價跟卡片上的歷史區間是同一件事的兩種講法，站主判定重複；歷史價格另外
+     * 有一整個章節（含圖表），比一行刪除線講得清楚。
      */
-    public function test_the_product_page_price_uses_the_brand_text_color_when_discounted(): void
+    public function test_the_product_page_price_is_a_plain_h2_without_an_origin_price(): void
     {
         $this->seedProduct(['min_price' => 490, 'origin_price' => 790]);
 
@@ -581,11 +573,11 @@ class PageSkeletonTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertSame(1, $this->countNodes($content, '//del[contains(@class, "uq-price-origin")]'));
+        $this->assertSame(0, $this->countNodes($content, '//del'), '商品頁不該有原價刪除線');
         $this->assertSame(
             1,
-            $this->countNodes($content, '//span[contains(@class, "uq-price") and contains(@class, "uq-brand-text")]'),
-            '有優惠時現價要掛 .uq-brand-text'
+            $this->countNodes($content, '//h2[normalize-space()="$490"]'),
+            '現價是一個乾淨的 h2'
         );
     }
 
@@ -597,7 +589,7 @@ class PageSkeletonTest extends TestCase
     private function crumbs(string $html): array
     {
         $xpath = $this->xpath($html);
-        $sections = $xpath->query('//nav[contains(@class, "uq-breadcrumb")]//*[contains(@class, "section")]');
+        $sections = $xpath->query('//nav[contains(@class, "breadcrumb")]//*[contains(@class, "section")]');
 
         $labels = [];
 
@@ -610,7 +602,7 @@ class PageSkeletonTest extends TestCase
 
     private function currentCrumb(string $html): ?string
     {
-        $current = $this->xpath($html)->query('//nav[contains(@class, "uq-breadcrumb")]//*[@aria-current="page"]');
+        $current = $this->xpath($html)->query('//nav[contains(@class, "breadcrumb")]//*[@aria-current="page"]');
 
         return $current->length === 0 ? null : trim($current->item(0)->textContent);
     }
@@ -652,19 +644,6 @@ class PageSkeletonTest extends TestCase
             $category = HmallCategory::where('brand', 'UNIQLO')->where('code', $code)->firstOrFail();
             $product->categories()->attach($category->id, ['sort' => $sort]);
         }
-    }
-
-    /**
-     * 一行一句、總共二十行的說明。字數只有六十幾個，但排出來是二十行——行數的
-     * 估算要照 <br> 拆才抓得到這種。
-     */
-    private function seedShortLinesProduct(): void
-    {
-        $this->seedProduct([
-            'product_code' => 'u990002',
-            'code' => '990002',
-            'instruction' => implode('<br>', array_fill(0, 20, '短短一行')),
-        ]);
     }
 
     private function createCategory(

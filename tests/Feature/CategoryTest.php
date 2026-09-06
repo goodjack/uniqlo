@@ -509,24 +509,34 @@ class CategoryTest extends TestCase
 
     /**
      * 分類頁的卡片走的是 HmallProductRepository::SELECT_COLUMNS_FOR_LIST 這條
-     * 預先挑欄位的查詢路徑，跟商品頁的完整 model 不一樣。origin_price 曾經漏
-     * 在這份欄位清單外，導致清單卡片上的原價永遠是 null、優惠色的刪除線出
-     * 不來——這裡直接打分類頁驗證欄位確實有跟著查詢一起回來。
+     * 預先挑欄位的查詢路徑，跟商品頁的完整 model 不一樣。漏掉欄位的話卡片上
+     * 那一行會靜靜地不見——原價那一行以前就出過這個包。
+     *
+     * 現在卡片講的是歷史區間（$歷史最高 – $歷史最低），所以改釘這兩個欄位有
+     * 跟著查詢一起回來。
      */
-    public function test_category_page_cards_show_the_origin_price(): void
+    public function test_category_page_cards_show_the_price_range(): void
     {
         $this->attachProduct($this->createProduct([
             'name' => '特價上衣',
             'min_price' => 490,
-            'origin_price' => 790,
+            'highest_record_price' => 790,
+            'lowest_record_price' => 390,
         ]), 'all_women-tops');
 
         $content = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']))
             ->assertOk()
             ->getContent();
 
-        $this->assertStringContainsString('uq-card-origin', $content);
-        $this->assertStringContainsString('原價 $790', $content);
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$content);
+        $range = (new \DOMXPath($dom))
+            ->query('//div[contains(@class, "card")]//div[contains(@class, "sub")][contains(@class, "header")]');
+
+        $this->assertSame(1, $range->length, '卡片要有一行歷史區間');
+        $this->assertStringContainsString('790', $range->item(0)->textContent);
+        $this->assertStringContainsString('390', $range->item(0)->textContent);
+        $this->assertStringNotContainsString('原價', $content, '區間已經講完了，不再重複一行原價');
     }
 
     /**
@@ -697,9 +707,12 @@ class CategoryTest extends TestCase
             );
         }
 
-        $separators = $xpath->query('//*[contains(@class, "uq-categories-line")]//*[contains(@class, "uq-sep")]');
-
-        $this->assertGreaterThan(0, $separators->length, '分隔符要是獨立的 span');
+        // 中點由 Tocas 的 .middoted 用 ::before 畫，DOM 裡本來就不該有分隔符節點
+        $this->assertGreaterThan(
+            0,
+            $xpath->query('//*[contains(@class, "uq-categories-line")][contains(@class, "middoted")]')->length,
+            '分隔符交給 Tocas 的 .middoted 畫，不自己放節點'
+        );
     }
 
     /**

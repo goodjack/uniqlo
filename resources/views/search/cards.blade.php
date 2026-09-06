@@ -1,6 +1,6 @@
-<h2 class="unstyled uq-h2">
+<h2 class="ts large header">
     同編號商品
-    <span class="uq-count">{{ $hmallProducts->count() }} 件</span>
+    <div class="inline sub header">共 {{ $hmallProducts->count() }} 件</div>
 </h2>
 <div class="ts doubling link cards four">
     {{--
@@ -23,15 +23,15 @@
         @endphp
         @include('hmall-products.partials.card-base', [
             'slot' => view('hmall-products.partials.card-extra-content', ['hmallProduct' => $hmallProduct])->render()
-                .(empty($sharedCodes) ? '' : '<p class="uq-shared-codes">此商品頁同時包含貨號 '.e(implode(' / ', $sharedCodes)).'</p>'),
+                .(empty($sharedCodes) ? '' : '<div class="meta">此商品頁同時包含貨號 '.e(implode(' / ', $sharedCodes)).'</div>'),
         ])
     @endforeach
 </div>
 
 @if ($products->isNotEmpty())
-    <h2 class="unstyled uq-h2">
+    <h2 class="ts large header">
         舊系統商品
-        <span class="uq-count">{{ $products->count() }} 件</span>
+        <div class="inline sub header">共 {{ $products->count() }} 件</div>
     </h2>
     <div class="ts doubling link cards four">
         @each('products.card', $products, 'product')

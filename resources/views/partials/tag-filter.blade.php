@@ -42,16 +42,14 @@
         @endforeach
     </div>
 
-    <div class="uq-chip-footer">
-        {{-- 多選是聯集不是交集，這句話是使用者勾第二個之前唯一看得到的說明 --}}
-        <span class="uq-chip-hint">符合任一條件即顯示</span>
+    {{-- 多選是聯集不是交集，這句話是使用者勾第二個之前唯一看得到的說明 --}}
+    <p>符合任一條件即顯示</p>
 
-        <div class="uq-chip-actions">
-            @if (! empty($selectedTags))
-                <a class="uq-chip-clear"
-                    href="{{ url()->current() }}{{ $otherParams ? '?' . http_build_query($otherParams) : '' }}">清除</a>
-            @endif
-            <button class="uq-chip-apply" type="submit">套用</button>
-        </div>
+    <div class="ts buttons">
+        @if (! empty($selectedTags))
+            <a class="ts basic button"
+                href="{{ url()->current() }}{{ $otherParams ? '?' . http_build_query($otherParams) : '' }}">清除</a>
+        @endif
+        <button class="ts button" type="submit">套用</button>
     </div>
 </form>

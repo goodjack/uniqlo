@@ -1,35 +1,28 @@
-@php
-    // 原價只在有資料且大於現價時顯示——origin_price 是爬蟲寫進去的原始欄位，
-    // 沒打折的商品這欄常常跟現價相等甚至是 null，那種不算「有優惠」
-    $hasOriginPrice = $hmallProduct->origin_price !== null
-        && (float) $hmallProduct->origin_price > $hmallProduct->price;
-
-    // 歷史高低一樣就沒有區間可講（只記錄過一次價格的商品就是這樣）
-    $hasPriceRange = $hmallProduct->highest_record_price !== $hmallProduct->lowest_record_price;
-
-    // 現價還高於歷史最低，代表「還可以再等」，master 用綠字標那個最低價
-    $isAboveLowestRecord = $hmallProduct->price > $hmallProduct->lowest_record_price;
-@endphp
-{{-- master 用一條隱形分隔線把品名與價格分開，比 8px 的 margin 多留一點空間 --}}
-<div class="ts hidden divider"></div>
 {{--
-    比價站的卡片要回答兩件事：現在多少錢、這個價位在它自己的歷史裡算便宜嗎。
-    所以第一行是歷史區間（$歷史最高 - $歷史最低），第二行是原價刪除線加現價。
-    區間那一行是 master 的做法，v3 拿掉過，但那是這個站存在的理由，還原回來。
+    價格回到 master 的兩行：現價（.header）加歷史區間（.sub.header）。
+
+    原價刪除線拿掉了。這個站回答的是「這個價位在它自己的歷史裡算不算便宜」，
+    區間那一行已經把歷史最高與最低都講完；再放一條「原價 $XXX」是用另一個
+    口徑講同一件事，而官方的 origin_price 又常常就等於歷史最高，兩行讀起來
+    重複。有沒有在打折改看底下的狀態標籤（特價商品、歷史新低價）。
 --}}
-<div class="uq-card-price">
-    @if ($hasPriceRange)
-        <div class="uq-card-range">
+<div class="ts hidden divider"></div>
+<div class="header">
+    ${{ $hmallProduct->price }}
+    {{-- 歷史高低一樣就沒有區間可講（只記錄過一次價格的商品就是這樣） --}}
+    @if ($hmallProduct->highest_record_price !== $hmallProduct->lowest_record_price)
+        <div class="sub header">
             ${{ (int) $hmallProduct->highest_record_price }}
             -
-            <span @if ($isAboveLowestRecord) style="color: #8BB96E;" @endif>${{ (int) $hmallProduct->lowest_record_price }}</span>
+            {{-- 現價還高於歷史最低，代表「還可以再等」，那個最低價染綠 --}}
+            @if ($hmallProduct->price > $hmallProduct->lowest_record_price)
+                <span style="color: #8BB96E;">
+                    ${{ (int) $hmallProduct->lowest_record_price }}
+                </span>
+            @else
+                ${{ (int) $hmallProduct->lowest_record_price }}
+            @endif
         </div>
     @endif
-    <div class="uq-card-now-row">
-        @if ($hasOriginPrice)
-            <del class="uq-card-origin">原價 ${{ (int) $hmallProduct->origin_price }}</del>
-        @endif
-        <span class="uq-card-now">${{ $hmallProduct->price }}</span>
-    </div>
 </div>
 @include('hmall-products.partials.card-labels')

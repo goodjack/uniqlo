@@ -24,12 +24,12 @@
             <div class="ts pointing secondary menu" id="{{ $id }}">
                 @foreach ($items as $item)
                     @isset($item['heading'])
-                        <span class="uq-menu-heading">{{ $item['heading'] }}</span>
+                        <div class="header item">{{ $item['heading'] }}</div>
                     @else
                         <a class="item" href="#{{ $item['anchor'] }}">
                             {{ $item['label'] }}
                             @isset($item['count'])
-                                <span class="uq-count">{{ $item['count'] }}</span>
+                                <div class="ts mini circular label">{{ $item['count'] }}</div>
                             @endisset
                         </a>
                     @endisset

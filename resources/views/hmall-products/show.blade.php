@@ -45,10 +45,6 @@
 
     $productTags = $hmallProductPresenter->getProductTags($hmallProduct, true);
 
-    // 原價只在有資料且大於現價時顯示，跟卡片上 card-extra-content.blade.php 是同一條規則
-    $hasOriginPrice = $hmallProduct->origin_price !== null
-        && (float) $hmallProduct->origin_price > $hmallProduct->price;
-
     // 商品資訊小表：只列出真的有值的欄位，空的一列比沒有那一列還難讀
     $productFacts = array_filter([
         '網路商店編號' => $hmallProduct->product_code,
@@ -67,25 +63,6 @@
         $hmallProductPresenter->getDescription($hmallProduct),
     );
 
-    /*
-     * 說明是空的就整塊不渲染（本機的資料就是這樣，正式機有）。
-     *
-     * 夠長才收合，而且門檻要抓在「收起來真的會遮住東西」那條線上：收合框照
-     * master 是 400px、行高 23.8px（14px 乘 1.7），放得下十六行多一點，所以超過
-     * 十六行才收；右欄桌機約 630px 寬、14px 的中文一行放得下四十幾個字。字數
-     * 乘一乘就好的話會漏掉 <br>——說明裡常常一行一句，一百字可能就已經十行了，
-     * 所以照 <br> 拆開來一段一段估行數。
-     *
-     * 這是估算不是量測，寧可保守：門檻沒到就整段攤開，最多是右欄長一點；估錯
-     * 方向的另一邊是長出一顆按了畫面不會變的「顯示更多」。
-     */
-    $descriptionText = trim(strip_tags($descriptionHtml));
-    $hasDescription = $descriptionText !== '';
-
-    $descriptionLines = collect(preg_split('/<br\s*\/?>/i', $descriptionHtml))
-        ->map(fn ($line) => max(1, (int) ceil(mb_strlen(trim(strip_tags($line))) / 42)))
-        ->sum();
-    $isLongDescription = $descriptionLines > 16;
 
     /*
      * 章節選單的項目要跟底下真的渲染出來的區段一致，所以條件跟各區段的 @if 同一份。
@@ -252,6 +229,23 @@
             background: #AE6F0A;
         }
 
+        /* 說明是這一頁的正文，字級跟 master 一樣是 16px（1.14286rem） */
+        #comment {
+            font-size: 1.14286rem;
+            line-height: 1.625;
+        }
+
+        /*
+         * 桌機把說明關進固定 400px 的捲動框，這就是 master「描述短的時候上下也
+         * 很平衡」的來源：右欄總高度不隨說明長度變動，價格與 CTA 那一列固定落
+         * 在圖片底部附近。手機一欄到底、沒有要對齊的東西，就讓它自然展開。
+         */
+        @media (min-width: 991px) {
+            #comment {
+                height: 400px;
+                overflow: auto;
+            }
+        }
     </style>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css"
@@ -260,17 +254,30 @@
 @endsection
 
 @section('content')
-    <div class="ts container uq-page">
+    <div class="ts container">
         @include('partials.breadcrumb', ['crumbs' => $crumbs])
     </div>
 
+    {{--
+        Hero 的骨架整組回 master：左邊圖片、右邊標題 → 元資料與分享 → 狀態標籤
+        → 說明，說明底下一條分隔線，再來是價格與 CTA 那一列。
+
+        「描述短的時候上下也很平衡」是 master 用 #comment 在桌機固定 400px 高
+        （超出就自己捲）換來的：右欄總高度不隨說明長度變動，價格與 CTA 就固定
+        落在圖片底部附近。這一版把那個固定框跟它的字級一起還原，也就不再需要
+        自訂的「顯示更多」收合。
+
+        這條 branch 額外加的東西只有三樣留在 hero 裡：麵包屑（在上面）、跟
+        「前往官網」同一列的收藏鈕，以及把分享三顆 icon 從純圖示換成有
+        aria-label 的按鈕。商品資訊與分類連結搬到底下的章節，不再擠在右欄尾巴。
+    --}}
     <div class="ts very padded horizontally fitted attached fluid segment">
         <div class="ts container relaxed grid">
             <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
                 <div class="ts fluid container">
                     <a class="ts centered image" href="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
                         rel="nofollow noopener" data-lightbox="image"
-                        data-title="{{ $hmallProductPresenter->getFullName($hmallProduct) }}">
+                        data-title="{{ $productName }}">
                         <x-lazy-load-image class="ts centered image"
                             src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
                             alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
@@ -278,112 +285,94 @@
                 </div>
             </div>
             <div class="nine wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
-                <div class="uq-product-info">
-                    {{-- 不加 dividing 線：底下的價格列自己就是一個層次，兩條線疊起來太吵 --}}
-                    <h1 class="unstyled uq-product-title">{{ $productName }}</h1>
-
-                    <div class="uq-product-meta">
-                        <span>{{ $hmallProduct->brand }}</span>
-                        <span>商品編號 {{ $hmallProduct->code }}</span>
-                        {!! $hmallProductPresenter->getRatingForProductCardAndItem($hmallProduct) !!}
-
-                        <div class="uq-share">
-                            <a id="facebook" class="ts mini basic icon button"
-                                href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
-                                target="_blank" rel="nofollow noopener" aria-label="分享到 Facebook">
-                                <i class="facebook icon"></i>
-                            </a>
-                            <a id="twitter" class="ts mini basic icon button"
-                                href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
-                                target="_blank" rel="nofollow noopener" aria-label="分享到 Twitter">
-                                <i class="twitter icon"></i>
-                            </a>
-                            <a id="line" class="ts mini basic icon button"
-                                href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
-                                target="_blank" rel="nofollow noopener" aria-label="分享到 Line">
-                                <i class="chat icon"></i>
-                            </a>
-                        </div>
+                <div class="ts fluid very narrow container grid">
+                    <div class="sixteen wide column">
+                        <h1 class="ts dividing big header">
+                            {{ $productName }}
+                            <div class="sub header">
+                                {{ $hmallProduct->brand }} 商品編號 {{ $hmallProduct->code }}
+                                {!! $hmallProductPresenter->getRatingForProductShow($hmallProduct) !!}
+                                &middot;
+                                <div class="ts buttons">
+                                    <a id="facebook" class="ts link button"
+                                        href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Facebook">
+                                        <i class="facebook icon"></i>
+                                    </a>
+                                    <a id="twitter" class="ts link button"
+                                        href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Twitter">
+                                        <i class="twitter icon"></i>
+                                    </a>
+                                    <a id="line" class="ts link button"
+                                        href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Line">
+                                        <i class="chat icon"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </h1>
                     </div>
-
-                    {{--
-                        跟卡片同一份規格：有優惠時原價一行刪除線在上、現價
-                        24px 粗體優惠色在下（優惠色掛既有的 .uq-brand-text
-                        工具類別）；沒有優惠就只有現價，維持 #222。
-                    --}}
-                    <div class="uq-price-row">
-                        @if ($hasOriginPrice)
-                            <del class="uq-price-origin">原價 ${{ (int) $hmallProduct->origin_price }}</del>
-                        @endif
-                        <span class="uq-price @if ($hasOriginPrice) uq-brand-text @endif">${{ $hmallProduct->price }}</span>
-                    </div>
-
-                    {{--
-                        狀態行緊接在價格下面，跟卡片同一組顏色：一色一義，由
-                        presenter 決定（期間限定紅、特價與歷史新低同一個藍……），
-                        都不掛邊框。截止日現在寫在「期間限定」那個標籤本身
-                        （截至 MM/DD 限定價格），不再另外多一行；檔期過了
-                        is_limited_offer 就是 false，那個標籤連同日期一起消失。
-                    --}}
-                    @if (!empty($productTags))
-                        <div class="uq-price-status">
+                    <div class="sixteen wide column">
+                        <div class="ts basic fitted segment">
+                            {{--
+                                狀態標籤照 master：Tocas 原生標籤加一色一義的 inline style，
+                                有對應清單頁的做成連結。顏色與順序由 getProductTags() 決定，
+                                卡片與商品頁共用同一份。
+                            --}}
                             @foreach ($productTags as $tag)
                                 @if ($tag['url'])
-                                    {{-- 有對應清單頁的標籤就是那個清單的入口，master 一直是連結，v3 只是漏讀 presenter 算好的 url --}}
-                                    <a class="uq-price-status-item" href="{{ $tag['url'] }}"
-                                        style="color: {{ $tag['color'] }};"><i
-                                            class="{{ $tag['icon'] }} icon"></i>{{ $tag['text'] }}</a>
+                                    <a class="ts horizontal basic circular label" href="{{ $tag['url'] }}">
+                                        <span style="color: {{ $tag['color'] }};"><i
+                                                class="{{ $tag['icon'] }} icon"></i>{{ $tag['text'] }}</span>
+                                    </a>
                                 @else
-                                    <div class="uq-price-status-item" style="color: {{ $tag['color'] }};"><i
-                                            class="{{ $tag['icon'] }} icon"></i>{{ $tag['text'] }}</div>
+                                    {{-- 沒有 href 的 <a> 拿不到鍵盤焦點，也不是連結，用 div --}}
+                                    <div class="ts horizontal basic circular label">
+                                        <span style="color: {{ $tag['color'] }};"><i
+                                                class="{{ $tag['icon'] }} icon"></i>{{ $tag['text'] }}</span>
+                                    </div>
                                 @endif
                             @endforeach
                         </div>
-                    @endif
-
-                    {{-- 買，或等：這是使用者在商品頁的兩個終點動作，所以緊接在價格底下， --}}
-                    {{-- 不再壓在右欄最下面等人捲過標籤、分類與整段商品說明才看得到。 --}}
-                    <div class="uq-cta-row">
-                        @if ($hmallProduct->brand === 'GU')
-                            <a class="uq-cta-primary"
-                                href="https://www.gu-global.com/tw/zh_TW/product-detail.html?productCode={{ $hmallProduct->product_code }}"
-                                target="_blank" rel="nofollow noopener">前往 GU 官網<i class="external icon"></i></a>
-                        @else
-                            <a class="uq-cta-primary"
-                                href="https://www.uniqlo.com/tw/zh_TW/product-detail.html?productCode={{ $hmallProduct->product_code }}"
-                                target="_blank" rel="nofollow noopener">前往 UNIQLO 官網<i class="external icon"></i></a>
-                        @endif
-                        {{-- 不給 aria-label：它會蓋掉看得到的「收藏」，而且切換狀態時不會跟著改， --}}
-                        {{-- 讀螢幕的人會一直聽到 Favorite。可及名稱交給 .label 的文字，favorites.js 兩邊一起換。 --}}
-                        <button class="ts basic button uq-cta-secondary" data-favorite-button
-                            data-brand="{{ $hmallProduct->brand }}" data-product-code="{{ $hmallProduct->product_code }}"
-                            aria-pressed="false"><i class="heart outline icon"></i><span class="label">收藏</span></button>
-                        {{-- 沒有 href 的 <a> 拿不到鍵盤焦點，Web Share 這顆本來就是動作不是連結 --}}
-                        <button type="button" class="ts basic button uq-cta-secondary" id="share"
-                            style="display: none;"><i class="share icon" aria-hidden="true"></i>分享</button>
                     </div>
-
-                    {{--
-                        說明是這一頁的正文，本機沒有這個欄位的資料、正式機有，空的就整塊
-                        不渲染。分隔線也一起：那條線是用來分開 CTA 與說明的，沒有說明的
-                        商品（剛抓進來、還沒跑到描述那支 command）留一條線在那裡下面什麼
-                        都沒有。
-                    --}}
-                    @if ($hasDescription)
-                        <div class="uq-product-rule"></div>
-
-                        <div @class(['uq-clamp' => $isLongDescription])>
-                            <div class="uq-description">{!! $descriptionHtml !!}</div>
-                            @if ($isLongDescription)
-                                <details class="uq-clamp-more">
-                                    <summary>
-                                        <span class="uq-clamp-show">顯示更多</span>
-                                        <span class="uq-clamp-hide">收合</span>
-                                    </summary>
-                                </details>
-                            @endif
+                    <div class="sixteen wide column">
+                        <div class="ts basic horizontally fitted segment" id="comment">
+                            <p>{!! $descriptionHtml !!}</p>
                         </div>
-                    @endif
+                    </div>
+                </div>
+                <div class="ts divider"></div>
+                <div class="ts grid">
+                    <div class="four wide column">
+                        <h2>${{ $hmallProduct->price }}</h2>
+                    </div>
+                    <div class="twelve wide column">
+                        <div id="uniqlo-column">
+                            <div class="ts right floated separated stackable buttons">
+                                @if ($hmallProduct->brand === 'GU')
+                                    <a class="ts info right labeled icon button"
+                                        href="https://www.gu-global.com/tw/zh_TW/product-detail.html?productCode={{ $hmallProduct->product_code }}"
+                                        target="_blank" rel="nofollow noopener" aria-label="GU">前往 GU 官網<i
+                                            class="external icon"></i></a>
+                                @else
+                                    <a class="ts negative right labeled icon button"
+                                        href="https://www.uniqlo.com/tw/zh_TW/product-detail.html?productCode={{ $hmallProduct->product_code }}"
+                                        target="_blank" rel="nofollow noopener" aria-label="UNIQLO">前往 UNIQLO 官網<i
+                                            class="external icon"></i></a>
+                                @endif
+                                {{-- 不給 aria-label：它會蓋掉看得到的「收藏」，而且切換狀態時不會跟著改， --}}
+                                {{-- 讀螢幕的人會一直聽到 Favorite。可及名稱交給 .label 的文字，favorites.js 兩邊一起換。 --}}
+                                <button type="button" class="ts basic button" data-favorite-button
+                                    data-brand="{{ $hmallProduct->brand }}"
+                                    data-product-code="{{ $hmallProduct->product_code }}" aria-pressed="false"><i
+                                        class="heart outline icon"></i><span class="label">收藏</span></button>
+                                {{-- 沒有 href 的 <a> 拿不到鍵盤焦點，Web Share 這顆本來就是動作不是連結 --}}
+                                <button type="button" class="ts basic button" id="share" style="display: none;"><i
+                                        class="share icon" aria-hidden="true"></i>分享</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -397,34 +386,35 @@
             往回逛的入口，不是站在價格前面決定要不要買的當下要看的東西，所以
             跟商品實照、歷史價格一樣做成往下讀的章節。
         --}}
-        <div class="uq-product-section">
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'facts', 'menu' => 'product_menu'])
-                <h2 class="unstyled uq-h2">商品資訊</h2>
+                <h2 class="ts large dividing header">商品資訊</h2>
                 <div class="ts hidden divider"></div>
 
                 @if (!empty($productFacts))
-                    {{-- 一組名稱對一個值，不是有列有欄的表格，所以用 dl 不用 table --}}
-                    <dl class="uq-facts">
-                        @foreach ($productFacts as $label => $value)
-                            <div>
-                                <dt>{{ $label }}</dt>
-                                <dd>{{ $value }}</dd>
-                            </div>
-                        @endforeach
-                    </dl>
+                    {{-- 一組名稱對一個值，用 Tocas 的 definition table，左欄自帶底色 --}}
+                    <table class="ts definition table uq-facts">
+                        <tbody>
+                            @foreach ($productFacts as $label => $value)
+                                <tr>
+                                    <td>{{ $label }}</td>
+                                    <td>{{ $value }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 @endif
 
                 @if ($categories->isNotEmpty())
-                    {{-- 麵包屑只走一條路徑，這裡列出商品其他掛得上的分類，讓人往回逛 --}}
-                    <div class="uq-categories-line">
-                        <span class="uq-categories-label">分類</span>
+                    {{--
+                        麵包屑只走一條路徑，這裡列出商品其他掛得上的分類，讓人往回逛。
+                        中點分隔由 Tocas 的 .middoted 用 ::before 畫，不是自己放 span：
+                        分隔符不會被連結的底線連著畫，複製這一行也不會把它帶走。
+                    --}}
+                    <div class="ts horizontal middoted list uq-categories-line">
                         @foreach ($categories as $category)
-                            {{-- 分隔符是 <a> 的兄弟節點，不塞進連結裡：hover 的底線才不會連著它畫 --}}
-                            @unless ($loop->first)
-                                <span class="uq-sep">·</span>
-                            @endunless
-                            <a
+                            <a class="item"
                                 href="{{ route('categories.show', [
                                     'brand' => $category->brand->slug(),
                                     'code' => $category->code,
@@ -437,12 +427,12 @@
     @endif
 
     @if (optional($japanProduct)->has_videos)
-        <div class="uq-product-section">
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'videos', 'menu' => 'product_menu'])
-                <h2 class="unstyled uq-h2">
+                <h2 class="ts large dividing header">
                     商品影片
-                    <span class="uq-count">日本版</span>
+                    <div class="inline sub header">日本版</div>
                 </h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
@@ -460,10 +450,10 @@
     @endif
 
     @if ($colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images)
-        <div class="uq-product-section">
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'photos', 'menu' => 'product_menu'])
-                <h2 class="unstyled uq-h2">商品實照</h2>
+                <h2 class="ts large dividing header">商品實照</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
                     @if ($colorNums)
@@ -493,10 +483,10 @@
     @endif
 
     @if ($styles->isNotEmpty())
-        <div class="uq-product-section">
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'styles', 'menu' => 'product_menu'])
-                <h2 class="unstyled uq-h2">Official Styling 官方精選穿搭</h2>
+                <h2 class="ts large dividing header">Official Styling 官方精選穿搭</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
                     @foreach ($styles as $key => $style)
@@ -510,13 +500,13 @@
     @endif
 
     @if ($styleHints->isNotEmpty())
-        <div class="uq-product-section">
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'style-hints', 'menu' => 'product_menu'])
-                <h2 class="unstyled uq-h2">
+                <h2 class="ts large dividing header">
                     StyleHint 網友穿搭靈感
-                    <span class="uq-count">共 {{ $styleHintCount }} 張</span>
-                    <a class="uq-control uq-h2-action"
+                    <div class="inline sub header">共 {{ $styleHintCount }} 張</div>
+                    <a class="ts right floated icon labeled button"
                         href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
                         <i class="camera retro icon" aria-hidden="true"></i>查看列表
                     </a>
@@ -535,10 +525,10 @@
     @endif
 
     @if ($commonlyStyledHmallProducts->isNotEmpty())
-        <div class="uq-product-section">
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'commonly-styled', 'menu' => 'product_menu'])
-                <h2 class="unstyled uq-h2">經常搭配商品</h2>
+                <h2 class="ts large dividing header">經常搭配商品</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling link cards six">
                     @each('hmall-products.simple-card', $commonlyStyledHmallProducts, 'hmallProduct')
@@ -548,10 +538,10 @@
     @endif
 
     @if ($relatedHmallProducts->isNotEmpty())
-        <div class="uq-product-section">
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'related', 'menu' => 'product_menu'])
-                <h2 class="unstyled uq-h2">延伸商品</h2>
+                <h2 class="ts large dividing header">延伸商品</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling link cards six">
                     @each('hmall-products.card', $relatedHmallProducts, 'hmallProduct')
@@ -561,7 +551,7 @@
     @endif
 
     @if (!empty($adsenseClientId) && !empty($adsenseSlotId))
-        <div class="uq-product-section">
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ $adsenseClientId }}"
                     crossorigin="anonymous"></script>
@@ -575,10 +565,10 @@
         </div>
     @endif
 
-    <div class="uq-product-section">
+    <div class="ts very padded horizontally fitted attached fluid tertiary segment">
         <div class="ts container">
             @include('partials.section-anchor', ['anchor' => 'price-history', 'menu' => 'product_menu'])
-                <h2 class="unstyled uq-h2">歷史價格</h2>
+                <h2 class="ts large dividing header">歷史價格</h2>
             <div class="ts hidden divider"></div>
             <div class="ts fluid container grid">
                 <div class="four wide computer sixteen wide tablet sixteen wide mobile column">
@@ -644,10 +634,10 @@
     </div>
 
     @isset($japanProduct)
-        <div class="uq-product-section">
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'japan', 'menu' => 'product_menu'])
-                <h2 class="unstyled uq-h2">日本版商品資訊</h2>
+                <h2 class="ts large dividing header">日本版商品資訊</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts items">
                     <div class="item">
@@ -751,10 +741,10 @@
     @endisset
 
     @if ($relatedProducts->isNotEmpty())
-        <div class="uq-product-section">
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'legacy', 'menu' => 'product_menu'])
-                <h2 class="unstyled uq-h2">舊系統商品</h2>
+                <h2 class="ts large dividing header">舊系統商品</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling link cards six">
                     @each('products.card', $relatedProducts, 'product')

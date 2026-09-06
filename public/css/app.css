@@ -1,340 +1,55 @@
 /*
  * 跨頁共用的元件樣式。
  *
- * 這個站沒有前端建置流程（沒有 Vite、沒有 Tailwind），CSS 原本有三種擺法：
- * 成對的樣式 partial、共用的樣式 partial、以及寫在某一頁的 @section('css') 裡
- * 給另一頁用。要改一個顏色得先猜它住在哪一種。跨頁共用的元件樣式集中到這裡，
- * 各頁的 @section('css') 只留該頁獨有的。
+ * 這個站的外觀由 Tocas UI 2.3.3 負責。這個檔案只放三種東西，其他一律用 Tocas
+ * 的預設元件（.ts.card、.ts.header、.ts.button、.ts.label、.ts.breadcrumb、
+ * .ts.pointing.secondary.menu、.ts.horizontal.middoted.list、.ts.basic.dropdown、
+ * .ts.input、.ts.definition.table……）：
+ *
+ *   一、Tocas 沒有的元件。sticky 章節選單、清單內搜尋輸入框、篩選面板的
+ *       chip toggle、卡片上的收藏鈕與整張卡片的點擊區。工具列的兩側版面也算
+ *       在這裡：Tocas 沒有現成的 toolbar 元件，用少量 flex 兜出來比拿 .ts.grid
+ *       湊短，但這是取捨、不是 Tocas 做不到。
+ *   二、非補不可的修正。Tocas 全域清掉的鍵盤焦點框、Tocas 卡片 grid 的負
+ *       margin 吃掉區塊間距、Tocas 的 line-height: 1 讓換行的麵包屑兩行黏在一起。
+ *   三、從 master 的 @section('css') 搬過來、多頁共用的定義（清單類型的
+ *       icon 顏色）。
+ *
+ * 判準是「拿掉這條會怎樣」：拿掉會壞掉或看不清楚就留，拿掉之後 Tocas 預設
+ * 會接手、只是長得不一樣，就不該寫在這裡。每一條保留的規則上面都寫得出
+ * 「Tocas 為什麼給不了」。
  *
  * 載入順序：Tocas 之後、頁面自己的 @section('css') 之前，所以這裡蓋得掉 Tocas、
  * 頁面又蓋得掉這裡。
- *
- * ------------------------------------------------------------------
- * 區塊接合責任表（第三輪 UI 修正：前兩輪把版面交界的驗收漏掉，工具列貼
- * 卡片、面板貼卡片、內容貼頁尾——這裡列出來，改動對照著這張表做）：
- *
- *   麵包屑              上 16px、下 16px
- *   工具列 → 卡片        24px（同頁有章節選單時，工具列自己的底線不畫）
- *   篩選面板 → 卡片      24px
- *   章節選單 → 第一段內容  24px
- *   內容 → 頁尾          .wrapper 統一 padding-bottom: 64px
- *   商品頁右欄：
- *     標題 → 元資料        8px
- *     元資料 → 價格列      20px
- *     價格列 → CTA         16px
- *     CTA → 分隔線         24px
- *     分隔線 → 資訊清單     16px
- *     資訊清單每列 padding  10px 0
- *     資訊清單 → 分類行     16px
- * ------------------------------------------------------------------
  */
 
 :root {
     /* 品牌紅。跟 master.blade.php 的 <meta name="theme-color"> 同一個值 */
     --uq-brand: #ce5e57;
-    --uq-brand-hover: #b8524c;
     /* 選中的 chip 底色。品牌紅的淡版，看得出來選中又不會搶掉 CTA */
     --uq-brand-soft: #fbeceb;
-    /* 標題、價格與選中 pill 的底色 */
+    /* 選中的 chip 的底色文字色 */
     --uq-ink: #1f1f1f;
     --uq-text: #333333;
-    /* 元資料、計數、麵包屑連結 */
+    /* 搜尋框的 icon 與清除鈕 */
     --uq-muted: #767676;
-    /* 卡片與商品頁的次要文字（適穿列、原價刪除線、狀態行裡非優惠的項目）。
-       跟 --uq-muted 分開設是因為要單獨調整卡片的資訊層級，不想連帶動到麵包屑
-       這類已經驗收過的既有元件 */
-    --uq-text-2: #666666;
-    /* 優惠價與優惠狀態文字專用的深色版。--uq-brand（#ce5e57）當按鈕底色沒問題，
-       但縮成 12-18px 的文字在白底只有約 3.9:1，離 AA 門檻 4.5:1 還差一截；這個
-       深化版實測 5.2:1。小字（優惠價、期間限定這類狀態文字）只用這個、不要用
-       --uq-brand，--uq-brand 留給有足夠面積的按鈕與大色塊 */
-    --uq-brand-text: #b5423b;
-    /* 標籤上的藍字（特價商品、歷史新低價）。master 用 #00ADEA，那個值放在白底只有
-       2.4:1，小字讀不清；加深到 #0077A6 是 5.0:1，語意（兩者同色）沒變。GU 角標那種
-       實心底色維持 #00ADEA，底色不吃文字對比 */
+    /*
+     * 標籤上的藍字（特價商品、歷史新低價）。master 用 #00ADEA，那個值放在白底
+     * 只有 2.4:1，小字讀不清；加深到 #0077A6 是 5.0:1，語意（兩者同色）沒變。
+     * GU 角標那種實心底色維持 #00ADEA，底色不吃文字對比。
+     *
+     * 這個 token 是 HmallProductPresenter::COLOR_PRICE 寫進 inline style 用的，
+     * 這個檔案裡沒有規則引用它——不要因為 grep 不到就刪掉。
+     */
     --uq-info-text: #0077a6;
-    /* 全站唯一的線色：分隔線與控制項邊框都用它 */
+    /* chip 與篩選面板的線色 */
     --uq-line: #e4e4e4;
     /* 篩選面板的底色 */
     --uq-panel: #f6f6f6;
-    --uq-radius: 6px;
-    /* 工具列上三種控制項的統一高度 */
-    --uq-control-h: 32px;
     /* nav 是固定的 60px，master 版型的 body padding 就是照這個數字留的 */
     --uq-nav-height: 60px;
     /* .uq-section-menu 的實際高度。錨點跳轉的 scroll-padding-top 要讓開它 */
     --uq-section-menu-height: 45px;
-}
-
-/* 商品標籤裡的優惠文字，見上面 --uq-brand-text 的說明：這裡故意不接 --uq-brand */
-.uq-brand-text {
-    color: var(--uq-brand-text);
-}
-
-/* ------------------------------------------------------------------
- * 基礎元件。全站的控制項共用同一個高度、同一個圓角、同一個強調色，
- * 所以這一段刻意不掛 Tocas 的 .ts.button／.ts.label——那組規則自己帶
- * padding、margin、邊框與 hover 底色，疊上來每一顆都要再蓋一次。
- * ------------------------------------------------------------------ */
-
-/*
- * 工具列上的控制項：品牌 pill、排序下拉、篩選鈕共用這一組尺寸與邊框。
- * <a>、<button>、<label>、<select> 四種標籤都套得上去。
- */
-.uq-control {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    height: var(--uq-control-h);
-    margin: 0;
-    padding: 0 14px;
-    border: 1px solid var(--uq-line);
-    border-radius: 999px;
-    background: #fff;
-    color: var(--uq-text);
-    font-size: 13px;
-    line-height: 1;
-    white-space: nowrap;
-    text-decoration: none;
-    cursor: pointer;
-    box-shadow: none;
-}
-
-.uq-control:hover {
-    border-color: var(--uq-muted);
-    color: var(--uq-text);
-}
-
-.uq-control:focus-visible {
-    outline: 2px solid var(--uq-brand);
-    outline-offset: 2px;
-}
-
-/*
- * Tocas 有一條 a:focus,a:active{border:0}，權重比單一個 class 高，連結型的控制項
- * （品牌 pill、子分類 pill）一被聚焦整圈邊框就消失、寬高跟著縮 2px。這裡只補回
- * 線寬與線型，顏色留給 .active 之類的規則自己決定。
- */
-a.uq-control:focus,
-a.uq-control:active {
-    border-width: 1px;
-    border-style: solid;
-}
-
-/* 清單頁的品牌切換。選中的那顆用深色實心，跟站上其他強調色分工 */
-.uq-pill.active {
-    background: var(--uq-ink);
-    border-color: var(--uq-ink);
-    color: #fff;
-}
-
-/* 篩選鈕上的已選數量 */
-.uq-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    min-width: 18px;
-    height: 18px;
-    margin-left: 6px;
-    padding: 0 5px;
-    border-radius: 999px;
-    background: var(--uq-brand);
-    color: #fff;
-    font-size: 11px;
-    line-height: 1;
-}
-
-/* 空的性別段。「男裝 0 件」也是資訊，所以段落照出、內容寫一句話 */
-.uq-none {
-    margin: 12px 0 0;
-    color: var(--uq-text-2);
-    font-size: 14px;
-}
-
-/* 件數、個數這類次要數字。以前用圓形 label，那個形狀在句子裡太重 */
-.uq-count {
-    margin-left: 4px;
-    color: var(--uq-muted);
-    font-size: 12px;
-    font-weight: 400;
-}
-
-/*
- * 章節標題。清單頁的性別段、分類總覽的群組、商品頁的章節共用同一種。
- *
- * 標籤上要一起掛 Tocas 的 unstyled：它的 h1/h2 規則寫成 h2:not(.unstyled):not(.ts)，
- * 權重比單一個 class 高，不退出的話字級一直是它的 2.143rem。
- */
-.uq-h2 {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.5rem;
-    margin: 40px 0 16px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--uq-line);
-    color: var(--uq-ink);
-    font-size: 20px;
-    font-weight: 600;
-    line-height: 1.4;
-}
-
-.uq-h2 .uq-count,
-.uq-h3 .uq-count {
-    font-size: 13px;
-}
-
-/* 標題那一行右側的計數（分類總覽的「20 個分類」） */
-.uq-h2 .uq-count-end,
-.uq-h3 .uq-count-end {
-    margin-left: auto;
-}
-
-/*
- * 分類總覽的品牌區塊標題。兩家的分類樹各自獨立，先 UNIQLO 再 GU 各一塊。
- * 顏色跟卡片右上角的品牌角標同一組：UNIQLO 紅、GU 藍，都用白底可讀的深色版。
- */
-.uq-brand-h2 {
-    color: var(--uq-brand-text);
-}
-
-.uq-brand-h2.uq-brand-gu {
-    color: var(--uq-info-text);
-}
-
-/* 品牌區塊裡的群組標題。比品牌標題小一級，也不再各自掛品牌標籤 */
-.uq-h3 {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.5rem;
-    margin: 24px 0 12px;
-    color: var(--uq-ink);
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.4;
-}
-
-/*
- * 商品頁的商品資訊。用 <dl> 不用 <table>：這是一組名稱與值的對照，不是有列
- * 有欄的表格；桌機兩欄排，手機自己掉回一欄。
- */
-dl.uq-facts {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    column-gap: 24px;
-    margin: 0;
-}
-
-.uq-facts>div {
-    padding: 10px 0;
-    border-bottom: 1px solid var(--uq-line);
-}
-
-.uq-facts dt {
-    color: var(--uq-muted);
-    font-size: 12px;
-}
-
-.uq-facts dd {
-    margin: 0;
-    color: var(--uq-text);
-    font-size: 14px;
-}
-
-@media (min-width: 768px) {
-    dl.uq-facts {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-/*
- * 商品說明的收合。<details> 沒展開時只渲染 summary，所以說明本體要放在
- * details 外面、由外層的 :has(details[open]) 解鎖高度——把說明包進 details
- * 的話沒展開就整段不見，做不出「先露出一段」。
- *
- * 高度 400px 照 master（那時是 #comment{height:400px;overflow:auto} 的捲動框）：
- * 收成 200px 的版本讓大部分商品的說明只露出前四分之一，右欄比左邊的圖短一截。
- * 捲動框不還原、維持「顯示更多」：頁面裡再開一個捲動區塊，滑鼠滾到那裡會停在
- * 框內，是 v3 修掉的問題。
- *
- * 手機不收合：那裡沒有右欄要跟左邊圖片對齊的問題，多按一下反而礙事。
- */
-.uq-description {
-    color: var(--uq-text);
-    font-size: 16px;
-    line-height: 1.625;
-}
-
-.uq-clamp {
-    position: relative;
-}
-
-.uq-clamp>.uq-description {
-    max-height: 400px;
-    overflow: hidden;
-}
-
-/* 漸層遮罩掛在外層而不是說明本體上：本體 overflow: hidden 會把它一起裁掉 */
-.uq-clamp::after {
-    content: '';
-    position: absolute;
-    /* 400px 的收合框減掉 56px 的漸層高度 */
-    top: 344px;
-    right: 0;
-    left: 0;
-    height: 56px;
-    background: linear-gradient(rgba(255, 255, 255, 0), #fff);
-    pointer-events: none;
-}
-
-.uq-clamp:has(details[open])>.uq-description {
-    max-height: none;
-}
-
-.uq-clamp:has(details[open])::after {
-    content: none;
-}
-
-.uq-clamp-more>summary {
-    display: inline-block;
-    padding-top: 8px;
-    color: var(--uq-brand);
-    font-size: 13px;
-    cursor: pointer;
-    list-style: none;
-}
-
-.uq-clamp-more>summary::-webkit-details-marker {
-    display: none;
-}
-
-/* Tocas 有 details,summary{outline:none}，鍵盤走到這顆會完全看不出焦點在哪 */
-.uq-clamp-more>summary:focus-visible {
-    outline: 2px solid var(--uq-brand);
-    outline-offset: 2px;
-}
-
-/* 兩段文字都擺著、用開合狀態切換，比 ::after 的 content 可靠：讀螢幕讀得到真的文字 */
-.uq-clamp-more:not([open]) .uq-clamp-hide,
-.uq-clamp-more[open] .uq-clamp-show {
-    display: none;
-}
-
-@media (max-width: 767px) {
-    .uq-clamp>.uq-description {
-        max-height: none;
-    }
-
-    .uq-clamp::after {
-        content: none;
-    }
-
-    .uq-clamp-more {
-        display: none;
-    }
 }
 
 /* ------------------------------------------------------------------
@@ -359,128 +74,6 @@ i.online-special.icon {
 
 i.most-visited.icon {
     color: #b58105 !important;
-}
-
-/* ------------------------------------------------------------------
- * 空狀態、分類總覽群組與清單頁共用的 pill。
- * ------------------------------------------------------------------ */
-
-/*
- * 空狀態。Tocas 的 icon header 是深灰配黑字，在一片白的頁面中間比實際內容還重。
- * icon 退到灰、標題退到正文色，讓底下那句「你可以做什麼」才是眼睛停的地方。
- */
-.uq-empty .ts.icon.header>.icon {
-    color: var(--uq-muted);
-}
-
-.uq-empty .ts.icon.header {
-    color: var(--uq-text);
-}
-
-.uq-empty .ts.icon.header .sub.header {
-    color: var(--uq-muted);
-}
-
-/*
- * 每一頁的內容容器。slate 底下原本還包了一層 attached padded segment，那層帶
- * 一條上邊線與一大塊上下 padding，跟 slate 自己的邊界疊在一起；拿掉之後只剩
- * container，內容跟 slate 的距離由這 8px 決定。
- */
-.uq-page {
-    padding-top: 8px;
-}
-
-/*
- * 內容到頁尾的距離，全站一致。.wrapper 是 master.blade.php 版型自己的
- * flex 容器（@yield('content') 的直接父層），頁尾 <footer> 是它的兄弟
- * 節點、不在它裡面——這裡撐開的是內容跟頁尾深色底之間那段留白，不是頁尾
- * 自己的內距（頁尾用 Tocas 的 very padded，那是它自己的事）。
- */
-.wrapper {
-    padding-bottom: 64px;
-}
-
-/* 分類總覽的一個群組。群組之間靠這段距離分開，不再各自框一個 segment */
-.uq-category-group {
-    margin-bottom: 32px;
-}
-
-/*
- * 最後一組不用再留 32px：那個距離是「跟下一組分開」用的，跟到頁尾的
- * 64px 是兩件事——沒有這條，最後一組的 margin 會跟 .wrapper 的
- * padding-bottom 疊成 96px，內容到頁尾的距離就不是全站一致的 64px。
- */
-.uq-category-group:last-child {
-    margin-bottom: 0;
-}
-
-/* pill 裡的計數是附註不是標籤，在深色的選中狀態下也要跟著變白 */
-.uq-pill.active .uq-count {
-    color: rgba(255, 255, 255, 0.72);
-}
-
-/*
- * 子分類的文字連結列：分類總覽的一個群組、分類頁工具列的子分類共用。
- * 拿掉 pill 那圈框——這裡是往下鑽的入口，不是需要勾選的篩選條件，
- * pill 的實心視覺太搶戲。line-height: 2 讓換行後的兩行留白跟橫向的
- * gap 感覺一致，高低不齊（有的分類名字長、有的短）是可以接受的樣子。
- */
-.uq-cat-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 20px;
-    line-height: 2;
-}
-
-.uq-cat-list a {
-    color: var(--uq-text);
-}
-
-.uq-cat-list a:hover {
-    text-decoration: underline;
-}
-
-/*
- * 分頁。現在跟 style-hints 頁共用同一份 markup（Tocas 的 .ts.icon.button
- * 上一頁／頁碼／下一頁），不用再自己配色——disabled／active 兩種狀態
- * Tocas 都有現成的樣子。這裡只補一件事：跟上面卡片 grid 的距離。
- * 選擇器疊到 .ts.segment 才蓋得動它自己的 1rem 上下 margin。
- */
-.ts.segment.uq-pagination {
-    margin-top: 32px;
-}
-
-/* ------------------------------------------------------------------
- * 共同骨架：麵包屑、工具列、篩選 chip 列、章節選單。
- *
- * Tocas 2.3.3 有 breadcrumb、tabbed menu、label 與 button，這裡只補它沒有的
- * 三件事：sticky、chip 的勾選外觀、以及工具列的兩側排版。
- * ------------------------------------------------------------------ */
-
-/*
- * 麵包屑。只有分類頁與商品頁有，位置固定在 container 內的第一行。整條都是
- * 灰的：它是回頭路不是這一頁的主角，顏色一重就會跟底下的標題搶。
- */
-.ts.breadcrumb.uq-breadcrumb {
-    display: block;
-    margin: 16px 0;
-}
-
-/* 選擇器要疊到 .ts.breadcrumb 才寫得動：Tocas 的 a.section 是三個 class 加一個標籤 */
-.ts.breadcrumb.uq-breadcrumb .section {
-    color: var(--uq-text);
-}
-
-.ts.breadcrumb.uq-breadcrumb a.section {
-    color: var(--uq-muted);
-}
-
-.ts.breadcrumb.uq-breadcrumb a.section:hover {
-    color: var(--uq-ink);
-}
-
-.ts.breadcrumb.uq-breadcrumb .divider {
-    color: var(--uq-line);
 }
 
 /*
@@ -551,11 +144,6 @@ i.most-visited.icon {
  */
 @media (max-width: 767px) {
 
-    /* 手機上這三顆是用手指點的，40px 比桌機的 32px 接近 44px 的觸控建議 */
-    :root {
-        --uq-control-h: 40px;
-    }
-
     .uq-toolbar-start,
     .uq-toolbar-end {
         flex: 0 0 100%;
@@ -584,7 +172,7 @@ i.most-visited.icon {
      * 分類名字全部黏在一起看不出斷點。這裡讓它自己吃滿整排寬度、換回
      * 正常的多行換行。
      */
-    .uq-toolbar-start>.uq-cat-list {
+    .uq-toolbar-start>.ts.horizontal.middoted.list {
         flex: 1 1 100%;
     }
 
@@ -607,10 +195,13 @@ i.most-visited.icon {
 }
 
 /*
- * 清單頁與分類頁工具列上的「在這個清單裡找」輸入框。<input> 沿用
- * .uq-control 的高度、圓角、邊框，這裡只補搜尋 icon 跟可能出現的清除鈕的
- * padding；表單本身是 position:relative 的定位容器，icon 跟清除鈕都疊在
- * input 上面。隱藏欄位（brand／sort／tags[]）不佔版面，不影響這裡的排版。
+ * 清單頁與分類頁工具列上的「在這個清單裡找」輸入框。
+ *
+ * 輸入框本身的邊框、圓角、內距全部來自 Tocas 的 .ts.input（表單掛的就是
+ * .ts.input）。這裡只補 Tocas 沒有的兩顆疊加物：左邊的搜尋 icon 與有字時
+ * 才出現的清除鈕——表單是 position: relative 的定位容器，兩顆都絕對定位疊在
+ * input 上面，input 兩側再讓出對應的 padding。
+ * 隱藏欄位（brand／sort／tags[]）不佔版面，不影響這裡的排版。
  */
 .uq-search-form {
     position: relative;
@@ -620,15 +211,28 @@ i.most-visited.icon {
     max-width: 100%;
 }
 
+/*
+ * z-index 不能省：Tocas 給 .ts.input 裡的 <input> 的是 position: relative，
+ * 它在 DOM 上排在這顆 icon 後面，兩邊 z-index 都是 auto 的話由 DOM 順序決定
+ * 疊法——輸入框的白底會整個蓋在 icon 上面，實測 elementFromPoint 打在 icon
+ * 正中央回傳的是輸入框。
+ */
 .uq-search-form>.icon {
     position: absolute;
+    z-index: 1;
     left: 12px;
     color: var(--uq-muted);
     font-size: 13px;
     pointer-events: none;
 }
 
-.uq-search-input {
+/*
+ * 選擇器要疊到 input 標籤上才寫得動：Tocas 的 .ts.input input 是 (0,2,1)，
+ * 單一個 .uq-search-input 是 (0,1,0)，蓋不過它的 padding: .78571em 1em，
+ * 兩側要讓給 icon 與清除鈕的空間就完全沒生效（實測 padding-left 停在 14px，
+ * 搜尋 icon 直接壓在游標起點上）。
+ */
+.uq-search-form>input.uq-search-input {
     width: 100%;
     padding-left: 32px;
     padding-right: 28px;
@@ -642,6 +246,7 @@ i.most-visited.icon {
 
 .uq-search-clear {
     position: absolute;
+    z-index: 1;
     right: 10px;
     color: var(--uq-muted);
     font-size: 16px;
@@ -653,36 +258,6 @@ i.most-visited.icon {
 .uq-search-clear:hover,
 .uq-search-clear:focus-visible {
     color: var(--uq-text);
-}
-
-/*
- * 前端即時篩選（list-search.js）用原生 hidden 屬性藏卡片、段落標題與章節
- * 選單項目。Tocas 對 .card／.cards、選單的 .item 都設了自己的 display，
- * 這裡的選擇器一樣掛 class、又比 UA 的 [hidden] 晚載入，會贏過瀏覽器內建的
- * [hidden]{display:none}，所以要自己蓋回去（跟上面 .uq-toolbar[hidden] 同理）。
- */
-.uq-card[hidden],
-.uq-h2[hidden],
-[data-gender-body][hidden],
-.uq-section-menu .item[hidden] {
-    display: none !important;
-}
-
-/* 排序的下拉。原生 <select> 加自己的箭頭，跟旁邊兩顆長成同一個樣子 */
-.uq-control.uq-sort {
-    display: inline-block;
-    padding: 0 28px 0 14px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23767676'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    -webkit-appearance: none;
-    appearance: none;
-    text-align: left;
-}
-
-.uq-filter-toggle>.icon {
-    margin: 0 6px 0 0;
-    font-size: 13px;
 }
 
 /*
@@ -737,98 +312,31 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
 }
 
 /*
- * 卡片 grid 的桌機欄距。真正吃到的是 Tocas 給 .four／.six 這組數量 class 的
- * .ts.four.cards>.card（不是不帶數量 class 的 .ts.cards>.card），margin 是
- * .75em .75em；這裡根字體是 14px（html{font-size:14px}），換算左右各
- * 10.5px，兩張卡疊起來只有 21px，桌機要的欄距是 24px，所以蓋成固定 12px。
- * 手機維持 Tocas 預設，版面窄、卡片本來就擠。
- */
-@media (min-width: 768px) {
-    .ts.link.cards>.card.uq-card {
-        margin-left: 12px;
-        margin-right: 12px;
-    }
-
-    /*
-     * Tocas 的容器負 margin 是照同一個 .75em 反推的，卡片自己的 margin
-     * 蓋成固定值之後，容器這邊也要跟著蓋，卡片才能齊平貼著容器邊緣
-     * （跟下面「Tocas 的 .ts.cards 自己就是負 margin」是同一個道理）。用
-     * :has() 只挑會受影響的 uq-card 卡片 grid，「舊系統商品」那組卡片
-     * （.ts.flatted.card，也共用 .ts.link.cards 容器）維持 Tocas 原生數值。
-     */
-    .ts.link.cards:has(>.card.uq-card) {
-        margin-left: -12px;
-        margin-right: -12px;
-    }
-}
-
-/*
- * 上面把卡片自己的邊界 margin 從 Tocas 的 .75em(10.5px) 蓋成固定 12px，
- * 但 Tocas 算寬度用的公式（calc(25% - (.75em * 2))，或 tablet 斷點的
- * doubling 版本）沒有跟著變，還是照舊的間距扣，每張卡都多佔了一點寬度，
- * 橫向累積起來超過 100%，整排就少擠出一欄——2026-09 UX4 複測先在桌機
- * 1280px 抓到「四欄擠成三欄」，往下比對才發現 768–991px 的 tablet 斷點
- * 更嚴重：doubling 把「四」收成兩欄、「六」收成三欄時一樣沒改寬度公式，
- * 溢出量比桌機大，兩欄整個擠成一欄、三欄擠成兩欄。這裡把兩個斷點的寬度
- * 公式一起換成用固定 24px 反推，各自對齊自己斷點的實際欄數。
- *
- * 手機 <768px 的 doubling 是唯一沒動過欄距（維持 Tocas 預設 16px 總寬），
- * 兩張卡片自己就沒有多佔寬度的問題，維持 Tocas 原生行為不動。
- *
- * tablet 這段的選擇器要多掛一個 .doubling：Tocas 這個斷點真正生效的是
- * .ts.cards.doubling.four:not(.waterfall)>.card 那條，比不帶 .doubling
- * 的 .ts.four.cards>.card.uq-card 特異性更高（多了 .doubling 和
- * :not(.waterfall) 兩個），一開始漏掉這個、寫成跟桌機那段一樣的選擇器，
- * 畫面完全沒變化——後來比對 tablet 斷點才抓到蓋不掉。加上 .doubling 之後
- * 特異性打平，app.css 後載入的贏。
- */
-@media (min-width: 768px) and (max-width: 991px) {
-    .ts.doubling.four.cards>.card.uq-card {
-        width: calc(50% - 24px);
-    }
-
-    .ts.doubling.six.cards>.card.uq-card {
-        width: calc(33.33333% - 24px);
-    }
-}
-
-@media (min-width: 992px) {
-    .ts.four.cards>.card.uq-card {
-        width: calc(25% - 24px);
-    }
-
-    .ts.six.cards>.card.uq-card {
-        width: calc(16.66667% - 24px);
-    }
-}
-
-/*
  * Tocas 的 .ts.cards 自己就是負 margin（margin: -0.875em -0.5em，抵掉第一張
- * 卡片自己的正 margin，讓卡片跟容器邊緣切齊），這條負 margin 會跟前面的
- * 工具列／篩選面板的 margin-bottom 疊在一起做 collapse——正負相抵之後，
- * 24px 只剩十幾 px。分類頁的卡片 grid 前面固定是 .uq-chip-row（篩選面板
- * 收合時也還在 DOM 裡，只是 display: none，不影響這裡的相鄰選擇器），
- * 把卡片 grid 自己的 margin-top 歸零，前面 24px 才不會被吃掉。
+ * 卡片自己的正 margin，讓卡片跟容器邊緣切齊）。上下那 -12.25px 會從前面
+ * 篩選面板的 margin-bottom 裡倒扣：面板到卡片的 24px 實測只剩 11.75px。
+ * 分類頁的卡片 grid 前面固定是 .uq-chip-row（面板收合時也還在 DOM 裡，
+ * 只是 display: none，不影響這裡的相鄰選擇器），把卡片 grid 自己的
+ * margin-top 歸零，24px 才留得住。
  */
 .uq-chip-row + .ts.cards {
     margin-top: 0;
 }
 
 /*
- * 同樣的負 margin 也會吃掉卡片 grid 到分頁之間的 32px：卡片 grid 自己的
- * margin-bottom 跟分頁的 margin-top collapse，正負相抵只剩十幾 px。
- * 分頁只在分類頁與搜尋頁緊接在卡片 grid 後面，用 :has() 抓「後面接著
- * 分頁」這個狀態，把卡片 grid 的 margin-bottom 歸零。
+ * 同一條負 margin 也會吃掉卡片 grid 到分頁之間的距離。分頁是 Tocas 的
+ * .ts.segment，margin-top 是 1rem（14px），被 -12.25px 倒扣之後實測只剩
+ * 1.75px，分頁等於黏在最後一排卡片上。分頁只在分類頁與搜尋頁緊接在卡片
+ * grid 後面，用 :has() 抓「後面接著分頁」這個狀態，把 margin-bottom 歸零。
  */
 .ts.link.cards:has(+ .uq-pagination) {
     margin-bottom: 0;
 }
 
 /*
- * 清單頁沒有分頁（每個性別一次列完），最後一段的卡片 grid 是整頁最後一個
- * 元素；同一條負 margin 這次會從 .wrapper 的 padding-bottom 裡倒扣，
- * 64px 只剩五十幾 px。跟上面 .uq-category-group:last-child 是同一件事，
- * 只是這裡換成卡片 grid。
+ * 清單頁沒有分頁（每個性別一次列完），最後一段的卡片 grid 就是 .wrapper 的
+ * 最後一個元素，同一條負 margin 這次是把頁尾往上拉：實測最後一排卡片的底
+ * 直接貼到頁尾（0px）。歸零之後回到 12.25px，也就是卡片自己那圈 margin。
  */
 .ts.link.cards:last-child {
     margin-bottom: 0;
@@ -874,7 +382,8 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
     border-radius: 999px;
     background: #fff;
     color: var(--uq-text);
-    font-size: 13px;
+    /* 全站文字的地板是 14px，chip 是要讀的條件名稱、不是角標 */
+    font-size: 14px;
     line-height: 1;
     white-space: nowrap;
     cursor: pointer;
@@ -893,81 +402,20 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
     margin: 0;
 }
 
+/*
+ * 選中狀態靠底色與邊框，文字維持深色。品牌紅（#ce5e57）配淡紅底實測只有
+ * 3.41:1，比沒選中的深灰字還難讀——選中不該讓文字變得更看不清楚。
+ */
 .uq-chip:has(input:checked) {
     background: var(--uq-brand-soft);
     border-color: var(--uq-brand);
-    color: var(--uq-brand);
+    color: var(--uq-ink);
     font-weight: 600;
 }
 
 .uq-chip:has(input:focus-visible) {
     outline: 2px solid var(--uq-brand);
     outline-offset: 2px;
-}
-
-/* 說明與操作各佔面板底下一行的兩端 */
-.uq-chip-footer {
-    display: flex;
-    flex: 1 1 100%;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-}
-
-.uq-chip-hint {
-    color: var(--uq-muted);
-    font-size: 12px;
-}
-
-.uq-chip-actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-left: auto;
-}
-
-/* 清除是「還原」不是「送出」，用文字連結跟旁邊那顆實心鈕分出輕重 */
-.uq-chip-clear {
-    color: var(--uq-muted);
-    font-size: 13px;
-}
-
-.uq-chip-clear:hover {
-    color: var(--uq-ink);
-}
-
-.uq-chip-clear:focus-visible {
-    outline: 2px solid var(--uq-brand);
-    outline-offset: 2px;
-}
-
-/*
- * 套用鍵原本是 primary，但 primary 的 cyan 在這個站是「特價」「歷史新低價」
- * 那些狀態標籤的顏色，放在操作按鈕上會被讀成狀態。改用品牌紅。
- */
-.uq-chip-apply {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    height: 30px;
-    margin: 0;
-    padding: 0 16px;
-    border: 1px solid var(--uq-brand);
-    border-radius: 999px;
-    background: var(--uq-brand);
-    color: #fff;
-    font-size: 13px;
-    line-height: 1;
-    cursor: pointer;
-}
-
-.uq-chip-apply:hover,
-.uq-chip-apply:focus,
-.uq-chip-apply:active {
-    background: var(--uq-brand-hover);
-    border-color: var(--uq-brand-hover);
-    color: #fff;
 }
 
 /*
@@ -1008,20 +456,6 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
 
 .uq-section-menu .ts.menu.pointing.secondary::-webkit-scrollbar {
     display: none;
-}
-
-/*
- * 選單裡的分段小標（分類總覽的品牌名）。它不是 .item，所以 scrollspy 的
- * a[href='#…'] 掃不到它，也不會被挑成 active。
- */
-.uq-section-menu .ts.menu.pointing.secondary .uq-menu-heading {
-    flex: 0 0 auto;
-    align-self: center;
-    margin: 0 12px 0 0;
-    color: var(--uq-muted);
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
 }
 
 .uq-section-menu .ts.menu.pointing.secondary .item {
@@ -1072,241 +506,20 @@ html:has(.uq-section-menu) {
     scroll-padding-top: 0;
 }
 
-/*
- * 章節選單底下到第一段內容要是 24px，那個距離已經由 .uq-section-menu 自己的
- * margin-bottom 出了。問題是第一段的標題（.uq-h2 或 .uq-product-section 裡的
- * .uq-h2）自己也有 40px／48px 的上緣間距——那是「段落與段落之間」的距離，
- * 疊在第一段前面就變成 64／72px。三種頁面各自的巢狀結構長得不一樣，所以
- * 分三條選擇器分別點名「選單後面那個 container 的第一段」，只把它的上緣
- * 間距歸零，第二段以後的間距不動。
- */
-.uq-section-menu + .ts.container>.uq-section-anchor:first-child+.uq-h2,
-.uq-section-menu + .ts.container>.uq-h2:first-child,
-.uq-section-menu + .uq-product-section .uq-h2 {
-    margin-top: 0;
-}
-
-/*
- * 工具列跟章節選單同一頁時（目前只有清單頁），工具列自己的底線不畫：兩條
- * 線隔著不到 24px 幾乎貼在一起，看起來像重複的分隔線。用 :has() 而不是
- * 相鄰選擇器，是因為工具列跟選單中間隔著篩選面板（收合時也還在 DOM 裡，
- * 只是 display: none），不是真的相鄰兄弟。
- */
-body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
-    border-bottom: 0;
-}
-
-/* 排序的下拉與它的無腳本送出鈕是一組，不要被工具列的 gap 拆開太遠 */
-.uq-sort-form {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-/*
- * 作者樣式的 display 會蓋掉 UA 樣式表的 [hidden]，所以掛 hidden 的工具列要自己
- * 收起來。收藏頁一件都沒有時整條工具列不該佔版面。
- */
-.uq-toolbar[hidden] {
-    display: none;
-}
-
 /* ------------------------------------------------------------------
- * 商品卡片 v3。基準是官網清單頁的資訊層級：圖片之後，主要資訊（品名、
- * 現價）要比次要資訊（適穿、狀態文字、評分與編號）搶眼，靠字級／字重／
- * 顏色三個一起讓出落差，不是疊邊框或底色去強調次要資訊。GPT-6 Astra 對照
- * 官網抓出的問題正好相反：主要資訊被壓弱、次要資訊卻掛了 Tocas 的
- * .ts.mini.label 邊框（實測只有 9px）——這裡整組拿掉那層邊框，狀態改成
- * 純文字行，字級與顏色照「這是不是在幫使用者省錢」分兩級。
+ * 商品卡片。
  *
- * 由上到下：圖片 → 適穿列（含收藏愛心）→ 品名 → 價格 → 狀態行 → 末行
- * （評分＋編號）。文字組「內」用 4px（例如原價與現價之間、狀態行每一項
- * 之間），組跟組「之間」用 8px（適穿列、品名、價格、狀態行、末行，彼此
- * 都是 margin-top: 8px）。
- * ------------------------------------------------------------------ */
-
-/* Tocas 給 .card > .content 的是四邊 padding，卡片之間就多了兩圈看不見的空白；
-   圖下 8px 由這個 padding-top 負責，第一個子元素（適穿列）不用再疊 margin */
-.ts.card.uq-card>.content {
-    padding: 8px 0 0;
-    border: 0;
-}
-
-/* 適穿列：左邊是適穿文字，右邊是收藏愛心。字級照 master 的 .middoted.meta（14px），
-   v3 縮到 12px 讓這一列跟末行都變得難讀 */
-.uq-card-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.uq-card-fit {
-    color: var(--uq-text-2);
-    font-size: 14px;
-    font-weight: 400;
-}
-
-.uq-card-name {
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    margin-top: 8px;
-    color: #222;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.45;
-}
-
-.uq-card-price {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-top: 8px;
-}
-
-/* 歷史區間。字級照 master：那一行是 .sub.header，算出來是 14px。只有「還沒到
-   歷史最低」時最低價才染綠 */
-.uq-card-range {
-    color: var(--uq-text-2);
-    font-size: 14px;
-    font-weight: 400;
-}
-
-/* 原價與現價同一行：原價是被劃掉的舊值，跟現價擺一起才讀得出降了多少 */
-.uq-card-now-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 6px;
-}
-
-/*
- * 原價刪除線不用 text-decoration：12px 數字加中文時瀏覽器把線畫在 x-height，
- * 看起來像底線。改用 ::after 畫在 50% 高度；align-self 讓它在 flex column 裡
- * 只佔文字寬度，不然線會拉滿整張卡。
- */
-.uq-card-origin {
-    position: relative;
-    display: inline-block;
-    align-self: flex-start;
-    line-height: 1.4;
-    color: var(--uq-text-2);
-    font-size: 12px;
-    font-weight: 400;
-    text-decoration: none;
-}
-
-.uq-card-origin::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: currentColor;
-    transform: translateY(-50%);
-}
-
-.uq-card-now {
-    color: var(--uq-brand-text);
-    font-size: 18px;
-    font-weight: 700;
-}
-
-/* 沒有原價可以刪的時候現價是 .uq-card-price 唯一的子元素——沒有優惠就不套優惠色 */
-.uq-card-price .uq-card-now:only-child {
-    color: #222;
-}
-
-/*
- * 狀態行：一項一行、全部顯示，接受卡片高度不齊（收合到「兩個以外」那版
- * 被站主判定是退步，這裡沿用「攤開來看得完」的既有決定）。
+ * 版面整組回到 Tocas .ts.card 的預設（見 card-base.blade.php）：圖片、
+ * .smaller.header 的品名、.middoted.meta 的元資料、.header 的價格與
+ * .sub.header 的歷史區間、.description 裡的狀態標籤。字級、間距、中點分隔、
+ * hover 陰影都由 Tocas 決定，這裡不再有任何字級或間距的覆寫。
  *
- * 顏色一色一義，由 HmallProductPresenter 的顏色常數決定、寫成 inline style
- * （master 也是寫在標籤上）：這裡只管排版與字級，不再有「優惠類一色、其餘灰」
- * 的兩色系統，所以每一項的字級也一樣。都不掛邊框，跟官網一樣是純文字。
- *
- * 排列照 master：橫排、放不下就換行。v3 改成一項一行，三、四個標籤的卡片
- * 光標籤就佔四行，把末行的評分與編號推出畫面。橫排沒有邊框，所以項與項之間
- * 靠 12px 的間距分開，不會讀成一句話。
- */
-.uq-card-status {
-    display: flex;
-    flex-wrap: wrap;
-    column-gap: 12px;
-    row-gap: 4px;
-    margin-top: 8px;
-}
-
-.uq-card-status-item {
-    font-size: 13px;
-    font-weight: 400;
-}
-
-/* 搜尋結果頁：共用貨號商品在卡片內的提示行（此商品頁同時包含貨號 ...） */
-.uq-shared-codes {
-    margin: 4px 0 0;
-    color: var(--uq-muted);
-    font-size: 12px;
-    line-height: 1.4;
-}
-
-/* 末行：評分加編號，沒評分就只剩編號。中點分隔沿用 .uq-product-meta 那組寫法。
-   字級跟適穿列同一級，都是 master 的 .middoted.meta 值 */
-.uq-card-tail {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px;
-    margin-top: 8px;
-    color: var(--uq-text-2);
-    font-size: 14px;
-    line-height: 1.5;
-}
-
-.uq-card-tail>span+span::before {
-    content: '·';
-    margin-right: 4px;
-    color: var(--uq-text-2);
-}
-
-/*
- * 11px／600、不透明底：拿掉舊版的 opacity: 0.92，官網的角標是實色。
- * 選擇器要疊上 .ts.mini.label：Tocas 的 .ts.mini.label{font-size:.64286rem}
- * 是 (0,3,0)、.ts.label{font-weight:500} 是 (0,2,0)，單一個 .uq-card-brand
- * 蓋不過去（實測角標還是停在 9px／500）。
- */
-.ts.mini.label.uq-card-brand {
-    font-size: 11px;
-    font-weight: 600;
-}
-
-/*
- * 拿掉 Tocas 卡片 hover 的浮起效果。tocas.css 的
- * .ts.link.cards .card:hover 疊了三件事：border 從 0（.borderless）變回
- * 1px、box-shadow、transform: translateY(-3px)。border 那個 0→1px 的變化
- * 在 border-box 底下會讓卡片可用寬度瞬間少 2px，全部顯示的標籤列這時候
- * 會多繞一行——滑鼠移上去卡片自己重排，比沒有任何 hover 回饋還礙眼。這裡
- * 三個效果全部歸零，hover／focus／一般三態卡片尺寸相同，選擇器另外掛
- * .uq-card 讓特異性贏過 tocas 那組四選一的規則。
- */
-.ts.link.cards .card.uq-card:hover,
-.ts.link.card.uq-card:hover {
-    z-index: auto;
-    border: 0;
-    box-shadow: none;
-    transform: none;
-}
-
-/* ------------------------------------------------------------------
- * 商品卡片上的收藏鈕。
+ * 只剩兩件 Tocas 沒有的東西：覆蓋整張卡片的點擊連結，以及卡片上的收藏鈕。
  * ------------------------------------------------------------------ */
 
 /*
- * 整張卡片的點擊區。卡片本身不再是 <a>（收藏鈕不能是連結的子孫），改由這條
- * 覆蓋整張卡片的連結負責。
+ * 整張卡片的點擊區。卡片本身不能是 <a>（收藏鈕是按鈕，不能當連結的子孫），
+ * 改由這條覆蓋整張卡片的連結負責。
  *
  * z-index 不能省：Tocas 給 .ts.card > .content 與 .ts.card > .image img 的是
  * position: relative，兩者在 DOM 上都排在這條連結後面，不抬高的話它們會蓋在
@@ -1319,34 +532,38 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
 }
 
 /*
- * v3 把收藏鈕從圖片上搬到圖下的適穿列，不再需要絕對定位蓋在照片上、也不再
- * 需要半透明白底。視覺 icon 20px，但點擊區要有 44×44px（WCAG 2.5.8 的
- * 建議尺寸），用負 margin 把多出來的 padding 吃掉，適穿列的視覺高度才不會
- * 被撐到 44px——負 margin 同時抵掉上下（維持列高）跟右邊（讓 icon 貼齊卡片
- * 右緣，而不是連 44px 的空白也一起貼齊）。
+ * 這條連結沒有文字也沒有邊框，Tocas 又有一條 a:focus{outline:0}，用鍵盤 Tab
+ * 到某一張卡片時畫面上完全沒有提示。焦點框畫在連結自己身上，剛好框住整張卡片。
+ */
+.uq-card-link:focus-visible {
+    outline: 2px solid var(--uq-brand);
+    outline-offset: -2px;
+}
+
+/*
+ * 卡片上的收藏鈕。Tocas 沒有無邊框的圖示鈕，也沒有卡片收藏這個元件。
+ *
+ * 靠右浮動擺在 .content 的第一個位置，品名與元資料自己繞過它，卡片其餘部分
+ * 維持 Tocas 的預設排版。視覺 icon 20px、點擊區 44×44px（WCAG 2.5.8 的建議
+ * 尺寸），用負 margin 把多出來的 padding 吃掉，才不會把卡片內容整個往下推。
  *
  * position: relative + z-index: 2 不能省：.uq-card-link 蓋在整張卡片上是
- * z-index: 1，適穿列跟這顆按鈕沒有另外定位的話會被那條連結蓋住，點下去變成
- * 導去商品頁而不是收藏——這正是舊版收藏鈕原本就要處理的問題，搬位置不代表
- * 這個問題消失。
+ * z-index: 1，這顆按鈕不抬高就會被那條連結蓋住，點下去變成導去商品頁而不是收藏。
  */
 .uq-card-heart {
     position: relative;
     z-index: 2;
+    float: right;
     display: inline-flex;
-    flex: none;
     align-items: center;
     justify-content: center;
     width: 44px;
     height: 44px;
-    /* margin-left: auto 而不是靠 .uq-card-row 的 justify-content:space-between：
-       適穿是空字串時（sex 沒資料）列裡只剩這顆按鈕，space-between 單一個子
-       元素會貼去最左邊，愛心就跑到左上角去了 */
-    margin: -12px -12px -12px auto;
+    margin: -12px -12px -12px 0;
     padding: 0;
     border: 0;
     background: none;
-    color: var(--uq-text-2);
+    color: #919191;
     cursor: pointer;
 }
 
@@ -1359,259 +576,35 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
     color: var(--uq-brand);
 }
 
+/* Tocas 有 a:focus,button:focus{outline:0}，鍵盤走到這顆會完全看不出焦點在哪 */
 .uq-card-heart:focus-visible {
     outline: 2px solid var(--uq-brand);
     outline-offset: 2px;
 }
 
 /* ------------------------------------------------------------------
- * 商品頁右欄與章節。
- *
- * 右欄的順序是「這是什麼 → 多少錢 → 買或等 → 說明 → 規格 → 往回逛」，
- * 每一段只有一種強調：標題靠字級、價格靠字重、CTA 靠品牌色，其他全是灰的。
+ * 導覽列。
  * ------------------------------------------------------------------ */
 
-/* 同樣要掛 unstyled 退出 Tocas 的 h1 規則，見 .uq-h2 的說明 */
-.uq-product-title {
-    margin: 0;
-    color: var(--uq-ink);
-    font-size: 22px;
-    font-weight: 600;
-    line-height: 1.35;
-}
-
-.uq-product-meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    margin-top: 8px;
-    color: var(--uq-muted);
-    font-size: 13px;
-}
-
-/* 中點是分隔符不是內容，用 ::before 產生，複製這一行文字時不會被帶走 */
-.uq-product-meta>span+span::before {
-    content: '·';
-    margin-right: 6px;
-    color: var(--uq-line);
-}
-
-.uq-share {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    margin-left: auto;
-}
-
-.uq-share .ts.button {
-    margin: 0;
-}
-
-.uq-price-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 8px;
-    margin-top: 20px;
-}
-
 /*
- * 原價：跟卡片的 .uq-card-origin 是同一組規則，含同一套 ::after 刪除線
- * 定位修正，理由見 .uq-card-origin 上面的註解。
+ * 下拉選單裡的分組小標（「熱門」「新品」這種）。Tocas 的
+ * .ts.dropdown .menu .header 是 .73em，在這個站的 14px 根字體上只有 10.2px，
+ * 是全站最小的一段閱讀文字。這個站的地板是 14px（角標與計數那種非閱讀用的
+ * badge 才例外），所以拉到 14px。
  */
-.uq-price-origin {
-    position: relative;
-    display: inline-block;
-    align-self: flex-start;
-    line-height: 1.4;
-    color: var(--uq-text-2);
-    font-size: 12px;
-    font-weight: 400;
-    text-decoration: none;
-}
-
-.uq-price-origin::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: currentColor;
-    transform: translateY(-50%);
-}
-
-/* 預設是沒有優惠的墨色；有優惠時 blade 會多加 .uq-brand-text（見上面的
-   說明），把顏色換成優惠色——跟卡片的 .uq-card-now 用 :only-child 判斷不同，
-   這裡直接掛既有的 .uq-brand-text 工具類別，商品頁的價格區才驗得到「這裡有
-   優惠色」這件事，不必回頭猜 CSS 選擇器 */
-.uq-price {
-    color: #222;
-    font-size: 24px;
-    font-weight: 700;
-    line-height: 1.1;
-}
-
-/*
- * 狀態行：跟卡片同規則（見 .uq-card-status 的說明），優惠類（tag.price 為真：
- * 期間限定、特價、歷史新低）跟卡片共用同一組顏色，由 presenter 決定、寫成
- * inline style。期間限定的截止日寫在標籤文字本身（截至 MM/DD 限定價格），
- * 不再另外多一行。
- */
-.uq-price-status {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-top: 8px;
-}
-
-.uq-price-status-item {
-    /* 有 url 的那些是 <a>，只佔文字寬度：flex column 的子元素預設會撐滿整列，
-       整條看不見的空白都可以點就太容易誤觸 */
-    align-self: flex-start;
-    font-size: 13px;
-    font-weight: 400;
-}
-
-/* 顏色由 inline style 給（一色一義），這裡只補 hover 的可見回饋 */
-a.uq-price-status-item:hover {
-    text-decoration: underline;
-}
-
-/* 買，或等。前往官網是唯一的購買動作，收藏與分享是次要動作 */
-.uq-cta-row {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
-}
-
-.uq-cta-primary {
-    display: inline-flex;
-    flex: 1;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    box-sizing: border-box;
-    height: 40px;
-    padding: 0 16px;
-    border: 1px solid var(--uq-brand);
-    border-radius: var(--uq-radius);
-    background: var(--uq-brand);
-    color: #fff;
+.ts.dropdown .menu .header {
     font-size: 14px;
 }
 
-a.uq-cta-primary:hover,
-a.uq-cta-primary:focus,
-a.uq-cta-primary:active {
-    border-width: 1px;
-    border-style: solid;
-    border-color: var(--uq-brand-hover);
-    background: var(--uq-brand-hover);
-    color: #fff;
-}
-
-.ts.button.uq-cta-secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    height: 40px;
-    min-height: 0;
-    margin: 0;
-    border-radius: var(--uq-radius);
-}
+/* ------------------------------------------------------------------
+ * 麵包屑。
+ * ------------------------------------------------------------------ */
 
 /*
- * 手機版：三顆等重量疊成三排太重——前往官網維持滿版，收藏跟分享並排各半。
- * 沒有 Web Share API 的瀏覽器不會顯示分享，那時收藏就是半版的一顆。
+ * Tocas 給 .ts.breadcrumb 的是 line-height: 1——它假設麵包屑只有一行。這個站
+ * 商品頁的最後一層是完整商品名，手機一定換行，兩行的字就會直接貼在一起、
+ * 上下互相咬到。補回正常行高，只有換行時看得出差別。
  */
-@media (max-width: 767px) {
-    .uq-cta-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .uq-cta-primary {
-        grid-column: 1 / -1;
-    }
-}
-
-.uq-product-rule {
-    height: 1px;
-    margin: 24px 0 16px;
-    background: var(--uq-line);
-}
-
-/* 分類是往回逛的入口，不是這個商品的屬性，所以是一行文字連結不是一排 pill */
-.uq-categories-line {
-    margin-top: 16px;
-    color: var(--uq-text);
-    font-size: 13px;
-    line-height: 1.8;
-}
-
-.uq-categories-label {
-    margin-right: 6px;
-    color: var(--uq-muted);
-    font-size: 12px;
-}
-
-.uq-categories-line a {
-    color: var(--uq-text);
-}
-
-.uq-categories-line a:hover {
-    text-decoration: underline;
-}
-
-/*
- * 分隔符是相鄰的 <span>，不是塞進 <a> 的 ::before：擺在 <a> 裡面的話，
- * hover 的底線會連著這個點一起畫出來——底線只該畫在文字上。
- */
-.uq-categories-line .uq-sep {
-    margin: 0 6px;
-    color: var(--uq-line);
-}
-
-/*
- * 章節區塊。原本是灰白交錯的 tertiary segment，一路捲下去像在看不同的網站；
- * 全部白底之後由 .uq-h2 那條線負責分段，48px 的間距負責呼吸。
- */
-.uq-product-section {
-    padding-bottom: 24px;
-}
-
-.uq-product-section .uq-h2 {
-    margin-top: 48px;
-}
-
-/*
- * 章節標題右側的動作鈕（首頁的「看全部」、網友穿搭的「查看列表」）。它本身就是
- * 一顆 .uq-control，這裡只負責把它推到那一行的右端——.uq-h2 是 flex，Tocas 的
- * right floated 在裡面沒有作用。
- */
-.uq-h2 .uq-h2-action {
-    margin: 0 0 0 auto;
-}
-
-.uq-h2 .uq-h2-action>.icon {
-    margin: 0 6px 0 0;
-    font-size: 13px;
-}
-
-/*
- * 麵包屑最後一項（當頁，不是連結）在商品頁常常是完整商品名，390 寬時擠不進
- * 第一行、整個換到第二行還是占滿整排。截斷成單行比讓它獨佔一整排好讀。
- */
-@media (max-width: 767px) {
-    .uq-breadcrumb .active.section {
-        display: inline-block;
-        max-width: 60vw;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        vertical-align: bottom;
-    }
+.ts.breadcrumb {
+    line-height: 1.5;
 }

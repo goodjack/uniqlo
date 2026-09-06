@@ -64,18 +64,18 @@
         </span>
     </div>
 
-    <div class="ts container uq-page">
+    <div class="ts container">
         @include('partials.breadcrumb', ['crumbs' => $crumbs])
 
         <x-toolbar>
             <x-slot:start>
                 @if ($children->isNotEmpty())
-                    {{-- 往下鑽的入口，不是篩選條件，一行文字連結就夠——pill 太搶戲 --}}
-                    <div class="uq-cat-list">
+                    {{-- 往下鑽的入口，不是篩選條件，用 Tocas 的橫向中點清單就夠 --}}
+                    <div class="ts horizontal middoted list uq-cat-list">
                         @foreach ($children as $child)
-                            <a href="{{ $categoryUrl($child->code) }}">
+                            <a class="item" href="{{ $categoryUrl($child->code) }}">
                                 {{ $child->name }}
-                                <span class="uq-count">{{ $child->hmall_products_count }}</span>
+                                <div class="ts mini circular label">{{ $child->hmall_products_count }}</div>
                             </a>
                         @endforeach
                     </div>
@@ -93,13 +93,13 @@
                     partials.tag-filter 的 otherParams）。分頁與 tags[] 一起帶著走
                     靠 repository 的 withQueryString()，不用在這裡另外處理。
                 --}}
-                <form method="GET" action="{{ $currentUrl }}" class="uq-search-form">
+                <form method="GET" action="{{ $currentUrl }}" class="ts input uq-search-form">
                     @foreach ($selectedTagValues as $tagValue)
                         <input type="hidden" name="tags[]" value="{{ $tagValue }}">
                     @endforeach
 
                     <i class="search icon" aria-hidden="true"></i>
-                    <input type="search" name="q" class="uq-control uq-search-input" value="{{ $currentQ }}"
+                    <input type="search" name="q" class="uq-search-input" value="{{ $currentQ }}"
                         placeholder="在這個分類裡找…" maxlength="50" aria-label="在這個分類裡找">
                     @if ($currentQ !== '')
                         <a class="uq-search-clear" href="{{ $currentUrl }}?{{ $queryFor(['q' => null]) }}"

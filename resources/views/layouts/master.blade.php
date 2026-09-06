@@ -156,8 +156,10 @@
             // 就完全沒有 active、看起來像純文字。這裡補上：初始化後如果還沒有
             // 任何一項是 active，先讓第一項頂著，之後使用者一捲動就交還給
             // scrollspy 接手（它會依實際位置正確地加或拿掉 active）。
+            // 只挑連結型的項目：分類總覽的選單第一項是品牌小標（.header.item），
+            // 它不是連結、scrollspy 也不認它，選到它等於把小標標成「目前這一段」
             if (!sectionMenu.querySelector('.item.active')) {
-                const firstItem = sectionMenu.querySelector('.item');
+                const firstItem = sectionMenu.querySelector('a.item');
 
                 if (firstItem) {
                     firstItem.classList.add('active');

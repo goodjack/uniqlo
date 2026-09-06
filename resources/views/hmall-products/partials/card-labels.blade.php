@@ -3,23 +3,22 @@
 @php
     /**
      * 商品的狀態標籤。順序、文案與顏色由 HmallProductPresenter::getProductTags() 決定，
-     * 卡片與收藏列表共用，兩邊都全部顯示——收起兩個以外的標籤那版被站主判定
-     * 是退步（高低不齊比漏資訊好接受），這裡拿掉上限。
+     * 卡片與收藏列表共用，兩邊都全部顯示。
      *
-     * 顏色是 master 的一色一義（期間限定紅、特價與歷史新低同一個藍、新款綠……），
-     * 寫成 inline style 跟 master 同一個做法；v3 那版把它壓成「價格類暗紅、其餘灰」
-     * 兩色，等於把七種狀態的差別抹掉。
-     *
-     * 邊框維持 v3 拿掉的狀態：Tocas 的 .ts.mini.basic.label 那層框（實際只有 9px）
-     * 讓次要資訊比品名、現價還搶眼。
+     * 外觀回到 master 的 Tocas 原生標籤（.ts.horizontal.basic.circular.label），
+     * 顏色照 master 寫成 inline style 的一色一義（期間限定紅、特價與歷史新低
+     * 同一個藍、新款綠……）。唯一跟 master 不同的是那個藍：master 的 #00ADEA
+     * 放在白底只有 2.4:1，小字讀不清，改用加深版（見 presenter 的顏色常數）。
      */
     $tags = $hmallProductPresenter->getProductTags($hmallProduct);
 @endphp
 
 @if (!empty($tags))
-    <div class="uq-card-status">
+    <div class="description">
         @foreach ($tags as $tag)
-            <span class="uq-card-status-item" style="color: {{ $tag['color'] }};">{{ $tag['text'] }}</span>
+            <div class="ts horizontal basic circular label">
+                <span style="color: {{ $tag['color'] }};">{{ $tag['text'] }}</span>
+            </div>
         @endforeach
     </div>
 @endif

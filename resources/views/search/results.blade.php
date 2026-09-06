@@ -24,7 +24,7 @@
         <span class="description">{{ $subtitle }}</span>
     </div>
 
-    <div class="ts container uq-page">
+    <div class="ts container">
         @if (!empty($ignoredKeywords))
             <div class="ts small info message">
                 關鍵字最多 {{ count($keywords) }} 個，這次沒有用到「{{ implode('」「', $ignoredKeywords) }}」

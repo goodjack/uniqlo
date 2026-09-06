@@ -49,29 +49,31 @@
 
     <div class="ts container">
         @foreach ($brandBlocks as $brandName => $brandGroups)
-            {{-- 品牌區塊的標題。顏色跟商品卡片右上角那顆角標一致：UNIQLO 紅、GU 藍 --}}
-            <h2 class="unstyled uq-h2 uq-brand-h2 uq-brand-{{ strtolower($brandName) }}">{{ $brandName }}</h2>
+            {{-- 品牌區塊的標題，用 Tocas 的 ts large dividing header --}}
+            <h2 class="ts large dividing header uq-brand-h2">{{ $brandName }}</h2>
 
             @foreach ($brandGroups as $group)
                 @include('partials.section-anchor', ['anchor' => $anchorFor($group), 'menu' => 'group_menu'])
 
-                <div class="uq-category-group">
-                    {{-- 群組標題不再各自標品牌，區塊標題已經說了 --}}
-                    <h3 class="unstyled uq-h3">
-                        {{ $group['category']->name }}
-                        <span class="uq-count uq-count-end">{{ count($group['children']) }} 個分類</span>
-                    </h3>
+                {{-- 群組標題不再各自標品牌，區塊標題已經說了 --}}
+                <h3 class="ts header">
+                    {{ $group['category']->name }}
+                    <div class="inline sub header">{{ count($group['children']) }} 個分類</div>
+                </h3>
 
-                    {{-- pill 太搶戲：這裡是往下鑽的入口，不是需要勾選的篩選條件，一行文字連結就夠 --}}
-                    <div class="uq-cat-list">
-                        @foreach ($group['children'] as $child)
-                            <a href="{{ route('categories.show', ['brand' => $group['brand']->slug(), 'code' => $child->code]) }}">
-                                {{ $child->name }}
-                                <span class="uq-count">{{ $child->hmall_products_count }}</span>
-                            </a>
-                        @endforeach
-                    </div>
+                {{-- 往下鑽的入口，不是需要勾選的篩選條件，用 Tocas 的橫向中點清單 --}}
+                <div class="ts horizontal middoted list uq-cat-list">
+                    @foreach ($group['children'] as $child)
+                        <a class="item"
+                            href="{{ route('categories.show', ['brand' => $group['brand']->slug(), 'code' => $child->code]) }}">
+                            {{ $child->name }}
+                            <div class="ts mini circular label">{{ $child->hmall_products_count }}</div>
+                        </a>
+                    @endforeach
                 </div>
+
+                {{-- 群組之間用 Tocas 的隱形分隔線隔開，跟 master 的清單頁同一個做法 --}}
+                <div class="ts hidden section divider"></div>
             @endforeach
         @endforeach
     </div>

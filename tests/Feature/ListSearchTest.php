@@ -100,10 +100,10 @@ class ListSearchTest extends TestCase
         @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$content);
         $xpath = new \DOMXPath($dom);
 
-        $menCount = $xpath->query("//h2[contains(@class, 'uq-h2')][starts-with(normalize-space(), '男裝')]//span[contains(@class, 'uq-count')]");
+        $menCount = $xpath->query("//h2[@data-gender-heading='men']//div[contains(@class, 'sub')][contains(@class, 'header')]");
 
         $this->assertSame(1, $menCount->length);
-        $this->assertSame('1 件', trim($menCount->item(0)->textContent));
+        $this->assertSame('共 1 件', trim($menCount->item(0)->textContent));
     }
 
     private function seedSaleProduct(array $overrides = []): HmallProduct

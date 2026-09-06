@@ -8,11 +8,11 @@
     $selectedTagCount = count(\App\Enums\ProductTag::fromValues((array) request('tags', [])));
 @endphp
 
-<label class="uq-control uq-filter-toggle" for="uq-tag-filter">
+<label class="ts basic button uq-filter-toggle" for="uq-tag-filter">
     {{-- icon 純裝飾，可及名稱是「篩選」兩個字。Tocas 的 icon 是 icon font 的 --}}
     {{-- ::before 內容，不標 aria-hidden 會被念成一串沒有意義的字元 --}}
     <i class="filter icon" aria-hidden="true"></i>篩選
     @if ($selectedTagCount)
-        <span class="uq-badge">{{ $selectedTagCount }}</span>
+        <div class="ts mini circular label">{{ $selectedTagCount }}</div>
     @endif
 </label>
