@@ -42,26 +42,4 @@ class Breadcrumb
 
         return ['label' => $link['title'], 'url' => route($link['route'])];
     }
-
-    /**
-     * 目前這條清單頁在導覽裡的位置：分組名加清單名（優惠 › 期間限定）。
-     *
-     * 分組沒有自己的頁面，所以只當文字；清單名是當頁，交給 blade 標
-     * aria-current。認不出來（例如新增的清單頁還沒登錄到 config/nav.php）
-     * 時回空陣列，呼叫端的麵包屑就只剩首頁那一層，不會壞掉。
-     *
-     * @return array<int, array{label: string, url: ?string}>
-     */
-    public static function currentList(): array
-    {
-        foreach (config('nav.groups') as $group => $items) {
-            foreach ($items as $item) {
-                if (request()->routeIs($item['route'])) {
-                    return [self::text($group), self::text($item['label'])];
-                }
-            }
-        }
-
-        return [];
-    }
 }

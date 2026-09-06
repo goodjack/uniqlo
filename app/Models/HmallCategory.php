@@ -21,7 +21,7 @@ class HmallCategory extends Model
     /**
      * 父分類必定與自己同品牌：兩家的分類樹是各自獨立的。
      *
-     * 條件用 $this->brand 這個實際的值，跟 children() 一致。原本寫的
+     * 條件用 $this->brand 這個實際的值。原本寫的
      * whereColumn('hmall_categories.brand', 'brand') 是同一張表拿自己跟自己比，
      * 恆為真、等於沒有限制；兩家撞到同一個 parent_code 時會撈到另一家的分類。
      *
@@ -32,21 +32,5 @@ class HmallCategory extends Model
     {
         return $this->belongsTo(self::class, 'parent_code', 'code')
             ->where('brand', $this->brand);
-    }
-
-    public function children()
-    {
-        return $this->hasMany(self::class, 'parent_code', 'code')
-            ->where('brand', $this->brand);
-    }
-
-    public function hmallProducts()
-    {
-        return $this->belongsToMany(
-            HmallProduct::class,
-            'hmall_category_hmall_product',
-            'hmall_category_id',
-            'hmall_product_id'
-        )->withPivot('sort');
     }
 }
