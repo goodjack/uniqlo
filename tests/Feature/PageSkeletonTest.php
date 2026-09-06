@@ -133,7 +133,7 @@ class PageSkeletonTest extends TestCase
             ->getContent();
 
         $labels = $this->xpath($content)
-            ->query('(//*[contains(@class, "uq-card-labels")])[1]/span');
+            ->query('(//*[contains(@class, "uq-card-status")])[1]/span');
 
         $this->assertSame(5, $labels->length, '卡片上的標籤不再收合');
         $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-label-more")]'));
@@ -152,7 +152,7 @@ class PageSkeletonTest extends TestCase
             'items' => [['brand' => 'UNIQLO', 'code' => 'u990001']],
         ])->assertOk()->getContent();
 
-        $labels = $this->xpath($content)->query('//*[contains(@class, "uq-card-labels")]/span');
+        $labels = $this->xpath($content)->query('//*[contains(@class, "uq-card-status")]/span');
 
         $this->assertSame(5, $labels->length, '收藏清單不收合標籤');
         $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-label-more")]'));
@@ -252,8 +252,8 @@ class PageSkeletonTest extends TestCase
         // 整頁比對抓不到：頁尾的導覽本來就有「期間限定特價商品」這個入口
         $this->assertSame(
             0,
-            $this->countNodes($content, '//*[contains(@class, "uq-price-row")]//*[contains(@class, "uq-label")]'),
-            '檔期過了價格旁邊也不該有期間限定的標籤'
+            $this->countNodes($content, '//*[contains(@class, "uq-price-status")]/*'),
+            '檔期過了價格下面也不該留下任何狀態行'
         );
     }
 
@@ -281,6 +281,116 @@ class PageSkeletonTest extends TestCase
             ->getContent();
 
         $this->assertGreaterThan(0, $this->countNodes($content, '//div[contains(@class, "uq-card")]/a[@class="uq-card-link"]'));
+    }
+
+    /**
+     * v3 版把收藏鈕從圖片上搬到圖下的適穿列，圖片容器不該再有它；而且它
+     * 要是真的 <button>，不是套了 icon 的 <a> 或 <div>。
+     *
+     * @dataProvider pagesWithCards
+     */
+    public function test_the_card_heart_is_a_button_outside_the_image(string $name, array $parameters): void
+    {
+        $this->seedProduct();
+
+        $content = $this->get(route($name, $parameters))->assertOk()->getContent();
+
+        $this->assertSame(
+            0,
+            $this->countNodes($content, '//*[contains(@class, "image")]//*[@data-favorite-card]'),
+            "{$name} 的收藏鈕不該還在圖片容器裡"
+        );
+        $this->assertGreaterThan(
+            0,
+            $this->countNodes($content, '//button[@data-favorite-card]'),
+            "{$name} 的收藏鈕要是真的 <button>"
+        );
+    }
+
+    /**
+     * 品名是卡片最主要的資訊，v3 版要看得到 .uq-card-name。
+     *
+     * @dataProvider pagesWithCards
+     */
+    public function test_a_card_shows_the_product_name(string $name, array $parameters): void
+    {
+        $this->seedProduct();
+
+        $content = $this->get(route($name, $parameters))->assertOk()->getContent();
+
+        $this->assertGreaterThan(0, $this->countNodes($content, '//*[contains(@class, "uq-card-name")]'));
+    }
+
+    /**
+     * 狀態行 v3 版改成純文字，不該再掛 Tocas 的 .label 邊框——品牌角標例外，
+     * 那是圖片右上角的既有設計，不是這次改的狀態行。
+     */
+    public function test_a_card_has_no_boxed_status_labels(): void
+    {
+        $this->seedProduct(['identity' => json_encode(['time_doptimal', 'concessional_rate'])]);
+
+        $content = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(
+            0,
+            $this->countNodes(
+                $content,
+                '//*[contains(@class, "uq-card")]//*[contains(concat(" ", normalize-space(@class), " "), " label ")][not(contains(@class, "uq-card-brand"))]'
+            ),
+            '狀態行不該還有 Tocas 的 .label 邊框（品牌角標除外）'
+        );
+    }
+
+    /**
+     * 有原價且原價高於現價的商品，卡片要用 <del> 畫出來，不是純文字寫「原價」。
+     *
+     * 直接 render hmall-products.card，不透過分類頁那條路徑：
+     * HmallProductRepository::SELECT_COLUMNS_FOR_LIST（全站清單查詢共用同一份）
+     * 沒有列出 origin_price，這欄位在分類、搜尋、清單、首頁、延伸商品這些走
+     * 清單查詢的頁面上永遠是 null，卡片模板本身收不收得到值是另一回事——這裡
+     * 驗的是模板邏輯，清單頁實際吃不到欄位這件事在回報裡另外說明，修法要動
+     * app/Repositories/HmallProductRepository.php，不在這輪的檔案範圍內。
+     */
+    public function test_a_card_with_an_origin_price_renders_a_del(): void
+    {
+        $hmallProduct = HmallProduct::unguarded(fn () => HmallProduct::create([
+            'brand' => 'UNIQLO',
+            'name' => '測試商品',
+            'code' => '450099',
+            'product_code' => 'u990099',
+            'sex' => '女裝',
+            'identity' => '[]',
+            'stock' => 'Y',
+            'min_price' => 490,
+            'origin_price' => 790,
+        ]));
+
+        $html = view('hmall-products.card', ['hmallProduct' => $hmallProduct])->render();
+
+        $this->assertSame(1, $this->countNodes($html, '//del[contains(@class, "uq-card-origin")]'));
+        $this->assertStringContainsString('790', $html);
+    }
+
+    /**
+     * 商品頁的現價在有優惠時要換成優惠色，掛的是既有的 .uq-brand-text 工具
+     * 類別，不是另外發明一個等效但驗不到的顏色規則。
+     */
+    public function test_the_product_page_price_uses_the_brand_text_color_when_discounted(): void
+    {
+        $this->seedProduct(['min_price' => 490, 'origin_price' => 790]);
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, $this->countNodes($content, '//del[contains(@class, "uq-price-origin")]'));
+        $this->assertSame(
+            1,
+            $this->countNodes($content, '//span[contains(@class, "uq-price") and contains(@class, "uq-brand-text")]'),
+            '有優惠時現價要掛 .uq-brand-text'
+        );
     }
 
     /**
