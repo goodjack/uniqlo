@@ -10,8 +10,8 @@ use Tests\TestCase;
 
 /**
  * 全站共同骨架的驗收：麵包屑只出現在分類樹上的那兩頁、最後一層都是當頁，
- * 卡片上的收藏鈕不會變成連結的子孫、卡片標籤最多兩個，商品頁右欄不再靠
- * 小標題分段。
+ * 卡片上的收藏鈕不會變成連結的子孫、卡片標籤全部攤開來看得完，商品頁右欄
+ * 不再靠小標題分段。
  *
  * 這些都是「改一頁很容易忘記另外六頁」的類型，所以用一組測試把七種頁面
  * 一起釘住，而不是各自散在各頁的測試裡。
@@ -254,6 +254,46 @@ class PageSkeletonTest extends TestCase
         // 四個：期間限定、特價、新款、合購。revision 是屬性標籤，只在商品頁
         $this->assertSame(4, $labels->length, '收藏清單不收合標籤');
         $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-label-more")]'));
+    }
+
+    /**
+     * 清單頁四個性別段一律都列，沒有商品的那段寫「沒有商品」——「男裝 0 件」
+     * 也是資訊。v3 把 0 件的段整段藏起來，使用者會以為那一段不存在。
+     */
+    public function test_a_list_page_shows_every_gender_section(): void
+    {
+        $this->seedProduct(['identity' => json_encode(['concessional_rate'])]);
+
+        $content = $this->get(route('lists.sale'))->assertOk()->getContent();
+
+        foreach (['男裝', '女裝', '童裝', '嬰幼兒'] as $gender) {
+            $this->assertSame(
+                1,
+                $this->countNodes($content, "//h2[contains(@class, 'uq-h2')][starts-with(normalize-space(), '{$gender}')]"),
+                "{$gender} 那一段要在"
+            );
+        }
+
+        // 只有女裝那件商品，其餘三段都是「沒有商品」
+        $this->assertSame(3, $this->countNodes($content, "//*[contains(@class, 'uq-none')]"));
+    }
+
+    /**
+     * <title> 照 master 的句型：「1 件商品特價中」單獨一行就讀得懂。頁面上的
+     * 標題維持「特價商品」加副標，那裡還有一行可以講件數與排序。
+     */
+    public function test_a_list_page_title_uses_the_master_phrasing(): void
+    {
+        $this->seedProduct(['identity' => json_encode(['concessional_rate'])]);
+
+        $content = $this->get(route('lists.sale'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('<title>1 件商品特價中', $content);
+        $this->assertSame(
+            1,
+            $this->countNodes($content, "//*[contains(@class, 'slate')]//*[normalize-space()='特價商品']"),
+            '頁面上的標題維持新版的短名'
+        );
     }
 
     /**
