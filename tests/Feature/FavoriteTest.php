@@ -48,6 +48,22 @@ class FavoriteTest extends TestCase
     }
 
     /**
+     * Tocas 2.3.3 沒有 times 這個 icon class，移除鈕會變成空白方塊；
+     * 正確 class 是 close（tocas.css 有 i.icon.close:before{content:"\f00d"}）。
+     */
+    public function test_remove_button_uses_an_icon_class_that_tocas_actually_defines(): void
+    {
+        $this->createProduct(['product_code' => 'u001', 'name' => '羽絨外套']);
+
+        $content = $this->postJson(route('favorites.cards'), [
+            'items' => [['brand' => 'UNIQLO', 'code' => 'u001']],
+        ])->assertOk()->getContent();
+
+        $this->assertStringContainsString('close icon', $content);
+        $this->assertStringNotContainsString('times icon', $content);
+    }
+
+    /**
      * 使用者要知道的是「這件現在特價」，那是卡片上的既有標籤在講的事。
      */
     public function test_cards_still_show_the_product_labels(): void
