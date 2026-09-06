@@ -9,6 +9,6 @@
     {{-- 整列不再是一個 <a>，這裡就能用真的 <button>：焦點、Enter 與空白鍵都由瀏覽器處理 --}}
     <button type="button" class="ts mini basic button" data-favorite-remove
         data-brand="{{ $hmallProduct->brand }}" data-code="{{ $hmallProduct->product_code }}">
-        <i class="times icon"></i>移除收藏
+        <i class="close icon"></i>移除收藏
     </button>
 </div>
