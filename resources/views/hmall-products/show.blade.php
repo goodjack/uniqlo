@@ -331,12 +331,10 @@
                                 @if ($tag['url'])
                                     {{-- 有對應清單頁的標籤就是那個清單的入口，master 一直是連結，v3 只是漏讀 presenter 算好的 url --}}
                                     <a class="uq-price-status-item" href="{{ $tag['url'] }}"
-                                        style="color: {{ $tag['color'] }};"
-                                        @isset($tag['title']) title="{{ $tag['title'] }}" @endisset><i
+                                        style="color: {{ $tag['color'] }};"><i
                                             class="{{ $tag['icon'] }} icon"></i>{{ $tag['text'] }}</a>
                                 @else
-                                    <div class="uq-price-status-item" style="color: {{ $tag['color'] }};"
-                                        @isset($tag['title']) title="{{ $tag['title'] }}" @endisset><i
+                                    <div class="uq-price-status-item" style="color: {{ $tag['color'] }};"><i
                                             class="{{ $tag['icon'] }} icon"></i>{{ $tag['text'] }}</div>
                                 @endif
                             @endforeach
