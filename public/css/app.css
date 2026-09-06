@@ -8,6 +8,25 @@
  *
  * 載入順序：Tocas 之後、頁面自己的 @section('css') 之前，所以這裡蓋得掉 Tocas、
  * 頁面又蓋得掉這裡。
+ *
+ * ------------------------------------------------------------------
+ * 區塊接合責任表（第三輪 UI 修正：前兩輪把版面交界的驗收漏掉，工具列貼
+ * 卡片、面板貼卡片、內容貼頁尾——這裡列出來，改動對照著這張表做）：
+ *
+ *   麵包屑              上 16px、下 16px
+ *   工具列 → 卡片        24px（同頁有章節選單時，工具列自己的底線不畫）
+ *   篩選面板 → 卡片      24px
+ *   章節選單 → 第一段內容  24px
+ *   內容 → 頁尾          .wrapper 統一 padding-bottom: 64px
+ *   商品頁右欄：
+ *     標題 → 元資料        8px
+ *     元資料 → 價格列      20px
+ *     價格列 → CTA         16px
+ *     CTA → 分隔線         24px
+ *     分隔線 → 資訊清單     16px
+ *     資訊清單每列 padding  10px 0
+ *     資訊清單 → 分類行     16px
+ * ------------------------------------------------------------------
  */
 
 :root {
@@ -163,7 +182,7 @@ dl.uq-facts {
 }
 
 .uq-facts>div {
-    padding: 8px 0;
+    padding: 10px 0;
     border-bottom: 1px solid var(--uq-line);
 }
 
@@ -318,9 +337,28 @@ i.most-visited.icon {
     padding-top: 8px;
 }
 
+/*
+ * 內容到頁尾的距離，全站一致。.wrapper 是 master.blade.php 版型自己的
+ * flex 容器（@yield('content') 的直接父層），頁尾 <footer> 是它的兄弟
+ * 節點、不在它裡面——這裡撐開的是內容跟頁尾深色底之間那段留白，不是頁尾
+ * 自己的內距（頁尾用 Tocas 的 very padded，那是它自己的事）。
+ */
+.wrapper {
+    padding-bottom: 64px;
+}
+
 /* 分類總覽的一個群組。群組之間靠這段距離分開，不再各自框一個 segment */
 .uq-category-group {
     margin-bottom: 32px;
+}
+
+/*
+ * 最後一組不用再留 32px：那個距離是「跟下一組分開」用的，跟到頁尾的
+ * 64px 是兩件事——沒有這條，最後一組的 margin 會跟 .wrapper 的
+ * padding-bottom 疊成 96px，內容到頁尾的距離就不是全站一致的 64px。
+ */
+.uq-category-group:last-child {
+    margin-bottom: 0;
 }
 
 /* pill 裡的計數是附註不是標籤，在深色的選中狀態下也要跟著變白 */
@@ -372,7 +410,7 @@ i.most-visited.icon {
  */
 .ts.breadcrumb.uq-breadcrumb {
     display: block;
-    margin: 16px 0 8px;
+    margin: 16px 0;
 }
 
 /* 選擇器要疊到 .ts.breadcrumb 才寫得動：Tocas 的 a.section 是三個 class 加一個標籤 */
@@ -402,6 +440,7 @@ i.most-visited.icon {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    margin-bottom: 24px;
     padding: 12px 0;
     border-bottom: 1px solid var(--uq-line);
 }
@@ -554,9 +593,42 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
     align-items: center;
     gap: 8px;
     margin-top: 12px;
+    margin-bottom: 24px;
     padding: 12px 16px;
     border-radius: 8px;
     background: var(--uq-panel);
+}
+
+/*
+ * Tocas 的 .ts.cards 自己就是負 margin（margin: -0.875em -0.5em，抵掉第一張
+ * 卡片自己的正 margin，讓卡片跟容器邊緣切齊），這條負 margin 會跟前面的
+ * 工具列／篩選面板的 margin-bottom 疊在一起做 collapse——正負相抵之後，
+ * 24px 只剩十幾 px。分類頁的卡片 grid 前面固定是 .uq-chip-row（篩選面板
+ * 收合時也還在 DOM 裡，只是 display: none，不影響這裡的相鄰選擇器），
+ * 把卡片 grid 自己的 margin-top 歸零，前面 24px 才不會被吃掉。
+ */
+.uq-chip-row + .ts.cards {
+    margin-top: 0;
+}
+
+/*
+ * 同樣的負 margin 也會吃掉卡片 grid 到分頁之間的 32px：卡片 grid 自己的
+ * margin-bottom 跟分頁的 margin-top collapse，正負相抵只剩十幾 px。
+ * 分頁只在分類頁與搜尋頁緊接在卡片 grid 後面，用 :has() 抓「後面接著
+ * 分頁」這個狀態，把卡片 grid 的 margin-bottom 歸零。
+ */
+.ts.link.cards:has(+ .uq-pagination) {
+    margin-bottom: 0;
+}
+
+/*
+ * 清單頁沒有分頁（每個性別一次列完），最後一段的卡片 grid 是整頁最後一個
+ * 元素；同一條負 margin 這次會從 .wrapper 的 padding-bottom 裡倒扣，
+ * 64px 只剩五十幾 px。跟上面 .uq-category-group:last-child 是同一件事，
+ * 只是這裡換成卡片 grid。
+ */
+.ts.link.cards:last-child {
+    margin-bottom: 0;
 }
 
 .uq-chips {
@@ -1023,7 +1095,7 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
     flex-wrap: wrap;
     align-items: baseline;
     gap: 12px;
-    margin-top: 16px;
+    margin-top: 20px;
 }
 
 .uq-price {
@@ -1119,12 +1191,22 @@ a.uq-cta-primary:active {
 
 .uq-product-rule {
     height: 1px;
-    margin: 20px 0;
+    margin: 24px 0 16px;
     background: var(--uq-line);
 }
 
 .uq-product-info dl.uq-facts {
     margin: 20px 0 0;
+}
+
+/*
+ * 分隔線後面直接接資訊清單時（沒有商品說明插在中間），兩者的距離要是
+ * 16px——跟上面 .uq-product-info dl.uq-facts 那條給「說明接資訊清單」用
+ * 的 20px 不是同一個交界，選擇器要疊上 .uq-product-rule 這個相鄰兄弟
+ * 才蓋得掉它。
+ */
+.uq-product-rule + dl.uq-facts {
+    margin-top: 16px;
 }
 
 /* 分類是往回逛的入口，不是這個商品的屬性，所以是一行文字連結不是一排 pill */
@@ -1149,8 +1231,11 @@ a.uq-cta-primary:active {
     text-decoration: underline;
 }
 
-.uq-categories-line a+a::before {
-    content: '·';
+/*
+ * 分隔符是相鄰的 <span>，不是塞進 <a> 的 ::before：擺在 <a> 裡面的話，
+ * hover 的底線會連著這個點一起畫出來——底線只該畫在文字上。
+ */
+.uq-categories-line .uq-sep {
     margin: 0 6px;
     color: var(--uq-line);
 }
