@@ -118,7 +118,7 @@ class HmallProductPresenter
             $add('歷史新低價', true);
         }
 
-        if ($hmallProduct->is_limited_offer || $hmallProduct->is_app_offer || $hmallProduct->is_ec_only) {
+        if ($hmallProduct->is_limited_offer) {
             $add('期間限定特價', true, route('lists.limited-offers'));
         }
 
