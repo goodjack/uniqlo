@@ -15,7 +15,7 @@
         ->all();
 
     // 副標講的是實際排序，不是預設排序：使用者選了價格排序之後還寫預設就是錯的
-    $sortText = request('sort') === 'price-asc' ? '依價格由低到高排序' : $sortSummary;
+    $sortText = request('sort') === \App\Services\ListService::SORT_PRICE_ASC ? '依價格由低到高排序' : $sortSummary;
 
     /*
      * 章節選單跟正文共用同一份「有商品的性別」清單，抬到這裡算一次就好；
@@ -72,8 +72,8 @@
                     @endforeach
 
                     <select class="uq-control uq-sort" name="sort" data-auto-submit aria-label="排序方式">
-                        <option value="" @selected(request('sort') !== 'price-asc')>排序：預設</option>
-                        <option value="price-asc" @selected(request('sort') === 'price-asc')>排序：價格由低到高</option>
+                        <option value="" @selected(request('sort') !== \App\Services\ListService::SORT_PRICE_ASC)>排序：預設</option>
+                        <option value="{{ \App\Services\ListService::SORT_PRICE_ASC }}" @selected(request('sort') === \App\Services\ListService::SORT_PRICE_ASC)>排序：價格由低到高</option>
                     </select>
                     {{-- 沒有 JavaScript 時這顆是唯一的出路，有的時候 master 版型會把它藏起來 --}}
                     <button class="uq-control" type="submit" data-auto-submit-fallback>套用</button>
