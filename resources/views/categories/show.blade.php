@@ -55,14 +55,15 @@
         <x-toolbar>
             @if ($children->isNotEmpty())
                 <x-slot:start>
-                    {{-- 往下鑽的入口。小一號的 pill：一個分類底下常常十幾個子分類，跟 --}}
-                    {{-- 清單頁那三顆品牌 pill 同尺寸的話會把工具列撐成三排 --}}
-                    @foreach ($children as $child)
-                        <a class="uq-control uq-pill uq-pill-small" href="{{ $categoryUrl($child->code) }}">
-                            {{ $child->name }}
-                            <span class="uq-count">{{ $child->hmall_products_count }}</span>
-                        </a>
-                    @endforeach
+                    {{-- 往下鑽的入口，不是篩選條件，一行文字連結就夠——pill 太搶戲 --}}
+                    <div class="uq-cat-list">
+                        @foreach ($children as $child)
+                            <a href="{{ $categoryUrl($child->code) }}">
+                                {{ $child->name }}
+                                <span class="uq-count">{{ $child->hmall_products_count }}</span>
+                            </a>
+                        @endforeach
+                    </div>
                 </x-slot:start>
             @endif
 

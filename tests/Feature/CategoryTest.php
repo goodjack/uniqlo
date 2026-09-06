@@ -34,6 +34,9 @@ class CategoryTest extends TestCase
         $response->assertSee('女裝');
         $response->assertSee('上衣類');
         $response->assertDontSee('沒有商品的分類');
+        // 第三輪 UI 把子分類從 pill 改成文字連結列，不再是實心 pill
+        $response->assertSee('uq-cat-list');
+        $response->assertDontSee('uq-pill-small');
     }
 
     public function test_category_page_shows_its_products_and_child_categories(): void
@@ -47,6 +50,9 @@ class CategoryTest extends TestCase
         $response->assertSee('短袖上衣');
         // 子分類要列出來，讓使用者往下鑽
         $response->assertSee('T恤');
+        // 第三輪 UI 把工具列的子分類從 pill 改成文字連結列
+        $response->assertSee('uq-cat-list');
+        $response->assertDontSee('uq-pill-small');
     }
 
     /**

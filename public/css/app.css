@@ -90,18 +90,11 @@ a.uq-control:active {
     border-style: solid;
 }
 
-/* 品牌切換與子分類的入口。選中的那顆用深色實心，跟站上其他強調色分工 */
+/* 清單頁的品牌切換。選中的那顆用深色實心，跟站上其他強調色分工 */
 .uq-pill.active {
     background: var(--uq-ink);
     border-color: var(--uq-ink);
     color: #fff;
-}
-
-/* 分類頁與分類總覽的子分類 pill 數量多，小一號才排得下 */
-.uq-pill-small {
-    height: 28px;
-    padding: 0 12px;
-    font-size: 12px;
 }
 
 /* 篩選鈕上的已選數量 */
@@ -330,16 +323,30 @@ i.most-visited.icon {
     margin-bottom: 32px;
 }
 
-/* 一排可以換行的 pill：分類總覽的子分類、分類頁工具列的子分類共用 */
-.uq-pill-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
 /* pill 裡的計數是附註不是標籤，在深色的選中狀態下也要跟著變白 */
 .uq-pill.active .uq-count {
     color: rgba(255, 255, 255, 0.72);
+}
+
+/*
+ * 子分類的文字連結列：分類總覽的一個群組、分類頁工具列的子分類共用。
+ * 拿掉 pill 那圈框——這裡是往下鑽的入口，不是需要勾選的篩選條件，
+ * pill 的實心視覺太搶戲。line-height: 2 讓換行後的兩行留白跟橫向的
+ * gap 感覺一致，高低不齊（有的分類名字長、有的短）是可以接受的樣子。
+ */
+.uq-cat-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 20px;
+    line-height: 2;
+}
+
+.uq-cat-list a {
+    color: var(--uq-text);
+}
+
+.uq-cat-list a:hover {
+    text-decoration: underline;
 }
 
 /*
@@ -472,6 +479,16 @@ i.most-visited.icon {
     .uq-toolbar-start>*,
     .uq-toolbar-end>* {
         flex: 0 0 auto;
+    }
+
+    /*
+     * 文字連結列不是 pill：跟其他 chip 一樣用 flex: 0 0 auto 的話，父層的
+     * overflow-x: auto／flex-wrap: nowrap 會讓它變成擠成一行的橫向捲動，
+     * 分類名字全部黏在一起看不出斷點。這裡讓它自己吃滿整排寬度、換回
+     * 正常的多行換行。
+     */
+    .uq-toolbar-start>.uq-cat-list {
+        flex: 1 1 100%;
     }
 }
 
