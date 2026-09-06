@@ -40,7 +40,7 @@ class ListServiceTest extends TestCase
 
     public function test_handles_empty_collection()
     {
-        $products = new Collection();
+        $products = new Collection;
 
         $groupedProducts = $this->listService->groupHmallProducts($products);
 
@@ -175,6 +175,101 @@ class ListServiceTest extends TestCase
         ])->first();
 
         $this->assertFalse($neverChanged->is_at_lowest_price);
+    }
+
+    /**
+     * 品名裡的關鍵字，不分大小寫。
+     */
+    public function test_keyword_matches_the_product_name(): void
+    {
+        $products = $this->createProductCollection([
+            ['sex' => '男裝', 'name' => '男女適穿 牛仔超寬版短褲', 'code' => '359225'],
+            ['sex' => '男裝', 'name' => 'AIRism 圓領T恤', 'code' => '474238'],
+        ]);
+
+        $filtered = $this->listService->filterHmallProducts($products, $this->listRequest(['q' => '短褲']));
+
+        $this->assertSame(['359225'], $filtered->map->code->values()->all());
+    }
+
+    /**
+     * 編號也要搜得到，畢竟使用者有時候是拿 code 來找，不是拿品名。
+     */
+    public function test_keyword_matches_the_product_code(): void
+    {
+        $products = $this->createProductCollection([
+            ['sex' => '男裝', 'name' => '牛仔超寬版短褲', 'code' => '359225', 'product_code' => 'u3592250COL69'],
+            ['sex' => '男裝', 'name' => 'AIRism 圓領T恤', 'code' => '474238', 'product_code' => 'u4742380COL01'],
+        ]);
+
+        $filtered = $this->listService->filterHmallProducts($products, $this->listRequest(['q' => '474238']));
+
+        $this->assertSame(['474238'], $filtered->map->code->values()->all());
+    }
+
+    /**
+     * 多個空白分開的詞是「全部都要命中」，不是任一命中——跟標籤的多選聯集是
+     * 不同的語意，這裡是同一個欄位縮小範圍，不是擴大範圍。
+     */
+    public function test_multiple_keywords_are_combined_with_and(): void
+    {
+        $products = $this->createProductCollection([
+            ['sex' => '男裝', 'name' => '男女適穿 牛仔超寬版短褲', 'code' => '359225'],
+            ['sex' => '男裝', 'name' => '女裝 亞麻混紡短褲', 'code' => '483042'],
+            ['sex' => '男裝', 'name' => 'AIRism 圓領T恤', 'code' => '474238'],
+        ]);
+
+        $filtered = $this->listService->filterHmallProducts($products, $this->listRequest(['q' => '短褲 牛仔']));
+
+        $this->assertSame(['359225'], $filtered->map->code->values()->all());
+    }
+
+    /**
+     * q 要跟品牌、標籤各自獨立生效，不能因為加了關鍵字就蓋掉另外兩個條件。
+     */
+    public function test_keyword_and_tag_filters_do_not_override_each_other(): void
+    {
+        $products = $this->createProductCollection([
+            [
+                'sex' => '男裝',
+                'name' => '特價短褲',
+                'code' => '111111',
+                'identity' => '["concessional_rate"]',
+            ],
+            [
+                'sex' => '男裝',
+                'name' => '一般短褲',
+                'code' => '222222',
+                'identity' => '[]',
+            ],
+            [
+                'sex' => '男裝',
+                'name' => '特價上衣',
+                'code' => '333333',
+                'identity' => '["concessional_rate"]',
+            ],
+        ]);
+
+        $filtered = $this->listService->filterHmallProducts(
+            $products,
+            $this->listRequest(['q' => '短褲', 'tags' => ['sale']])
+        );
+
+        $this->assertSame(['111111'], $filtered->map->code->values()->all());
+    }
+
+    /**
+     * 篩不到東西時回傳空集合，不是拋例外或維持原本整批商品。
+     */
+    public function test_keyword_with_no_match_returns_an_empty_collection(): void
+    {
+        $products = $this->createProductCollection([
+            ['sex' => '男裝', 'name' => '牛仔超寬版短褲', 'code' => '359225'],
+        ]);
+
+        $filtered = $this->listService->filterHmallProducts($products, $this->listRequest(['q' => 'zzzz']));
+
+        $this->assertCount(0, $filtered);
     }
 
     private function listRequest(array $input): ListRequest
