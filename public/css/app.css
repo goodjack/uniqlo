@@ -49,6 +49,10 @@
        深化版實測 5.2:1。小字（優惠價、期間限定這類狀態文字）只用這個、不要用
        --uq-brand，--uq-brand 留給有足夠面積的按鈕與大色塊 */
     --uq-brand-text: #b5423b;
+    /* 標籤上的藍字（特價商品、歷史新低價）。master 用 #00ADEA，那個值放在白底只有
+       2.4:1，小字讀不清；加深到 #0087B8 是 4.6:1，語意（兩者同色）沒變。GU 角標那種
+       實心底色維持 #00ADEA，底色不吃文字對比 */
+    --uq-info-text: #0087b8;
     /* 全站唯一的線色：分隔線與控制項邊框都用它 */
     --uq-line: #e4e4e4;
     /* 篩選面板的底色 */
@@ -215,7 +219,12 @@ dl.uq-facts {
 /*
  * 商品說明的收合。<details> 沒展開時只渲染 summary，所以說明本體要放在
  * details 外面、由外層的 :has(details[open]) 解鎖高度——把說明包進 details
- * 的話沒展開就整段不見，做不出「先露出 200px」。
+ * 的話沒展開就整段不見，做不出「先露出一段」。
+ *
+ * 高度 400px 照 master（那時是 #comment{height:400px;overflow:auto} 的捲動框）：
+ * 收成 200px 的版本讓大部分商品的說明只露出前四分之一，右欄比左邊的圖短一截。
+ * 捲動框不還原、維持「顯示更多」：頁面裡再開一個捲動區塊，滑鼠滾到那裡會停在
+ * 框內，是 v3 修掉的問題。
  *
  * 手機不收合：那裡沒有右欄要跟左邊圖片對齊的問題，多按一下反而礙事。
  */
@@ -230,7 +239,7 @@ dl.uq-facts {
 }
 
 .uq-clamp>.uq-description {
-    max-height: 200px;
+    max-height: 400px;
     overflow: hidden;
 }
 
@@ -238,7 +247,8 @@ dl.uq-facts {
 .uq-clamp::after {
     content: '';
     position: absolute;
-    top: 144px;
+    /* 400px 的收合框減掉 56px 的漸層高度 */
+    top: 344px;
     right: 0;
     left: 0;
     height: 56px;
@@ -990,7 +1000,8 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
     border: 0;
 }
 
-/* 適穿列：左邊是適穿文字，右邊是收藏愛心 */
+/* 適穿列：左邊是適穿文字，右邊是收藏愛心。字級照 master 的 .middoted.meta（14px），
+   v3 縮到 12px 讓這一列跟末行都變得難讀 */
 .uq-card-row {
     display: flex;
     align-items: center;
@@ -1000,7 +1011,7 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
 
 .uq-card-fit {
     color: var(--uq-text-2);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 400;
 }
 
@@ -1021,6 +1032,22 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
     flex-direction: column;
     gap: 4px;
     margin-top: 8px;
+}
+
+/* 歷史區間。字級照 master：那一行是 .sub.header，算出來是 14px。只有「還沒到
+   歷史最低」時最低價才染綠 */
+.uq-card-range {
+    color: var(--uq-text-2);
+    font-size: 14px;
+    font-weight: 400;
+}
+
+/* 原價與現價同一行：原價是被劃掉的舊值，跟現價擺一起才讀得出降了多少 */
+.uq-card-now-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
 }
 
 /*
@@ -1063,36 +1090,27 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
 
 /*
  * 狀態行：一項一行、全部顯示，接受卡片高度不齊（收合到「兩個以外」那版
- * 被站主判定是退步，這裡沿用「攤開來看得完」的既有決定）。優惠類
- * （tag.price 為真：期間限定、特價、歷史新低這些）用優惠色 13px，其餘一律
- * --uq-text-2 12px；兩者都不掛邊框，跟官網一樣是純文字。
+ * 被站主判定是退步，這裡沿用「攤開來看得完」的既有決定）。
  *
- * card-labels.blade.php 這個 partial 也被 favorites/item-labels.blade.php
- * 拿去放收藏清單那種橫向的 .item 列，不是這次改的 card-base。預設維持原本
- * 會換行的橫向排列，只在卡片（.ts.card）裡才疊成直的一行一項——這條規則
- * 只套 v3 卡片，不改到收藏清單既有的版面。
+ * 顏色一色一義，由 HmallProductPresenter 的顏色常數決定、寫成 inline style
+ * （master 也是寫在標籤上）：這裡只管排版與字級，不再有「優惠類一色、其餘灰」
+ * 的兩色系統，所以每一項的字級也一樣。都不掛邊框，跟官網一樣是純文字。
+ *
+ * 排列照 master：橫排、放不下就換行。v3 改成一項一行，三、四個標籤的卡片
+ * 光標籤就佔四行，把末行的評分與編號推出畫面。橫排沒有邊框，所以項與項之間
+ * 靠 12px 的間距分開，不會讀成一句話。
  */
 .uq-card-status {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    column-gap: 12px;
+    row-gap: 4px;
     margin-top: 8px;
 }
 
-.ts.card .uq-card-status {
-    flex-direction: column;
-    flex-wrap: nowrap;
-}
-
 .uq-card-status-item {
-    color: var(--uq-text-2);
-    font-size: 12px;
-    font-weight: 400;
-}
-
-.uq-card-status-item.uq-card-status-price {
-    color: var(--uq-brand-text);
     font-size: 13px;
+    font-weight: 400;
 }
 
 /* 搜尋結果頁：共用貨號商品在卡片內的提示行（此商品頁同時包含貨號 ...） */
@@ -1103,7 +1121,8 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
     line-height: 1.4;
 }
 
-/* 末行：評分加編號，沒評分就只剩編號。中點分隔沿用 .uq-product-meta 那組寫法 */
+/* 末行：評分加編號，沒評分就只剩編號。中點分隔沿用 .uq-product-meta 那組寫法。
+   字級跟適穿列同一級，都是 master 的 .middoted.meta 值 */
 .uq-card-tail {
     display: flex;
     flex-wrap: wrap;
@@ -1111,7 +1130,7 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
     gap: 4px;
     margin-top: 8px;
     color: var(--uq-text-2);
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.5;
 }
 
@@ -1304,10 +1323,9 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
 
 /*
  * 狀態行：跟卡片同規則（見 .uq-card-status 的說明），優惠類（tag.price 為真：
- * 期間限定、特價、歷史新低）用優惠色 13px，其餘一律 --uq-text-2 12px。期間
- * 限定的截止日也算優惠類，跟其他狀態行一起放在同一份清單裡——.uq-price-note
- * 這個 class 名稱留著讓既有測試（檔期過了要消失）繼續對得到，樣式已經併進
- * .uq-price-status-item。
+ * 期間限定、特價、歷史新低）跟卡片共用同一組顏色，由 presenter 決定、寫成
+ * inline style。期間限定的截止日寫在標籤文字本身（截至 MM/DD 限定價格），
+ * 不再另外多一行。
  */
 .uq-price-status {
     display: flex;
@@ -1317,14 +1335,16 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
 }
 
 .uq-price-status-item {
-    color: var(--uq-text-2);
-    font-size: 12px;
+    /* 有 url 的那些是 <a>，只佔文字寬度：flex column 的子元素預設會撐滿整列，
+       整條看不見的空白都可以點就太容易誤觸 */
+    align-self: flex-start;
+    font-size: 13px;
     font-weight: 400;
 }
 
-.uq-price-status-item.uq-price-status-price {
-    color: var(--uq-brand-text);
-    font-size: 13px;
+/* 顏色由 inline style 給（一色一義），這裡只補 hover 的可見回饋 */
+a.uq-price-status-item:hover {
+    text-decoration: underline;
 }
 
 /* 買，或等。前往官網是唯一的購買動作，收藏與分享是次要動作 */
