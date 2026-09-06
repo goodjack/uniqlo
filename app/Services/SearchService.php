@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\HmallProductRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class SearchService extends Service
 {
@@ -31,6 +32,19 @@ class SearchService extends Service
             $this->tokenize($query),
             self::RESULTS_PER_PAGE
         );
+    }
+
+    /**
+     * 用數字查詢找商品：code 精準符合，或者 name 裡以獨立數字段落出現這組號碼。
+     *
+     * 搜尋首頁（單一命中直接導向商品頁）與查詢字串結果頁（列出所有命中）
+     * 共用同一條查詢，判準要一致，見 HmallProductRepository::findHmallProductsByCodeOrSharedNumber()。
+     *
+     * @return Collection<int, \App\Models\HmallProduct>
+     */
+    public function findHmallProductsByCodeOrSharedNumber(string $query): Collection
+    {
+        return $this->repository->findHmallProductsByCodeOrSharedNumber($query);
     }
 
     /**

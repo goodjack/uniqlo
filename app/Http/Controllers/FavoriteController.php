@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\Brand;
-use App\Repositories\HmallProductRepository;
+use App\Services\FavoriteService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -15,11 +15,11 @@ class FavoriteController extends Controller
      */
     private const MAX_CODES = 100;
 
-    protected $repository;
+    protected $service;
 
-    public function __construct(HmallProductRepository $repository)
+    public function __construct(FavoriteService $service)
     {
-        $this->repository = $repository;
+        $this->service = $service;
     }
 
     public function index()
@@ -46,7 +46,7 @@ class FavoriteController extends Controller
         ]);
 
         return view('favorites.cards', [
-            'hmallProducts' => $this->repository->getByBrandAndProductCodes($validated['items']),
+            'hmallProducts' => $this->service->getHmallProductsByBrandAndCodes($validated['items']),
         ]);
     }
 }
