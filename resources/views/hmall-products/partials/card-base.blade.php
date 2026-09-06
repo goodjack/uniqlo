@@ -18,7 +18,7 @@
     （適穿、狀態文字、末行）重，次要資訊一律不掛邊框——細節見 app.css 卡片
     段落開頭的說明。
 --}}
-<div class="ts borderless card uq-card">
+<div class="ts borderless card uq-card" data-card-name="{{ $hmallProductPresenter->getNameWithCode($hmallProduct) }}">
     <a class="uq-card-link" href="{{ $hmallProduct->route_url }}"
         aria-label="{{ $hmallProductPresenter->getNameWithCode($hmallProduct) }}"></a>
     <div class="image">

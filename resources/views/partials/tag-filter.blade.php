@@ -17,11 +17,11 @@
         ->all();
 
     /*
-     * 切換篩選不該丟掉品牌與排序，它們是各自獨立的軸。只帶這兩個、而且只在它們
-     * 是字串時帶：先前用 request()->except() 把所有其他參數原封搬進 hidden input，
-     * 遇到 ?ref[]=x 這種陣列就是把 array 丟給 Blade 轉字串，整頁 500。
+     * 切換篩選不該丟掉品牌、排序與搜尋關鍵字，它們是各自獨立的軸。只帶這三個、
+     * 而且只在它們是字串時帶：先前用 request()->except() 把所有其他參數原封搬進
+     * hidden input，遇到 ?ref[]=x 這種陣列就是把 array 丟給 Blade 轉字串，整頁 500。
      */
-    $otherParams = array_filter(request()->only(['brand', 'sort']), 'is_string');
+    $otherParams = array_filter(request()->only(['brand', 'sort', 'q']), 'is_string');
 @endphp
 
 {{-- 勾選框要跟 chip 列同一層、而且排在它前面，CSS 的 ~ 才選得到 --}}

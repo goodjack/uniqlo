@@ -6,15 +6,17 @@
     // 頁面上的標題維持新版的「期間限定特價」加副標
     $title = "{$count} 件{$titleName}";
 
-    // 品牌、排序與標籤是三個獨立的軸，切換其中一個要保留另外兩個
+    // 品牌、排序、標籤與搜尋關鍵字是四個獨立的軸，切換其中一個要保留另外三個
     $queryFor = fn(array $changes) => http_build_query(
-        array_filter(array_merge(request()->only(['brand', 'sort', 'tags']), $changes))
+        array_filter(array_merge(request()->only(['brand', 'sort', 'tags', 'q']), $changes))
     );
 
     $currentBrand = in_array(request('brand'), ['UNIQLO', 'GU'], true) ? request('brand') : null;
     $selectedTagValues = collect(\App\Enums\ProductTag::fromValues((array) request('tags', [])))
         ->map->value
         ->all();
+    // ListRequest::prepareForValidation() 已經修剪並截斷過，這裡直接讀就是乾淨的值
+    $currentQ = (string) request('q');
 
     // 副標講的是實際排序，不是預設排序：使用者選了價格排序之後還寫預設就是錯的
     $sortText = request('sort') === \App\Services\ListService::SORT_PRICE_ASC ? '依價格由低到高排序' : $sortSummary;
@@ -34,6 +36,10 @@
 
 @section('metadata')
     <link rel="canonical" href="{{ $currentUrl }}" />
+    @if ($currentQ !== '')
+        {{-- 帶關鍵字的清單頁是既有清單的重組，不需要另外被索引，做法照搜尋結果頁 --}}
+        <meta name="robots" content="noindex, follow" />
+    @endif
     <meta name="description" content="{{ $title }} | UNIQLO 比價 | UQ 搜尋" />
     <meta property="og:title" content="{{ $typeName }} | UQ 搜尋" />
     <meta property="og:url" content="{{ $currentUrl }}" />
@@ -48,7 +54,13 @@
     <div class="ts fluid slate">
         <i class="{{ $typeStyle }} {{ $typeIcon }} icon"></i>
         <span class="header">{{ $typeName }}</span>
-        <span class="description">{{ $count }} 件，{{ $sortText }}</span>
+        <span class="description">
+            @if ($currentQ !== '')
+                {{ $count }} 件符合「{{ $currentQ }}」，{{ $sortText }}
+            @else
+                {{ $count }} 件，{{ $sortText }}
+            @endif
+        </span>
     </div>
 
     <div class="ts container uq-page">
@@ -62,6 +74,34 @@
                     href="{{ $currentUrl }}?{{ $queryFor(['brand' => 'UNIQLO']) }}">UNIQLO</a>
                 <a class="uq-control uq-pill {{ $currentBrand === 'GU' ? 'active' : '' }}"
                     href="{{ $currentUrl }}?{{ $queryFor(['brand' => 'GU']) }}">GU</a>
+
+                {{--
+                    在這個清單裡找。GET 表單搭配前端即時篩（list-search.js）：
+                    有 JS 時邊打邊篩畫面上的卡片，按 Enter 或沒有 JS 時照樣送出，
+                    伺服器對這個清單預熱好的 Collection 篩品名與編號
+                    （ListService::filterHmallProducts()）。跟品牌、排序、標籤一樣
+                    是獨立的軸，所以要帶上其他三個的隱藏欄位，其他三個的連結／
+                    表單也要把 q 帶著（見上面 $queryFor 與下面 uq-sort-form）。
+                --}}
+                <form method="GET" action="{{ $currentUrl }}" class="uq-search-form">
+                    @if ($currentBrand)
+                        <input type="hidden" name="brand" value="{{ $currentBrand }}">
+                    @endif
+                    @if (request('sort') === \App\Services\ListService::SORT_PRICE_ASC)
+                        <input type="hidden" name="sort" value="{{ \App\Services\ListService::SORT_PRICE_ASC }}">
+                    @endif
+                    @foreach ($selectedTagValues as $tagValue)
+                        <input type="hidden" name="tags[]" value="{{ $tagValue }}">
+                    @endforeach
+
+                    <i class="search icon" aria-hidden="true"></i>
+                    <input type="search" name="q" class="uq-control uq-search-input" value="{{ $currentQ }}"
+                        placeholder="在這個清單裡找…" maxlength="50" aria-label="在這個清單裡找">
+                    @if ($currentQ !== '')
+                        <a class="uq-search-clear" href="{{ $currentUrl }}?{{ $queryFor(['q' => null]) }}"
+                            aria-label="清除搜尋">&times;</a>
+                    @endif
+                </form>
             </x-slot:start>
 
             <x-slot:end>
@@ -74,6 +114,9 @@
                     @foreach ($selectedTagValues as $tagValue)
                         <input type="hidden" name="tags[]" value="{{ $tagValue }}">
                     @endforeach
+                    @if ($currentQ !== '')
+                        <input type="hidden" name="q" value="{{ $currentQ }}">
+                    @endif
 
                     <select class="uq-control uq-sort" name="sort" data-auto-submit aria-label="排序方式">
                         <option value="" @selected(request('sort') !== \App\Services\ListService::SORT_PRICE_ASC)>排序：預設</option>
@@ -113,4 +156,8 @@
             'count' => $count,
         ])
     </div>
+@endsection
+
+@section('javascript')
+    <script src="{{ asset('js/list-search.js') }}?v={{ filemtime(public_path('js/list-search.js')) }}"></script>
 @endsection
