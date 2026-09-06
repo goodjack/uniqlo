@@ -120,8 +120,7 @@ class CategoryService extends Service
     /**
      * 分類頁不提供品牌篩選：兩家的分類 code 各成一套，一個分類只會有一家的商品，
      * 篩選另一家永遠是空的。品牌直接標在標題上。
-     */
-    /**
+     *
      * @param  array<int, ProductTag>  $tags
      */
     public function getProducts(HmallCategory $category, array $tags = []): LengthAwarePaginator
