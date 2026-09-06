@@ -846,21 +846,25 @@ html:has(.uq-section-menu) {
     margin-top: 6px;
 }
 
-/*
- * 收起來的那幾個標籤：滑過去用 title 看完整清單，手機進商品頁看。
- *
- * z-index 要抬到 .uq-card-link 上面，不然滑鼠命中的是那條覆蓋整張卡片、沒有
- * title 的連結，提示永遠不會出現。代價是這一小塊（約 34×18px）不再是卡片的
- * 點擊區——title 是設計稿指定的機制，不能動的話這顆標籤就沒有意義。
- */
-.ts.basic.label.uq-label.uq-label-more {
-    position: relative;
-    z-index: 2;
-    cursor: default;
-}
-
 .uq-card-brand {
     opacity: 0.92;
+}
+
+/*
+ * 拿掉 Tocas 卡片 hover 的浮起效果。tocas.css 的
+ * .ts.link.cards .card:hover 疊了三件事：border 從 0（.borderless）變回
+ * 1px、box-shadow、transform: translateY(-3px)。border 那個 0→1px 的變化
+ * 在 border-box 底下會讓卡片可用寬度瞬間少 2px，全部顯示的標籤列這時候
+ * 會多繞一行——滑鼠移上去卡片自己重排，比沒有任何 hover 回饋還礙眼。這裡
+ * 三個效果全部歸零，hover／focus／一般三態卡片尺寸相同，選擇器另外掛
+ * .uq-card 讓特異性贏過 tocas 那組四選一的規則。
+ */
+.ts.link.cards .card.uq-card:hover,
+.ts.link.card.uq-card:hover {
+    z-index: auto;
+    border: 0;
+    box-shadow: none;
+    transform: none;
 }
 
 /* ------------------------------------------------------------------
