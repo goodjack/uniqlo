@@ -2,6 +2,7 @@
 
 namespace App\Presenters;
 
+use App\Enums\ProductTag;
 use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
 
@@ -171,6 +172,12 @@ class HmallProductPresenter
             );
         }
 
+        /*
+         * 這幾個文案刻意跟 ProductTag::label() 不同：那個 label 是篩選 chip 的
+         * 短名（特價、新品、合購、網路獨家），卡片要的是完整句子，讀起來才像
+         * 一句話而不是分類代號。ComingSoon 是唯一兩邊本來就同一句的（即將上市），
+         * 這裡直接讀 enum，其餘四個維持各自的卡片文案，不要為了統一硬改成短名。
+         */
         if ($hmallProduct->is_sale) {
             $add('特價商品', self::COLOR_PRICE, 'shopping basket', route('lists.sale'));
         }
@@ -180,7 +187,7 @@ class HmallProductPresenter
         }
 
         if ($hmallProduct->is_coming_soon) {
-            $add('即將上市', self::COLOR_COMING_SOON, 'checked calendar', route('lists.coming-soon'));
+            $add(ProductTag::ComingSoon->label(), self::COLOR_COMING_SOON, 'checked calendar', route('lists.coming-soon'));
         }
 
         if ($hmallProduct->is_multi_buy) {

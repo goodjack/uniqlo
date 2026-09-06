@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ProductTag;
+
 /*
  * 導覽資料。桌機選單、手機選單與各頁的麵包屑共用這一份。
  *
@@ -57,12 +59,18 @@ return [
      * 重複列它。期間限定與特價是這個站最常被點的兩個清單，master 也是把它們放在
      * 外層直達；手機選單維持整組列出，那裡本來就是攤開的清單。
      */
+    /*
+     * 這幾個 label 跟 ProductTag::label() 是同一件事（清單頁本來就是照那個標籤
+     * 篩出來的），所以直接讀 enum，不要各自寫一份中文——兩份遲早會有一份忘了改。
+     * 「熱門」那組沒有對應的 ProductTag（瀏覽量、穿搭數、評論數不是官方標籤），
+     * 維持原樣寫死。
+     */
     'groups' => [
         '優惠' => [
-            ['route' => 'lists.limited-offers', 'label' => '期間限定', 'icon' => 'certificate', 'pinned' => true],
-            ['route' => 'lists.sale', 'label' => '特價', 'icon' => 'shopping basket', 'pinned' => true],
-            ['route' => 'lists.multi-buy', 'label' => '合購', 'icon' => 'cubes'],
-            ['route' => 'lists.online-special', 'label' => '網路獨家', 'icon' => 'tv'],
+            ['route' => 'lists.limited-offers', 'label' => ProductTag::LimitedOffer->label(), 'icon' => 'certificate', 'pinned' => true],
+            ['route' => 'lists.sale', 'label' => ProductTag::Sale->label(), 'icon' => 'shopping basket', 'pinned' => true],
+            ['route' => 'lists.multi-buy', 'label' => ProductTag::MultiBuy->label(), 'icon' => 'cubes'],
+            ['route' => 'lists.online-special', 'label' => ProductTag::OnlineSpecial->label(), 'icon' => 'tv'],
         ],
         '熱門' => [
             ['route' => 'lists.most-visited', 'label' => '熱門瀏覽', 'icon' => 'chart line'],
@@ -71,8 +79,8 @@ return [
             ['route' => 'lists.japan-most-reviewed', 'label' => '日本熱門評論', 'icon' => 'comments outline'],
         ],
         '新品' => [
-            ['route' => 'lists.new', 'label' => '新品', 'icon' => 'leaf'],
-            ['route' => 'lists.coming-soon', 'label' => '即將上市', 'icon' => 'checked calendar'],
+            ['route' => 'lists.new', 'label' => ProductTag::NewArrival->label(), 'icon' => 'leaf'],
+            ['route' => 'lists.coming-soon', 'label' => ProductTag::ComingSoon->label(), 'icon' => 'checked calendar'],
         ],
     ],
 ];
