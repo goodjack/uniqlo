@@ -587,6 +587,85 @@ i.most-visited.icon {
     .uq-toolbar-start>.uq-cat-list {
         flex: 1 1 100%;
     }
+
+    /*
+     * 清單內搜尋的輸入框：手機要自己獨立佔一整排，不要跟前面的品牌 pill／
+     * 子分類連結列擠在同一條橫向捲動列。只在有這顆搜尋框的頁面（清單、
+     * 分類）才把父層改回 wrap——pill／子分類本來就不需要橫向捲動，改成
+     * wrap 不影響它們，只是讓搜尋框多出來的第二排能真的換行而不是被
+     * nowrap 逼著跟前面擠在同一行。
+     */
+    .uq-toolbar-start:has(.uq-search-form) {
+        flex-wrap: wrap;
+        overflow-x: visible;
+    }
+
+    .uq-toolbar-start>.uq-search-form {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}
+
+/*
+ * 清單頁與分類頁工具列上的「在這個清單裡找」輸入框。<input> 沿用
+ * .uq-control 的高度、圓角、邊框，這裡只補搜尋 icon 跟可能出現的清除鈕的
+ * padding；表單本身是 position:relative 的定位容器，icon 跟清除鈕都疊在
+ * input 上面。隱藏欄位（brand／sort／tags[]）不佔版面，不影響這裡的排版。
+ */
+.uq-search-form {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 260px;
+    max-width: 100%;
+}
+
+.uq-search-form>.icon {
+    position: absolute;
+    left: 12px;
+    color: var(--uq-muted);
+    font-size: 13px;
+    pointer-events: none;
+}
+
+.uq-search-input {
+    width: 100%;
+    padding-left: 32px;
+    padding-right: 28px;
+    text-align: left;
+}
+
+/* WebKit 的 <input type="search"> 自帶一顆清除叉叉，跟下面自己那顆重複 */
+.uq-search-input::-webkit-search-cancel-button {
+    display: none;
+}
+
+.uq-search-clear {
+    position: absolute;
+    right: 10px;
+    color: var(--uq-muted);
+    font-size: 16px;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.uq-search-clear:hover,
+.uq-search-clear:focus-visible {
+    color: var(--uq-text);
+}
+
+/*
+ * 前端即時篩選（list-search.js）用原生 hidden 屬性藏卡片、段落標題與章節
+ * 選單項目。Tocas 對 .card／.cards、選單的 .item 都設了自己的 display，
+ * 這裡的選擇器一樣掛 class、又比 UA 的 [hidden] 晚載入，會贏過瀏覽器內建的
+ * [hidden]{display:none}，所以要自己蓋回去（跟上面 .uq-toolbar[hidden] 同理）。
+ */
+.uq-card[hidden],
+.uq-h2[hidden],
+[data-gender-body][hidden],
+.uq-section-menu .item[hidden] {
+    display: none !important;
 }
 
 /* 排序的下拉。原生 <select> 加自己的箭頭，跟旁邊兩顆長成同一個樣子 */

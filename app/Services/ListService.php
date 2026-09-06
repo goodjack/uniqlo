@@ -75,28 +75,58 @@ class ListService extends Service
     {
         $brand = $listRequest->input('brand');
         $tags = $listRequest->input('tags') ?? [];
+        $q = $listRequest->input('q');
 
         if ($brand === 'UNIQLO' || $brand === 'GU') {
             $hmallProducts = $hmallProducts->where('brand', $brand);
         }
 
-        if (empty($tags)) {
-            return $hmallProducts;
+        $selectedTags = empty($tags) ? [] : ProductTag::fromValues($tags);
+
+        if (! empty($selectedTags)) {
+            // 多選是「符合任一條件」：頁面本身已經是基礎集合，標籤只是再縮小範圍
+            $hmallProducts = $hmallProducts->filter(
+                fn (HmallProduct $hmallProduct) => collect($selectedTags)
+                    ->contains(fn (ProductTag $tag) => $tag->matches($hmallProduct))
+            );
         }
 
-        $selectedTags = ProductTag::fromValues($tags);
-
-        if (empty($selectedTags)) {
-            return $hmallProducts;
+        if (filled($q)) {
+            $hmallProducts = $this->filterHmallProductsByKeyword($hmallProducts, $q);
         }
-
-        // 多選是「符合任一條件」：頁面本身已經是基礎集合，標籤只是再縮小範圍
-        $hmallProducts = $hmallProducts->filter(
-            fn (HmallProduct $hmallProduct) => collect($selectedTags)
-                ->contains(fn (ProductTag $tag) => $tag->matches($hmallProduct))
-        );
 
         return $hmallProducts;
+    }
+
+    /**
+     * 清單內搜尋：品名或編號含關鍵字，多個空白分開的詞要全部命中。
+     *
+     * 這裡篩的是清單頁預熱好的 Collection，跟分類頁走資料庫 LIKE 查詢
+     * （HmallProductRepository::getProductsByCategoryId()）是兩條不同的路——
+     * 清單本來就是每天算好放進快取的小集合，不值得為它另開一次資料庫查詢。
+     */
+    private function filterHmallProductsByKeyword(Collection $hmallProducts, string $q): Collection
+    {
+        $keywords = preg_split('/\s+/u', trim($q), -1, PREG_SPLIT_NO_EMPTY);
+
+        foreach ($keywords as $keyword) {
+            $hmallProducts = $hmallProducts->filter(
+                fn (HmallProduct $hmallProduct) => $this->hmallProductMatchesKeyword($hmallProduct, $keyword)
+            );
+        }
+
+        return $hmallProducts;
+    }
+
+    private function hmallProductMatchesKeyword(HmallProduct $hmallProduct, string $keyword): bool
+    {
+        foreach ([$hmallProduct->name, $hmallProduct->code, $hmallProduct->product_code] as $field) {
+            if ($field !== null && mb_stripos((string) $field, $keyword) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
