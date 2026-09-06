@@ -184,6 +184,7 @@
         }
 
         #facebook:hover {
+            background: #fff !important;
             color: #1877f2 !important;
         }
 
@@ -196,6 +197,7 @@
         }
 
         #twitter:hover {
+            background: #fff !important;
             color: #1d95e0 !important;
         }
 
@@ -208,6 +210,7 @@
         }
 
         #line:hover {
+            background: #fff !important;
             color: #06b833 !important;
         }
 
