@@ -96,7 +96,8 @@ class CategoryTest extends TestCase
 
     /**
      * 兩家的分類 code 各成一套（UNIQLO 是 all_women-tops、GU 是 women_all），
-     * 名稱又會撞，所以總覽要標出這是誰的分類。
+     * 名稱又會撞，所以總覽要標出這是誰的分類——現在是分成兩個品牌區塊，
+     * 區塊標題就是品牌名（見 test_the_overview_puts_uniqlo_before_gu）。
      */
     public function test_overview_labels_which_brand_each_group_belongs_to(): void
     {
@@ -112,6 +113,35 @@ class CategoryTest extends TestCase
         $response->assertSee('UNIQLO');
         $response->assertSee('GU');
         $response->assertSee('針織上衣');
+    }
+
+    /**
+     * 總覽先 UNIQLO 再 GU，各自一個區塊。
+     *
+     * 排序不能照品牌字串排：'GU' < 'UNIQLO'，GU 會排到前面，但這個站的主體是
+     * UNIQLO，打開總覽第一眼該看到它。
+     */
+    public function test_the_overview_puts_uniqlo_before_gu(): void
+    {
+        $this->createCategory('women_all', 'WOMEN', null, CategoryLevel::Top, 'GU');
+        $this->createCategory('women_knitandcardigan', '針織上衣', 'women_all', CategoryLevel::One, 'GU');
+
+        $this->attachProduct($this->createProduct(['brand' => 'UNIQLO']), 'all_women-tops');
+        $this->attachProduct($this->createProduct(['brand' => 'GU']), 'women_knitandcardigan');
+
+        $content = $this->get(route('categories.index'))->assertOk()->getContent();
+
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$content);
+        $xpath = new \DOMXPath($dom);
+
+        $headings = [];
+
+        foreach ($xpath->query('//h2[contains(@class, "uq-brand-h2")]') as $heading) {
+            $headings[] = trim($heading->textContent);
+        }
+
+        $this->assertSame(['UNIQLO', 'GU'], $headings, '品牌區塊的順序是先 UNIQLO 再 GU');
     }
 
     /**
