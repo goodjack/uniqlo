@@ -365,10 +365,15 @@
                             style="display: none;"><i class="share icon" aria-hidden="true"></i>分享</button>
                     </div>
 
-                    <div class="uq-product-rule"></div>
-
-                    {{-- 說明是這一頁的正文，本機沒有這個欄位的資料、正式機有，空的就整塊不渲染 --}}
+                    {{--
+                        說明是這一頁的正文，本機沒有這個欄位的資料、正式機有，空的就整塊
+                        不渲染。分隔線也一起：那條線是用來分開 CTA 與說明的，沒有說明的
+                        商品（剛抓進來、還沒跑到描述那支 command）留一條線在那裡下面什麼
+                        都沒有。
+                    --}}
                     @if ($hasDescription)
+                        <div class="uq-product-rule"></div>
+
                         <div @class(['uq-clamp' => $isLongDescription])>
                             <div class="uq-description">{!! $descriptionHtml !!}</div>
                             @if ($isLongDescription)
