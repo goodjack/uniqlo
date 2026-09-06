@@ -32,7 +32,7 @@
         @endif
 
         @if ($isProductCodeSearch)
-        @include('search.cards', ['hmallProducts' => $hmallProducts, 'products' => $products])
+        @include('search.cards', ['hmallProducts' => $hmallProducts, 'products' => $products, 'query' => $query])
         @else
         @include('search.keyword-cards', ['hmallProducts' => $hmallProducts, 'query' => $query])
         @endif

@@ -605,6 +605,34 @@ class HmallProductRepository extends Repository
     }
 
     /**
+     * 用數字查詢找商品：code 精準符合，或者 name 裡以獨立數字段落出現這組號碼。
+     *
+     * UNIQLO 常把多個貨號（顏色、款式）共用同一個商品頁，商品頁的 code 只會是
+     * 其中一個，其餘號碼只出現在 name 裡（例如「AIRism 圓領T恤(短袖) 474238 /
+     * 482514 / 474236」）。REGEXP 前後各夾一個「非數字或字串頭尾」，避免 482514
+     * 誤中 4825140 這種只是前綴相同的號碼。
+     *
+     * 呼叫端保證 $query 已經是 is_numeric() 驗過的純數字，這裡仍用 binding
+     * 帶進 REGEXP 樣式，不做字串拼接。
+     *
+     * 精準 code 命中排最前面（跟舊行為一致：這一頁本來就是這組編號的商品頁），
+     * 其餘依現價排序。
+     */
+    public function findHmallProductsByCodeOrSharedNumber(string $query): Collection
+    {
+        $pattern = '(^|[^0-9])'.$query.'([^0-9]|$)';
+
+        return $this->model
+            ->where('code', $query)
+            ->orWhere(function ($subQuery) use ($pattern) {
+                $subQuery->whereRaw('name REGEXP ?', [$pattern]);
+            })
+            ->orderByRaw('code = ? DESC', [$query])
+            ->orderBy('min_price')
+            ->get();
+    }
+
+    /**
      * 依關鍵字搜尋商品，每個關鍵字都要命中才算符合。
      *
      * 比對品名、編號與商品掛的分類名稱。用 LIKE 而不是全文索引：前後都有萬用字元的
