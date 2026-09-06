@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\HmallProduct;
 use App\Models\Product;
+use App\Repositories\HmallProductRepository;
 use App\Services\SearchService;
 use Illuminate\Http\Request;
 
@@ -19,9 +19,12 @@ class SearchController extends Controller
 
     protected $searchService;
 
-    public function __construct(SearchService $searchService)
+    protected $repository;
+
+    public function __construct(SearchService $searchService, HmallProductRepository $repository)
     {
         $this->searchService = $searchService;
+        $this->repository = $repository;
     }
 
     public function index(Request $request)
@@ -33,7 +36,9 @@ class SearchController extends Controller
         $query = trim($request->query('query'));
 
         if (is_numeric($query)) {
-            $results = HmallProduct::select(['brand', 'product_code'])->where('code', $query)->get()
+            // 一頁常共用多個貨號，所以命中判準跟 showProductCodeResults() 是同一條查詢：
+            // code 精準符合或 name 裡帶著這組號碼。舊軌 Product 維持精準比對不變。
+            $results = $this->repository->findHmallProductsByCodeOrSharedNumber($query)
                 ->concat(Product::select('id')->where('id', $query)->get());
 
             if ($results->count() === 1) {
@@ -68,13 +73,16 @@ class SearchController extends Controller
 
     /**
      * 維持原本行為，含已凍結的舊軌 Product——編號是跨兩套系統唯一通用的識別。
+     *
+     * hmallProducts 那條查詢同時含 code 精準符合與「name 裡帶這組共用號碼」的商品
+     * （見 HmallProductRepository::findHmallProductsByCodeOrSharedNumber）。
      */
     private function showProductCodeResults(string $query)
     {
         return view('search.results', [
             'query' => $query,
             'isProductCodeSearch' => true,
-            'hmallProducts' => HmallProduct::where('code', $query)->orderBy('min_price')->get(),
+            'hmallProducts' => $this->repository->findHmallProductsByCodeOrSharedNumber($query),
             'products' => Product::where('id', 'like', "{$query}%")->get(),
         ]);
     }

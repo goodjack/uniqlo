@@ -1021,6 +1021,14 @@ body:has(.uq-toolbar):has(.uq-section-menu) .uq-toolbar {
     font-size: 13px;
 }
 
+/* 搜尋結果頁：共用貨號商品在卡片內的提示行（此商品頁同時包含貨號 ...） */
+.uq-shared-codes {
+    margin: 4px 0 0;
+    color: var(--uq-muted);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
 /* 末行：評分加編號，沒評分就只剩編號。中點分隔沿用 .uq-product-meta 那組寫法 */
 .uq-card-tail {
     display: flex;

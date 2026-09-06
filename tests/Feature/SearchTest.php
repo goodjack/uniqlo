@@ -109,6 +109,81 @@ class SearchTest extends TestCase
         );
     }
 
+    /**
+     * UNIQLO 常把多個貨號共用同一個商品頁：這件商品的 code 是 482516，
+     * 但 name 裡列著這頁涵蓋的另外三個號碼，其中一個是搜尋字。
+     */
+    public function test_a_shared_item_code_with_a_single_hit_redirects_to_the_product_page(): void
+    {
+        $sharedProduct = $this->createProduct([
+            'name' => 'AIRism 圓領T恤(短袖) 474238 / 482514 / 474236',
+            'code' => '482516',
+            'product_code' => 'u482516',
+        ]);
+
+        $response = $this->get(route('search.index', ['query' => '482514']));
+
+        $response->assertRedirect($sharedProduct->route_url);
+    }
+
+    public function test_shared_item_code_search_page_shows_the_product_and_a_hint(): void
+    {
+        $this->createProduct([
+            'name' => 'AIRism 圓領T恤(短袖) 474238 / 482514 / 474236',
+            'code' => '482516',
+            'product_code' => 'u482516',
+        ]);
+
+        $response = $this->get(route('search.show', ['query' => '482514']));
+
+        $response->assertOk();
+        $response->assertSee('AIRism 圓領T恤(短袖)');
+        $response->assertSee('此商品頁同時包含貨號 474238 / 482514 / 474236');
+    }
+
+    /**
+     * code 精準符合的商品才是這組編號真正的商品頁，排序上要贏過只是
+     * name 裡帶到這組號碼的其他商品頁。
+     */
+    public function test_a_precise_code_match_sorts_before_a_shared_number_match(): void
+    {
+        $this->createProduct([
+            'name' => 'AIRism 圓領T恤(短袖) 474238 / 482514 / 474236',
+            'code' => '482516',
+            'product_code' => 'u482516',
+        ]);
+        $this->createProduct([
+            'name' => '合身襯衫',
+            'code' => '482514',
+            'product_code' => 'u482514',
+        ]);
+
+        $content = $this->get(route('search.show', ['query' => '482514']))->assertOk()->getContent();
+
+        $this->assertLessThan(
+            strpos($content, 'AIRism'),
+            strpos($content, '合身襯衫'),
+        );
+    }
+
+    /**
+     * 48251 只是 482514 的前綴，不是這個號碼本身，不該命中。
+     */
+    public function test_a_number_that_is_only_a_prefix_of_another_code_does_not_match(): void
+    {
+        $this->createProduct([
+            'name' => 'AIRism 圓領T恤(短袖) 474238 / 482514 / 474236',
+            'code' => '482516',
+            'product_code' => 'u482516',
+        ]);
+
+        $response = $this->get(route('search.show', ['query' => '48251']));
+
+        $response->assertOk();
+        $response->assertDontSee('AIRism');
+        $response->assertSee('0 件');
+    }
+
     public function test_keyword_query_no_longer_redirects_to_google(): void
     {
         $response = $this->get(route('search.index', ['query' => '羽絨']));
