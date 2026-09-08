@@ -21,7 +21,7 @@
 @if ($anchorCount > 1)
     <div class="uq-section-menu">
         <div class="ts container">
-            <div class="ts pointing secondary menu" id="{{ $id }}">
+            <div class="ts large pointing secondary menu" id="{{ $id }}">
                 @foreach ($items as $item)
                     @isset($item['heading'])
                         <div class="header item">{{ $item['heading'] }}</div>
@@ -29,7 +29,7 @@
                         <a class="item" href="#{{ $item['anchor'] }}">
                             {{ $item['label'] }}
                             @isset($item['count'])
-                                <div class="ts mini circular label">{{ $item['count'] }}</div>
+                                <div class="ts tiny circular label">{{ $item['count'] }}</div>
                             @endisset
                         </a>
                     @endisset

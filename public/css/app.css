@@ -49,7 +49,7 @@
     /* nav 是固定的 60px，master 版型的 body padding 就是照這個數字留的 */
     --uq-nav-height: 60px;
     /* .uq-section-menu 的實際高度。錨點跳轉的 scroll-padding-top 要讓開它 */
-    --uq-section-menu-height: 45px;
+    --uq-section-menu-height: 49px;
 }
 
 /* ------------------------------------------------------------------
@@ -439,7 +439,6 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
     border-bottom: 0;
     flex-wrap: nowrap;
     overflow-x: auto;
-    font-size: 14px;
     white-space: nowrap;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -456,9 +455,23 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
     border-radius: 0;
     background: transparent;
     color: var(--uq-text);
-    /* 明寫行高，選單高度才算得出來：20 + 12 + 12 + 1px 底線 = 45px */
-    line-height: 20px;
+    /*
+     * 明寫行高，選單高度才算得出來：24 + 12 + 12 + 1px 底線 = 49px。
+     * Tocas 給 menu item 的是 line-height: 1（大字級之後是 16px），照它算出來的
+     * 選單比放大字級之前還矮，中文字的上下也貼著盒子邊。1.5 倍跟這個檔案給
+     * 麵包屑補的是同一個比例。
+     */
+    line-height: 24px;
     white-space: nowrap;
+}
+
+/*
+ * 章節名稱與它的件數之間。Tocas 給 menu item 裡的 label 的是 10px（1em），
+ * 名稱跟件數看起來像兩個並排的東西；收到 4px 才讀得出「這個件數屬於前面那一
+ * 段」。限定在項目直屬的 label，選單裡以後放別的 label 不會被一起推開。
+ */
+.uq-section-menu .item>.ts.label {
+    margin-left: 4px;
 }
 
 /*
