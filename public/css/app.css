@@ -24,8 +24,13 @@
  */
 
 :root {
-    /* 品牌紅。跟 master.blade.php 的 <meta name="theme-color"> 同一個值 */
-    --uq-brand: #ce5e57;
+    /*
+     * 品牌紅。值就是 Tocas negative 的 #CE5F58——UNIQLO 角標、前往官網按鈕、
+     * 期間限定 icon 都是那一個，這個 token 管的是 chip 選中框、章節選單底線與
+     * 收藏愛心，同一個「品牌」意義不該有兩個差一階的紅。master.blade.php 的
+     * <meta name="theme-color"> 與 public/app.webmanifest 的 theme_color 同值。
+     */
+    --uq-brand: #ce5f58;
     /* 選中的 chip 底色。品牌紅的淡版，看得出來選中又不會搶掉 CTA */
     --uq-brand-soft: #fbeceb;
     /* 選中的 chip 的底色文字色 */
@@ -42,10 +47,12 @@
      * 這個檔案裡沒有規則引用它——不要因為 grep 不到就刪掉。
      */
     --uq-info-text: #0077a6;
-    /* chip 與篩選面板的線色 */
-    --uq-line: #e4e4e4;
-    /* 篩選面板的底色 */
-    --uq-panel: #f6f6f6;
+    /* chip、篩選面板、工具列與章節選單的線色。對齊 Tocas 的線色（.ts.segment
+       的邊框、divider、麵包屑分隔符都是 #e9e9e9），不另外多一階灰 */
+    --uq-line: #e9e9e9;
+    /* 篩選面板的底色。對齊 Tocas tertiary segment 與 slate 的底色 #f7f7f7，
+       商品頁的灰塊跟篩選面板才是同一種灰 */
+    --uq-panel: #f7f7f7;
     /*
      * 固定導覽列的補償高度。實測導覽列本身是 63.31px，取整到 64px。sticky 章節
      * 選單的 top、章節錨點的偏移量，以及 master 版型的 body padding-top 都是這個
@@ -78,6 +85,16 @@ i.online-special.icon {
 
 i.most-visited.icon {
     color: #b58105 !important;
+}
+
+/*
+ * 特價。這一組裡唯一引用 token 而不是寫死色碼的：同一個「特價」意義在標籤上
+ * 是 --uq-info-text（HmallProductPresenter::COLOR_PRICE 寫進 inline style），
+ * icon 這裡再寫一次色碼遲早會漂掉。原本用的是 Tocas 的 primary（#00ADEA），
+ * 跟標籤的 #0077A6 是同一個意思、兩個值。
+ */
+i.sale.icon {
+    color: var(--uq-info-text) !important;
 }
 
 /*
@@ -398,7 +415,7 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
 }
 
 /*
- * 選中狀態靠底色與邊框，文字維持深色。品牌紅（#ce5e57）配淡紅底實測只有
+ * 選中狀態靠底色與邊框，文字維持深色。品牌紅（#ce5f58）配淡紅底實測只有
  * 3.41:1，比沒選中的深灰字還難讀——選中不該讓文字變得更看不清楚。
  */
 .uq-chip:has(input:checked) {

@@ -113,13 +113,12 @@ class HmallProductPresenter
     private const COLOR_MULTI_BUY = '#79A8B9';
 
     /*
-     * 網路獨家在 master 是兩個值：卡片是 #F29E18（跟清單頁的 icon、商品頁那顆
-     * online-special 按鈕同色），商品頁的標籤是 #79A8B9（跟合購同色）。兩邊都照
-     * 各自的原樣還原，不併成一色——併色是再設計。
+     * 網路獨家。master 這裡是兩個值：卡片 #F29E18（跟清單頁的 icon、商品頁那顆
+     * online-special 按鈕同色），商品頁的標籤卻是 #79A8B9（跟合購同色）。站主
+     * 09-07 定的原則是同一個意義全站同一個顏色，所以兩邊都用 #F29E18——那也是
+     * 這個意義在其他三個地方本來就在用的值，商品頁標籤才是落單的那一個。
      */
-    private const COLOR_ONLINE_SPECIAL_CARD = '#F29E18';
-
-    private const COLOR_ONLINE_SPECIAL_PRODUCT = '#79A8B9';
+    private const COLOR_ONLINE_SPECIAL = '#F29E18';
 
     private const COLOR_NEUTRAL = '#5A5A5A';
 
@@ -194,8 +193,7 @@ class HmallProductPresenter
         }
 
         if ($hmallProduct->is_online_special) {
-            $color = $forProductPage ? self::COLOR_ONLINE_SPECIAL_PRODUCT : self::COLOR_ONLINE_SPECIAL_CARD;
-            $add('網路獨家販售', $color, 'tv', route('lists.online-special'));
+            $add('網路獨家販售', self::COLOR_ONLINE_SPECIAL, 'tv', route('lists.online-special'));
         }
 
         if ($hmallProduct->is_app_offer) {

@@ -38,7 +38,9 @@ class ListController extends Controller
             $listRequest,
             '特價商品',
             '商品特價中',
-            'primary',
+            // 語意 class，顏色在 app.css 的清單 icon 那一組。不用 Tocas 的 primary：
+            // 那是 #00ADEA，跟標籤上的特價藍 #0077A6 是同一個意思卻兩個值
+            'sale',
             'shopping basket',
             '依特價幅度排序'
         );
