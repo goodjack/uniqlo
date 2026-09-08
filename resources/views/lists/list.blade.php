@@ -66,8 +66,16 @@
     <div class="ts container">
         <x-toolbar>
             <x-slot:start>
-                {{-- 品牌切換回 master 的 Tocas 按鈕群，選中的那顆掛 Tocas 的 .active --}}
-                <div class="ts small basic buttons">
+                {{--
+                    品牌切換回 master 的 Tocas 按鈕群，選中的那顆掛 Tocas 的 .active。
+
+                    不加 basic：Tocas 自己的 .ts.basic.buttons .button.active 是 #414141 底
+                    配 #272727 字，實測對比 1.3:1，選中哪一顆看不出來。實心版的 .active 是
+                    #bfbfbf 底配 #404040 字，正常、hover、選中三態 Tocas 成套處理，零覆寫。
+                    不加 small：同一列的搜尋框、排序、篩選鈕都是 41px，small 是 38px、字
+                    13px，一排三種高度。
+                --}}
+                <div class="ts buttons">
                     <a class="ts button {{ $currentBrand === null ? 'active' : '' }}"
                         href="{{ $currentUrl }}?{{ $queryFor(['brand' => null]) }}">全部</a>
                     <a class="ts button {{ $currentBrand === 'UNIQLO' ? 'active' : '' }}"
