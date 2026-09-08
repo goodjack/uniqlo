@@ -83,7 +83,9 @@
                     <a class="ts button {{ $currentBrand === 'GU' ? 'active' : '' }}"
                         href="{{ $currentUrl }}?{{ $queryFor(['brand' => 'GU']) }}">GU</a>
                 </div>
+            </x-slot:start>
 
+            <x-slot:end>
                 {{--
                     在這個清單裡找。GET 表單搭配前端即時篩（list-search.js）：
                     有 JS 時邊打邊篩畫面上的卡片，按 Enter 或沒有 JS 時照樣送出，
@@ -111,9 +113,7 @@
                             aria-label="清除搜尋">&times;</a>
                     @endif
                 </form>
-            </x-slot:start>
 
-            <x-slot:end>
                 {{-- 原生 <select>，不吃 JavaScript。外觀用 Tocas 的 .ts.basic.dropdown， --}}
                 {{-- 它本來就是給 <select> 用的，連下拉箭頭都畫好了 --}}
                 <form method="GET" action="{{ $currentUrl }}" class="uq-sort-form">

@@ -77,8 +77,9 @@ i.most-visited.icon {
 }
 
 /*
- * 工具列。左側是導覽型控制（換一個就是換一批商品），右側是條件型控制
- * （改的是同一批商品的呈現方式）。一行放得下，底下一條線把它跟內容分開。
+ * 工具列。左側是導覽型控制（換一個就是換一批商品，目前只有清單頁的品牌切換），
+ * 右側是條件型控制（改的是同一批商品的呈現方式：搜尋、排序、篩選）。一行放得下，
+ * 底下一條線把它跟內容分開。
  */
 .uq-toolbar {
     display: flex;
@@ -114,9 +115,9 @@ i.most-visited.icon {
 }
 
 /*
- * 桌機：start 的 pill 一多（分類頁最多到八顆）就會比 end 先撐爆一整行的
- * 寬度。.uq-toolbar 預設的 flex-wrap: wrap 這時會判定「這一行放不下」，
- * 把 end 整顆擠去下一行、自己單獨佔一排——但其實只要讓 start 自己內部
+ * 桌機：start 的內容一多就會比 end 先撐爆一整行的寬度。.uq-toolbar 預設的
+ * flex-wrap: wrap 這時會判定「這一行放不下」，把 end 整顆擠去下一行、自己
+ * 單獨佔一排——但其實只要讓 start 自己內部
  * 換行就夠了。做法：容器改 nowrap 逼 start／end 留在同一排，start 用
  * flex: 1 1 auto 吃滿剩餘寬度、多出來的 pill 靠自己的 flex-wrap: wrap
  * 換到第二行，end 用 flex: 0 0 auto 固定寬度、留在第一排最右邊；
@@ -167,28 +168,18 @@ i.most-visited.icon {
     }
 
     /*
-     * 文字連結列不是 pill：跟其他 chip 一樣用 flex: 0 0 auto 的話，父層的
-     * overflow-x: auto／flex-wrap: nowrap 會讓它變成擠成一行的橫向捲動，
-     * 分類名字全部黏在一起看不出斷點。這裡讓它自己吃滿整排寬度、換回
-     * 正常的多行換行。
+     * 清單內搜尋的輸入框：手機要自己獨立佔一整排，不要跟後面的排序、篩選鈕
+     * 擠在同一條橫向捲動列。搜尋是條件型控制裡唯一會這樣的，所以只在有這顆
+     * 搜尋框的頁面（清單、分類）才把 end 改回 wrap——排序與篩選鈕本來就不需要
+     * 橫向捲動，改成 wrap 不影響它們，只是讓搜尋框多出來的那一排能真的換行、
+     * 不被 nowrap 逼著跟後面擠在同一行。
      */
-    .uq-toolbar-start>.ts.horizontal.middoted.list {
-        flex: 1 1 100%;
-    }
-
-    /*
-     * 清單內搜尋的輸入框：手機要自己獨立佔一整排，不要跟前面的品牌 pill／
-     * 子分類連結列擠在同一條橫向捲動列。只在有這顆搜尋框的頁面（清單、
-     * 分類）才把父層改回 wrap——pill／子分類本來就不需要橫向捲動，改成
-     * wrap 不影響它們，只是讓搜尋框多出來的第二排能真的換行而不是被
-     * nowrap 逼著跟前面擠在同一行。
-     */
-    .uq-toolbar-start:has(.uq-search-form) {
+    .uq-toolbar-end:has(.uq-search-form) {
         flex-wrap: wrap;
         overflow-x: visible;
     }
 
-    .uq-toolbar-start>.uq-search-form {
+    .uq-toolbar-end>.uq-search-form {
         flex: 1 1 100%;
         width: 100%;
     }

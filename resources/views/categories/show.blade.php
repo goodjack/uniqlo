@@ -67,20 +67,27 @@
     <div class="ts container">
         @include('partials.breadcrumb', ['crumbs' => $crumbs])
 
-        <x-toolbar>
-            <x-slot:start>
-                @if ($children->isNotEmpty())
-                    {{-- 往下鑽的入口，不是篩選條件，用 Tocas 的橫向中點清單就夠 --}}
-                    <div class="ts horizontal middoted list uq-cat-list">
-                        @foreach ($children as $child)
-                            <a class="item" href="{{ $categoryUrl($child->code) }}">
-                                {{ $child->name }}
-                                <div class="ts mini circular label">{{ $child->hmall_products_count }}</div>
-                            </a>
-                        @endforeach
-                    </div>
-                @endif
+        @if ($children->isNotEmpty())
+            {{--
+                往下鑽的入口，不是篩選條件，用 Tocas 的橫向中點清單就夠。
 
+                住在工具列外面：它是往別頁走的連結、不是控制項，塞進工具列的左側槽
+                會把搜尋框擠到第三行去（實測分類頁工具列 142.88px 三列，清單頁同
+                一組控制項只要 65.97px 一列）。搬到麵包屑下面自成一列之後，兩頁的
+                工具列就是同一個結構。
+            --}}
+            <div class="ts horizontal middoted list uq-cat-list">
+                @foreach ($children as $child)
+                    <a class="item" href="{{ $categoryUrl($child->code) }}">
+                        {{ $child->name }}
+                        <div class="ts mini circular label">{{ $child->hmall_products_count }}</div>
+                    </a>
+                @endforeach
+            </div>
+        @endif
+
+        <x-toolbar>
+            <x-slot:end>
                 {{--
                     在這個分類裡找：分類頁是資料庫分頁查詢
                     （HmallProductRepository::getProductsByCategoryId()），q 進 SQL
@@ -106,9 +113,7 @@
                             aria-label="清除搜尋">&times;</a>
                     @endif
                 </form>
-            </x-slot:start>
 
-            <x-slot:end>
                 @include('partials.tag-filter-button')
             </x-slot:end>
         </x-toolbar>
