@@ -162,6 +162,8 @@
             bottom: 0;
         }
 
+        /* 三顆分享 icon 的底色。提高白底圖示辨識度：master 的 #a0aec0 對白底只有
+           2.2:1，不到非文字元素 3:1 的門檻 */
         #facebook {
             color: var(--uq-muted);
         }

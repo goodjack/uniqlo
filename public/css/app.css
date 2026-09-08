@@ -1,7 +1,7 @@
 /*
  * 跨頁共用的元件樣式。
  *
- * 這個站的外觀由 Tocas UI 2.3.3 負責。這個檔案只放三種東西，其他一律用 Tocas
+ * 這個站的外觀由 Tocas UI 2.3.3 負責。這個檔案只放四種東西，其他一律用 Tocas
  * 的預設元件（.ts.card、.ts.header、.ts.button、.ts.label、.ts.breadcrumb、
  * .ts.pointing.secondary.menu、.ts.horizontal.middoted.list、.ts.basic.dropdown、
  * .ts.input、.ts.definition.table……）：
@@ -14,10 +14,15 @@
  *       margin 吃掉區塊間距、Tocas 的 line-height: 1 讓換行的麵包屑兩行黏在一起。
  *   三、從 master 的 @section('css') 搬過來、多頁共用的定義（清單類型的
  *       icon 顏色）。
+ *   四、站上自己定的意義色：下面 :root 那一塊 token，以及套用它們、Tocas 預設
+ *       不合用的少數規則（連結色、麵包屑分隔符）。這一類不是在修 Tocas 的
+ *       bug，是「同一個意義全站同一個顏色」這條原則的實作，每一個都對得上
+ *       意義→顏色對照表；判準不是「拿掉會不會壞」，是「拿掉會不會讓同一件事
+ *       在不同頁長得不一樣」。
  *
- * 判準是「拿掉這條會怎樣」：拿掉會壞掉或看不清楚就留，拿掉之後 Tocas 預設
- * 會接手、只是長得不一樣，就不該寫在這裡。每一條保留的規則上面都寫得出
- * 「Tocas 為什麼給不了」。
+ * 判準是「拿掉這條會怎樣」（第四類除外，見上）：拿掉會壞掉或看不清楚就留，
+ * 拿掉之後 Tocas 預設會接手、只是長得不一樣，就不該寫在這裡。每一條保留的
+ * 規則上面都寫得出「Tocas 為什麼給不了」。
  *
  * 載入順序：Tocas 之後、頁面自己的 @section('css') 之前，所以這裡蓋得掉 Tocas、
  * 頁面又蓋得掉這裡。
@@ -47,6 +52,14 @@
      * 這個檔案裡沒有規則引用它——不要因為 grep 不到就刪掉。
      */
     --uq-info-text: #0077a6;
+    /*
+     * 連結色。Tocas 全站預設是 #108ee9 亮藍，這個站的連結幾乎都是密集導覽
+     * （分類總覽 117 個、商品頁的分類行、麵包屑），整片藍字反而讀不出結構；
+     * master 同樣位置用的是安靜的灰。深灰配上結構（清單、麵包屑）就認得出來是
+     * 連結，也不會跟特價藍 #0077A6 撞在一起。「同一意義同一顏色」不等於「一個
+     * 顏色只能有一種意義」。
+     */
+    --uq-link: #404040;
     /* chip、篩選面板、工具列與章節選單的線色。對齊 Tocas 的線色（.ts.segment
        的邊框、divider、麵包屑分隔符都是 #e9e9e9），不另外多一階灰 */
     --uq-line: #e9e9e9;
@@ -638,6 +651,47 @@ html:has(.uq-section-menu) {
 }
 
 /* ------------------------------------------------------------------
+ * 連結色。
+ *
+ * 只套三種確定是「導覽用」的連結加一個明確標記，不寫成 a{} 或 .ts.list a.item{}：
+ * 卡片的覆蓋連結、狀態標籤、導覽列、分頁、品牌切換、CTA 各自有自己的語意色與
+ * 互動狀態，全域改會把它們一起吃掉。
+ *
+ * hover 與鍵盤焦點補底線，而且要把顏色一起寫回去——Tocas 有
+ * .ts.breadcrumb a.section:hover{color:#49a9ee}、:active{color:#0e77ca} 與全域的
+ * a:hover{color:#0076ac}，只寫 text-decoration 的話滑過去會閃一下藍色。
+ * ------------------------------------------------------------------ */
+
+.ts.breadcrumb a.section,
+.ts.list.uq-cat-list>a.item,
+.ts.list.uq-categories-line>a.item,
+a.uq-text-link {
+    color: var(--uq-link);
+}
+
+.ts.breadcrumb a.section:hover,
+.ts.breadcrumb a.section:active,
+.ts.breadcrumb a.section:focus-visible,
+.ts.list.uq-cat-list>a.item:hover,
+.ts.list.uq-cat-list>a.item:focus-visible,
+.ts.list.uq-categories-line>a.item:hover,
+.ts.list.uq-categories-line>a.item:focus-visible,
+a.uq-text-link:hover,
+a.uq-text-link:focus-visible {
+    color: var(--uq-link);
+    text-decoration: underline;
+}
+
+/*
+ * 混在句子裡的內文連結常態就要帶底線：導覽型的那三種靠清單與麵包屑的結構就
+ * 認得出來是連結，句子裡的深灰字沒有結構可靠，不畫線等於看不出來能點。
+ * 這是一個明確掛上去的標記、不是全域規則，目前站上還沒有這種連結。
+ */
+a.uq-text-link {
+    text-decoration: underline;
+}
+
+/* ------------------------------------------------------------------
  * 麵包屑。
  * ------------------------------------------------------------------ */
 
@@ -648,6 +702,14 @@ html:has(.uq-section-menu) {
  */
 .ts.breadcrumb {
     line-height: 1.5;
+}
+
+/*
+ * 分隔符。Tocas 給的是 #e9e9e9，跟線色同一階——那個值畫線可以，畫在白底上的
+ * 箭頭就淡到幾乎看不見，層級之間看起來像斷開的。改用次要文字色。
+ */
+.ts.breadcrumb .divider {
+    color: var(--uq-muted);
 }
 
 /*
