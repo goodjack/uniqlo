@@ -158,12 +158,25 @@
         ])
     @endif
 
-    <div class="ts container">
-        @include('lists.cards', [
-            'hmallProductList' => $hmallProductList,
-            'genders' => $genders,
-            'count' => $count,
-        ])
+    {{--
+        章節選單自己不留下方 margin（見 app.css 的 .uq-section-menu），選單到
+        第一段標題的距離改由這一層 Tocas segment 負責：basic 去掉框線與底色、
+        horizontally fitted 去掉左右 padding 交給裡面的 container，剩下的是上下
+        各 1em padding 加 1rem margin。實測選單底到「男裝」28px，跟 master 同一
+        個位置量出來的一樣（master 用的是 ts active basic horizontally fitted
+        tab segment，這裡不需要 tab 的語意）。
+
+        包在 container 外面不是裡面：Tocas 有 .ts.segment:first-child{margin-top:0}，
+        擺進 container 裡它就是第一個子元素、margin 被歸零，只剩 14px。
+    --}}
+    <div class="ts basic horizontally fitted segment">
+        <div class="ts container">
+            @include('lists.cards', [
+                'hmallProductList' => $hmallProductList,
+                'genders' => $genders,
+                'count' => $count,
+            ])
+        </div>
     </div>
 @endsection
 

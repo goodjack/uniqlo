@@ -8,20 +8,30 @@
             最後一筆一律是當頁：不做連結、標 aria-current="page"。
 --}}
 @if (!empty($crumbs))
-    {{-- 不加 small：Tocas 的 .ts.small.breadcrumb 是 13px，低於站上 14px 的地板 --}}
-    <nav class="ts breadcrumb" aria-label="麵包屑">
-        @foreach ($crumbs as $crumb)
-            @if ($loop->last)
-                <div class="active section" aria-current="page">{{ $crumb['label'] }}</div>
-            @elseif (!empty($crumb['url']))
-                <a class="section" href="{{ $crumb['url'] }}">{{ $crumb['label'] }}</a>
-            @else
-                <div class="section">{{ $crumb['label'] }}</div>
-            @endif
+    {{--
+        外面包一層 Tocas 的 basic horizontally fitted segment。麵包屑自己的
+        margin 是 0，擺在內容最上面就等於貼著固定導覽列的下緣（實測商品頁 1280
+        麵包屑 top 60.88、導覽列 bottom 63.31，上緣被蓋掉 2.4px）。segment 的上下
+        1em padding 給它呼吸空間，horizontally fitted 讓左右仍然對齊 container、
+        basic 去掉框線與底色。導覽列本身那 3px 的高度差是版型的 body padding-top
+        與 --uq-nav-height 一起補到 64px，不靠這一層掩蓋。
+    --}}
+    <div class="ts basic horizontally fitted segment">
+        {{-- 不加 small：Tocas 的 .ts.small.breadcrumb 是 13px，低於站上 14px 的地板 --}}
+        <nav class="ts breadcrumb" aria-label="麵包屑">
+            @foreach ($crumbs as $crumb)
+                @if ($loop->last)
+                    <div class="active section" aria-current="page">{{ $crumb['label'] }}</div>
+                @elseif (!empty($crumb['url']))
+                    <a class="section" href="{{ $crumb['url'] }}">{{ $crumb['label'] }}</a>
+                @else
+                    <div class="section">{{ $crumb['label'] }}</div>
+                @endif
 
-            @unless ($loop->last)
-                <i class="angle right icon divider" aria-hidden="true"></i>
-            @endunless
-        @endforeach
-    </nav>
+                @unless ($loop->last)
+                    <i class="angle right icon divider" aria-hidden="true"></i>
+                @endunless
+            @endforeach
+        </nav>
+    </div>
 @endif

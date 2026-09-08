@@ -46,8 +46,12 @@
     --uq-line: #e4e4e4;
     /* 篩選面板的底色 */
     --uq-panel: #f6f6f6;
-    /* nav 是固定的 60px，master 版型的 body padding 就是照這個數字留的 */
-    --uq-nav-height: 60px;
+    /*
+     * 固定導覽列的補償高度。實測導覽列本身是 63.31px，取整到 64px。sticky 章節
+     * 選單的 top、章節錨點的偏移量，以及 master 版型的 body padding-top 都是這個
+     * 值；三處對不齊的話麵包屑會被導覽列蓋住、跳錨點也會落到選單底下。
+     */
+    --uq-nav-height: 64px;
     /* .uq-section-menu 的實際高度。錨點跳轉的 scroll-padding-top 要讓開它 */
     --uq-section-menu-height: 49px;
 }
@@ -428,7 +432,13 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
     position: sticky;
     top: var(--uq-nav-height);
     z-index: 5;
-    margin: 0 0 24px;
+    /*
+     * 不留下方 margin：商品頁選單下面接的是灰色 tertiary segment，24px 白縫會
+     * 在灰塊上面切一條白邊（實測選單 bottom 851.5、灰塊 top 875.5）。白底頁面
+     * 的第一段標題與選單的距離改由內容自己的 Tocas segment 負責，兩種底色的頁面
+     * 都不必在這裡湊數字。
+     */
+    margin: 0;
     border-bottom: 1px solid var(--uq-line);
     background: #fff;
 }
@@ -504,6 +514,16 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
     height: 0;
     position: relative;
     top: calc(-1 * (var(--uq-nav-height) + var(--uq-section-menu-height) + 12px));
+}
+
+/*
+ * 錨點雖然是零高度，它仍然是一個 DOM 節點，所以放在標題前面就讓標題不再是
+ * 容器的第一個子元素，Tocas 的 .ts.header:first-child{margin-top:0} 失效。
+ * 實測每一個章節標題都比 master 多出 25.16px（清單頁四段、分類總覽每組、
+ * 商品頁每一章節都中）。把緊接在錨點後面的標題歸零，換回 Tocas 原本的距離。
+ */
+.uq-section-anchor+.ts.header {
+    margin-top: 0;
 }
 
 html:has(.uq-section-menu) {
@@ -611,4 +631,26 @@ html:has(.uq-section-menu) {
  */
 .ts.breadcrumb {
     line-height: 1.5;
+}
+
+/*
+ * 手機版最後一層單行截斷。商品頁最後一層是完整商品名，390 寬實測整條麵包屑
+ * 佔三行 63px，首屏被吃掉一大塊；而商品名在下面的 h1 已經完整出現過一次，
+ * 麵包屑不必再攤開第二次。
+ *
+ * 兩層都要改 block：Tocas 給 .ts.breadcrumb 的是 inline-block、給 .section 的
+ * 也是 inline-block，寬度由內容撐出來，只給 text-overflow 是截不動的——要先有
+ * 一個「滿一行就是上限」的寬度，省略號才有意義。
+ */
+@media (max-width: 767px) {
+    .ts.breadcrumb {
+        display: block;
+    }
+
+    .ts.breadcrumb .active.section {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 }

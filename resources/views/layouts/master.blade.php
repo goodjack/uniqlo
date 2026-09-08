@@ -41,7 +41,10 @@
 
         body {
             height: 100%;
-            padding: 60px 0 0 0;
+            /* 固定導覽列實測高 63.31px。跟 app.css 的 --uq-nav-height 是同一個值：
+               sticky 章節選單的 top 與章節錨點的偏移量都吃那個 token，三處對不齊
+               的話麵包屑會被導覽列蓋住、跳錨點也會落在選單底下 */
+            padding: 64px 0 0 0;
             display: flex;
             flex-direction: column;
         }

@@ -47,34 +47,43 @@
     {{-- 自己站在 container 外面、自帶內層 container，白底跟底線才是滿版 --}}
     @include('partials.section-menu', ['id' => 'group_menu', 'items' => $menuItems])
 
-    <div class="ts container">
-        @foreach ($brandBlocks as $brandName => $brandGroups)
-            {{-- 品牌區塊的標題，用 Tocas 的 ts large dividing header --}}
-            <h2 class="ts large dividing header uq-brand-h2">{{ $brandName }}</h2>
+    {{--
+        章節選單自己不留下方 margin（見 app.css 的 .uq-section-menu），選單到第一個
+        品牌標題的距離改由這一層 Tocas segment 負責，做法跟清單頁同一套：basic 去掉
+        框線與底色、horizontally fitted 去掉左右 padding 交給裡面的 container，剩下
+        上下各 1em padding 加 1rem margin。包在 container 外面不是裡面：Tocas 有
+        .ts.segment:first-child{margin-top:0}，擺進去就會被歸零、只剩一半。
+    --}}
+    <div class="ts basic horizontally fitted segment">
+        <div class="ts container">
+            @foreach ($brandBlocks as $brandName => $brandGroups)
+                {{-- 品牌區塊的標題，用 Tocas 的 ts large dividing header --}}
+                <h2 class="ts large dividing header uq-brand-h2">{{ $brandName }}</h2>
 
-            @foreach ($brandGroups as $group)
-                @include('partials.section-anchor', ['anchor' => $anchorFor($group), 'menu' => 'group_menu'])
+                @foreach ($brandGroups as $group)
+                    @include('partials.section-anchor', ['anchor' => $anchorFor($group), 'menu' => 'group_menu'])
 
-                {{-- 群組標題不再各自標品牌，區塊標題已經說了 --}}
-                <h3 class="ts header">
-                    {{ $group['category']->name }}
-                    <div class="inline sub header">{{ count($group['children']) }} 個分類</div>
-                </h3>
+                    {{-- 群組標題不再各自標品牌，區塊標題已經說了 --}}
+                    <h3 class="ts header">
+                        {{ $group['category']->name }}
+                        <div class="inline sub header">{{ count($group['children']) }} 個分類</div>
+                    </h3>
 
-                {{-- 往下鑽的入口，不是需要勾選的篩選條件，用 Tocas 的橫向中點清單 --}}
-                <div class="ts horizontal middoted list uq-cat-list">
-                    @foreach ($group['children'] as $child)
-                        <a class="item"
-                            href="{{ route('categories.show', ['brand' => $group['brand']->slug(), 'code' => $child->code]) }}">
-                            {{ $child->name }}
-                            <div class="ts mini circular label">{{ $child->hmall_products_count }}</div>
-                        </a>
-                    @endforeach
-                </div>
+                    {{-- 往下鑽的入口，不是需要勾選的篩選條件，用 Tocas 的橫向中點清單 --}}
+                    <div class="ts horizontal middoted list uq-cat-list">
+                        @foreach ($group['children'] as $child)
+                            <a class="item"
+                                href="{{ route('categories.show', ['brand' => $group['brand']->slug(), 'code' => $child->code]) }}">
+                                {{ $child->name }}
+                                <div class="ts mini circular label">{{ $child->hmall_products_count }}</div>
+                            </a>
+                        @endforeach
+                    </div>
 
-                {{-- 群組之間用 Tocas 的隱形分隔線隔開，跟 master 的清單頁同一個做法 --}}
-                <div class="ts hidden section divider"></div>
+                    {{-- 群組之間用 Tocas 的隱形分隔線隔開，跟 master 的清單頁同一個做法 --}}
+                    <div class="ts hidden section divider"></div>
+                @endforeach
             @endforeach
-        @endforeach
+        </div>
     </div>
 @endsection
