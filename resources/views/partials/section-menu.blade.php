@@ -14,6 +14,8 @@
      * 外側，各自的第二層 container 才是實際內容。
      *
      * 只有一段時不渲染：一個項目的選單點了也不會去別的地方（分段小標不算一段）。
+     *
+     * compact：讓 Tocas 的灰色軌道只包住實際項目，不是撐滿整個 container。
      */
     $anchorCount = collect($items)->filter(fn($item) => isset($item['anchor']))->count();
 @endphp
@@ -21,7 +23,7 @@
 @if ($anchorCount > 1)
     <div class="uq-section-menu">
         <div class="ts container">
-            <div class="ts large pointing secondary menu" id="{{ $id }}">
+            <div class="ts large compact pointing secondary menu" id="{{ $id }}">
                 @foreach ($items as $item)
                     @isset($item['heading'])
                         <div class="header item">{{ $item['heading'] }}</div>

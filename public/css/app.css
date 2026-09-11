@@ -73,8 +73,9 @@
      * 值；三處對不齊的話麵包屑會被導覽列蓋住、跳錨點也會落到選單底下。
      */
     --uq-nav-height: 64px;
-    /* .uq-section-menu 的實際高度。錨點跳轉的 scroll-padding-top 要讓開它 */
-    --uq-section-menu-height: 49px;
+    /* .uq-section-menu 的實際高度。錨點跳轉的 scroll-padding-top 要讓開它。
+       48（項目與 padding）+ 2（Tocas 原生軌道）+ 1（外層滿版分隔線）= 51px */
+    --uq-section-menu-height: 51px;
 }
 
 /* ------------------------------------------------------------------
@@ -522,8 +523,6 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
 
 .uq-section-menu .ts.menu.pointing.secondary {
     margin: 0;
-    /* 那條 1px 灰線改掛在 sticky 的外層，橫著跨整頁比只跨 container 好看 */
-    border-bottom: 0;
     flex-wrap: nowrap;
     overflow-x: auto;
     white-space: nowrap;
