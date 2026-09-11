@@ -310,6 +310,27 @@ i.sale.icon {
 }
 
 /*
+ * 篩選鈕上的計數（有選條件時才出現）。Tocas 的 .ts.label 不管哪個尺寸都自帶
+ * padding: .5833em .833em（相對自己的 font-size），比同一顆按鈕裡純文字的
+ * 一行高——這個計數是疊在按鈕文字後面的小圓點，不是獨立的角標，需要跟文字
+ * 同一行高，Tocas 分不出這兩種用法。上下 padding 歸零、高度卡在跟按鈕文字
+ * 同高（約 17px），計數字數變多（1／2／3 位數）也不會把整顆按鈕撐高。
+ * vertical-align 要用 bottom：實測預設的 baseline／middle 都會讓這個框比
+ * 旁邊純文字多佔一點下緣空間（inline-flex 的基線落點跟純文字的字型下緣不
+ * 是同一條線），整顆按鈕還是會被墊高零點幾 px；bottom 讓它的下緣直接貼齊
+ * 這一行本來就有的下緣，不再多墊。只限定在篩選鈕內，不影響章節選單、分類
+ * 總覽等其他地方的 tiny label。
+ */
+.uq-filter-toggle .ts.label {
+    height: 17px;
+    padding-top: 0;
+    padding-bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: bottom;
+}
+
+/*
  * 焦點框與展開狀態的邊框都要從勾選框推到它的 label 上，但兩者不相鄰（勾選框
  * 在工具列後面、label 在工具列裡），所以從 body 用 :has() 往下選。一頁只有
  * 一顆篩選鈕，選得夠精準。

@@ -13,6 +13,6 @@
     {{-- ::before 內容，不標 aria-hidden 會被念成一串沒有意義的字元 --}}
     <i class="filter icon" aria-hidden="true"></i>篩選
     @if ($selectedTagCount)
-        <div class="ts mini circular label">{{ $selectedTagCount }}</div>
+        <div class="ts tiny circular label">{{ $selectedTagCount }}</div>
     @endif
 </label>
