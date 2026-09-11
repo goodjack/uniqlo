@@ -45,11 +45,19 @@
 
     $productTags = $hmallProductPresenter->getProductTags($hmallProduct, true);
 
-    // 商品資訊小表：只列出真的有值的欄位，空的一列比沒有那一列還難讀
+    /*
+     * 商品資訊：只列出真的有值的欄位，空的一列比沒有那一列還難讀。
+     *
+     * 順序照「給誰穿 → 什麼季節 → 要去官網找的話編號是多少」，從最多人會看的
+     * 排到最少人會看的；編號是查詢用的，放最後。
+     *
+     * 「適穿」改叫「適用對象」：那是官方欄位名稱直接搬過來的，值卻是「男裝」
+     * 「女裝」這種對象而不是穿法，兩個字看不出在講什麼。
+     */
     $productFacts = array_filter([
-        '網路商店編號' => $hmallProduct->product_code,
-        '適穿' => $hmallProduct->sex,
+        '適用對象' => $hmallProduct->sex,
         '季節' => $hmallProduct->season,
+        '網路商店編號' => $hmallProduct->product_code,
     ], fn($value) => filled($value));
 
     /*
@@ -395,33 +403,64 @@
                 <div class="ts hidden divider"></div>
 
                 @if (!empty($productFacts))
-                    {{-- 一組名稱對一個值，用 Tocas 的 definition table，左欄自帶底色 --}}
-                    <table class="ts definition table uq-facts">
-                        <tbody>
-                            @foreach ($productFacts as $label => $value)
-                                <tr>
-                                    <td>{{ $label }}</td>
-                                    <td>{{ $value }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                    {{--
+                        一組名稱對一個值。三筆而已，definition table 那種左右兩欄的
+                        骨架撐得太大，改用 Tocas 的 horizontal stackable list：桌機
+                        三項橫排、名稱跟值黏在一起，手機交給 Tocas 自己直排，不必
+                        寫 media query。
+
+                        名稱不用 .ts.list 的 .header：實測它是 display: block 加
+                        flex-basis: 100%，會把值擠到名稱的下一行，桌機就從三項變六行。
+                        也不用 .ts.label：那會把名稱降到 12px，但這裡是商品內容、
+                        不是控制項，不跟著工具列那套尺寸走。
+
+                        名稱與值外面要再包一層 span：Tocas 的 .item 是 inline-flex，
+                        名稱與值會各自變成一個 flex 項目，中間那個半形空格是可折疊
+                        空白、會被 flex 版面直接丟掉，畫面上就變成「適用對象男裝」。
+                        包成一個項目之後裡面回到一般的文字排版，空格才留得住。
+
+                        uq-facts 沒有對應的樣式規則，它是 PageSkeletonTest 用來定位
+                        這一段的鉤子，跟分類行的 uq-categories-line 同一個用法。
+                    --}}
+                    <div class="ts horizontal stackable list uq-facts">
+                        @foreach ($productFacts as $label => $value)
+                            <div class="item"><span><b>{{ $label }}</b> {{ $value }}</span></div>
+                        @endforeach
+                    </div>
                 @endif
 
                 @if ($categories->isNotEmpty())
                     {{--
                         麵包屑只走一條路徑，這裡列出商品其他掛得上的分類，讓人往回逛。
+
+                        這些分類是平行的入口，不是一條由大到小的路徑：同一件商品會
+                        同時掛在男裝樹、女裝樹與特價企劃樹底下（實測抽樣的商品有
+                        21 到 24 筆，取前五筆之後常常整組都是同一層），所以用中點
+                        清單、不用麵包屑——麵包屑會宣稱一個資料上並不存在的父子關係。
+
+                        前面補一個較淡的標籤說明這一行是什麼。沒有它的時候，這一行
+                        讀起來像一串來源不明的詞。標籤放在清單外面、不放進清單當第一
+                        項：Tocas 會給清單裡第二項之後的每一項畫中點，「分類」變成
+                        第一項的話，第一個分類前面就會多一個中點，看起來像「分類」
+                        也是其中一個入口。
+
                         中點分隔由 Tocas 的 .middoted 用 ::before 畫，不是自己放 span：
                         分隔符不會被連結的底線連著畫，複製這一行也不會把它帶走。
+
+                        外層這個 div 只負責讓這一行跟上面的商品資訊分成兩行（兩者都是
+                        行內元素，不隔開會擠在同一行），本身不需要任何樣式。
                     --}}
-                    <div class="ts horizontal middoted list uq-categories-line">
-                        @foreach ($categories as $category)
-                            <a class="item"
-                                href="{{ route('categories.show', [
-                                    'brand' => $category->brand->slug(),
-                                    'code' => $category->code,
-                                ]) }}">{{ $category->name }}</a>
-                        @endforeach
+                    <div>
+                        <div class="ts basic horizontal label">分類</div>
+                        <div class="ts horizontal middoted list uq-categories-line">
+                            @foreach ($categories as $category)
+                                <a class="item"
+                                    href="{{ route('categories.show', [
+                                        'brand' => $category->brand->slug(),
+                                        'code' => $category->code,
+                                    ]) }}">{{ $category->name }}</a>
+                            @endforeach
+                        </div>
                     </div>
                 @endif
             </div>

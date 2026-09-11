@@ -333,15 +333,15 @@ class PageSkeletonTest extends TestCase
 
         $this->assertGreaterThan(
             0,
-            $this->countNodes($content, '//table[contains(@class, "uq-facts")]//tr/td'),
-            '商品資訊改用 Tocas 的 definition table 呈現'
+            $this->countNodes($content, '//*[contains(@class, "uq-facts")]//*[contains(@class, "item")]'),
+            '商品資訊改用 Tocas 的 horizontal stackable list 呈現'
         );
     }
 
     /**
-     * 商品資訊（網路商店編號、適穿、季節）與分類那一行是屬性資料，不是站在價格
-     * 前面決定要不要買的當下要看的東西，所以搬出 hero 右欄，跟商品實照、歷史價格
-     * 一樣是往下讀的章節，並排在章節選單的第一項。
+     * 商品資訊（適用對象、季節、網路商店編號）與分類那一行是屬性資料，不是站在
+     * 價格前面決定要不要買的當下要看的東西，所以搬出 hero 右欄，跟商品實照、
+     * 歷史價格一樣是往下讀的章節，並排在章節選單的第一項。
      *
      * hero 右欄只剩：標題、元資料列、價格與狀態行、CTA 列、分隔線、商品說明。
      */
@@ -355,14 +355,14 @@ class PageSkeletonTest extends TestCase
 
         $this->assertSame(
             0,
-            $this->countNodes($content, '//*[@id="comment"]//table[contains(@class, "uq-facts")]'),
+            $this->countNodes($content, '//*[@id="comment"]//*[contains(@class, "uq-facts")]'),
             '商品資訊不留在 hero 右欄'
         );
         $this->assertSame(
             1,
             $this->countNodes(
                 $content,
-                '//*[@id="facts"]/following::table[contains(@class, "uq-facts")]'
+                '//*[@id="facts"]/following::*[contains(@class, "uq-facts")]'
             ),
             '商品資訊在自己的章節裡、排在錨點後面'
         );
