@@ -75,7 +75,7 @@
                             <a class="item"
                                 href="{{ route('categories.show', ['brand' => $group['brand']->slug(), 'code' => $child->code]) }}">
                                 {{ $child->name }}
-                                <div class="ts mini circular label">{{ $child->hmall_products_count }}</div>
+                                <div class="ts tiny circular label">{{ $child->hmall_products_count }}</div>
                             </a>
                         @endforeach
                     </div>

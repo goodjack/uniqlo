@@ -80,7 +80,7 @@
                 @foreach ($children as $child)
                     <a class="item" href="{{ $categoryUrl($child->code) }}">
                         {{ $child->name }}
-                        <div class="ts mini circular label">{{ $child->hmall_products_count }}</div>
+                        <div class="ts tiny circular label">{{ $child->hmall_products_count }}</div>
                     </a>
                 @endforeach
             </div>
