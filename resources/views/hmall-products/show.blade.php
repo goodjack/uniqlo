@@ -508,7 +508,9 @@
                 <h2 class="ts large dividing header">
                     StyleHint 網友穿搭靈感
                     <div class="inline sub header">共 {{ $styleHintCount }} 張</div>
-                    <a class="ts right floated icon labeled button"
+                    {{-- uq-header-action：跟首頁「看全部」同一個標題旁次要動作，字級
+                         不跟著標題走（見 app.css） --}}
+                    <a class="ts right floated icon labeled button uq-header-action"
                         href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
                         <i class="camera retro icon" aria-hidden="true"></i>查看列表
                     </a>

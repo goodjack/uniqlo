@@ -11,7 +11,8 @@
  *       在這裡：Tocas 沒有現成的 toolbar 元件，用少量 flex 兜出來比拿 .ts.grid
  *       湊短，但這是取捨、不是 Tocas 做不到。
  *   二、非補不可的修正。Tocas 全域清掉的鍵盤焦點框、Tocas 卡片 grid 的負
- *       margin 吃掉區塊間距、Tocas 的 line-height: 1 讓換行的麵包屑兩行黏在一起。
+ *       margin 吃掉區塊間距、Tocas 的 line-height: 1 讓換行的麵包屑兩行黏在一起、
+ *       Tocas 按鈕的 font-size: 1em 讓標題旁的按鈕跟著標題一起放大。
  *   三、從 master 的 @section('css') 搬過來、多頁共用的定義（清單類型的
  *       icon 顏色）。
  *   四、站上自己定的意義色：下面 :root 那一塊 token，以及套用它們、Tocas 預設
@@ -694,6 +695,30 @@ html:has(.uq-section-menu) {
 .uq-card-heart:focus-visible {
     outline: 2px solid var(--uq-brand);
     outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------
+ * 標題旁的次要動作。
+ * ------------------------------------------------------------------ */
+
+/*
+ * 首頁區塊標題的「看全部」與商品頁 StyleHint 章節的「查看列表」。兩顆都住在
+ * .ts.large.header 裡，而 Tocas 的 .ts.button 是 font-size: 1em——它繼承的是
+ * 標題的 19.88px，實測整顆 57.36px，比它旁邊的標題還搶眼，但它只是「還有更多，
+ * 去那邊看」的次要入口。
+ *
+ * Tocas 沒有任何現成變體能解：在 19.88px 的標題裡，small 是 18.46px、
+ * tiny 17.04px、mini 15.62px，全部還是跟著標題浮動；compact 系列只縮內距、
+ * 不動字級。所以只能明寫一個絕對單位，讓它脫離繼承。0.9rem 就是 master 同一
+ * 個位置用的值。內距維持 Tocas 一般按鈕的預設，不再疊 compact——兩個一起會
+ * 把這顆按鈕縮過頭。
+ *
+ * 用一個要自己掛上去的 class，不寫成「.ts.large.header .ts.button」：以後標題
+ * 旁放的是主要按鈕時，不該被這條規則一起縮小。選擇器帶 .ts.button 是為了贏過
+ * Tocas 自己那條 font-size: 1em（兩個 class 對三個 class）。
+ */
+.ts.button.uq-header-action {
+    font-size: .9rem;
 }
 
 /* ------------------------------------------------------------------
