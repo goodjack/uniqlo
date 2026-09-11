@@ -650,10 +650,28 @@ html:has(.uq-section-menu) {
     font-size: 14px;
 }
 
+/*
+ * 導覽列搜尋框裡的輸入文字是使用者自己打的字，不是導覽項目本身，不算在上面
+ * 那條「導覽列可以留 13px」的例外裡。Tocas 的 .ts.small.menu 讓整條導覽列
+ * （含裡面的表單）字級變 13px，<input> 本身沒有另外的規則、是直接繼承這個
+ * 13px，所以隨便一條指到 input 的規則就贏，不用跟 Tocas 比選擇器權重。
+ *
+ * padding-top/bottom 一起補：Tocas 的 padding 是用 em 算的，字級從 13px 拉到
+ * 14px 會連帶把 padding 撐大、讓輸入框變高，實測整條導覽列會從 63.31px 長到
+ * 66.09px。這裡把 padding 縮小（不是改回原本的 px 值，是縮小到能抵銷字級變大
+ * 多出來的行高），讓輸入框的總高度跟改字級前差不多（實測輸入框仍是 38.16px、
+ * 導覽列 63.28px），只有輸入框裡的字變大，導覽列高度不變。
+ */
+.ts.top.fixed.menu .ts.action.input>input {
+    font-size: 1rem;
+    padding-top: .685em;
+    padding-bottom: .685em;
+}
+
 /* ------------------------------------------------------------------
  * 連結色。
  *
- * 只套三種確定是「導覽用」的連結加一個明確標記，不寫成 a{} 或 .ts.list a.item{}：
+ * 只套三種確定是「導覽用」的連結，不寫成 a{} 或 .ts.list a.item{}：
  * 卡片的覆蓋連結、狀態標籤、導覽列、分頁、品牌切換、CTA 各自有自己的語意色與
  * 互動狀態，全域改會把它們一起吃掉。
  *
@@ -664,8 +682,7 @@ html:has(.uq-section-menu) {
 
 .ts.breadcrumb a.section,
 .ts.list.uq-cat-list>a.item,
-.ts.list.uq-categories-line>a.item,
-a.uq-text-link {
+.ts.list.uq-categories-line>a.item {
     color: var(--uq-link);
 }
 
@@ -675,19 +692,8 @@ a.uq-text-link {
 .ts.list.uq-cat-list>a.item:hover,
 .ts.list.uq-cat-list>a.item:focus-visible,
 .ts.list.uq-categories-line>a.item:hover,
-.ts.list.uq-categories-line>a.item:focus-visible,
-a.uq-text-link:hover,
-a.uq-text-link:focus-visible {
+.ts.list.uq-categories-line>a.item:focus-visible {
     color: var(--uq-link);
-    text-decoration: underline;
-}
-
-/*
- * 混在句子裡的內文連結常態就要帶底線：導覽型的那三種靠清單與麵包屑的結構就
- * 認得出來是連結，句子裡的深灰字沒有結構可靠，不畫線等於看不出來能點。
- * 這是一個明確掛上去的標記、不是全域規則，目前站上還沒有這種連結。
- */
-a.uq-text-link {
     text-decoration: underline;
 }
 
@@ -713,21 +719,35 @@ a.uq-text-link {
 }
 
 /*
- * 手機版最後一層單行截斷。商品頁最後一層是完整商品名，390 寬實測整條麵包屑
- * 佔三行 63px，首屏被吃掉一大塊；而商品名在下面的 h1 已經完整出現過一次，
- * 麵包屑不必再攤開第二次。
+ * 手機版最後一層單行截斷。商品頁最後一層是完整商品名，390 寬換行時省略號
+ * 才有意義；商品名在下面的 h1 已經完整出現過一次，麵包屑不必再攤開第二次。
  *
- * 兩層都要改 block：Tocas 給 .ts.breadcrumb 的是 inline-block、給 .section 的
- * 也是 inline-block，寬度由內容撐出來，只給 text-overflow 是截不動的——要先有
- * 一個「滿一行就是上限」的寬度，省略號才有意義。
+ * .ts.breadcrumb 維持 display: block（撐出滿版寬度，.active.section 的
+ * max-width: 100% 才有東西可以量）。.active.section 用回 Tocas 預設的
+ * inline-block、不跟著改 block：block 會逼最後一層獨佔一整行，兩層麵包屑
+ * 就一定拆成兩行、整塊多佔一行高度；inline-block 讓它跟前面的分隔符擠在
+ * 同一行，塞得下就同行、塞不下才自然換行。max-width: 100% 限制它自己的
+ * 截斷寬度上限，vertical-align: bottom 讓截斷的文字跟同行其他 inline-block
+ * 對齊底線。
  */
 @media (max-width: 767px) {
     .ts.breadcrumb {
         display: block;
     }
 
+    /*
+     * 手機只留最後兩層（上一層、目前）當返回入口，完整路徑留給桌機。麵包屑的
+     * 子元素是 section、divider 交錯出現，最後三個子元素就是「上一層 section、
+     * 分隔符、目前 section」，把它以外的都藏起來。
+     */
+    .ts.breadcrumb>*:not(:nth-last-child(-n+3)) {
+        display: none;
+    }
+
     .ts.breadcrumb .active.section {
-        display: block;
+        display: inline-block;
+        max-width: 100%;
+        vertical-align: bottom;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
