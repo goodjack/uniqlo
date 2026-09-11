@@ -31,7 +31,7 @@ class SearchController extends Controller
 
         $query = trim($request->query('query'));
 
-        if (is_numeric($query)) {
+        if (ctype_digit($query)) {
             // 一頁常共用多個貨號，所以命中判準跟 showProductCodeResults() 是同一條查詢：
             // code 精準符合或 name 裡帶著這組號碼。舊軌 Product 維持精準比對不變。
             $results = $this->searchService->findHmallProductsByCodeOrSharedNumber($query)
@@ -55,7 +55,7 @@ class SearchController extends Controller
 
         abort_if(mb_strlen($query) > self::MAX_QUERY_LENGTH, 404);
 
-        if (is_numeric($query)) {
+        if (ctype_digit($query)) {
             return $this->showProductCodeResults($query);
         }
 

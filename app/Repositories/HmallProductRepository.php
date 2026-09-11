@@ -662,7 +662,7 @@ class HmallProductRepository extends Repository
      * 482514 / 474236」）。REGEXP 前後各夾一個「非數字或字串頭尾」，避免 482514
      * 誤中 4825140 這種只是前綴相同的號碼。
      *
-     * 呼叫端保證 $query 已經是 is_numeric() 驗過的純數字，這裡仍用 binding
+     * 呼叫端保證 $query 只含 ASCII 數字（ctype_digit() 驗過），這裡仍用 binding
      * 帶進 REGEXP 樣式，不做字串拼接。
      *
      * 精準 code 命中排最前面（跟舊行為一致：這一頁本來就是這組編號的商品頁），

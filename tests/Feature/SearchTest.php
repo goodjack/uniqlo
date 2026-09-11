@@ -184,6 +184,45 @@ class SearchTest extends TestCase
         $response->assertSee('0 件');
     }
 
+    /**
+     * is_numeric('123.456') 會判成數字，而小數點在 REGEXP 樣式裡是萬用字元，
+     * 會誤中名稱裡剛好有「123 後面任一字元 456」的商品（例如「123/456」）；
+     * 改用 ctype_digit() 之後這種字串不算數字，不會直接單一命中就 redirect
+     * 到商品頁，要落到關鍵字搜尋（跟 test_keyword_query_no_longer_redirects_to_google
+     * 一樣走 search.show）。
+     */
+    public function test_a_query_with_a_decimal_point_does_not_redirect_straight_to_a_product_page(): void
+    {
+        $this->createProduct([
+            'name' => '限定聯名款 123/456',
+            'code' => '999001',
+            'product_code' => 'u999001',
+        ]);
+
+        $response = $this->get(route('search.index', ['query' => '123.456']));
+
+        $response->assertRedirect(route('search.show', ['query' => '123.456']));
+    }
+
+    /**
+     * 同一組資料在結果頁也要走關鍵字搜尋：123.456 當成一整個關鍵字比對，
+     * 不會命中名稱裡的「123/456」（那是斜線，不是句點），所以查不到任何商品。
+     */
+    public function test_a_query_with_a_decimal_point_finds_nothing_via_keyword_search(): void
+    {
+        $this->createProduct([
+            'name' => '限定聯名款 123/456',
+            'code' => '999001',
+            'product_code' => 'u999001',
+        ]);
+
+        $response = $this->get(route('search.show', ['query' => '123.456']));
+
+        $response->assertOk();
+        $response->assertDontSee('限定聯名款');
+        $response->assertSee('找不到符合的商品');
+    }
+
     public function test_keyword_query_no_longer_redirects_to_google(): void
     {
         $response = $this->get(route('search.index', ['query' => '羽絨']));
