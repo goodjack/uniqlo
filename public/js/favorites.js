@@ -241,7 +241,13 @@ window.UqFavorites = (function () {
         // 清空鈕在「都已下架」與「載入失敗」兩種狀態各有一顆，所以用屬性不用 id
         document.querySelectorAll('[data-favorites-clear]').forEach(function (button) {
             button.onclick = function () {
-                write({});
+                // 寫不進去就不要動畫面：收藏其實還在，硬清空畫面會讓使用者以為真的清掉了
+                if (!write({})) {
+                    showState('favorites-error', '清空失敗，請再試一次');
+
+                    return;
+                }
+
                 container.innerHTML = '';
                 syncToolbar();
                 showState('favorites-empty', DEFAULT_SUMMARY);
