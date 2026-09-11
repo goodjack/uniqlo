@@ -129,7 +129,7 @@
             ])
         @else
             {{-- 分類本來就是單一性別的軸（男裝上衣），不像清單頁需要拆成四段 --}}
-            <div class="ts doubling link cards four">
+            <div class="ts doubling cards four uq-product-cards">
                 @each('hmall-products.card', $hmallProducts, 'hmallProduct')
             </div>
 

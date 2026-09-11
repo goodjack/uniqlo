@@ -12,7 +12,7 @@
             <a class="ts right floated button" href="{{ route($section['route']) }}">看全部</a>
         </h2>
 
-        <div class="ts doubling link cards six">
+        <div class="ts doubling cards six uq-product-cards">
             @each('hmall-products.simple-card', $section['products'], 'hmallProduct')
         </div>
     </div>

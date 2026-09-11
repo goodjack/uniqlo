@@ -374,8 +374,13 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
  * .ts.segment，margin-top 是 1rem（14px），被 -12.25px 倒扣之後實測只剩
  * 1.75px，分頁等於黏在最後一排卡片上。分頁只在分類頁與搜尋頁緊接在卡片
  * grid 後面，用 :has() 抓「後面接著分頁」這個狀態，把 margin-bottom 歸零。
+ *
+ * 選擇器鎖 .uq-product-cards（商品卡片 grid 的專用 class，14 個 blade 都掛它），
+ * 不是所有 .ts.cards：這一頁還有商品實照、官方穿搭那些圖片卡 grid，它們的頁尾
+ * 間距不該被這兩條規則連帶改掉。原本鎖的是 Tocas 的 .link——那個 class 已經
+ * 因為 hover 浮起的問題拿掉了，留著當選擇器等於把樣式掛在一個不存在的東西上。
  */
-.ts.link.cards:has(+ .uq-pagination) {
+.ts.cards.uq-product-cards:has(+ .uq-pagination) {
     margin-bottom: 0;
 }
 
@@ -384,7 +389,7 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
  * 最後一個元素，同一條負 margin 這次是把頁尾往上拉：實測最後一排卡片的底
  * 直接貼到頁尾（0px）。歸零之後回到 12.25px，也就是卡片自己那圈 margin。
  */
-.ts.link.cards:last-child {
+.ts.cards.uq-product-cards:last-child {
     margin-bottom: 0;
 }
 
@@ -649,6 +654,20 @@ html:has(.uq-section-menu) {
 
 .uq-card-heart[aria-pressed="true"] {
     color: var(--uq-brand);
+}
+
+/*
+ * 滑入變深，讓「這裡按得下去」看得出來。整張卡片原本吃 Tocas 的 .ts.link.cards
+ * hover（浮起 3px），連帶讓滑到愛心上時整張卡在動、愛心自己沒反應；.link 拿掉
+ * 之後卡片不再回應滑鼠，收藏這個動作就需要自己的滑入狀態。值跟上面的 #919191
+ * 是同一組的深淺兩態，也是 Tocas 自己的深灰（.ts.breadcrumb .active.section、
+ * .ts.list .item .header 都是這個值）。
+ *
+ * 用 :not() 排掉已收藏：已收藏是品牌紅，滑入不該把它變回灰的——兩條規則的
+ * 權重一樣，不寫 :not() 就會由前後順序決定，紅色會被這條蓋掉。
+ */
+.uq-card-heart:not([aria-pressed="true"]):hover {
+    color: #404040;
 }
 
 /* Tocas 有 a:focus,button:focus{outline:0}，鍵盤走到這顆會完全看不出焦點在哪 */

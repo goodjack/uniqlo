@@ -32,7 +32,7 @@
             <div class="inline sub header">共 {{ count($hmallProductList[$key]) }} 件</div>
         </h2>
         @if (count($hmallProductList[$key]) > 0)
-            <div class="ts doubling link cards four" data-gender-body="{{ $key }}">
+            <div class="ts doubling cards four uq-product-cards" data-gender-body="{{ $key }}">
                 @foreach ($hmallProductList[$key] as $hmallProduct)
                     @include('hmall-products.card', ['hmallProduct' => $hmallProduct])
                 @endforeach

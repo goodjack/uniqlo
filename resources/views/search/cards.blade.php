@@ -2,7 +2,7 @@
     同編號商品
     <div class="inline sub header">共 {{ $hmallProducts->count() }} 件</div>
 </h2>
-<div class="ts doubling link cards four">
+<div class="ts doubling cards four uq-product-cards">
     {{--
         不能用 @each：UNIQLO 常把多個貨號共用同一個商品頁，這裡的 code 只有部分
         跟查詢字一樣，其餘是 name 裡帶出來的號碼（見 HmallProductRepository::
@@ -33,7 +33,7 @@
         舊系統商品
         <div class="inline sub header">共 {{ $products->count() }} 件</div>
     </h2>
-    <div class="ts doubling link cards four">
+    <div class="ts doubling cards four uq-product-cards">
         @each('products.card', $products, 'product')
     </div>
 @endif

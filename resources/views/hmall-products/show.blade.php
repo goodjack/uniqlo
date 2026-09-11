@@ -532,7 +532,7 @@
                 @include('partials.section-anchor', ['anchor' => 'commonly-styled', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">經常搭配商品</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling link cards six">
+                <div class="ts doubling cards six uq-product-cards">
                     @each('hmall-products.simple-card', $commonlyStyledHmallProducts, 'hmallProduct')
                 </div>
             </div>
@@ -545,7 +545,7 @@
                 @include('partials.section-anchor', ['anchor' => 'related', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">延伸商品</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling link cards six">
+                <div class="ts doubling cards six uq-product-cards">
                     @each('hmall-products.card', $relatedHmallProducts, 'hmallProduct')
                 </div>
             </div>
@@ -748,7 +748,7 @@
                 @include('partials.section-anchor', ['anchor' => 'legacy', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">舊系統商品</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling link cards six">
+                <div class="ts doubling cards six uq-product-cards">
                     @each('products.card', $relatedProducts, 'product')
                 </div>
             </div>

@@ -1,6 +1,6 @@
 {{-- 關鍵字搜尋的結果。只含現行商品，舊軌 Product 已凍結不納入搜尋。 --}}
 @if ($hmallProducts->isNotEmpty())
-    <div class="ts doubling link cards four">
+    <div class="ts doubling cards four uq-product-cards">
         @each('hmall-products.card', $hmallProducts, 'hmallProduct')
     </div>
 
