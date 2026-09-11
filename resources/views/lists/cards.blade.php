@@ -42,4 +42,6 @@
             <p>沒有商品</p>
         @endif
     @endforeach
+
+    <div class="ts hidden divider"></div>
 @endif

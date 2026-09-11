@@ -134,6 +134,7 @@
             </div>
 
         @include('partials.pagination', ['paginator' => $hmallProducts])
+        <div class="ts hidden divider"></div>
         @endif
     </div>
 @endsection
