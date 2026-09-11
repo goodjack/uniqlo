@@ -149,6 +149,26 @@ i.sale.icon {
 }
 
 /*
+ * 工具列的搜尋框與排序下拉，高度跟著按鈕一起縮。
+ *
+ * 工具列的按鈕已經改用 Tocas 的 compact（35.47px，字維持 14px）。但 Tocas
+ * 只有按鈕有 compact——.ts.input 與 .ts.basic.dropdown 沒有任何「只縮內距」
+ * 的變體（查過 2.3.3 全表，compact 只出現在 button、label、table、card、
+ * menu、segment、slate、checkboxes），它們的尺寸變體一律是改字級，搜尋框裡
+ * 是使用者自己打的字，不該為了矮 5px 把它降級。只縮按鈕、留這兩個在 41px，
+ * 就是把前幾輪剛修好的「同一列不齊」再做一次。
+ *
+ * 兩者的高度算法跟按鈕同一條：line-height 1.2142em + 上下 padding + 1px 邊框
+ * 兩道。按鈕的 compact 是把 .78571em 的上下內距乘 0.75，這裡照抄同一個算式，
+ * 三種控制項就落在同一個 35.47px，不必寫死像素、Tocas 改版也跟得上。
+ */
+.uq-toolbar .ts.input>input,
+.uq-toolbar .ts.basic.dropdown {
+    padding-top: calc(.78571em * .75);
+    padding-bottom: calc(.78571em * .75);
+}
+
+/*
  * 桌機：start 的內容一多就會比 end 先撐爆一整行的寬度。.uq-toolbar 預設的
  * flex-wrap: wrap 這時會判定「這一行放不下」，把 end 整顆擠去下一行、自己
  * 單獨佔一排——但其實只要讓 start 自己內部

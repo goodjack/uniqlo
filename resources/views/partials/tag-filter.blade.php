@@ -45,7 +45,8 @@
     {{-- 多選是聯集不是交集，這句話是使用者勾第二個之前唯一看得到的說明 --}}
     <p>符合任一條件即顯示</p>
 
-    <div class="ts buttons">
+    {{-- 清除與套用是次要操作，跟工具列同一個 compact 尺寸 --}}
+    <div class="ts compact buttons">
         @if (! empty($selectedTags))
             <a class="ts basic button"
                 href="{{ url()->current() }}{{ $otherParams ? '?' . http_build_query($otherParams) : '' }}">清除</a>

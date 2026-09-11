@@ -72,10 +72,16 @@
                     不加 basic：Tocas 自己的 .ts.basic.buttons .button.active 是 #414141 底
                     配 #272727 字，實測對比 1.3:1，選中哪一顆看不出來。實心版的 .active 是
                     #bfbfbf 底配 #404040 字，正常、hover、選中三態 Tocas 成套處理，零覆寫。
-                    不加 small：同一列的搜尋框、排序、篩選鈕都是 41px，small 是 38px、字
-                    13px，一排三種高度。
+                    尺寸用 Tocas 的 compact（35.47px、字仍是 14px）。這一列現在是品牌、
+                    搜尋、排序、篩選四種控制項排在一起，不是 master 那個獨立的品牌切換，
+                    所以尺寸要照「同一列的工具列操作」來挑：small（38.19px）只少 3px，
+                    收不出效果；tiny（35.42px）跟 compact 幾乎同高卻把字降到 12px，這是
+                    高頻操作、不該犧牲可讀性；master 那個 small very compact（30.03px）
+                    會跟底下的圓角條件同高，看不出「工具列操作」與「已選條件」是兩件事，
+                    手機上也偏擠。同一列的搜尋框與排序下拉 Tocas 沒有現成的同高版本，
+                    由 app.css 補到同一個高度——只縮按鈕會讓同一列又變成兩種高度。
                 --}}
-                <div class="ts buttons">
+                <div class="ts compact buttons">
                     <a class="ts button {{ $currentBrand === null ? 'active' : '' }}"
                         href="{{ $currentUrl }}?{{ $queryFor(['brand' => null]) }}">全部</a>
                     <a class="ts button {{ $currentBrand === 'UNIQLO' ? 'active' : '' }}"
@@ -132,7 +138,7 @@
                         <option value="{{ \App\Services\ListService::SORT_PRICE_ASC }}" @selected(request('sort') === \App\Services\ListService::SORT_PRICE_ASC)>排序：價格由低到高</option>
                     </select>
                     {{-- 沒有 JavaScript 時這顆是唯一的出路，有的時候 master 版型會把它藏起來 --}}
-                    <button class="ts basic button" type="submit" data-auto-submit-fallback>套用</button>
+                    <button class="ts basic compact button" type="submit" data-auto-submit-fallback>套用</button>
                 </form>
 
                 @include('partials.tag-filter-button')
