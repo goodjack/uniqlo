@@ -4,9 +4,11 @@ namespace Tests\Unit\Repositories;
 
 use App\Enums\CategoryLevel;
 use App\Models\HmallCategory;
+use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use stdClass;
 use Tests\TestCase;
 
 class HmallProductCategoryTest extends TestCase
@@ -167,6 +169,40 @@ class HmallProductCategoryTest extends TestCase
     public function test_reports_zero_when_every_product_saves(): void
     {
         $this->assertSame(0, $this->repository->saveProductsFromV3($this->products()));
+    }
+
+    /**
+     * save、syncCategories、寫價格歷史三步要在同一個交易裡：分類同步半路丟例外時，
+     * 不能讓新價格已經留在資料庫裡——不然下次抓到同一個價格會被判「沒變」直接跳過，
+     * 價格走勢就永久缺一筆。
+     *
+     * categorySortList 塞一筆 code 是陣列的項目：syncCategories 拿它當 mapWithKeys
+     * 的 array key 時，PHP 對非 int/string 的 key 一律丟 TypeError，這是會在正式環境
+     * 真的發生的例外（官方回傳格式跑掉），不是為了測試硬造的假輸入。
+     */
+    public function test_a_failed_category_sync_rolls_back_the_saved_price_and_history(): void
+    {
+        // 先正常存一次，讓商品在資料庫裡有一筆基準價格，才能比對「有沒有被改到」
+        $this->repository->saveProductsFromV3($this->products());
+
+        $product = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail();
+        $originalMinPrice = $product->min_price;
+        $historyCountBeforeRetry = HmallPriceHistory::count();
+
+        $products = $this->products();
+        // 換一個不同的價格，確保這次會被判「價格有變」而嘗試寫歷史
+        $products[0]->minPrice = $originalMinPrice + 100;
+
+        $badSort = new stdClass;
+        $badSort->code = ['this-is-not-a-string'];
+        $badSort->sort = '000000001';
+        $products[0]->categorySortList[] = $badSort;
+
+        $failedCount = $this->repository->saveProductsFromV3($products);
+
+        $this->assertSame(1, $failedCount);
+        $this->assertSame($originalMinPrice, $product->fresh()->min_price);
+        $this->assertSame($historyCountBeforeRetry, HmallPriceHistory::count());
     }
 
     private function products(): array

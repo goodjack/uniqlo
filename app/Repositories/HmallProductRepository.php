@@ -815,18 +815,23 @@ class HmallProductRepository extends Repository
                 $model->stockout_at = $this->getStockoutAt($model, $product);
                 $model->stock = $product->stock ?? null;
 
-                $model->save();
+                // save、syncCategories、寫價格歷史三步包同一個交易：任何一步丟例外都要整件商品
+                // 一起回滾，不然分類同步失敗時新價格已經寫進去，下次抓到同價會被判「沒變」
+                // 直接跳過，價格走勢就永久缺一筆。
+                DB::transaction(function () use ($model, $product, $categoryIds, $isChangedThePrice) {
+                    $model->save();
 
-                $this->syncCategories($model, $product, $categoryIds);
+                    $this->syncCategories($model, $product, $categoryIds);
 
-                if (! $isChangedThePrice) {
-                    return;
-                }
+                    if (! $isChangedThePrice) {
+                        return;
+                    }
 
-                $hmallPriceHistory = new HmallPriceHistory;
-                $hmallPriceHistory->min_price = $model->min_price;
-                $hmallPriceHistory->max_price = $model->max_price;
-                $model->hmallPriceHistories()->save($hmallPriceHistory);
+                    $hmallPriceHistory = new HmallPriceHistory;
+                    $hmallPriceHistory->min_price = $model->min_price;
+                    $hmallPriceHistory->max_price = $model->max_price;
+                    $model->hmallPriceHistories()->save($hmallPriceHistory);
+                });
             } catch (Throwable $e) {
                 $failedCount++;
 
