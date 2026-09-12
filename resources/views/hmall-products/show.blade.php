@@ -404,23 +404,11 @@
 
                 @if (!empty($productFacts))
                     {{--
-                        一組名稱對一個值。三筆而已，definition table 那種左右兩欄的
-                        骨架撐得太大，改用 Tocas 的 horizontal stackable list：桌機
-                        三項橫排、名稱跟值黏在一起，手機交給 Tocas 自己直排，不必
-                        寫 media query。
-
-                        名稱不用 .ts.list 的 .header：實測它是 display: block 加
-                        flex-basis: 100%，會把值擠到名稱的下一行，桌機就從三項變六行。
-                        也不用 .ts.label：那會把名稱降到 12px，但這裡是商品內容、
-                        不是控制項，不跟著工具列那套尺寸走。
-
-                        名稱與值外面要再包一層 span：Tocas 的 .item 是 inline-flex，
-                        名稱與值會各自變成一個 flex 項目，中間那個半形空格是可折疊
-                        空白、會被 flex 版面直接丟掉，畫面上就變成「適用對象男裝」。
-                        包成一個項目之後裡面回到一般的文字排版，空格才留得住。
-
-                        uq-facts 沒有對應的樣式規則，它是 PageSkeletonTest 用來定位
-                        這一段的鉤子，跟分類行的 uq-categories-line 同一個用法。
+                        三筆而已，用 Tocas 的 horizontal stackable list：桌機橫排、
+                        手機交給 stackable 自己直排。名稱與值包在同一個 span 裡，
+                        避免 Tocas 的 flex 版面把兩者拆開（.item 是 inline-flex，
+                        中間的半形空格會被吃掉）。uq-facts 是 PageSkeletonTest
+                        用來定位這一段的 class。
                     --}}
                     <div class="ts horizontal stackable list uq-facts">
                         @foreach ($productFacts as $label => $value)
