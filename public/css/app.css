@@ -528,6 +528,8 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
     white-space: nowrap;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    /* inline-flex 依內容撐寬，項目一多會撐破整頁；上限給容器寬，交還給上面的 overflow-x 捲動 */
+    max-width: 100%;
 }
 
 .uq-section-menu .ts.menu.pointing.secondary::-webkit-scrollbar {
@@ -549,6 +551,15 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
      */
     line-height: 24px;
     white-space: nowrap;
+}
+
+/*
+ * 最後一項不留右間距。上面那條給每一項的 24px 右間距是項目與項目之間的距離，
+ * 最後一項後面沒有下一項，那 24px 只會留在 compact 收出來的灰色軌道裡面，
+ * 軌道就比最後一個字多伸出 24px、看起來像沒對齊。
+ */
+.uq-section-menu .ts.menu.pointing.secondary .item:last-child {
+    margin-right: 0;
 }
 
 /*
