@@ -86,9 +86,8 @@ window.UqFavorites = (function () {
 
     function paintButton(button, isFavorite) {
         button.classList.toggle('active', isFavorite);
-        // Tocas 的 basic 加 active 會變成深底配深字（實測對比度 1.46，AA 門檻是 4.5）。
-        // 拿掉 basic 之後的 active 是 5.64，可讀。
-        button.classList.toggle('basic', !isFavorite);
+        // 底色與文字顏色由 app.css 的收藏鈕專屬規則負責（背景透明、已收藏時愛心紅色）。
+        // basic 類別兩種狀態都保留，讓邊框與未收藏、與分享鈕保持一致的視覺感受。
         button.querySelector('.label').textContent = isFavorite ? '已收藏' : '收藏';
         button.querySelector('.icon').className = isFavorite ? 'heart icon' : 'heart outline icon';
         button.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');

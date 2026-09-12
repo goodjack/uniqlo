@@ -708,6 +708,53 @@ html:has(.uq-section-menu) {
 }
 
 /* ------------------------------------------------------------------
+ * 商品頁收藏鈕。已收藏狀態用品牌紅實心愛心，拿掉全站 .active 的灰底。
+ * ------------------------------------------------------------------ */
+
+/*
+ * 這顆按鈕要的是「按鈕本身維持中性，只有愛心變紅」，所以已收藏時底色與
+ * 文字色都要蓋回未收藏的樣子，只留 icon 是品牌紅。
+ *
+ * 擋路的是 Tocas 這一條：
+ *   .ts.button.basic:not(.primary)…:not(.secondary).active.active.active.active
+ *   { background: #414141; color: #272727; }
+ * 深底配深字，實測對比 1.46（AA 門檻 4.5）。它把 .active 疊了四次又串了六個
+ * :not()，權重等於 12 個 class；用 data-favorite-button 再加幾層都追不上，
+ * 除非把 .active 也跟著疊四次——那比 !important 更難讀。這是這個檔案少數
+ * 該用 !important 的情況，理由是 Tocas 自己先用了特異性 hack。
+ *
+ * 兩條都只在有 data-favorite-button 時命中，清單頁品牌篩選那些
+ * .ts.button.active 的灰底不受影響。#5a5a5a 是 Tocas 未收藏時的字色，
+ * 兩種狀態的文字要看起來是同一顆按鈕。
+ */
+.ts.button[data-favorite-button].active {
+    background-color: transparent !important;
+    color: #5a5a5a !important;
+}
+
+.ts.button[data-favorite-button].active .icon {
+    color: var(--uq-brand);
+}
+
+/*
+ * Hover 時愛心保持紅色。未收藏那顆的 hover 是 Tocas 原生的深底配白字；
+ * 已收藏這顆 Tocas 自己就把 .active 排除在 hover 之外（規則寫成
+ * .ts.button.basic:hover:not(.active):not(:active)），所以維持不變，
+ * 這裡只要確保愛心不被別的規則拉走顏色。
+ */
+.ts.button[data-favorite-button].active:hover .icon {
+    color: var(--uq-brand);
+}
+
+/*
+ * 鍵盤焦點用品牌紅框線，讓焦點外框看得清楚。
+ */
+.ts.button[data-favorite-button]:focus-visible {
+    outline: 2px solid var(--uq-brand);
+    outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------
  * 標題旁的次要動作。
  * ------------------------------------------------------------------ */
 
