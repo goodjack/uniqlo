@@ -593,12 +593,12 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
 }
 
 /*
- * 錨點雖然是零高度，它仍然是一個 DOM 節點，所以放在標題前面就讓標題不再是
- * 容器的第一個子元素，Tocas 的 .ts.header:first-child{margin-top:0} 失效。
- * 實測每一個章節標題都比 master 多出 25.16px（清單頁四段、分類總覽每組、
- * 商品頁每一章節都中）。把緊接在錨點後面的標題歸零，換回 Tocas 原本的距離。
+ * 錨點是零高度但仍是一個 DOM 節點，擠掉了標題原本的 :first-child 身分，Tocas 的
+ * .ts.header:first-child{margin-top:0} 就不再生效。要補回來的只有「錨點自己就是
+ * 容器第一個元素」這一種；範圍放寬到每一個錨點的話，段落之間本來該有的標題上距
+ * 也會一起被歸零。
  */
-.uq-section-anchor+.ts.header {
+.ts.container>.uq-section-anchor:first-child+.ts.header {
     margin-top: 0;
 }
 

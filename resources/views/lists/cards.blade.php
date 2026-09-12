@@ -18,7 +18,6 @@
         'hint' => $currentQ !== '' ? '試試看換個關鍵字，或少選幾個條件' : '試試看少選幾個條件',
     ])
 @else
-    {{-- 段與段之間的距離由 Tocas 的 .ts.large.header 上緣間距負責 --}}
     @foreach ($genders as $key => $label)
         @include('partials.section-anchor', ['anchor' => $key, 'menu' => 'gender_menu'])
         {{--
@@ -40,6 +39,15 @@
         @else
             {{-- master 在這裡就是一句「沒有商品」：這一段有沒有貨也是資訊，不受搜尋影響 --}}
             <p>沒有商品</p>
+        @endif
+
+        {{--
+            段與段之間的分隔，照 master 原樣。它跟標題自己的上距是兩件事：上距是
+            標題在自己那一段裡的呼吸空間，這一條說的是上一群商品到此為止、下一群
+            開始。最後一段不加，那裡已經有頁尾前的分隔。
+        --}}
+        @if (!$loop->last)
+            <div class="ts hidden section divider"></div>
         @endif
     @endforeach
 
