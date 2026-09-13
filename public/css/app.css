@@ -79,6 +79,28 @@
 }
 
 /* ------------------------------------------------------------------
+ * 全站按鈕的鍵盤焦點框。Tocas 有一條
+ *   input:focus, button:focus, select:focus, textarea:focus { outline: 0 }
+ * 把全站所有真的 <button> 的鍵盤焦點框都清掉了（實測：收藏頁的移除收藏／
+ * 清空收藏、商品頁的分享，鍵盤取得焦點時 outline-width 都是 0px）。
+ *
+ * 選 button 而不只是 .ts.button，是為了涵蓋沒有掛 Tocas 類別的自訂按鈕；同時
+ * 保留 .ts.button 是為了涵蓋用 <a class="ts button"> 做的按鈕式連結（<a> 不吃
+ * Tocas 那條 outline:0，但保留這條才不用另外記哪些 <a> 是按鈕式的）。
+ *
+ * 用 outline-offset: 2px 讓外框跟按鈕邊框之間空出頁面底色，外框貼到的是頁面
+ * 底色而不是按鈕邊框，符合 1.4.11 的非文字對比：品牌紅 #CE5F58 對白底
+ * 3.89:1、面板灰 #f7f7f7 3.63:1、工具列灰 #f6f6f6 3.60:1、深色頁尾 #333333
+ * 3.25:1，都過 3:1。對應 WCAG 2.4.7 Focus Visible（AA）與 1.4.11 Non-text
+ * Contrast（AA）；2.4.13 Focus Appearance 是 AAA，不強制。
+ * ------------------------------------------------------------------ */
+button:focus-visible,
+.ts.button:focus-visible {
+    outline: 2px solid var(--uq-brand);
+    outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------
  * 清單類型的 icon 顏色。首頁區塊與清單頁共用同一份定義，改色只改這裡。
  * ------------------------------------------------------------------ */
 
@@ -701,12 +723,6 @@ html:has(.uq-section-menu) {
     color: #404040;
 }
 
-/* Tocas 有 a:focus,button:focus{outline:0}，鍵盤走到這顆會完全看不出焦點在哪 */
-.uq-card-heart:focus-visible {
-    outline: 2px solid var(--uq-brand);
-    outline-offset: 2px;
-}
-
 /* ------------------------------------------------------------------
  * 商品頁收藏鈕。已收藏狀態用品牌紅實心愛心，拿掉全站 .active 的灰底。
  * ------------------------------------------------------------------ */
@@ -744,14 +760,6 @@ html:has(.uq-section-menu) {
  */
 .ts.button[data-favorite-button].active:hover .icon {
     color: var(--uq-brand);
-}
-
-/*
- * 鍵盤焦點用品牌紅框線，讓焦點外框看得清楚。
- */
-.ts.button[data-favorite-button]:focus-visible {
-    outline: 2px solid var(--uq-brand);
-    outline-offset: 2px;
 }
 
 /* ------------------------------------------------------------------
