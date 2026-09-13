@@ -91,8 +91,57 @@ window.UqFavorites = (function () {
         return write(favorites);
     }
 
+    /**
+     * addedAt 是後來才加的欄位，舊使用者瀏覽器裡那批收藏沒有這個值，重新整理
+     * 後也不會替它們補一個——補了就是造假的時間，會讓「最新收藏在前」失真。
+     */
+    function isValidAddedAt(value) {
+        return typeof value === 'string' && !isNaN(new Date(value).getTime());
+    }
+
+    /**
+     * 「最新收藏在前」的排序鍵。
+     *
+     * 規則：
+     * 1. addedAt 有效的依時間由新到舊。
+     * 2. 缺少時間或時間無效的舊收藏全部排在後面。
+     * 3. 同一類（都有效或都無效）時間相同（或都沒有時間）時，維持目前存在
+     *    localStorage 裡的先後順序——不補造假的時間，也不讓每次重新整理都跳動。
+     */
+    function sortedKeys(favorites) {
+        return Object.keys(favorites)
+            .map(function (key, index) {
+                return { key: key, index: index };
+            })
+            .sort(function (a, b) {
+                const itemA = favorites[a.key];
+                const itemB = favorites[b.key];
+                const validA = isValidAddedAt(itemA.addedAt);
+                const validB = isValidAddedAt(itemB.addedAt);
+
+                if (validA && validB) {
+                    const diff = new Date(itemB.addedAt).getTime() - new Date(itemA.addedAt).getTime();
+
+                    return diff !== 0 ? diff : a.index - b.index;
+                }
+
+                if (validA !== validB) {
+                    return validA ? -1 : 1;
+                }
+
+                return a.index - b.index;
+            })
+            .map(function (entry) {
+                return entry.key;
+            });
+    }
+
     function items() {
-        return Object.values(read()).map(function (item) {
+        const favorites = read();
+
+        return sortedKeys(favorites).map(function (key) {
+            const item = favorites[key];
+
             return { brand: item.brand, code: item.code };
         });
     }
