@@ -7,6 +7,11 @@
 
     .item 仍然是 .ts.items 的直接子元素、.image 與 .content 仍然是 .item 的直接
     子元素，Tocas 的版面規則（含 divided 的分隔線）整組照樣套得到。
+
+    $actions 是選用的：不傳就完全不輸出（用 @isset 整段跳過，不是輸出空字串），
+    這個 partial 也給商品頁的延伸商品用，那邊沒有動作鈕，外觀不能多一個位元組。
+    有傳的話會渲染成 .item 的第三個直接子元素 .actions，跟 .image、.content
+    同一層，這是 Tocas items 文件裡「動作」跟「垂直對齊」那兩節的原生寫法。
 --}}
 <div class="item" {!! $itemAttributes ?? '' !!}>
     <a class="ts tiny image" href="{{ $hmallProduct->route_url }}">
@@ -27,4 +32,9 @@
         @endif
         {!! $slot ?? '' !!}
     </div>
+@isset($actions)
+    <div class="middle aligned right floated actions">
+        {!! $actions !!}
+    </div>
+@endisset
 </div>

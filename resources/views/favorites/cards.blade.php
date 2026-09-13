@@ -7,5 +7,6 @@
         'itemAttributes' =>
             'data-favorite-key="' . e($hmallProduct->brand . ':' . $hmallProduct->product_code) . '"',
         'slot' => view('favorites.item-labels', ['hmallProduct' => $hmallProduct]),
+        'actions' => view('favorites.item-remove-button', ['hmallProduct' => $hmallProduct]),
     ])
 @endforeach

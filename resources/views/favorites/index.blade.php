@@ -9,7 +9,10 @@
 
 @section('content')
     <div class="ts fluid slate">
-        <i class="heart faded icon"></i>
+        {{-- 這頁的主題就是收藏，愛心不用灰階淡化，改用 Tocas 原生的
+             negative（品牌紅 #CE5F58）實心愛心；跟第 30 行「還沒有收藏」
+             那顆維持灰色的空心愛心是兩種狀態，不要改成一樣。 --}}
+        <i class="heart negative icon"></i>
         <span class="header">收藏</span>
         <span class="description" id="favorites-summary">只存在這個瀏覽器，換裝置看不到</span>
     </div>
@@ -24,10 +27,13 @@
 
         <div class="ts relaxed divided items" id="favorites-cards"></div>
 
-        {{-- 三種狀態長得不一樣，使用者才知道自己該做什麼 --}}
+        {{--
+            三種狀態長得不一樣，使用者才知道自己該做什麼。這一種不傳 icon：
+            上面第 12 行的頁首紅愛心已經講完「這是收藏頁」，這裡再放一顆
+            heart outline 只是重複，而且比頁首那顆更大更深、反而搶戲。
+        --}}
         @include('partials.empty-state', [
             'attributes' => 'id="favorites-empty" hidden',
-            'icon' => 'heart outline faded',
             'title' => '還沒有收藏任何商品',
             'hint' => '在商品頁按「收藏」就會出現在這裡',
         ])

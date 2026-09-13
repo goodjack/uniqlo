@@ -755,6 +755,113 @@ html:has(.uq-section-menu) {
 }
 
 /* ------------------------------------------------------------------
+ * 收藏頁（/favorites）整列排法。
+ *
+ * 清單版面是 Tocas 的 .ts.items（見 favorites/item-labels.blade.php、
+ * hmall-products/item.blade.php 的 $actions），這裡只補三件 Tocas 沒有
+ * 現成寫法的事：品牌角標跟狀態標籤併行、移除鈕貼齊列尾、以及手機版工具列
+ * 靠右。
+ * ------------------------------------------------------------------ */
+
+/*
+ * 品牌角標（.ts.mini.label）跟狀態標籤（card-labels 局部檔輸出的
+ * .description，裡面是每件商品的特價、歷史新低價這些
+ * .ts.horizontal.basic.circular.label）原本各自佔一行：兩個都是 block
+ * 元素，.description 本身沒有任何 flex 或 inline 的變體可以套。用
+ * display: contents 讓 .description 從版面裡消失，它裡面的每個標籤
+ * 直接變成 .favorites-labels 的 flex 子元素，才能跟品牌角標排進同一個
+ * 可換行的區域，不各自佔一行。
+ */
+#favorites-cards .favorites-labels {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5em;
+}
+
+#favorites-cards .favorites-labels>.description {
+    display: contents;
+}
+
+/*
+ * 移除鈕搬到 .item 的 .actions（跟 .image、.content 同一層，見
+ * item.blade.php 的 $actions）。Tocas 的「動作」與「垂直對齊」兩節提供
+ * middle aligned 把它垂直置中，但沒有「貼齊列尾」的變體——.actions 預設
+ * margin-left: 1.2em（.ts.items .item .actions，四個 class），right
+ * floated 那個工具類（[class*="right floated"]，屬性選擇器，特異度只有
+ * 一個 class）蓋不過它，所以 margin-left: auto 這條要自己補，移除鈕才會
+ * 貼齊列尾，右緣跟工具列的「全部清除」對齊。
+ */
+#favorites-cards>.item>.actions {
+    margin-left: auto;
+}
+
+/*
+ * 商品名是一整串沒有空白的字（貨號連著英數字、或官方偶爾出現的長型號）
+ * 時，預設的 overflow-wrap: normal 只肯在空白處斷行，那一行就會一路撐出
+ * 去。實測 390 寬放一個 80 字元不含空白的名稱，整頁 scrollWidth 從 390
+ * 變成 1058，撐出去的正是這個連結（量到寬 941）。
+ *
+ * 這件事在卡片上不會發生（卡片的欄寬由 Tocas 的 grid 決定、實測長名零
+ * 溢出），是清單這種「左圖右文」排法才有的，所以只鎖收藏頁、不動共用的
+ * 商品列，商品頁的延伸商品維持原樣。
+ *
+ * 用 anywhere 不用 break-word：兩者都會在必要時硬斷，但 anywhere 在算
+ * 最小內容寬度時就把斷點算進去，外層的 grid 與 flex 才不會先依「整串不
+ * 能斷」去要寬度。桌機 1280 本來就不會溢出（彈性排版會先壓縮其他欄），
+ * 這條放在共用段落、兩個寬度都套。
+ */
+#favorites-cards .content .header {
+    overflow-wrap: anywhere;
+}
+
+/*
+ * 手機（767px 以下）縮圖跟內容還是要並排——不用 Tocas 的 items.stackable，
+ * 那個變體會把縮圖搬到內容上面。但桌機那種「縮圖、內容、動作區」三欄橫排
+ * 在 390px 寬會把商品名壓到沒辦法讀，改用 grid 讓縮圖跟內容維持左右並排、
+ * 動作區換到下一行、跟內容同一欄（不是貼著縮圖），按鈕再靠右對齊。Tocas
+ * 的 .item 只有「三欄橫排」的 flex 版面，跟會搬動縮圖的 stackable，沒有
+ * 「保留左右排版、只把第三欄換行」這個選項。
+ */
+@media (max-width: 767px) {
+    #favorites-cards>.item {
+        display: grid;
+        grid-template-columns: auto 1fr;
+    }
+
+    #favorites-cards>.item>.image {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    #favorites-cards>.item>.content {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    #favorites-cards>.item>.actions {
+        grid-column: 2;
+        grid-row: 2;
+        margin-left: 0;
+        margin-top: .5em;
+        justify-content: flex-end;
+    }
+}
+
+/*
+ * 手機版「全部清除」目前會靠左：.uq-toolbar-end 在 767px 以下改成
+ * flex: 0 0 100% 的橫向捲動列，給清單頁、分類頁那種一次要放搜尋、排序、
+ * 篩選好幾顆控制項的工具列用，預設 justify-content 是 flex-start。收藏頁
+ * 的工具列永遠只有一顆「全部清除」，不需要橫向捲動，只需要靠右、跟桌機
+ * 一致，用 id 鎖只改這一頁，不動其他頁工具列的橫向捲動版面。
+ */
+@media (max-width: 767px) {
+    #favorites-toolbar .uq-toolbar-end {
+        justify-content: flex-end;
+    }
+}
+
+/* ------------------------------------------------------------------
  * 標題旁的次要動作。
  * ------------------------------------------------------------------ */
 
