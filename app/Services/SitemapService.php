@@ -31,6 +31,10 @@ class SitemapService extends Service
     {
         $sitemap = Sitemap::create();
 
+        // 這份清單是手寫的，順序跟 routes/web.php 的 lists 那一段一致，方便對照有沒有漏。
+        // most-visited 就是這樣漏掉過一次：路由、robots.txt、頁面的標準網址都有它，
+        // 只有這裡沒有。以後新增清單頁記得回來補一行（底下的分類頁是從資料表長出來的，
+        // 不受這個限制）。
         $pages = [
             'categories',
             'lists/limited-offers',
@@ -42,6 +46,7 @@ class SitemapService extends Service
             'lists/coming-soon',
             'lists/multi-buy',
             'lists/online-special',
+            'lists/most-visited',
             'products/limited-offers',
             'products/sales',
             'products/multi-buys',
