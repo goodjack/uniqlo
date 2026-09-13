@@ -101,30 +101,39 @@ class HmallProductPresenter
      * 所以白底的字改用加深版的 --uq-info-text（#0077A6，對比 5.0:1；#0087B8 實測只有
      * 4.07:1，不到 AA 的 4.5:1，加深到這版才過）。GU 角標那種實心底色維持 #00ADEA，
      * 那是底色不是字色，沒有對比問題。
+     *
+     * 2026-09 這一輪：實測發現除了藍色，其餘幾色在白底 12px 字級下也都不到 4.5:1
+     * （期間限定紅 3.89、新款綠 2.27、合購藍灰 2.59、熱門穿搭 3.13、熱門瀏覽
+     * 3.44、網路獨家橘 2.17）。做法跟藍色那次一樣：同色系加深，只換文字用的
+     * token，icon 與實心底角標維持原色不動（那些是非文字對比，3:1 就過，原色
+     * 已經夠）。新 token 定義與各自的對比數字見 app.css 的 :root。
      */
-    private const COLOR_OFFER = '#CE5F58';
+    private const COLOR_OFFER = 'var(--uq-offer-text)';
 
     private const COLOR_PRICE = 'var(--uq-info-text)';
 
-    private const COLOR_NEW = '#8BB96E';
+    private const COLOR_NEW = 'var(--uq-new-text)';
 
     private const COLOR_COMING_SOON = '#50723C';
 
-    private const COLOR_MULTI_BUY = '#79A8B9';
+    private const COLOR_MULTI_BUY = 'var(--uq-multi-buy-text)';
 
     /*
      * 網路獨家。master 這裡是兩個值：卡片 #F29E18（跟清單頁的 icon、商品頁那顆
      * online-special 按鈕同色），商品頁的標籤卻是 #79A8B9（跟合購同色）。站主
      * 09-07 定的原則是同一個意義全站同一個顏色，所以兩邊都用 #F29E18——那也是
      * 這個意義在其他三個地方本來就在用的值，商品頁標籤才是落單的那一個。
+     *
+     * 這裡指的「兩邊都用 #F29E18」是 icon 與按鈕；標籤文字現在改讀
+     * --uq-online-special-text（加深版，見上），原色留給非文字的 icon 與按鈕用。
      */
-    private const COLOR_ONLINE_SPECIAL = '#F29E18';
+    private const COLOR_ONLINE_SPECIAL = 'var(--uq-online-special-text)';
 
     private const COLOR_NEUTRAL = '#5A5A5A';
 
-    private const COLOR_TOP_WEARING = '#CC7F49';
+    private const COLOR_TOP_WEARING = 'var(--uq-top-wearing-text)';
 
-    private const COLOR_MOST_VISITED = '#B58105';
+    private const COLOR_MOST_VISITED = 'var(--uq-most-visited-text)';
 
     /**
      * 商品的狀態標籤，依「使用者最在意什麼」排序：省多少錢 › 買不買得到 › 其他屬性。

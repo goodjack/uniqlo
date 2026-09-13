@@ -14,9 +14,14 @@
         <div class="sub header">
             ${{ (int) $hmallProduct->highest_record_price }}
             -
-            {{-- 現價還高於歷史最低，代表「還可以再等」，那個最低價染綠 --}}
+            {{--
+                現價還高於歷史最低，代表「還可以再等」，那個最低價染綠。這裡跟
+                HmallProductPresenter::COLOR_NEW 是同一個顏色（同樣讀
+                --uq-new-text），2026-09 這輪一起加深：原本寫死的 #8BB96E 在白底
+                只有 2.27:1，不到 4.5:1。
+            --}}
             @if ($hmallProduct->price > $hmallProduct->lowest_record_price)
-                <span style="color: #8BB96E;">
+                <span style="color: var(--uq-new-text);">
                     ${{ (int) $hmallProduct->lowest_record_price }}
                 </span>
             @else

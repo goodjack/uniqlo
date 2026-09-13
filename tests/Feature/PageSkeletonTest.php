@@ -556,7 +556,9 @@ class PageSkeletonTest extends TestCase
         $this->assertSame(1, $range->length);
         $this->assertStringContainsString('790', $range->item(0)->textContent);
         $this->assertStringContainsString('390', $range->item(0)->textContent);
-        $this->assertStringContainsString('#8BB96E', $html, '現價還高於歷史最低時，最低價染綠');
+        // 2026-09 這輪把寫死的 #8BB96E（白底只有 2.27:1）加深到 --uq-new-text
+        // token（跟 HmallProductPresenter::COLOR_NEW 同一個顏色，見 app.css）
+        $this->assertStringContainsString('var(--uq-new-text)', $html, '現價還高於歷史最低時，最低價染綠');
     }
 
     /**
