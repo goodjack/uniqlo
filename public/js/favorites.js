@@ -313,11 +313,15 @@ window.UqFavorites = (function () {
         return { show: show, update: update };
     })();
 
+    /**
+     * 文字固定顯示「收藏」，不隨狀態改變——切換按鈕（toggle button）的可及名稱
+     * 不該隨狀態變（WAI-ARIA 的 button 模式），狀態交給 aria-pressed 與品牌紅
+     * 實心愛心。之前這裡連文字帶 aria-pressed 一起換，兩個一起用等於自己打架。
+     */
     function paintButton(button, isFavorite) {
         button.classList.toggle('active', isFavorite);
         // 底色與文字顏色由 app.css 的收藏鈕專屬規則負責（背景透明、已收藏時愛心紅色）。
         // basic 類別兩種狀態都保留，讓邊框與未收藏、與分享鈕保持一致的視覺感受。
-        button.querySelector('.label').textContent = isFavorite ? '已收藏' : '收藏';
         button.querySelector('.icon').className = isFavorite ? 'heart icon' : 'heart outline icon';
         button.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
     }

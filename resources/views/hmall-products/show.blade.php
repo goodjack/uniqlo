@@ -371,8 +371,12 @@
                                         target="_blank" rel="nofollow noopener" aria-label="UNIQLO">前往 UNIQLO 官網<i
                                             class="external icon"></i></a>
                                 @endif
-                                {{-- 不給 aria-label：它會蓋掉看得到的「收藏」，而且切換狀態時不會跟著改， --}}
-                                {{-- 讀螢幕的人會一直聽到 Favorite。可及名稱交給 .label 的文字，favorites.js 兩邊一起換。 --}}
+                                {{--
+                                    不給 aria-label：可及名稱交給 .label 的文字。文字固定顯示「收藏」，
+                                    不隨狀態改變（切換按鈕的名稱不該隨狀態變，WAI-ARIA 的 button 模式），
+                                    狀態交給 aria-pressed 與 favorites.js 切換的品牌紅實心愛心，跟卡片上
+                                    那顆的做法一致（paintCardButton 也是只換愛心、不換字）。
+                                --}}
                                 <button type="button" class="ts basic button" data-favorite-button
                                     data-brand="{{ $hmallProduct->brand }}"
                                     data-product-code="{{ $hmallProduct->product_code }}" aria-pressed="false"><i
