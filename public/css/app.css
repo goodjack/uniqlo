@@ -790,7 +790,7 @@ html:has(.uq-section-menu) {
  * margin-left: 1.2em（.ts.items .item .actions，四個 class），right
  * floated 那個工具類（[class*="right floated"]，屬性選擇器，特異度只有
  * 一個 class）蓋不過它，所以 margin-left: auto 這條要自己補，移除鈕才會
- * 貼齊列尾，右緣跟工具列的「全部清除」對齊。
+ * 貼齊列尾，右緣跟工具列的「清空收藏」對齊。
  */
 #favorites-cards>.item>.actions {
     margin-left: auto;
@@ -849,10 +849,10 @@ html:has(.uq-section-menu) {
 }
 
 /*
- * 手機版「全部清除」目前會靠左：.uq-toolbar-end 在 767px 以下改成
+ * 手機版「清空收藏」目前會靠左：.uq-toolbar-end 在 767px 以下改成
  * flex: 0 0 100% 的橫向捲動列，給清單頁、分類頁那種一次要放搜尋、排序、
  * 篩選好幾顆控制項的工具列用，預設 justify-content 是 flex-start。收藏頁
- * 的工具列永遠只有一顆「全部清除」，不需要橫向捲動，只需要靠右、跟桌機
+ * 的工具列永遠只有一顆「清空收藏」，不需要橫向捲動，只需要靠右、跟桌機
  * 一致，用 id 鎖只改這一頁，不動其他頁工具列的橫向捲動版面。
  */
 @media (max-width: 767px) {

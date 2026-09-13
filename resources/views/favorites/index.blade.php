@@ -21,7 +21,7 @@
         {{-- 一件都沒有的時候整條工具列不出現，favorites.js 有東西可以列才打開 --}}
         <x-toolbar id="favorites-toolbar" hidden>
             <x-slot:end>
-                <button type="button" class="ts basic compact button" data-favorites-clear>全部清除</button>
+                <button type="button" class="ts basic compact button" data-favorites-clear>清空收藏</button>
             </x-slot:end>
         </x-toolbar>
 
@@ -61,6 +61,9 @@
         <div class="ts active text loader">載入中</div>
         </div>
     </div>
+
+    @include('favorites.snackbar')
+    @include('favorites.clear-modal')
 @endsection
 
 @section('javascript')
