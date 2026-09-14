@@ -536,6 +536,9 @@ window.UqFavorites = (function () {
 
                 container.innerHTML = '';
                 syncToolbar();
+                // 清空後重算一次：篩選鈕與「找不到符合的商品」空狀態都要
+                // 跟著收起來，不然開著篩選時清空會同時看到兩種空狀態
+                applyOfferFilter(container);
                 showState('favorites-empty', DEFAULT_SUMMARY);
 
                 Snackbar.show('已清空收藏', function () {
@@ -618,6 +621,96 @@ window.UqFavorites = (function () {
     }
 
     /**
+     * 「只看優惠中」篩選：純前端即時篩選，不記住狀態（勾選框本身就是 DOM
+     * 狀態，重新整理頁面自然回到預設關閉，不用額外程式碼清掉）。
+     *
+     * data-on-offer 是後端算好寫進每一列的明確狀態（見
+     * favorites/cards.blade.php、HmallProductPresenter::isOnOffer()），這裡
+     * 只讀這個屬性，不解析文字或顏色。
+     */
+    function isOfferFilterOn() {
+        const checkbox = document.getElementById('favorites-offer-filter');
+
+        return !!checkbox && checkbox.checked;
+    }
+
+    /**
+     * 每次卡片重新渲染（載入、移除、復原、清空後復原）都要重跑一次：篩選
+     * 開關本身活在工具列裡不會被清掉，但卡片是新的，符合資格的筆數、要不要
+     * 顯示「找不到符合的商品」都要重算。
+     */
+    function applyOfferFilter(container) {
+        const on = isOfferFilterOn();
+        const rows = Array.prototype.slice.call(container.querySelectorAll('[data-favorite-key]'));
+        const total = rows.length;
+        let matched = 0;
+
+        rows.forEach(function (row) {
+            const onOffer = row.dataset.onOffer === '1';
+
+            if (onOffer) {
+                matched += 1;
+            }
+
+            row.hidden = on && !onOffer;
+        });
+
+        const control = document.getElementById('favorites-filter-control');
+        const summaryEl = document.getElementById('favorites-filter-summary');
+        const filteredEmpty = document.getElementById('favorites-filter-empty');
+        // 有卡片、篩選開著、但一件都不符合：要顯示專用的空結果，不是
+        // 「還沒有收藏任何商品」——使用者其實有收藏，只是這次篩選沒有結果
+        const noMatches = total > 0 && on && matched === 0;
+
+        if (control) {
+            control.hidden = total === 0;
+        }
+
+        if (summaryEl) {
+            summaryEl.textContent = on
+                ? ('顯示 ' + matched + '／共 ' + total + ' 件')
+                : ('優惠中 ' + matched);
+        }
+
+        if (filteredEmpty) {
+            filteredEmpty.hidden = !noMatches;
+        }
+
+        container.hidden = noMatches;
+    }
+
+    /**
+     * 篩選勾選框跟「顯示全部」只需要在 DOMContentLoaded 綁一次：勾選框本身
+     * 住在工具列，不在 #favorites-cards 裡面，renderPage 重新渲染卡片時
+     * 不會把它們洗掉。
+     */
+    function bindOfferFilter() {
+        const checkbox = document.getElementById('favorites-offer-filter');
+        const showAllButton = document.getElementById('favorites-filter-show-all');
+        const container = document.getElementById('favorites-cards');
+
+        if (checkbox) {
+            checkbox.addEventListener('change', function () {
+                applyOfferFilter(container);
+            });
+        }
+
+        if (showAllButton) {
+            showAllButton.addEventListener('click', function () {
+                if (checkbox) {
+                    checkbox.checked = false;
+                }
+
+                applyOfferFilter(container);
+
+                if (checkbox) {
+                    checkbox.focus();
+                }
+            });
+        }
+    }
+
+    /**
      * 一批一批換卡片，任一批失敗就整個失敗——只渲染一半的清單比讀不到更難懂。
      */
     async function fetchCards(options, wanted) {
@@ -654,6 +747,9 @@ window.UqFavorites = (function () {
 
         container.innerHTML = '';
         showState(null);
+        // 重新載入前先歸零：0 張卡片時篩選鈕本來就該藏起來，等新內容渲染完
+        // 再重算一次真正的筆數
+        applyOfferFilter(container);
 
         document.getElementById('favorites-retry').onclick = function () {
             renderPage(options);
@@ -691,6 +787,9 @@ window.UqFavorites = (function () {
         // 商品可能已經下架，回來的卡片會比收藏的少
         const rendered = container.querySelectorAll('[data-favorite-key]');
 
+        // 篩選開關本身不受下架影響，一律重算：0 張卡片時它會自己藏起來
+        applyOfferFilter(container);
+
         // 有收藏、但回來的卡片是空的，代表那些商品都下架了
         if (rendered.length === 0) {
             showState('favorites-gone');
@@ -700,6 +799,7 @@ window.UqFavorites = (function () {
 
         bindRemoveButtons(container, options, function (remaining) {
             syncToolbar();
+            applyOfferFilter(container);
 
             if (remaining > 0) {
                 const totalStored = items().length;
@@ -748,6 +848,7 @@ window.UqFavorites = (function () {
         bindCardButton: bindCardButton,
         bindAll: bindAll,
         bindClearAll: bindClearAll,
+        bindOfferFilter: bindOfferFilter,
         renderPage: renderPage,
     };
 })();
@@ -755,4 +856,5 @@ window.UqFavorites = (function () {
 document.addEventListener('DOMContentLoaded', function () {
     window.UqFavorites.bindAll();
     window.UqFavorites.bindClearAll();
+    window.UqFavorites.bindOfferFilter();
 });

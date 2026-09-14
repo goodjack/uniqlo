@@ -914,13 +914,32 @@ html:has(.uq-section-menu) {
  * 手機版「清空收藏」目前會靠左：.uq-toolbar-end 在 767px 以下改成
  * flex: 0 0 100% 的橫向捲動列，給清單頁、分類頁那種一次要放搜尋、排序、
  * 篩選好幾顆控制項的工具列用，預設 justify-content 是 flex-start。收藏頁
- * 的工具列永遠只有一顆「清空收藏」，不需要橫向捲動，只需要靠右、跟桌機
- * 一致，用 id 鎖只改這一頁，不動其他頁工具列的橫向捲動版面。
+ * 的工具列右側永遠只有一顆「清空收藏」，不需要橫向捲動，只需要靠右、跟
+ * 桌機一致，用 id 鎖只改這一頁，不動其他頁工具列的橫向捲動版面。左側的
+ * 「只看優惠中」篩選維持預設的 flex-start（靠左），不用額外覆寫。
  */
 @media (max-width: 767px) {
     #favorites-toolbar .uq-toolbar-end {
         justify-content: flex-end;
     }
+}
+
+/*
+ * 收藏頁工具列左側：「只看優惠中」篩選鈕（沿用清單頁 .uq-chip 圓角樣式，
+ * 見上面「篩選面板」那組規則）跟旁邊的符合筆數文字。這裡只補 .uq-chip
+ * 沒有的排法——兩者要並排、垂直置中——外觀（圓角、選中時的底色、焦點框）
+ * 全部繼承 .uq-chip 既有規則，不重寫。
+ */
+.favorites-filter-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.favorites-filter-summary {
+    color: var(--uq-muted);
+    font-size: 14px;
+    white-space: nowrap;
 }
 
 /* ------------------------------------------------------------------

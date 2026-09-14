@@ -260,6 +260,34 @@ class HmallProductPresenter
         return $tags;
     }
 
+    /**
+     * 「優惠中」：現在真的有價格上的好處、而且買得到。
+     *
+     * 收藏頁「只看優惠中」篩選鈕靠這個方法判斷，不解析畫面上的文字或顏色——
+     * 這是收藏頁與其他呼叫端共用的明確狀態。
+     *
+     * 算優惠中的六個狀態：期間限定特價、網路限定特價、歷史新低價、合購商品、
+     * 特價商品、APP 限定特價，全部都是「現在買比較划算」。新款商品、即將上市、
+     * 網路獨家販售、穿搭與瀏覽排行榜不算——那些講的是商品新不新、買不買得到、
+     * 受不受歡迎，跟現在划不划算是兩件事。
+     *
+     * 已售罄的商品即使同時掛著優惠標籤也不算：現在買不到，優惠沒有可以採取的
+     * 行動，跟「沒有優惠」對使用者來說是同一種結果。
+     */
+    public function isOnOffer($hmallProduct): bool
+    {
+        if ($hmallProduct->is_stockout) {
+            return false;
+        }
+
+        return $hmallProduct->is_limited_offer
+            || $hmallProduct->is_ec_only
+            || $hmallProduct->is_new_historical_low
+            || $hmallProduct->is_multi_buy
+            || $hmallProduct->is_sale
+            || $hmallProduct->is_app_offer;
+    }
+
     public function getLimitedOfferMessage($hmallProduct)
     {
         $date = $hmallProduct->limited_offer_end_date;

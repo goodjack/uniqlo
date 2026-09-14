@@ -138,6 +138,54 @@ class FavoriteTest extends TestCase
         $response->assertDontSee('UNIQLO 的褲子');
     }
 
+    /**
+     * 「只看優惠中」篩選鈕靠這個屬性判斷，不解析畫面上的文字或顏色
+     * （見 HmallProductPresenter::isOnOffer()）。
+     */
+    public function test_a_product_on_sale_is_marked_as_on_offer(): void
+    {
+        $this->createProduct(['product_code' => 'u001', 'identity' => '["concessional_rate"]']);
+
+        $content = $this->postJson(route('favorites.cards'), [
+            'items' => [['brand' => 'UNIQLO', 'code' => 'u001']],
+        ])->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-on-offer="1"', $content);
+    }
+
+    /**
+     * 已售罄的商品即使同時掛著特價標籤，也不算優惠中——現在買不到。
+     */
+    public function test_a_stockout_product_on_sale_is_not_marked_as_on_offer(): void
+    {
+        $this->createProduct([
+            'product_code' => 'u001',
+            'identity' => '["concessional_rate"]',
+            'stock' => 'N',
+        ]);
+
+        $content = $this->postJson(route('favorites.cards'), [
+            'items' => [['brand' => 'UNIQLO', 'code' => 'u001']],
+        ])->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-on-offer="0"', $content);
+        $this->assertStringNotContainsString('data-on-offer="1"', $content);
+    }
+
+    /**
+     * 新款商品不是價格優惠，不該被標成優惠中。
+     */
+    public function test_a_new_arrival_is_not_marked_as_on_offer(): void
+    {
+        $this->createProduct(['product_code' => 'u001', 'identity' => '["new_product"]']);
+
+        $content = $this->postJson(route('favorites.cards'), [
+            'items' => [['brand' => 'UNIQLO', 'code' => 'u001']],
+        ])->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-on-offer="0"', $content);
+    }
+
     public function test_items_are_required(): void
     {
         $this->postJson(route('favorites.cards'), [])->assertUnprocessable();
