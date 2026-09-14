@@ -604,8 +604,17 @@ window.UqFavorites = (function () {
         }
     }
 
-    function summaryFor(count) {
-        return '共 ' + count + ' 件，只存在這個瀏覽器';
+    /**
+     * 頁首件數要跟清空收藏確認視窗數的是同一批（瀏覽器裡真正存起來的筆數），
+     * 不是畫面上列出來的卡片數——商品下架時，那筆還在收藏裡、只是換不到卡片，
+     * 兩個數字不一樣使用者會以為收藏憑空消失了，所以要附註找不到幾件。
+     */
+    function summaryFor(totalStored, notFoundCount) {
+        if (notFoundCount > 0) {
+            return '共 ' + totalStored + ' 件，其中 ' + notFoundCount + ' 件已經找不到，只存在這個瀏覽器';
+        }
+
+        return '共 ' + totalStored + ' 件，只存在這個瀏覽器';
     }
 
     /**
@@ -693,7 +702,9 @@ window.UqFavorites = (function () {
             syncToolbar();
 
             if (remaining > 0) {
-                summary.textContent = summaryFor(remaining);
+                const totalStored = items().length;
+
+                summary.textContent = summaryFor(totalStored, totalStored - remaining);
 
                 return;
             }
@@ -715,7 +726,7 @@ window.UqFavorites = (function () {
 
         showState(null);
 
-        summary.textContent = summaryFor(rendered.length);
+        summary.textContent = summaryFor(wanted.length, wanted.length - rendered.length);
     }
 
     /**
