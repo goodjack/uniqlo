@@ -120,22 +120,35 @@
 }
 
 /* ------------------------------------------------------------------
- * 全站按鈕的鍵盤焦點框。Tocas 有一條
+ * 全站可操作元件的鍵盤焦點框。Tocas 有一條
  *   input:focus, button:focus, select:focus, textarea:focus { outline: 0 }
- * 把全站所有真的 <button> 的鍵盤焦點框都清掉了（實測：收藏頁的移除收藏／
- * 清空收藏、商品頁的分享，鍵盤取得焦點時 outline-width 都是 0px）。
+ * 把全站真的 <button>、<select>、<input>、<textarea> 的鍵盤焦點框全部清掉。
  *
- * 選 button 而不只是 .ts.button，是為了涵蓋沒有掛 Tocas 類別的自訂按鈕；同時
- * 保留 .ts.button 是為了涵蓋用 <a class="ts button"> 做的按鈕式連結（<a> 不吃
- * Tocas 那條 outline:0，但保留這條才不用另外記哪些 <a> 是按鈕式的）。
+ * 實測（真的按 Tab、分頁真的取得焦點）：
+ *   - 按鈕（收藏頁的移除收藏與清空收藏、商品頁的分享）outline-width 都是 0px。
+ *   - 排序下拉取得焦點後外框從瀏覽器預設的 3px 變 0px，而且邊框、底色、陰影
+ *     全都沒變——完全沒有任何焦點提示。
+ *   - 清單內搜尋框還算有反應（邊框 #e9e9e9 變 #66afe9），但那個藍對白底只有
+ *     2.37:1、對沒焦點時的灰邊只有 1.95:1，兩個都不到 1.4.11 要的 3:1。
  *
- * 用 outline-offset: 2px 讓外框跟按鈕邊框之間空出頁面底色，外框貼到的是頁面
- * 底色而不是按鈕邊框，符合 1.4.11 的非文字對比：品牌紅 #CE5F58 對白底
+ * 所以按鈕、下拉、輸入框一起補。選 button 而不只是 .ts.button，是為了涵蓋沒有
+ * 掛 Tocas 類別的自訂按鈕；同時保留 .ts.button 是為了涵蓋用 <a class="ts button">
+ * 做的按鈕式連結（<a> 不吃 Tocas 那條 outline:0，但保留這條才不用另外記哪些
+ * <a> 是按鈕式的）。
+ *
+ * 用 outline-offset: 2px 讓外框跟元件邊框之間空出頁面底色，外框貼到的是頁面
+ * 底色而不是元件自己的邊框，符合 1.4.11 的非文字對比：品牌紅 #CE5F58 對白底
  * 3.89:1、面板灰 #f7f7f7 3.63:1、工具列灰 #f6f6f6 3.60:1、深色頁尾 #333333
  * 3.25:1，都過 3:1。對應 WCAG 2.4.7 Focus Visible（AA）與 1.4.11 Non-text
  * Contrast（AA）；2.4.13 Focus Appearance 是 AAA，不強制。
+ *
+ * 搜尋框原本那個藍邊沒有拿掉：它是 Tocas 的 input focus 樣式，留著不影響，
+ * 外框本身已經滿足對比要求，兩者疊加只是多一層提示。
  * ------------------------------------------------------------------ */
 button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
 .ts.button:focus-visible {
     outline: 2px solid var(--uq-brand);
     outline-offset: 2px;
