@@ -160,6 +160,46 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
+     * 續跑時，這一輪就算有具名商品寫入失敗，也不能因此才略過缺貨判定；
+     * 續跑本身已經足夠讓缺貨判定被跳過，不需要疊加別的理由，通知文字
+     * 要維持「續跑」那一句，不能被寫入失敗的訊息蓋掉或混在一起。
+     */
+    public function test_a_resumed_crawl_with_a_named_failure_still_skips_stockout()
+    {
+        Cache::set('hmall_products:page:UNIQLO', 3);
+
+        Http::fake([
+            '*' => Http::response([
+                'resp' => [
+                    [
+                        'productList' => [],
+                        'productSum' => 0,
+                    ],
+                ],
+            ]),
+        ]);
+
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        $repository = $this->createMock(HmallProductRepository::class);
+        $repository->method('saveProductsFromV3')
+            ->willReturn(new ProductSaveResult(['u0000000053204']));
+        $repository->expects($this->never())->method('setStockoutHmallProducts');
+
+        $service = new HmallProductService($repository, $this->mockProductRepository);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $result = $service->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        $this->assertSame('未執行缺貨判定，這一輪是從上次中斷的地方接著跑', $result->note);
+        // checkpoint 清掉，明天才會重新從第 1 頁完整掃
+        $this->assertNull(Cache::get('hmall_products:page:UNIQLO'));
+    }
+
+    /**
      * 從第 1 頁開始、全部成功才是完整掃描，這時候缺貨判定才該跑。
      */
     public function test_a_full_clean_crawl_still_marks_products_as_stocked_out()

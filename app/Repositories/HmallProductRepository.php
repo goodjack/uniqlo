@@ -887,7 +887,17 @@ class HmallProductRepository extends Repository
             ->where('updated_at', '<', $updatedIsBefore);
 
         if ($excludedProductCodes !== []) {
-            $query->whereNotIn('product_code', $excludedProductCodes);
+            // hmall_products.product_code 允許 NULL。SQL 的 NULL NOT IN (...)
+            // 永遠不成立（結果是 unknown，等同不符合），所以直接寫
+            // whereNotIn 會把品牌底下所有 product_code 是 NULL 的舊資料整批
+            // 排除在缺貨判定之外——跟排除清單完全無關，是誤傷。
+            // 目前真實資料裡沒有一件商品的 product_code 是空的，但欄位允許，
+            // 所以還是要處理。改成括號條件，OR 要收在括號裡才不會繞過外層
+            // 已經有的品牌與日期條件。
+            $query->where(function ($query) use ($excludedProductCodes) {
+                $query->whereNotIn('product_code', $excludedProductCodes)
+                    ->orWhereNull('product_code');
+            });
         }
 
         $query->update([

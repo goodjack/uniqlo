@@ -133,6 +133,51 @@ class HmallProductServiceDbTest extends TestCase
     }
 
     /**
+     * hmall_products.product_code 允許 NULL；排除清單非空時，NULL 不能被
+     * whereNotIn 誤保護住，否則同品牌所有編號空白的舊資料都不會被標下架
+     * ——因為 SQL 的 NULL NOT IN (...) 永遠不成立。
+     */
+    public function test_a_product_with_null_product_code_is_still_marked_as_stocked_out_when_exclusions_exist(): void
+    {
+        $codeOfFailedProduct = 'u0000000099999';
+
+        $this->seedProductLastUpdatedYesterday($codeOfFailedProduct);
+        $idOfNullCodeProduct = $this->seedNullCodeProductLastUpdatedYesterday();
+
+        $repository = app(HmallProductRepository::class);
+
+        $repository->setStockoutHmallProducts('UNIQLO', null, [$codeOfFailedProduct]);
+
+        $this->assertNull(
+            $this->stockoutAtOf($codeOfFailedProduct),
+            '具名的寫入失敗商品在排除清單內，不可以被標成下架'
+        );
+        $this->assertNotNull(
+            HmallProduct::find($idOfNullCodeProduct)->stockout_at,
+            'product_code 是 NULL 的舊商品不在排除清單裡，不能因為 NULL NOT IN (...) 不成立而被誤保護，要照樣標下架'
+        );
+    }
+
+    /**
+     * 建一件 product_code 是 NULL、上次更新是昨天的既有商品。
+     */
+    private function seedNullCodeProductLastUpdatedYesterday(): int
+    {
+        $product = HmallProduct::unguarded(function () {
+            return HmallProduct::create(['product_code' => null, 'brand' => 'UNIQLO']);
+        });
+
+        DB::table('hmall_products')
+            ->where('id', $product->id)
+            ->update([
+                'created_at' => now()->subDay(),
+                'updated_at' => now()->subDay(),
+            ]);
+
+        return $product->id;
+    }
+
+    /**
      * 建一件「上次更新是昨天」的既有商品。
      *
      * 缺貨判定比的是 updated_at，所以時間要落在今天之前；Eloquent 存檔會自動蓋掉
