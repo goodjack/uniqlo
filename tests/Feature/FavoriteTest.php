@@ -191,6 +191,15 @@ class FavoriteTest extends TestCase
         $this->postJson(route('favorites.cards'), [])->assertUnprocessable();
     }
 
+    /**
+     * 少了整個 items 鍵跟給一個空陣列，走的是同一條 required 規則，但沒有
+     * 測試釘住空陣列這個形狀（PR #76 審查留言 4057184152 第 1 點）。
+     */
+    public function test_an_empty_items_array_is_rejected(): void
+    {
+        $this->postJson(route('favorites.cards'), ['items' => []])->assertUnprocessable();
+    }
+
     public function test_an_unknown_brand_is_rejected(): void
     {
         $this->postJson(route('favorites.cards'), [
@@ -203,6 +212,80 @@ class FavoriteTest extends TestCase
         $items = array_map(fn (int $i) => ['brand' => 'UNIQLO', 'code' => "u{$i}"], range(1, 101));
 
         $this->postJson(route('favorites.cards'), ['items' => $items])->assertUnprocessable();
+    }
+
+    /**
+     * 只測過 101 筆被擋，沒測過剛好卡在上限的 100 筆會通過——把 max 規則
+     * 改成 max:99 不會有任何測試變紅（PR #76 審查留言 4057184152 第 2 點）。
+     */
+    public function test_exactly_the_maximum_item_count_is_accepted(): void
+    {
+        $items = array_map(fn (int $i) => ['brand' => 'UNIQLO', 'code' => "u{$i}"], range(1, 100));
+
+        $this->postJson(route('favorites.cards'), ['items' => $items])->assertOk();
+    }
+
+    /**
+     * code 的 string 規則沒有測試釘住，拿掉它整份測試照樣全綠
+     * （PR #76 審查留言 4057184152 第 3 點）。
+     */
+    public function test_a_numeric_code_is_rejected(): void
+    {
+        $this->postJson(route('favorites.cards'), [
+            'items' => [['brand' => 'UNIQLO', 'code' => 123]],
+        ])->assertUnprocessable();
+    }
+
+    public function test_an_array_code_is_rejected(): void
+    {
+        $this->postJson(route('favorites.cards'), [
+            'items' => [['brand' => 'UNIQLO', 'code' => ['u001']]],
+        ])->assertUnprocessable();
+    }
+
+    /**
+     * max:191 沒有測試釘住（PR #76 審查留言 4057184152 第 4 點）。
+     */
+    public function test_a_code_over_the_max_length_is_rejected(): void
+    {
+        $this->postJson(route('favorites.cards'), [
+            'items' => [['brand' => 'UNIQLO', 'code' => str_repeat('a', 192)]],
+        ])->assertUnprocessable();
+    }
+
+    /**
+     * 同一組品牌加編號重複出現在 items 裡，現在的行為是照 items 的筆數渲染
+     * 同樣的卡片、不去重。這裡判斷這個行為合理、直接釘住，不是新設計：
+     *
+     * - 真的瀏覽器用戶端（favorites.js）不可能送出重複——收藏清單存在
+     *   localStorage 裡是一個以 "brand:code" 當 key 的物件，同一組品牌加
+     *   編號本來就只能有一筆。要送出重複的 items，只能直接打這支 API，
+     *   繞過前端。
+     * - getByBrandAndProductCodes() 對重複的 items 沒有額外查詢成本：
+     *   whereIn 本身就會把重複的 code 去重，只查一次、只抓一列，重複的
+     *   卡片只是同一個 Eloquent model 被渲染了 100 次，不是查了 100 次。
+     * - 「照 items 的順序、一筆換一張卡」是這支服務本來就有的合約
+     *   （test_cards_follow_the_order_of_the_requested_codes 已經釘住順序
+     *   要跟著 items 走），重複輸入就重複輸出是這個合約直接的結果，不是
+     *   意外的邊角案例。
+     *
+     * 上限已經有 MAX_CODES=100 擋著，最壞情況也只是這一次請求收到 100 張
+     * 一樣的卡片，不影響其他人、不會多洩漏資料（PR #76 審查留言
+     * 4057184152 第 5 點）。
+     */
+    public function test_duplicate_items_render_a_card_for_each_occurrence(): void
+    {
+        $this->createProduct(['product_code' => 'u001', 'name' => '羽絨外套']);
+
+        $items = array_fill(0, 100, ['brand' => 'UNIQLO', 'code' => 'u001']);
+
+        $content = $this->postJson(route('favorites.cards'), ['items' => $items])
+            ->assertOk()
+            ->getContent();
+
+        // data-favorite-key 是每一列唯一的識別屬性，一列一次，不像品名會在
+        // alt 跟標題各出現一次、算起來要乘二
+        $this->assertSame(100, substr_count($content, 'data-favorite-key="UNIQLO:u001"'));
     }
 
     private function createProduct(array $attributes): HmallProduct
