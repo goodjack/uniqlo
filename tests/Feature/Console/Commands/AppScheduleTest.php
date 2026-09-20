@@ -5,6 +5,7 @@ namespace Tests\Feature\Console\Commands;
 use App\Console\Commands\AppSchedule;
 use App\Enums\CrawlOutcome;
 use App\Events\AppTaskFailed;
+use App\Events\AppTaskFinished;
 use App\Support\TaskNotes;
 use Exception;
 use Illuminate\Console\Command;
@@ -24,7 +25,7 @@ class AppScheduleTest extends TestCase
         parent::setUp();
 
         $this->executedCommands = [];
-        Event::fake([AppTaskFailed::class]);
+        Event::fake([AppTaskFailed::class, AppTaskFinished::class]);
     }
 
     public function test_all_steps_run_and_command_succeeds_when_nothing_fails(): void
@@ -83,8 +84,8 @@ class AppScheduleTest extends TestCase
     }
 
     /**
-     * 爬蟲「抓到一部分、有幾頁失敗」時回傳 exit code 2，通知要標成部分成功，
-     * 跟整支掛掉的完全失敗分開。
+     * 爬蟲「抓到一部分、有幾頁失敗」時回傳 exit code 2，要跟整支掛掉的完全失敗
+     * 分開計數，不可以塞進同一句「N of M scheduled steps failed」。
      */
     public function test_partial_crawl_success_is_reported_separately_from_total_failure(): void
     {
@@ -98,10 +99,37 @@ class AppScheduleTest extends TestCase
         $this->assertSame(Command::FAILURE, $exitCode);
 
         Event::assertDispatched(AppTaskFailed::class, function (AppTaskFailed $event) {
-            $failedSteps = $event->data['failed_steps'];
+            return $event->data['failed_steps'] === ['sitemap:generate（完全失敗）']
+                && in_array(
+                    'hmall-product:fetch UNIQLO（部分成功）',
+                    $event->data['partial_steps'],
+                    true
+                );
+        });
+    }
 
-            return in_array('hmall-product:fetch UNIQLO（部分成功）', $failedSteps, true)
-                && in_array('sitemap:generate（完全失敗）', $failedSteps, true);
+    /**
+     * 整天只有部分成功、沒有任何整步失敗時，不可以送紅色的失敗通知。
+     *
+     * 部分成功代表資料庫裡還有完整的舊資料、站上不會缺，只要追那幾筆。只要有
+     * 一件商品的來源資料長期寫不進去，爬蟲每天都會回部分成功；每天一封紅字會
+     * 訓練人忽略通知，真正的整步失敗就被淹掉了。
+     */
+    public function test_a_day_with_only_partial_successes_does_not_send_a_failure_notification(): void
+    {
+        $this->fakeAllSteps(partiallySucceeding: ['hmall-product:fetch']);
+
+        $exitCode = $this->artisan('app:schedule')->run();
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        Event::assertNotDispatched(AppTaskFailed::class);
+
+        Event::assertDispatched(AppTaskFinished::class, function (AppTaskFinished $event) {
+            return $event->data['partial_steps'] === [
+                'hmall-product:fetch UNIQLO（部分成功）',
+                'hmall-product:fetch GU（部分成功）',
+            ]
+                && ! array_key_exists('failed_steps', $event->data);
         });
     }
 
@@ -121,16 +149,16 @@ class AppScheduleTest extends TestCase
 
         $this->artisan('app:schedule')->run();
 
-        Event::assertDispatched(AppTaskFailed::class, function (AppTaskFailed $event) {
-            $failedSteps = $event->data['failed_steps'];
+        Event::assertDispatched(AppTaskFinished::class, function (AppTaskFinished $event) {
+            $partialSteps = $event->data['partial_steps'];
 
             return in_array(
                 'hmall-product:fetch UNIQLO（部分成功：已執行缺貨判定，排除 1 件寫入失敗商品）',
-                $failedSteps,
+                $partialSteps,
                 true
             )
                 // 沒留說明的步驟維持原本的寫法，說明也不會跑到別的品牌那一行去
-                && in_array('hmall-product:fetch GU（部分成功）', $failedSteps, true);
+                && in_array('hmall-product:fetch GU（部分成功）', $partialSteps, true);
         });
     }
 

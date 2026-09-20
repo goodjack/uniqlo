@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\Brand;
 use App\Enums\CrawlOutcome;
 use App\Events\AppTaskFailed;
+use App\Events\AppTaskFinished;
 use App\Support\TaskNotes;
 use Illuminate\Console\Command;
 use Throwable;
@@ -32,25 +33,34 @@ class AppSchedule extends Command
     {
         $steps = self::steps();
         $failedSteps = [];
+        $partialSteps = [];
 
         foreach ($steps as $step) {
             $command = $step[0];
             $arguments = $step[1] ?? [];
 
-            $failure = $this->runStep($command, $arguments);
+            $outcome = $this->runStep($command, $arguments);
 
-            if ($failure !== null) {
-                $failedSteps[] = $failure;
+            if ($outcome === null) {
+                continue;
+            }
+
+            [$description, $isPartial] = $outcome;
+
+            if ($isPartial) {
+                $partialSteps[] = $description;
+            } else {
+                $failedSteps[] = $description;
             }
         }
 
-        if (empty($failedSteps)) {
+        if ($failedSteps === [] && $partialSteps === []) {
             return self::SUCCESS;
         }
 
-        $this->reportFailures($failedSteps, count($steps));
+        $this->reportOutcome($failedSteps, $partialSteps, count($steps));
 
-        return self::FAILURE;
+        return $failedSteps === [] ? self::SUCCESS : self::FAILURE;
     }
 
     /**
@@ -102,12 +112,15 @@ class AppSchedule extends Command
     }
 
     /**
-     * 執行單一步驟，成功回傳 null，失敗回傳給通知看的描述。
+     * 執行單一步驟。完全成功回傳 null，否則回傳給通知看的描述加上「是不是
+     * 只抓到一部分」。
      *
      * 失敗有兩種形態，兩種都要攔：丟例外，以及安靜回傳非 0 的 exit code
      * （例如 FetchHmallProducts 爬蟲失敗時就是回傳非 0 而不丟例外）。
+     *
+     * @return array{0: string, 1: bool}|null
      */
-    private function runStep(string $command, array $arguments): ?string
+    private function runStep(string $command, array $arguments): ?array
     {
         try {
             $exitCode = $this->call($command, $arguments);
@@ -118,20 +131,26 @@ class AppSchedule extends Command
                 'arguments' => $arguments,
             ]);
 
-            return $this->describeStep($command, $arguments, '丟出例外');
+            return [$this->describeStep($command, $arguments, '丟出例外'), false];
         }
 
-        if ($exitCode !== self::SUCCESS) {
-            logger()->error('Scheduled step returned a failure exit code', [
-                'command' => $command,
-                'arguments' => $arguments,
-                'exit_code' => $exitCode,
-            ]);
-
-            return $this->describeStep($command, $arguments, $this->describeExitCode($command, $exitCode));
+        if ($exitCode === self::SUCCESS) {
+            return null;
         }
 
-        return null;
+        $isPartial = $this->isPartialSuccess($command, $exitCode);
+
+        logger()->error('Scheduled step did not finish cleanly', [
+            'command' => $command,
+            'arguments' => $arguments,
+            'exit_code' => $exitCode,
+            'partial' => $isPartial,
+        ]);
+
+        return [
+            $this->describeStep($command, $arguments, $this->describeExitCode($command, $exitCode)),
+            $isPartial,
+        ];
     }
 
     /**
@@ -188,20 +207,51 @@ class AppSchedule extends Command
     }
 
     /**
+     * 發出彙整通知。
+     *
+     * 「整步沒做」與「抓到一部分」要分開算、也要分開送，因為兩者的處理方式
+     * 不同：整步沒做代表那件事今天沒發生，要有人去看；抓到一部分代表資料庫
+     * 裡還有完整的舊資料，站上不會缺，只要追那幾筆。
+     *
+     * 混在同一句「N of M scheduled steps failed」、同一封紅色通知的後果是
+     * 訓練人忽略通知：只要有一件商品來源資料長期寫不進去，爬蟲每天回部分成功，
+     * 就每天收到一封紅字，真正的整步失敗反而被淹掉。
+     *
      * @param  array<int, string>  $failedSteps
+     * @param  array<int, string>  $partialSteps
      */
-    private function reportFailures(array $failedSteps, int $totalSteps): void
+    private function reportOutcome(array $failedSteps, array $partialSteps, int $totalSteps): void
     {
+        $data = [];
+
+        if ($failedSteps !== []) {
+            $data['failed_steps'] = $failedSteps;
+        }
+
+        if ($partialSteps !== []) {
+            $data['partial_steps'] = $partialSteps;
+        }
+
+        $data['total_steps'] = $totalSteps;
+
+        if ($failedSteps === []) {
+            $this->info(sprintf(
+                '%d of %d scheduled steps partially succeeded',
+                count($partialSteps),
+                $totalSteps
+            ));
+
+            logger()->info('Daily schedule finished with partial successes', $data);
+
+            AppTaskFinished::dispatch(class_basename(__CLASS__), null, null, $data);
+
+            return;
+        }
+
         $this->error(sprintf('%d of %d scheduled steps failed', count($failedSteps), $totalSteps));
 
-        logger()->error('Daily schedule finished with failures', [
-            'failed_steps' => $failedSteps,
-            'total_steps' => $totalSteps,
-        ]);
+        logger()->error('Daily schedule finished with failures', $data);
 
-        AppTaskFailed::dispatch(class_basename(__CLASS__), null, null, [
-            'failed_steps' => $failedSteps,
-            'total_steps' => $totalSteps,
-        ]);
+        AppTaskFailed::dispatch(class_basename(__CLASS__), null, null, $data);
     }
 }
