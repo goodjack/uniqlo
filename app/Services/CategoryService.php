@@ -117,7 +117,7 @@ class CategoryService extends Service
         $trail = collect([$category]);
         $current = $category;
 
-        for ($depth = 0; $depth < 5 && $current->parent !== null; $depth++) {
+        for ($depth = 0; $depth < self::MAX_CATEGORY_DEPTH && $current->parent !== null; $depth++) {
             $current = $current->parent;
             $trail->prepend($current);
         }

@@ -147,9 +147,6 @@ class HmallProductCategoryTest extends TestCase
     }
 
     /**
-     * 真實的官方回傳樣本（by-description 的兩筆商品）。
-     */
-    /**
      * 寫不進去的商品要被數出來回報，不能只寫 log 就當這一頁沒事。
      */
     public function test_reports_how_many_products_failed_to_save(): void
@@ -205,6 +202,9 @@ class HmallProductCategoryTest extends TestCase
         $this->assertSame($historyCountBeforeRetry, HmallPriceHistory::count());
     }
 
+    /**
+     * 真實的官方回傳樣本（by-description 的兩筆商品）。
+     */
     private function products(): array
     {
         $json = file_get_contents(base_path('tests/stubs/hmall-search-v3-response.json'));
