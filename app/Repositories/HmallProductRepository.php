@@ -668,12 +668,19 @@ class HmallProductRepository extends Repository
      *
      * 精準 code 命中排最前面（跟舊行為一致：這一頁本來就是這組編號的商品頁），
      * 其餘依現價排序。
+     *
+     * 欄位與關聯跟其他清單查詢一致：卡片會讀 japanProduct 判斷要不要顯示影片
+     * 圖示，不先 eager load 就是一張卡片一次查詢；select 清單則擋掉 instruction
+     * 那種長文字欄，那些欄位在卡片上一個都用不到。改成共用號碼比對之後筆數會
+     * 放大，這兩件事才變成實際成本。
      */
     public function findHmallProductsByCodeOrSharedNumber(string $query): Collection
     {
         $pattern = '(^|[^0-9])'.$query.'([^0-9]|$)';
 
         return $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
             ->where('code', $query)
             ->orWhere(function ($subQuery) use ($pattern) {
                 $subQuery->whereRaw('name REGEXP ?', [$pattern]);
