@@ -215,7 +215,16 @@ class HmallProductService extends Service
                     // 被擋的那一頁就是下次要從哪裡接著跑的那一頁
                     Cache::put($cacheKey, $firstFailedPage, now()->addDays(7));
 
-                    return new CrawlResult(CrawlOutcome::Failed);
+                    if (! $hasSucceeded) {
+                        return new CrawlResult(CrawlOutcome::Failed);
+                    }
+
+                    // 前面幾頁已經寫進資料庫了，說成「完全失敗」會讓看通知的人
+                    // 以為今天一筆新資料都沒有，跟「第 1 頁就被擋」的處理方式不同。
+                    return new CrawlResult(
+                        CrawlOutcome::PartiallySucceeded,
+                        "未執行缺貨判定，第 {$firstFailedPage} 頁起被擋下（403）"
+                    );
                 }
 
                 // retry() exhausted - skip page and continue

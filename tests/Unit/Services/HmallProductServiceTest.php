@@ -754,6 +754,47 @@ class HmallProductServiceTest extends TestCase
         $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
     }
 
+    /**
+     * 跑到一半被 403 擋下，前面幾頁已經寫進資料庫了，不能說成「完全失敗」。
+     *
+     * 完全失敗的定義是連一頁都沒抓到。看通知的人會據此判斷今天有沒有新資料：
+     * 說完全失敗，他以為整份資料是昨天的；實際上前面幾頁是今天的、後面才是昨天的。
+     */
+    public function test_a_block_partway_through_is_reported_as_a_partial_success()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        Http::fake(['https://api.example.com/search' => function ($request) {
+            if ($request->data()['pageInfo']['page'] === 2) {
+                return Http::response([], 403);
+            }
+
+            return Http::response($this->searchResponse(24, 60));
+        }]);
+
+        $this->mockHmallRepository->expects($this->never())
+            ->method('setStockoutHmallProducts');
+
+        Log::shouldReceive('warning')->andReturnNull();
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $result = $this->service->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        $this->assertSame('未執行缺貨判定，第 2 頁起被擋下（403）', $result->note);
+        // 續跑點停在被擋的那一頁
+        $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
+    }
+
+    /**
+     * 寫資料庫丟例外時不可以重打官網。
+     *
+     * 以前寫入放在 retry 的 closure 裡，而 shouldRetry() 對所有非 403 的例外都回
+     * 可重試，所以一次死鎖會讓同一頁重新 POST 官網好幾次——拿資料庫的問題去打官網，
+     * 打幾次都不會好，還多了被擋的風險。
+     */
     public function test_a_database_error_while_saving_does_not_hit_the_source_again()
     {
         Cache::flush();
