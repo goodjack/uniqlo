@@ -39,7 +39,12 @@ class ListRequest extends FormRequest
             return;
         }
 
-        $normalizedQ = mb_substr(trim((string) $this->input('q')), 0, 50);
+        // ?q[]=x 這種陣列輸入不能直接 (string) 轉型：PHP 會發 Array to string
+        // conversion warning，Laravel 的 error handler 把它轉成 ErrorException，
+        // 頁面還沒走到 rules() 的 'string' 規則就先 500 了。不是字串就當作沒填，
+        // 讓使用者看到的是搜尋框是空的，而不是整頁壞掉。
+        $q = $this->input('q');
+        $normalizedQ = is_string($q) ? mb_substr(trim($q), 0, 50) : '';
 
         $this->merge(['q' => $normalizedQ]);
         request()->merge(['q' => $normalizedQ]);

@@ -249,6 +249,66 @@ class CategoryTest extends TestCase
     }
 
     /**
+     * q 是分類頁真正會讀進 SQL 篩選的參數（走同一個 ListRequest），
+     * (string) 轉型遇到陣列會發 warning 被轉成 500，比沒人讀的 ref[]=x 更容易踩到。
+     */
+    public function test_an_array_q_does_not_break_the_category_page(): void
+    {
+        $this->attachProduct($this->createProduct(['brand' => 'UNIQLO', 'name' => '短袖上衣']), 'all_women-tops');
+
+        $response = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?q[]=x');
+
+        $response->assertOk();
+        $response->assertSee('短袖上衣');
+    }
+
+    /**
+     * query[] 不是 ListRequest 的欄位，但分類頁的 nav 一樣會引入
+     * layouts.search-bar，那裡的 request('query') 遇到陣列一樣會 500。
+     */
+    public function test_an_array_query_param_does_not_break_the_category_page(): void
+    {
+        $this->attachProduct($this->createProduct(['brand' => 'UNIQLO', 'name' => '短袖上衣']), 'all_women-tops');
+
+        $response = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?query[]=x'
+        );
+
+        $response->assertOk();
+        $response->assertSee('短袖上衣');
+    }
+
+    /**
+     * 分類頁的關鍵字篩選走資料庫 LIKE（HmallProductRepository::
+     * applyKeywordFilterForCategory()），跳脫是否正確之前只用 repository 單元
+     * 驗過，沒有測試從頁面這一層守著；改壞了不會有任何測試變紅。
+     */
+    public function test_like_wildcards_in_the_query_are_escaped_on_the_category_page(): void
+    {
+        $this->attachProduct(
+            $this->createProduct(['brand' => 'UNIQLO', 'name' => '100% 純棉短褲', 'code' => '900001']),
+            'all_women-tops'
+        );
+        $this->attachProduct(
+            $this->createProduct(['brand' => 'UNIQLO', 'name' => '牛仔短褲', 'code' => '900002']),
+            'all_women-tops'
+        );
+
+        $response = $this->get(
+            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?q='.urlencode('%')
+        );
+
+        $response->assertOk();
+        $response->assertSee('100% 純棉短褲');
+        $response->assertDontSee('牛仔短褲');
+
+        // 測試資料裡沒有底線，_ 當字面字元查應該完全沒有結果
+        $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?q='.urlencode('_'))
+            ->assertOk()
+            ->assertSee('沒有符合「_」的商品');
+    }
+
+    /**
      * 篩選之後可能一件都不剩。原本這種情況只剩一片空白，使用者看不出是篩太緊
      * 還是頁面壞掉。文案跟清單頁一致。
      */

@@ -25,6 +25,31 @@ class ListFilterTest extends TestCase
     }
 
     /**
+     * q 是 ListRequest::prepareForValidation() 真正會讀的參數，(string) 轉型遇到
+     * 陣列會發 Array to string conversion warning、被 error handler 轉成 500，
+     * 比上面沒人讀的 ref[]=x 更容易踩到。
+     */
+    public function test_an_array_q_does_not_break_the_list_page(): void
+    {
+        $response = $this->get(route('lists.sale').'?q[]=x');
+
+        $response->assertOk();
+        $response->assertSee('篩選');
+    }
+
+    /**
+     * query[] 不是 ListRequest 的欄位，但清單頁的 nav 會引入
+     * layouts.search-bar，那裡的 request('query') 遇到陣列一樣會 500。
+     */
+    public function test_an_array_query_param_does_not_break_the_list_page(): void
+    {
+        $response = $this->get(route('lists.sale').'?query[]=x');
+
+        $response->assertOk();
+        $response->assertSee('篩選');
+    }
+
+    /**
      * 只有品牌、排序與搜尋關鍵字需要跨越篩選保留，其餘參數不該被表單帶著走。
      */
     public function test_the_filter_form_only_carries_brand_sort_and_q(): void
