@@ -70,7 +70,11 @@ Route::group(['prefix' => 'favorites'], function () {
         ->name('favorites.cards');
 });
 
-Route::group(['prefix' => 'categories'], function () {
+// 分類頁先用分類縮到單一分類才做關鍵字比對，這個前提在商品數多的大分類上不
+// 成立：EXPLAIN ANALYZE 顯示是先對全表逐筆算完三個 LIKE、再逐筆確認分類歸屬
+// （只有商品數極少的分類優化器才會反過來），跟已限流的 /search 是同一種工作量，
+// 理由一樣就跟著限流。
+Route::group(['prefix' => 'categories', 'middleware' => 'throttle:30,1'], function () {
     Route::get('/', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('/{brand}/{code}', [CategoryController::class, 'show'])
         ->where('brand', 'uniqlo|gu')
