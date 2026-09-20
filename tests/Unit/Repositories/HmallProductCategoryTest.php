@@ -8,6 +8,7 @@ use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use stdClass;
 use Tests\TestCase;
 
@@ -228,6 +229,53 @@ class HmallProductCategoryTest extends TestCase
         $this->assertSame(['u0000000053204'], $result->failedProductCodes);
         $this->assertSame($originalMinPrice, $product->fresh()->min_price);
         $this->assertSame($historyCountBeforeRetry, HmallPriceHistory::count());
+    }
+
+    /**
+     * 刪掉商品時，它的分類關聯要跟著消失。
+     *
+     * pivot 的兩個關聯欄位原本沒有外鍵，任何人手動刪一筆商品（或日後加一支清舊
+     * 商品的指令），關聯就會留下指不到東西的列。所有讀取路徑都是 inner join，
+     * 畫面不會出錯，孤兒列只會無聲累積到沒有人發現。
+     */
+    public function test_deleting_a_product_takes_its_category_links_with_it(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        // 另外建一件沒有價格歷史的商品：hmall_price_histories 對 hmall_products
+        // 另有自己的外鍵而且沒有 cascade，有歷史的商品本來就刪不掉，那樣測不到
+        // pivot 這一條
+        $product = HmallProduct::unguarded(fn () => HmallProduct::create([
+            'brand' => 'UNIQLO',
+            'product_code' => 'u0000000099999',
+        ]));
+        $product->categories()->attach($this->findCategory('all_women-bottoms')->id, ['sort' => '001']);
+
+        $this->assertGreaterThan(0, $this->pivotCountFor('hmall_product_id', $product->id));
+
+        $product->delete();
+
+        $this->assertSame(0, $this->pivotCountFor('hmall_product_id', $product->id));
+    }
+
+    /**
+     * 刪掉分類時同理，關聯不可以留下來。
+     */
+    public function test_deleting_a_category_takes_its_product_links_with_it(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        $category = $this->findCategory('all_women-bottoms');
+        $this->assertGreaterThan(0, $this->pivotCountFor('hmall_category_id', $category->id));
+
+        $category->delete();
+
+        $this->assertSame(0, $this->pivotCountFor('hmall_category_id', $category->id));
+    }
+
+    private function pivotCountFor(string $column, int $id): int
+    {
+        return DB::table('hmall_category_hmall_product')->where($column, $id)->count();
     }
 
     /**
