@@ -135,6 +135,25 @@ class AppScheduleTest extends TestCase
     }
 
     /**
+     * 非爬蟲步驟回 exit code 2 時，不可以被讀成「部分成功」。
+     *
+     * 2 不是隨便一個數字，是 Symfony 留給「參數不合法」的 Command::INVALID。
+     * 日後任何人照慣例在 sitemap:generate 或新步驟寫 return self::INVALID，
+     * 通知若寫成「部分成功」，值班的人會以為只是抓到一部分、可以晚點看，
+     * 實際上那一步整步沒做。
+     */
+    public function test_a_non_crawler_step_returning_two_is_not_called_a_partial_success(): void
+    {
+        $this->fakeAllSteps(partiallySucceeding: ['sitemap:generate']);
+
+        $this->artisan('app:schedule')->run();
+
+        Event::assertDispatched(AppTaskFailed::class, function (AppTaskFailed $event) {
+            return in_array('sitemap:generate（exit code 2）', $event->data['failed_steps'], true);
+        });
+    }
+
+    /**
      * 把排程的每個步驟換成假指令，避免測試真的去打官網或寫資料庫。
      *
      * @param  array<int, string>  $failing  這些指令回傳 exit code 1

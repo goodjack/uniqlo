@@ -54,6 +54,22 @@ class AppSchedule extends Command
     }
 
     /**
+     * exit code 要用 CrawlOutcome 翻譯的指令。
+     *
+     * CrawlOutcome::PartiallySucceeded 的值是 2，而 2 同時是 Symfony 留給
+     * 「參數不合法」的 Command::INVALID。目前十五個步驟裡只有 hmall-product:fetch
+     * 會回 2，所以今天沒有影響；但日後任何人照慣例在別的步驟寫 return self::INVALID，
+     * 通知就會寫成「部分成功」，值班的人會以為只是抓到一部分、可以晚點看，實際上
+     * 那一步整步沒做。
+     *
+     * 與其把 PartiallySucceeded 換成另一個「目前沒人用」的數字（下一個人照樣可能
+     * 撞上），不如把翻譯限定在真的回傳 CrawlOutcome 的指令上。
+     */
+    private const PARTIAL_SUCCESS_COMMANDS = [
+        'hmall-product:fetch',
+    ];
+
+    /**
      * 每日排程的步驟，順序即執行順序。
      *
      * 前面的爬蟲失敗不會擋住後面的快取重建與 sitemap：資料庫裡還有昨天的完整資料，
@@ -112,7 +128,7 @@ class AppSchedule extends Command
                 'exit_code' => $exitCode,
             ]);
 
-            return $this->describeStep($command, $arguments, $this->describeExitCode($exitCode));
+            return $this->describeStep($command, $arguments, $this->describeExitCode($command, $exitCode));
         }
 
         return null;
@@ -125,18 +141,27 @@ class AppSchedule extends Command
      * 還有昨天的完整資料；完全失敗代表連一頁都沒抓到，通常是被擋。兩種都不會自己
      * 好，差別只在急迫程度。
      *
-     * CrawlOutcome 認得的值一律用它的中文標籤。非爬蟲步驟的 exit code 1 也會被
-     * 標成「完全失敗」——對那些步驟來說 1 本來就是整步失敗，讀起來仍然對。
+     * exit code 1 對每個步驟都是整步失敗，所以一律標成「完全失敗」。只有爬蟲指令
+     * 的 2 才是部分成功，其他步驟的 2 沒有共同約定，照實寫出來比猜一個意思安全。
      */
-    private function describeExitCode(int $exitCode): string
+    private function describeExitCode(string $command, int $exitCode): string
     {
-        $outcome = CrawlOutcome::tryFrom($exitCode);
-
-        if ($outcome !== null && $outcome !== CrawlOutcome::Succeeded) {
-            return $outcome->label();
+        if ($this->isPartialSuccess($command, $exitCode)) {
+            return CrawlOutcome::PartiallySucceeded->label();
         }
 
-        return "exit code {$exitCode}";
+        return $exitCode === self::FAILURE
+            ? CrawlOutcome::Failed->label()
+            : "exit code {$exitCode}";
+    }
+
+    /**
+     * 這個步驟的 exit code 是不是「抓到一部分」。
+     */
+    private function isPartialSuccess(string $command, int $exitCode): bool
+    {
+        return in_array($command, self::PARTIAL_SUCCESS_COMMANDS, true)
+            && CrawlOutcome::tryFrom($exitCode) === CrawlOutcome::PartiallySucceeded;
     }
 
     /**
