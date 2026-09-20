@@ -33,7 +33,11 @@ class HomeController extends Controller
      * 熱門瀏覽排第一：那份排名是這個站自己的流量資料，站內其他頁面都看不到，
      * 其餘三組在對應的清單頁都找得到。
      *
-     * 四組資料全部來自 ListService 既有的預熱快取，首頁不額外查資料庫。
+     * 四組資料走的是 HmallProductRepository 的 Cache::has() 模式：平時排程
+     * 已經預熱好，首頁只讀快取；但快取沒暖（cache:clear 之後、換新機器部署、
+     * 或某支查詢從沒成功寫入過）時，第一個打進來的人會就地跑那支查詢，沒有
+     * 互斥鎖——同一時間有幾個人打進來，就會有幾份人各自跑一份相同的查詢，
+     * 其中 top-wearing 那支還帶一個 style_hint_items 的 group-by 子查詢 join。
      */
     private function getSections(): Collection
     {
@@ -81,7 +85,9 @@ class HomeController extends Controller
                     'products' => collect($products)->take(self::PRODUCTS_PER_SECTION),
                 ];
             })
-            // 快取尚未預熱或該清單當天沒有商品時，整個區塊不出現，而不是留一排空白。
+            // 該清單當天沒有商品，或「大家都在看」跟 GA 拿資料失敗退回空集合時
+            // （見 HmallProductRepository::setMostVisitedHmallProductsCache()），
+            // 整個區塊不出現，而不是留一排空白。
             ->filter(fn (array $section) => $section['products']->isNotEmpty())
             ->values();
     }
