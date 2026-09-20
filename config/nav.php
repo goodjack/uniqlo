@@ -29,8 +29,11 @@ return [
             'title' => '收藏',
             'icon' => 'heart outline',
         ],
+        // search.show 是 /search/{query}，參數必填；Breadcrumb::link() 是
+        // route($link['route']) 不帶參數呼叫，指到它會直接丟
+        // UrlGenerationException。search.index 才是不需要參數的入口。
         'search' => [
-            'route' => 'search.show',
+            'route' => 'search.index',
             'label' => '搜尋',
             'title' => '搜尋',
             'icon' => 'search',
