@@ -119,6 +119,10 @@ class HmallProductService extends Service
         $hasSucceeded = false;
         // 整頁沒抓到：目錄有缺口
         $hasPageFailures = false;
+        // 這一輪第一個沒跑完的頁碼。每一頁成功都會把 checkpoint 往前推，失敗頁
+        // 後面只要還有成功的頁，checkpoint 就會停在失敗頁之後、那一頁永遠不補抓。
+        // 有失敗時要把 checkpoint 退回這裡。
+        $firstFailedPage = null;
         // 這一輪實際看到幾件商品。缺貨判定的守門，不能用官網回的 productSum：
         // 那正是空目錄情境裡會騙人的那個數字。
         $productsSeen = 0;
@@ -197,6 +201,8 @@ class HmallProductService extends Service
 
                 $this->randomDelay();
             } catch (Throwable $e) {
+                $firstFailedPage ??= $page;
+
                 // 403 is a permanent block - stop immediately
                 if ($this->is403Error($e)) {
                     logger()->error('fetchAllHmallProducts blocked (403)', [
@@ -205,6 +211,9 @@ class HmallProductService extends Service
                         'pageSize' => $pageSize,
                     ]);
                     report($e);
+
+                    // 被擋的那一頁就是下次要從哪裡接著跑的那一頁
+                    Cache::put($cacheKey, $firstFailedPage, now()->addDays(7));
 
                     return new CrawlResult(CrawlOutcome::Failed);
                 }
@@ -233,8 +242,17 @@ class HmallProductService extends Service
 
         if ($hasPageFailures) {
             // 有幾頁整頁沒抓到：這一輪看到的目錄是殘缺的，缺貨判定一定不能做。
-            // checkpoint 保留，讓同一天可以接著跑完剩下的頁。
-            logger()->error('Some pages failed - preserving checkpoint, skipping stockout', ['brand' => $brand]);
+            //
+            // checkpoint 退回第一個失敗的頁碼，不是留著迴圈跑完後的值：每一頁成功
+            // 都會覆寫 checkpoint，失敗頁後面只要還有成功的頁，留下來的 checkpoint
+            // 就指到最後一頁之後，那一頁永遠不會被補抓，隔天還會從空頁起跑、
+            // 換來連續兩天沒有缺貨判定。
+            logger()->error('Some pages failed - rewinding checkpoint, skipping stockout', [
+                'brand' => $brand,
+                'first_failed_page' => $firstFailedPage,
+            ]);
+
+            Cache::put($cacheKey, $firstFailedPage, now()->addDays(7));
 
             return new CrawlResult(CrawlOutcome::PartiallySucceeded, '未執行缺貨判定，目錄有缺頁');
         }

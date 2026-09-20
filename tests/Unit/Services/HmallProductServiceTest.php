@@ -714,6 +714,46 @@ class HmallProductServiceTest extends TestCase
         $this->assertSame('未執行缺貨判定，這一輪一件商品都沒看到', $result->note);
     }
 
+    /**
+     * 中間頁失敗、後面頁成功時，續跑點要退回那個失敗的頁碼。
+     *
+     * 每一頁成功都會覆寫續跑點，所以失敗頁後面只要還有成功的頁，留下來的續跑點就
+     * 指到最後一頁之後：同一天重跑會直接跳過失敗那頁，隔天從超出範圍的頁碼起跑、
+     * 只抓到一頁空的、又因為是續跑而不做缺貨判定，第三天才回到完整掃描。一次暫時性
+     * 的缺頁換來連續兩天沒有缺貨判定。
+     *
+     * 既有的缺頁測試只讓最後一頁失敗，那正好是續跑點等於失敗頁的唯一情況，測不到這條。
+     */
+    public function test_a_page_failing_in_the_middle_rewinds_the_checkpoint_to_that_page()
+    {
+        Cache::flush();
+        Config::set('app.crawler.retry.times', 1);
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        // productSum 60、每頁 24：迴圈會跑第 1、2、3 頁
+        Http::fake(['https://api.example.com/search' => function ($request) {
+            if ($request->data()['pageInfo']['page'] === 2) {
+                return Http::response([], 500);
+            }
+
+            return Http::response($this->searchResponse(24, 60));
+        }]);
+
+        $this->mockHmallRepository->expects($this->never())
+            ->method('setStockoutHmallProducts');
+
+        Log::shouldReceive('warning')->andReturnNull();
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $result = $this->service->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        $this->assertSame('未執行缺貨判定，目錄有缺頁', $result->note);
+        // 第 3 頁成功過，但續跑點不可以被推到 4
+        $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
+    }
+
     public function test_a_database_error_while_saving_does_not_hit_the_source_again()
     {
         Cache::flush();
