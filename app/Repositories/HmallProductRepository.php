@@ -2,15 +2,20 @@
 
 namespace App\Repositories;
 
+use App\Enums\CategoryLevel;
+use App\Enums\ProductTag;
+use App\Models\HmallCategory;
 use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
 use App\Models\Product;
+use App\Support\ProductSaveResult;
 use Carbon\Carbon;
 use Google\Analytics\Data\V1beta\Filter;
 use Google\Analytics\Data\V1beta\Filter\StringFilter;
 use Google\Analytics\Data\V1beta\Filter\StringFilter\MatchType;
 use Google\Analytics\Data\V1beta\FilterExpression;
 use Google\Analytics\Data\V1beta\FilterExpressionList;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -51,6 +56,26 @@ class HmallProductRepository extends Repository
 
     private const CACHE_KEY_TOP_WEARING_RANKS = 'hmall_product:top_wearing_ranks';
 
+    /**
+     * 商品列表分頁的預設每頁筆數。分類頁與搜尋結果頁共用同一個值，
+     * 呼叫端（CategoryService、SearchService）都是明確傳這個常數進來，
+     * 這裡的預設值只是保底，不要讓兩邊各自寫一份 24。
+     */
+    public const PRODUCTS_PER_PAGE = 24;
+
+    /**
+     * 關鍵字比對的欄位。
+     *
+     * 刻意不含 product_name 以外的長文字欄位：LIKE '%詞%' 一律全表掃描，
+     * 每多一欄就多掃一遍。
+     */
+    private const SEARCHABLE_COLUMNS = [
+        'name',
+        'product_name',
+        'code',
+        'product_code',
+    ];
+
     private const SELECT_COLUMNS_FOR_LIST = [
         'hmall_products.id',
         'hmall_products.code',
@@ -58,6 +83,7 @@ class HmallProductRepository extends Repository
         'hmall_products.product_code',
         'hmall_products.name',
         'hmall_products.min_price',
+        'hmall_products.origin_price',
         'hmall_products.lowest_record_price',
         'hmall_products.highest_record_price',
         'hmall_products.lowest_record_price_count',
@@ -121,6 +147,23 @@ class HmallProductRepository extends Repository
     public function getStyleHintCount(HmallProduct $hmallProduct)
     {
         return $hmallProduct->styleHints()->count();
+    }
+
+    /**
+     * 商品身上掛的分類，只留大類與品項層。
+     *
+     * 只到 levelTwo 為止：levelThree 是官方的錨點細分，不是使用者會想點進去
+     * 逛的分類。去重與上限交給呼叫端（見 CategoryService::getCategoryLinksForProductPage）。
+     *
+     * @return Collection<int, HmallCategory>
+     */
+    public function getCategoriesForProductPage(HmallProduct $hmallProduct): Collection
+    {
+        return $hmallProduct->categories()
+            ->whereIn('level', [CategoryLevel::One->value, CategoryLevel::Two->value])
+            ->orderBy('level', 'desc')
+            ->orderBy('code')
+            ->get();
     }
 
     public function getRelatedHmallProductsForProduct(Product $product)
@@ -297,17 +340,18 @@ class HmallProductRepository extends Repository
         return Cache::get(self::CACHE_KEY_MOST_VISITED);
     }
 
+    /**
+     * 以下六個清單快取的成員判準一律走 ProductTag：品牌的官方代碼（UNIQLO 是
+     * ONLINE SPECIAL、GU 是 ECONLY 這種對照）全部收在那個 enum 裡，這裡只負責
+     * 排序與快取。標籤條件包在自己的 where() 群組內，OR 不會漏到 stock 與
+     * stockout_at 的條件外面。
+     */
     public function setLimitedOfferHmallProductsCache()
     {
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->where(function ($query) {
-                $query->where(function ($query) {
-                    $query->where('time_limited_begin', '<=', now())
-                        ->where('time_limited_end', '>=', now());
-                })->orWhere('identity', 'like', '%time_doptimal%');
-            })
+            ->where(fn ($query) => ProductTag::LimitedOffer->applyTo($query))
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
             ->orderByRaw('min_price/highest_record_price')
@@ -324,7 +368,7 @@ class HmallProductRepository extends Repository
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->where('identity', 'like', '%concessional_rate%')
+            ->where(fn ($query) => ProductTag::Sale->applyTo($query))
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
             ->orderByRaw('min_price/highest_record_price')
@@ -429,7 +473,7 @@ class HmallProductRepository extends Repository
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->where('identity', 'like', '%new_product%')
+            ->where(fn ($query) => ProductTag::NewArrival->applyTo($query))
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
             ->orderByRaw('min_price/highest_record_price')
@@ -443,13 +487,10 @@ class HmallProductRepository extends Repository
 
     public function setComingSoonHmallProductsCache()
     {
-        // UNIQLO: COMING SOON
-        // GU: COMING
-
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->where('identity', 'like', '%COMING%')
+            ->where(fn ($query) => ProductTag::ComingSoon->applyTo($query))
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
             ->orderByRaw('min_price/highest_record_price')
@@ -466,10 +507,7 @@ class HmallProductRepository extends Repository
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->where(function ($query) {
-                $query->where('identity', 'like', '%multi_buy%')
-                    ->orWhere('identity', 'like', '%SET%');
-            })
+            ->where(fn ($query) => ProductTag::MultiBuy->applyTo($query))
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
             ->orderBy('evaluation_count', 'desc')
@@ -482,16 +520,10 @@ class HmallProductRepository extends Repository
 
     public function setOnlineSpecialHmallProductsCache()
     {
-        // UNIQLO: ONLINE SPECIAL
-        // GU: ECONLY
-
         $hmallProducts = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->where(function ($query) {
-                $query->where('identity', 'like', '%ONLINE SPECIAL%')
-                    ->orWhere('identity', 'like', '%ECONLY%');
-            })
+            ->where(fn ($query) => ProductTag::OnlineSpecial->applyTo($query))
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
             ->orderByRaw('min_price/highest_record_price')
@@ -523,9 +555,248 @@ class HmallProductRepository extends Repository
         }
     }
 
-    public function saveProductsFromV3($products, $brand = 'UNIQLO')
+    /**
+     * 依品牌與商品編號批次取商品，用於收藏清單。
+     *
+     * 一定要連品牌一起指定：兩家共用同一組編號空間，光看 product_code 會撈到
+     * 另一家的商品（例如 u0000000053204 在 UNIQLO 是打褶寬版錐形褲、在 GU 是
+     * 一件家居服）。商品的唯一鍵是 brand 加 product_code，跟爬蟲寫入時一致。
+     *
+     * 查詢先用 product_code 縮小範圍（那欄有索引，每個編號最多命中兩筆），
+     * 再在記憶體裡用品牌配對。順序照傳入的順序排，收藏頁才維持使用者的收藏順序。
+     *
+     * @param  array<int, array{brand: string, code: string}>  $items
+     * @return Collection<int, HmallProduct>
+     */
+    public function getByBrandAndProductCodes(array $items): Collection
     {
-        collect($products)->each(function ($product) use ($brand) {
+        $products = $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
+            ->whereIn('product_code', array_column($items, 'code'))
+            ->get()
+            ->keyBy(fn (HmallProduct $product) => $product->brand.':'.$product->product_code);
+
+        return collect($items)
+            ->map(fn (array $item) => $products->get($item['brand'].':'.$item['code']))
+            ->filter()
+            ->values();
+    }
+
+    /**
+     * 取出某個分類底下還買得到的商品。
+     *
+     * 走 pivot join 直接查資料庫，不走清單頁那套預熱快取：清單頁是「促銷狀態」
+     * 這種每天算一次就好的小集合，分類是商品本體的軸，一個大類可能上千件、
+     * 還要跟品牌與分頁疊加，那是資料庫該做的事。
+     *
+     * 排序用官方在該分類內的權重，出來的順序就跟官網一致。
+     *
+     * @param  array<int, ProductTag>  $tags
+     */
+    public function getProductsByCategoryId(
+        int $categoryId,
+        array $tags = [],
+        int $perPage = self::PRODUCTS_PER_PAGE,
+        ?string $q = null
+    ): LengthAwarePaginator {
+        $query = $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
+            ->join(
+                'hmall_category_hmall_product as category_pivot',
+                'category_pivot.hmall_product_id',
+                '=',
+                'hmall_products.id'
+            )
+            ->where('category_pivot.hmall_category_id', $categoryId)
+            ->where('hmall_products.stock', 'Y')
+            ->whereNull('hmall_products.stockout_at');
+
+        // 標籤要在查詢層篩，不能先取一頁再過濾——那會漏掉商品，頁數也會是錯的
+        if (! empty($tags)) {
+            $query->where(function ($group) use ($tags) {
+                foreach ($tags as $tag) {
+                    $tag->applyTo($group);
+                }
+            });
+        }
+
+        // 分類內搜尋同樣要在查詢層做，理由跟標籤一樣：分頁後才篩會漏商品
+        if (filled($q)) {
+            $this->applyKeywordFilterForCategory($query, $q);
+        }
+
+        return $query
+            ->orderBy('category_pivot.sort')
+            ->orderBy('hmall_products.code')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * 分類頁的關鍵字篩選：多個空白分開的詞要全部命中，比對品名與編號。
+     *
+     * 跟 searchByKeywords() 不同的是這裡不比對分類名稱：使用者已經在這個分類
+     * 裡，篩的是「這個分類內」符合關鍵字的商品，不需要再擴大到別的分類。
+     */
+    private function applyKeywordFilterForCategory($query, string $q): void
+    {
+        $keywords = preg_split('/\s+/u', trim($q), -1, PREG_SPLIT_NO_EMPTY);
+
+        foreach ($keywords as $keyword) {
+            $pattern = '%'.$this->escapeLikeWildcards($keyword).'%';
+
+            $query->where(function ($subQuery) use ($pattern) {
+                $subQuery->where('hmall_products.name', 'like', $pattern)
+                    ->orWhere('hmall_products.code', 'like', $pattern)
+                    ->orWhere('hmall_products.product_code', 'like', $pattern);
+            });
+        }
+    }
+
+    /**
+     * 用數字查詢找商品：code 精準符合，或者 name 裡以獨立數字段落出現這組號碼。
+     *
+     * UNIQLO 常把多個貨號（顏色、款式）共用同一個商品頁，商品頁的 code 只會是
+     * 其中一個，其餘號碼只出現在 name 裡（例如「AIRism 圓領T恤(短袖) 474238 /
+     * 482514 / 474236」）。REGEXP 前後各夾一個「非數字或字串頭尾」，避免 482514
+     * 誤中 4825140 這種只是前綴相同的號碼。
+     *
+     * 呼叫端保證 $query 只含 ASCII 數字（ctype_digit() 驗過），這裡仍用 binding
+     * 帶進 REGEXP 樣式，不做字串拼接。
+     *
+     * 精準 code 命中排最前面（跟舊行為一致：這一頁本來就是這組編號的商品頁），
+     * 其餘依現價排序。
+     *
+     * 欄位與關聯跟其他清單查詢一致：卡片會讀 japanProduct 判斷要不要顯示影片
+     * 圖示，不先 eager load 就是一張卡片一次查詢；select 清單則擋掉 instruction
+     * 那種長文字欄，那些欄位在卡片上一個都用不到。改成共用號碼比對之後筆數會
+     * 放大，這兩件事才變成實際成本。
+     */
+    public function findHmallProductsByCodeOrSharedNumber(string $query): Collection
+    {
+        $pattern = '(^|[^0-9])'.$query.'([^0-9]|$)';
+
+        return $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
+            ->where('code', $query)
+            ->orWhere(function ($subQuery) use ($pattern) {
+                $subQuery->whereRaw('name REGEXP ?', [$pattern]);
+            })
+            ->orderByRaw('code = ? DESC', [$query])
+            ->orderBy('min_price')
+            ->get();
+    }
+
+    /**
+     * 依關鍵字搜尋商品，每個關鍵字都要命中才算符合。
+     *
+     * 比對品名、編號與商品掛的分類名稱。用 LIKE 而不是全文索引：前後都有萬用字元的
+     * 比對本來就用不到 B-tree，為它加索引只會增加每日爬蟲的寫入成本。
+     *
+     * @param  array<int, string>  $keywords
+     */
+    public function searchByKeywords(array $keywords, int $perPage = self::PRODUCTS_PER_PAGE): LengthAwarePaginator
+    {
+        $query = $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct');
+
+        // 沒有關鍵字時要回空結果，不能因為少了 where 就把整張表撈出來
+        if (empty($keywords)) {
+            $query->whereRaw('1 = 0');
+        }
+
+        foreach ($keywords as $keyword) {
+            $pattern = '%'.$this->escapeLikeWildcards($keyword).'%';
+
+            $query->where(function ($subQuery) use ($pattern) {
+                foreach (self::SEARCHABLE_COLUMNS as $column) {
+                    $subQuery->orWhere($column, 'like', $pattern);
+                }
+
+                // 也比對商品掛的分類名稱，讓「外套」這種只出現在分類、
+                // 不出現在品名裡的詞也搜得到。
+                //
+                // 這裡刻意用不相關的子查詢（不引用外層的 hmall_products），
+                // MySQL 才能先把符合的商品 id 一次算完；寫成 whereExists 會變成
+                // 每一筆商品各跑一次子查詢，實測慢十倍以上。
+                $subQuery->orWhereIn('hmall_products.id', function ($ids) use ($pattern) {
+                    $ids->select('search_pivot.hmall_product_id')
+                        ->from('hmall_category_hmall_product as search_pivot')
+                        ->join(
+                            'hmall_categories',
+                            'hmall_categories.id',
+                            '=',
+                            'search_pivot.hmall_category_id'
+                        )
+                        ->where('hmall_categories.name', 'like', $pattern);
+                });
+            });
+        }
+
+        return $query
+            // 還買得到的排前面，其次是評論多的
+            ->orderByRaw('stockout_at IS NOT NULL')
+            ->orderBy('evaluation_count', 'desc')
+            ->orderBy('score', 'desc')
+            ->orderBy('code')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * 跳脫 LIKE 的萬用字元，讓使用者輸入的 % 與 _ 當成一般文字比對。
+     *
+     * 反斜線要先跳脫，否則後面補上的跳脫字元會再被吃掉一次。
+     */
+    private function escapeLikeWildcards(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    /**
+     * 寫入一頁商品，回傳這一頁有哪幾件沒寫進去。
+     *
+     * 單一商品失敗不中斷整頁——一筆壞資料不該讓同一頁其他幾十件也寫不進去。
+     * 但失敗要讓呼叫端知道是「哪幾件」而不只是「幾件」：那幾件商品在來源其實還在，
+     * 只是資料沒更新到，缺貨判定要把它們排除掉才不會冤枉標成下架。連商品編號都
+     * 拿不到的失敗沒辦法排除，另外算一個數字，讓呼叫端知道這一輪不能做缺貨判定。
+     */
+    public function saveProductsFromV3($products, $brand = 'UNIQLO'): ProductSaveResult
+    {
+        // 分類主檔整批先寫，一頁商品只打一次資料庫，而不是每個商品各寫十幾筆。
+        // 回傳的 code 對 id 對照表給下面掛關聯用，省掉每個商品各查一次。
+        try {
+            $categoryIds = $this->saveCategoriesFromV3($products, $brand);
+        } catch (Throwable $e) {
+            // 分類主檔整批寫不進去（死鎖、連線中斷）時，這一頁的商品也不要寫：
+            // 沒有 code 對 id 的對照表，分類關聯會整頁掛不上去。
+            //
+            // 重點是這個例外不可以往外丟。往外丟會穿出呼叫端的 retry，被當成
+            // 可重試而拿資料庫的問題去重打官網好幾次，最後還被歸成「整頁沒抓到」，
+            // 通知寫「目錄有缺頁」，把人指向錯的方向。改成回報成「這一頁的商品
+            // 都寫入失敗」，缺貨判定把它們排除掉就不會冤枉標成下架。
+            Log::error('saveCategoriesFromV3 error - counting the whole page as write failures', [
+                'brand' => $brand,
+            ]);
+
+            report($e);
+
+            return $this->countEveryProductAsFailed($products);
+        }
+
+        $failedProductCodes = [];
+        $unidentifiedFailureCount = 0;
+
+        collect($products)->each(function ($product) use (
+            $brand,
+            $categoryIds,
+            &$failedProductCodes,
+            &$unidentifiedFailureCount
+        ) {
             try {
                 /** @var HmallProduct $model */
                 $model = $this->model->firstOrNew([
@@ -576,41 +847,114 @@ class HmallProductRepository extends Repository
                 $model->stockout_at = $this->getStockoutAt($model, $product);
                 $model->stock = $product->stock ?? null;
 
-                $model->save();
+                // save、syncCategories、寫價格歷史三步包同一個交易：任何一步丟例外都要整件商品
+                // 一起回滾，不然分類同步失敗時新價格已經寫進去，下次抓到同價會被判「沒變」
+                // 直接跳過，價格走勢就永久缺一筆。
+                DB::transaction(function () use ($model, $product, $categoryIds, $isChangedThePrice) {
+                    $model->save();
 
-                if (! $isChangedThePrice) {
-                    return;
+                    $this->syncCategories($model, $product, $categoryIds);
+
+                    if (! $isChangedThePrice) {
+                        return;
+                    }
+
+                    $hmallPriceHistory = new HmallPriceHistory;
+                    $hmallPriceHistory->min_price = $model->min_price;
+                    $hmallPriceHistory->max_price = $model->max_price;
+                    $model->hmallPriceHistories()->save($hmallPriceHistory);
+                });
+            } catch (Throwable $e) {
+                $productCode = $product->productCode ?? null;
+
+                // 拿得到編號才排除得掉。官方回傳格式跑掉時 productCode 可能是缺的、
+                // 空的、甚至是陣列，這幾種都只能算成無法辨識。
+                if (is_string($productCode) && $productCode !== '') {
+                    $failedProductCodes[] = $productCode;
+                } else {
+                    $unidentifiedFailureCount++;
                 }
 
-                $hmallPriceHistory = new HmallPriceHistory();
-                $hmallPriceHistory->min_price = $model->min_price;
-                $hmallPriceHistory->max_price = $model->max_price;
-                $model->hmallPriceHistories()->save($hmallPriceHistory);
-            } catch (Throwable $e) {
                 Log::error('saveProductsFromHmall error', [
                     'brand' => $brand,
-                    'product_code' => $product->productCode,
+                    'product_code' => is_string($productCode) ? $productCode : null,
                 ]);
 
                 report($e);
             }
         });
+
+        return new ProductSaveResult(
+            array_values(array_unique($failedProductCodes)),
+            $unidentifiedFailureCount
+        );
     }
 
-    public function setStockoutHmallProducts($brand = 'UNIQLO', $updatedIsBefore = null)
+    /**
+     * 整頁都算寫入失敗時，把商品編號整理成呼叫端要的格式。
+     *
+     * 跟逐商品失敗走的是同一條判準：拿得到編號才排除得掉，拿不到的只能算成
+     * 無法辨識、讓呼叫端整輪不做缺貨判定。
+     */
+    private function countEveryProductAsFailed($products): ProductSaveResult
+    {
+        $failedProductCodes = [];
+        $unidentifiedFailureCount = 0;
+
+        collect($products)->each(function ($product) use (&$failedProductCodes, &$unidentifiedFailureCount) {
+            $productCode = $product->productCode ?? null;
+
+            if (is_string($productCode) && $productCode !== '') {
+                $failedProductCodes[] = $productCode;
+            } else {
+                $unidentifiedFailureCount++;
+            }
+        });
+
+        return new ProductSaveResult(
+            array_values(array_unique($failedProductCodes)),
+            $unidentifiedFailureCount
+        );
+    }
+
+    /**
+     * 把這一輪沒被更新到的商品標成下架。
+     *
+     * $excludedProductCodes 是這一輪寫入失敗、但來源其實還在的商品：它們的
+     * updated_at 這次沒被摸到，不排除就會被冤枉標成下架。品牌條件本來就在，
+     * 同一個編號在另一個品牌底下不受影響。
+     *
+     * @param  array<int, string>  $excludedProductCodes
+     */
+    public function setStockoutHmallProducts($brand = 'UNIQLO', $updatedIsBefore = null, array $excludedProductCodes = [])
     {
         if (is_null($updatedIsBefore)) {
             $updatedIsBefore = today();
         }
 
-        $this->model
+        $query = $this->model
             ->whereNull('stockout_at')
             ->where('brand', $brand)
-            ->where('updated_at', '<', $updatedIsBefore)
-            ->update([
-                'stockout_at' => now(),
-                'updated_at' => DB::raw('updated_at'),
-            ]);
+            ->where('updated_at', '<', $updatedIsBefore);
+
+        if ($excludedProductCodes !== []) {
+            // hmall_products.product_code 允許 NULL。SQL 的 NULL NOT IN (...)
+            // 永遠不成立（結果是 unknown，等同不符合），所以直接寫
+            // whereNotIn 會把品牌底下所有 product_code 是 NULL 的舊資料整批
+            // 排除在缺貨判定之外——跟排除清單完全無關，是誤傷。
+            // 目前真實資料裡沒有一件商品的 product_code 是空的，但欄位允許，
+            // 所以還是要處理。改成括號條件，OR 要收在括號裡才不會繞過外層
+            // 已經有的品牌與日期條件。
+            $query->where(function ($query) use ($excludedProductCodes) {
+                $query->whereNotIn('product_code', $excludedProductCodes)
+                    ->orWhereNull('product_code');
+            });
+        }
+
+        $query->update([
+            'stockout_at' => now(),
+            'updated_at' => DB::raw('updated_at'),
+        ]);
     }
 
     public function updateProductDescriptionsFromV3(
@@ -680,6 +1024,99 @@ class HmallProductRepository extends Repository
         }
 
         return max($highestRecordPrice, $newMaxPrice);
+    }
+
+    /**
+     * 從整批商品的回傳裡取出分類主檔並寫入，回傳 code 對 id 的對照表。
+     *
+     * 官方每筆商品都帶完整的四層分類物件（code、name、parentCode 齊全），
+     * 所以主檔不需要另外抓一支 endpoint。分類的身分是品牌加 code，
+     * upsert 的比對鍵也是這兩欄。
+     *
+     * @return Collection<string, int>
+     */
+    private function saveCategoriesFromV3($products, string $brand): Collection
+    {
+        $categories = collect($products)
+            ->flatMap(fn ($product) => $this->extractCategories($product, $brand))
+            ->unique('code')
+            ->values();
+
+        if ($categories->isEmpty()) {
+            return collect();
+        }
+
+        HmallCategory::upsert($categories->all(), ['brand', 'code'], ['name', 'parent_code', 'level']);
+
+        return HmallCategory::where('brand', $brand)
+            ->whereIn('code', $categories->pluck('code'))
+            ->pluck('id', 'code');
+    }
+
+    /**
+     * 把商品的四層分類陣列攤平成主檔資料列。
+     *
+     * 層級由它出現在哪個陣列決定：官方的同一個 code 不會跨層出現。
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function extractCategories($product, string $brand): array
+    {
+        $levels = [
+            [CategoryLevel::Top, $product->topCategories ?? []],
+            [CategoryLevel::One, $product->levelOne ?? []],
+            [CategoryLevel::Two, $product->levelTwo ?? []],
+            [CategoryLevel::Three, $product->levelThree ?? []],
+        ];
+
+        $categories = [];
+
+        foreach ($levels as [$level, $items]) {
+            foreach ($items as $item) {
+                if (empty($item->code)) {
+                    continue;
+                }
+
+                $categories[] = [
+                    'brand' => $brand,
+                    'code' => $item->code,
+                    'name' => $item->name ?? $item->code,
+                    'parent_code' => $item->parentCode ?? null,
+                    // upsert 走 query builder、不套 model 的 cast，這裡要給原始值
+                    'level' => $level->value,
+                ];
+            }
+        }
+
+        return $categories;
+    }
+
+    /**
+     * 更新商品掛在哪些分類底下。
+     *
+     * 分類歸屬以四層陣列為準，categorySortList 只提供官方在該分類內的排序權重。
+     * 回傳沒有分類時不動既有關聯：那比較可能是這次回傳缺漏，而不是商品真的被移出所有分類。
+     */
+    private function syncCategories(HmallProduct $model, $product, Collection $categoryIds): void
+    {
+        $codes = collect($this->extractCategories($product, $model->brand))
+            ->pluck('code')
+            ->unique()
+            ->filter(fn (string $code) => $categoryIds->has($code));
+
+        if ($codes->isEmpty()) {
+            return;
+        }
+
+        $sorts = collect($product->categorySortList ?? [])
+            ->filter(fn ($item) => ! empty($item->code))
+            ->mapWithKeys(fn ($item) => [$item->code => $item->sort ?? null]);
+
+        $model->categories()->sync(
+            $codes->mapWithKeys(fn (string $code) => [
+                $categoryIds->get($code) => ['sort' => $sorts->get($code)],
+            ])->all()
+        );
     }
 
     private function getCarbonOrNull($unixTimestampInMilliseconds)
@@ -781,6 +1218,9 @@ class HmallProductRepository extends Repository
                 'weightedViews' => $weightedViews,
             ];
         })
+            // 編號過不了白名單的整筆丟掉：GA 收得到任何人亂打的網址，
+            // 這些片段本來就對不到商品，沒有理由讓它往下走。
+            ->filter(fn ($item) => $item['productCode'] !== null)
             ->unique(fn ($item) => "{$item['brand']}_{$item['productCode']}")
             ->sortByDesc('weightedViews');
     }
@@ -790,9 +1230,20 @@ class HmallProductRepository extends Repository
         return str_contains($fullPageUrl, '/gu-products/') ? 'GU' : 'UNIQLO';
     }
 
-    private function getProductCodeFromUrl(string $fullPageUrl): string
+    /**
+     * 從 GA 的 fullPageUrl 取商品編號。
+     *
+     * 這個值是外部可以自己灌進來的：任何人反覆打 /hmall-products/<任意字串>，
+     * 就算回 404，錯誤頁一樣 include 了 GA 的 script，那個路徑還是會被記成一筆
+     * pagePath，再被 getDimensionFilter() 的 BEGINS_WITH 收進這份排行。所以一律
+     * 先過白名單，只認英數、底線與連字號；不合格式的回 null，讓呼叫端整筆丟掉，
+     * 不要讓它有機會進到任何一段 SQL。
+     */
+    private function getProductCodeFromUrl(string $fullPageUrl): ?string
     {
-        return explode('/', $fullPageUrl)[2];
+        $productCode = explode('/', $fullPageUrl)[2] ?? '';
+
+        return preg_match('/^[A-Za-z0-9_-]+$/', $productCode) === 1 ? $productCode : null;
     }
 
     private function fetchRankedProducts(Collection $rank): Collection
@@ -801,20 +1252,27 @@ class HmallProductRepository extends Repository
             return collect([]);
         }
 
-        $productIdentifiers = $rank->map(fn ($item) => "{$item['brand']}_{$item['productCode']}");
+        $productIdentifiers = $rank
+            ->map(fn ($item) => "{$item['brand']}_{$item['productCode']}")
+            ->values()
+            ->all();
 
-        $orderClause = $rank->map(fn ($item) => "'{$item['brand']}_{$item['productCode']}'")
-            ->join(',');
-
-        $orderByField = sprintf('FIELD(CONCAT(brand, \'_\', product_code), %s)', $orderClause);
+        // ORDER BY 的名次清單跟上面的 whereIn 一樣要走 binding。以前這裡是把
+        // 商品編號加引號直接拼進字串，而編號來自 GA 的網址片段（外部值），
+        // 等於把 ORDER BY 開放給外部寫入。編號那端已經有白名單，這端用佔位符，
+        // 兩層都守住。
+        $orderByField = sprintf(
+            'FIELD(CONCAT(brand, \'_\', product_code), %s)',
+            implode(', ', array_fill(0, count($productIdentifiers), '?'))
+        );
 
         return $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->whereIn(DB::raw("CONCAT(brand, '_', product_code)"), $productIdentifiers->toArray())
+            ->whereIn(DB::raw("CONCAT(brand, '_', product_code)"), $productIdentifiers)
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
-            ->orderByRaw($orderByField)
+            ->orderByRaw($orderByField, $productIdentifiers)
             ->get();
     }
 }

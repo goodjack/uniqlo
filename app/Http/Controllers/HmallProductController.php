@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\HmallProduct;
+use App\Services\CategoryService;
 use App\Services\HmallProductService;
 use Illuminate\Http\Request;
 
@@ -10,9 +11,12 @@ class HmallProductController extends Controller
 {
     protected $service;
 
-    public function __construct(HmallProductService $service)
+    protected $categoryService;
+
+    public function __construct(HmallProductService $service, CategoryService $categoryService)
     {
         $this->service = $service;
+        $this->categoryService = $categoryService;
     }
 
     /**
@@ -59,6 +63,11 @@ class HmallProductController extends Controller
         $styleHints = $this->service->getStyleHints($hmallProduct, 12);
         $styleHintCount = $this->service->getStyleHintCount($hmallProduct);
         $hmallPriceHistories = $hmallProduct->hmallPriceHistories()->get();
+        // 規則在 CategoryService::getCategoryLinksForProductPage()
+        $categories = $this->categoryService->getCategoryLinksForProductPage($hmallProduct);
+
+        // 麵包屑只走一條路徑，規則在 CategoryService::getPrimaryCategory()
+        $primaryCategory = $this->categoryService->getPrimaryCategory($hmallProduct);
 
         return view('hmall-products.show', [
             'hmallProduct' => $hmallProduct,
@@ -70,6 +79,10 @@ class HmallProductController extends Controller
             'styleHintCount' => $styleHintCount,
             'hmallPriceHistories' => $hmallPriceHistories,
             'japanProduct' => $hmallProduct->japanProduct,
+            'categories' => $categories,
+            'categoryTrail' => $primaryCategory === null
+                ? collect()
+                : $this->categoryService->getBreadcrumb($primaryCategory),
         ]);
     }
 

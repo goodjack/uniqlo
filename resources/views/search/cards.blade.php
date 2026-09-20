@@ -1,22 +1,39 @@
-<div class="ts attached padded horizontally fitted fluid segment">
-    <div class="ts container">
-        <div data-tab="Men" class="ts active basic horizontally fitted tab segment">
-            <h2 class="ts large header">
-                同編號商品
-                <div class="inline sub header">共 {{ $hmallProducts->count() }} 件</div>
-            </h2>
-            <div class="ts doubling link cards four">
-                @each('hmall-products.card', $hmallProducts, 'hmallProduct')
-            </div>
-            @if ($products->isNotEmpty())
-                <h2 class="ts large header">
-                    舊系統商品
-                    <div class="inline sub header">共 {{ $products->count() }} 件</div>
-                </h2>
-                <div class="ts doubling link cards four">
-                    @each('products.card', $products, 'product')
-                </div>
-            @endif
-        </div>
-    </div>
+<h2 class="ts large header">
+    同編號商品
+    <div class="inline sub header">共 {{ $hmallProducts->count() }} 件</div>
+</h2>
+<div class="ts doubling cards four uq-product-cards">
+    {{--
+        不能用 @each：UNIQLO 常把多個貨號共用同一個商品頁，這裡的 code 只有部分
+        跟查詢字一樣，其餘是 name 裡帶出來的號碼（見 HmallProductRepository::
+        findHmallProductsByCodeOrSharedNumber）。要逐張卡片判斷、補一行「此商品頁
+        同時包含貨號」的提示，@each 沒辦法帶額外變數進子視圖。
+
+        提示塞進卡片既有的 slot（card-extra-content 之後），不額外加卡片的兄弟
+        節點——.ts.four.cards>.ts.card 的欄寬是照直接子元素數的，多塞非 .card
+        的節點會把版面擠壞。
+    --}}
+    @foreach ($hmallProducts as $hmallProduct)
+        @php
+            $sharedCodes = [];
+            if ($hmallProduct->code !== $query) {
+                preg_match_all('/\d{6}/', $hmallProduct->name, $sharedCodeMatches);
+                $sharedCodes = $sharedCodeMatches[0];
+            }
+        @endphp
+        @include('hmall-products.partials.card-base', [
+            'slot' => view('hmall-products.partials.card-extra-content', ['hmallProduct' => $hmallProduct])->render()
+                .(empty($sharedCodes) ? '' : '<div class="meta">此商品頁同時包含貨號 '.e(implode(' / ', $sharedCodes)).'</div>'),
+        ])
+    @endforeach
 </div>
+
+@if ($products->isNotEmpty())
+    <h2 class="ts large header">
+        舊系統商品
+        <div class="inline sub header">共 {{ $products->count() }} 件</div>
+    </h2>
+    <div class="ts doubling cards four uq-product-cards">
+        @each('products.card', $products, 'product')
+    </div>
+@endif

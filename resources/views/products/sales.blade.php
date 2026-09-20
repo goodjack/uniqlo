@@ -9,7 +9,7 @@
 
 @section('content')
     <div class="ts fluid slate">
-        <i class="primary shopping basket icon"></i>
+        <i class="sale shopping basket icon"></i>
         <span class="header">{{ $productPresenter->countProducts($sales) }} 件商品特價中</span>
     </div>
     @include('products.cards', ['products' => $sales])

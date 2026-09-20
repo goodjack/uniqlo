@@ -1,0 +1,630 @@
+{
+  "resp": [
+    {
+      "productSum": 2,
+      "productList": [
+        {
+          "sizeSequence": "{2:\"SMA002\",3:\"SMA003\",4:\"SMA004\",5:\"SMA005\",6:\"SMA006\",7:\"SMA007\",8:\"SMA008\"}",
+          "originPrice": 990,
+          "productName": "男裝/男女適穿​ 打褶寬版錐形褲 484662  特價商品 修改褲長 實體店舖取貨 S,XL,3XL,XS,L,XXL,M GRAY,NAVY,BLACK,BROWN",
+          "sales": 4832,
+          "firstRank": 1,
+          "score": 4.88,
+          "pubSuffix": "000",
+          "colorShow": [],
+          "defaultColor": "COL69",
+          "maxVaryPrice": 0,
+          "season": "春季",
+          "mainPic": "/hmall/test/u0000000053204/main/first/561/1.jpg",
+          "minSize": "XS",
+          "stock": "Y",
+          "saleAmount": 563270,
+          "new": 1767573000000,
+          "colorPic": [
+            "/hmall/test/u0000000053204/sku/225/COL05.jpg",
+            "/hmall/test/u0000000053204/sku/225/COL09.jpg",
+            "/hmall/test/u0000000053204/sku/225/COL34.jpg",
+            "/hmall/test/u0000000053204/sku/225/COL69.jpg"
+          ],
+          "priceColor": "red",
+          "categorySortList": [
+            {
+              "code": "all_women-bottoms-widepants-anchor09",
+              "sort": "006002009"
+            },
+            {
+              "code": "ALL",
+              "sort": "999999999"
+            },
+            {
+              "code": "all_women-bottoms-easy-pants",
+              "sort": "006004011"
+            },
+            {
+              "code": "all_men-bottoms-widepants",
+              "sort": "006002002006002004"
+            },
+            {
+              "code": "all_men-collaboration-ss-uniqlo-c",
+              "sort": "017004005"
+            },
+            {
+              "code": "all_men-bottoms-easy-pants",
+              "sort": "006004009"
+            },
+            {
+              "code": "all_women-bottoms-easy-pants-anchor07",
+              "sort": "006004011"
+            },
+            {
+              "code": "all_women",
+              "sort": "006002009006004011"
+            },
+            {
+              "code": "all_women-bottoms",
+              "sort": "006002009006004011"
+            },
+            {
+              "code": "feature-sale-men-bottoms",
+              "sort": "004004001"
+            },
+            {
+              "code": "all_men-bottoms-easy-pants-anchor09",
+              "sort": "006004009"
+            },
+            {
+              "code": "feature-sale",
+              "sort": "004003008004004001004007999"
+            },
+            {
+              "code": "feature-sale-women",
+              "sort": "004003008"
+            },
+            {
+              "code": "feature-sale-women-bottoms",
+              "sort": "004003008"
+            },
+            {
+              "code": "all_men-bottoms",
+              "sort": "006002002006002004006004009"
+            },
+            {
+              "code": "all_men-collaboration-ss-uniqlo-c-anchor05",
+              "sort": "017004005"
+            },
+            {
+              "code": "all_men-bottoms-widepants-anchor03",
+              "sort": "006002002"
+            },
+            {
+              "code": "feature-sale-men",
+              "sort": "004004001"
+            },
+            {
+              "code": "all_men-collaboration-ss",
+              "sort": "017004005"
+            },
+            {
+              "code": "feature",
+              "sort": "004003008004004001004007999"
+            },
+            {
+              "code": "all_women-bottoms-widepants",
+              "sort": "006002009"
+            },
+            {
+              "code": "feature-sale-collaboration",
+              "sort": "004007999"
+            },
+            {
+              "code": "all_men-bottoms-widepants-anchor06",
+              "sort": "006002004"
+            },
+            {
+              "code": "all_men",
+              "sort": "006002002006002004006004009017004005"
+            }
+          ],
+          "levelOne": [
+            {
+              "nameMapStr": "{\"zh_TW\":\"下身類\"}",
+              "code": "all_women-bottoms",
+              "parentCode": "all_women",
+              "name": "下身類"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"夏日SALE 特價專區\"}",
+              "code": "feature-sale",
+              "parentCode": "feature",
+              "name": "夏日SALE 特價專區"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"下身類\"}",
+              "code": "all_men-bottoms",
+              "parentCode": "all_men",
+              "name": "下身類"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"2026年 春夏聯名系列\"}",
+              "code": "all_men-collaboration-ss",
+              "parentCode": "all_men",
+              "name": "2026年 春夏聯名系列"
+            }
+          ],
+          "evaluationCount": 40,
+          "size": [
+            "SMA002",
+            "SMA003",
+            "SMA004",
+            "SMA005",
+            "SMA006",
+            "SMA007",
+            "SMA008"
+          ],
+          "masterSpuCode": "484662",
+          "minPrice": 790,
+          "name": "打褶寬版錐形褲",
+          "overall": 9449,
+          "maxPrice": 790,
+          "shortName": "打褶寬版錐形褲",
+          "colorNums": [
+            "COL05",
+            "COL09",
+            "COL34",
+            "COL69"
+          ],
+          "code": "484662",
+          "gender": "男裝",
+          "maxSize": "3XL",
+          "spuClass": "default",
+          "preSaleName": "",
+          "categoryName": [
+            "男裝/男女適穿",
+            "全商品",
+            "寬褲",
+            "休閒褲",
+            "UNIQLO : C",
+            "休閒褲",
+            "男裝/男女適穿",
+            "下身類",
+            "女裝",
+            "長褲",
+            "長褲",
+            "女裝 特價商品",
+            "夏日SALE 特價專區",
+            "繭型/錐形",
+            "下身類",
+            "打褶",
+            "褲裝",
+            "2026年 春夏聯名系列",
+            "男裝 特價商品",
+            "熱門推薦",
+            "寬褲",
+            "大師聯名系列 特價商品",
+            "男裝",
+            "錐形"
+          ],
+          "levelThree": [
+            {
+              "nameMapStr": "{\"zh_TW\":\"男裝/男女適穿\"}",
+              "code": "all_women-bottoms-widepants-anchor09",
+              "parentCode": "all_women-bottoms-widepants",
+              "name": "男裝/男女適穿"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"男裝/男女適穿\"}",
+              "code": "all_women-bottoms-easy-pants-anchor07",
+              "parentCode": "all_women-bottoms-easy-pants",
+              "name": "男裝/男女適穿"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"長褲\"}",
+              "code": "feature-sale-men-bottoms",
+              "parentCode": "feature-sale-men",
+              "name": "長褲"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"長褲\"}",
+              "code": "feature-sale-women-bottoms",
+              "parentCode": "feature-sale-women",
+              "name": "長褲"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"繭型/錐形\"}",
+              "code": "all_men-bottoms-easy-pants-anchor09",
+              "parentCode": "all_men-bottoms-easy-pants",
+              "name": "繭型/錐形"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"打褶\"}",
+              "code": "all_men-bottoms-widepants-anchor03",
+              "parentCode": "all_men-bottoms-widepants",
+              "name": "打褶"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"褲裝\"}",
+              "code": "all_men-collaboration-ss-uniqlo-c-anchor05",
+              "parentCode": "all_men-collaboration-ss-uniqlo-c",
+              "name": "褲裝"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"錐形\"}",
+              "code": "all_men-bottoms-widepants-anchor06",
+              "parentCode": "all_men-bottoms-widepants",
+              "name": "錐形"
+            }
+          ],
+          "identity": [
+            "concessional_rate",
+            "revision",
+            "pickUp"
+          ],
+          "colorGroup": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "levelTwo": [
+            {
+              "nameMapStr": "{\"zh_TW\":\"寬褲\"}",
+              "code": "all_men-bottoms-widepants",
+              "parentCode": "all_men-bottoms",
+              "name": "寬褲"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"休閒褲\"}",
+              "code": "all_women-bottoms-easy-pants",
+              "parentCode": "all_women-bottoms",
+              "name": "休閒褲"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"UNIQLO : C\"}",
+              "code": "all_men-collaboration-ss-uniqlo-c",
+              "parentCode": "all_men-collaboration-ss",
+              "name": "UNIQLO : C"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"休閒褲\"}",
+              "code": "all_men-bottoms-easy-pants",
+              "parentCode": "all_men-bottoms",
+              "name": "休閒褲"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"女裝 特價商品\"}",
+              "code": "feature-sale-women",
+              "parentCode": "feature-sale",
+              "name": "女裝 特價商品"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"男裝 特價商品\"}",
+              "code": "feature-sale-men",
+              "parentCode": "feature-sale",
+              "name": "男裝 特價商品"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"寬褲\"}",
+              "code": "all_women-bottoms-widepants",
+              "parentCode": "all_women-bottoms",
+              "name": "寬褲"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"大師聯名系列 特價商品\"}",
+              "code": "feature-sale-collaboration",
+              "parentCode": "feature-sale",
+              "name": "大師聯名系列 特價商品"
+            }
+          ],
+          "saleStatusSort": 1,
+          "omsProductCode": "484662000",
+          "prices": [
+            790
+          ],
+          "class": "default",
+          "topCategories": [
+            {
+              "nameMapStr": "{\"zh_TW\":\"全商品\"}",
+              "code": "ALL",
+              "parentCode": null,
+              "name": "全商品"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"女裝\"}",
+              "code": "all_women",
+              "parentCode": null,
+              "name": "女裝"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"熱門推薦\"}",
+              "code": "feature",
+              "parentCode": null,
+              "name": "熱門推薦"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"男裝\"}",
+              "code": "all_men",
+              "parentCode": null,
+              "name": "男裝"
+            }
+          ],
+          "lookModelPic": [],
+          "chipPic": [
+            "/hmall/test/u0000000053204/chip/22/COL05.jpg",
+            "/hmall/test/u0000000053204/chip/22/COL09.jpg",
+            "/hmall/test/u0000000053204/chip/22/COL34.jpg",
+            "/hmall/test/u0000000053204/chip/22/COL69.jpg"
+          ],
+          "styleText": [
+            "05 GRAY",
+            "09 BLACK",
+            "34 BROWN",
+            "69 NAVY"
+          ],
+          "stores": [],
+          "sex": "男裝/男女適穿​",
+          "minVaryPrice": 0,
+          "label": "concessional_rate",
+          "timeLimitedBegin": 1781742600000,
+          "productCode": "u0000000053204",
+          "labelSort": 6,
+          "material": null,
+          "timeLimitedEnd": 1782403199000
+        },
+        {
+          "sizeSequence": "{2:\"SMA002\",3:\"SMA003\",4:\"SMA004\",5:\"SMA005\",6:\"SMA006\",8:\"SMA008\"}",
+          "originPrice": 490,
+          "productName": "女裝 特級彈性Active T恤(短袖) 483458  特價商品 實體店舖取貨 S,XL,3XL,XS,L,XXL,M WHITE,PINK,DARK GRAY,BLUE,BLACK,GREEN",
+          "sales": 13012,
+          "firstRank": 1,
+          "score": 4.68,
+          "pubSuffix": "000",
+          "colorShow": [],
+          "defaultColor": "COL63",
+          "maxVaryPrice": 0,
+          "season": "夏季",
+          "mainPic": "/hmall/test/u0000000053340/main/first/561/1.jpg",
+          "minSize": "XS",
+          "stock": "Y",
+          "saleAmount": 776460,
+          "new": 1768782600000,
+          "colorPic": [
+            "/hmall/test/u0000000053340/sku/225/COL00.jpg",
+            "/hmall/test/u0000000053340/sku/225/COL08.jpg",
+            "/hmall/test/u0000000053340/sku/225/COL09.jpg",
+            "/hmall/test/u0000000053340/sku/225/COL12.jpg",
+            "/hmall/test/u0000000053340/sku/225/COL55.jpg",
+            "/hmall/test/u0000000053340/sku/225/COL63.jpg"
+          ],
+          "priceColor": "red",
+          "categorySortList": [
+            {
+              "code": "all_women-tops",
+              "sort": "002001003002001011002001015"
+            },
+            {
+              "code": "ALL",
+              "sort": "999999999"
+            },
+            {
+              "code": "all_women-tops-t-shirts-anchor09",
+              "sort": "002001015"
+            },
+            {
+              "code": "feature",
+              "sort": "004003001"
+            },
+            {
+              "code": "all_women-sport-utility-wear",
+              "sort": "016001999"
+            },
+            {
+              "code": "all_women",
+              "sort": "002001003002001011002001015016001999"
+            },
+            {
+              "code": "feature-sale-women-tops-short-sleeve",
+              "sort": "004003001"
+            },
+            {
+              "code": "all_women-tops-t-shirts-anchor02",
+              "sort": "002001003"
+            },
+            {
+              "code": "all_women-tops-t-shirts",
+              "sort": "002001003002001011002001015"
+            },
+            {
+              "code": "feature-sale",
+              "sort": "004003001"
+            },
+            {
+              "code": "feature-sale-women",
+              "sort": "004003001"
+            },
+            {
+              "code": "all_women-tops-t-shirts-anchor05",
+              "sort": "002001011"
+            },
+            {
+              "code": "all_women-sport-utility-wear-tops",
+              "sort": "016001999"
+            }
+          ],
+          "levelOne": [
+            {
+              "nameMapStr": "{\"zh_TW\":\"T恤/背心/休閒\"}",
+              "code": "all_women-tops",
+              "parentCode": "all_women",
+              "name": "T恤/背心/休閒"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"運動機能類\"}",
+              "code": "all_women-sport-utility-wear",
+              "parentCode": "all_women",
+              "name": "運動機能類"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"夏日SALE 特價專區\"}",
+              "code": "feature-sale",
+              "parentCode": "feature",
+              "name": "夏日SALE 特價專區"
+            }
+          ],
+          "evaluationCount": 136,
+          "size": [
+            "SMA002",
+            "SMA003",
+            "SMA004",
+            "SMA005",
+            "SMA006",
+            "SMA008"
+          ],
+          "masterSpuCode": "483458",
+          "minPrice": 290,
+          "name": "特級彈性Active T恤(短袖)",
+          "overall": 9448,
+          "maxPrice": 290,
+          "shortName": "特級彈性Active T恤(短袖)",
+          "colorNums": [
+            "COL00",
+            "COL08",
+            "COL09",
+            "COL12",
+            "COL55",
+            "COL63"
+          ],
+          "code": "483458",
+          "gender": "女裝",
+          "maxSize": "3XL",
+          "spuClass": "default",
+          "preSaleName": "",
+          "categoryName": [
+            "T恤/背心/休閒",
+            "全商品",
+            "顯瘦修身",
+            "運動機能類",
+            "女裝",
+            "T恤(短袖)",
+            "女裝 特價商品",
+            "夏日SALE 特價專區",
+            "熱門推薦",
+            "短袖",
+            "T恤/背心",
+            "上衣",
+            "短版/顯瘦修身"
+          ],
+          "levelThree": [
+            {
+              "nameMapStr": "{\"zh_TW\":\"顯瘦修身\"}",
+              "code": "all_women-tops-t-shirts-anchor09",
+              "parentCode": "all_women-tops-t-shirts",
+              "name": "顯瘦修身"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"T恤(短袖)\"}",
+              "code": "feature-sale-women-tops-short-sleeve",
+              "parentCode": "feature-sale-women",
+              "name": "T恤(短袖)"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"短袖\"}",
+              "code": "all_women-tops-t-shirts-anchor02",
+              "parentCode": "all_women-tops-t-shirts",
+              "name": "短袖"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"短版/顯瘦修身\"}",
+              "code": "all_women-tops-t-shirts-anchor05",
+              "parentCode": "all_women-tops-t-shirts",
+              "name": "短版/顯瘦修身"
+            }
+          ],
+          "identity": [
+            "concessional_rate",
+            "pickUp"
+          ],
+          "colorGroup": [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "levelTwo": [
+            {
+              "nameMapStr": "{\"zh_TW\":\"女裝 特價商品\"}",
+              "code": "feature-sale-women",
+              "parentCode": "feature-sale",
+              "name": "女裝 特價商品"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"T恤/背心\"}",
+              "code": "all_women-tops-t-shirts",
+              "parentCode": "all_women-tops",
+              "name": "T恤/背心"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"上衣\"}",
+              "code": "all_women-sport-utility-wear-tops",
+              "parentCode": "all_women-sport-utility-wear",
+              "name": "上衣"
+            }
+          ],
+          "saleStatusSort": 1,
+          "omsProductCode": "483458000",
+          "prices": [
+            290
+          ],
+          "class": "default",
+          "topCategories": [
+            {
+              "nameMapStr": "{\"zh_TW\":\"全商品\"}",
+              "code": "ALL",
+              "parentCode": null,
+              "name": "全商品"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"女裝\"}",
+              "code": "all_women",
+              "parentCode": null,
+              "name": "女裝"
+            },
+            {
+              "nameMapStr": "{\"zh_TW\":\"熱門推薦\"}",
+              "code": "feature",
+              "parentCode": null,
+              "name": "熱門推薦"
+            }
+          ],
+          "lookModelPic": [],
+          "chipPic": [
+            "/hmall/test/u0000000053340/chip/22/COL00.jpg",
+            "/hmall/test/u0000000053340/chip/22/COL08.jpg",
+            "/hmall/test/u0000000053340/chip/22/COL09.jpg",
+            "/hmall/test/u0000000053340/chip/22/COL12.jpg",
+            "/hmall/test/u0000000053340/chip/22/COL55.jpg",
+            "/hmall/test/u0000000053340/chip/22/COL63.jpg"
+          ],
+          "styleText": [
+            "00 WHITE",
+            "08 DARK GRAY",
+            "09 BLACK",
+            "12 PINK",
+            "55 GREEN",
+            "63 BLUE"
+          ],
+          "stores": [],
+          "sex": "女裝",
+          "minVaryPrice": 0,
+          "label": "concessional_rate",
+          "timeLimitedBegin": 1783038600000,
+          "productCode": "u0000000053340",
+          "labelSort": 6,
+          "material": null,
+          "timeLimitedEnd": 1783612799000
+        }
+      ]
+    }
+  ]
+}

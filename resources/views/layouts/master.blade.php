@@ -6,7 +6,7 @@
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="theme-color" content="#ce5e57">
+    <meta name="theme-color" content="#ce5f58">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
     <link rel="manifest" href="{{ asset('app.webmanifest') }}">
     <meta name="apple-mobile-web-app-title" content="UQ 搜尋">
@@ -29,6 +29,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/2.3.3/tocas.css"
         integrity="sha512-D41DQHff3/kvdRtWlfJ69BltxL2ovJ2hRFiQopYGGiSFgJE4i5Un3qaqlKCAuo+00yaMzdcw7aVRl11taevIdw=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    {{-- 跨頁共用的元件樣式。放在 Tocas 之後才蓋得掉它，放在 @yield('css') 之前才蓋得掉這裡 --}}
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ filemtime(public_path('css/app.css')) }}">
     <style>
         html {
             height: 100%;
@@ -38,7 +41,10 @@
 
         body {
             height: 100%;
-            padding: 60px 0 0 0;
+            /* 固定導覽列實測高 63.31px。跟 app.css 的 --uq-nav-height 是同一個值：
+               sticky 章節選單的 top 與章節錨點的偏移量都吃那個 token，三處對不齊
+               的話麵包屑會被導覽列蓋住、跳錨點也會落在選單底下 */
+            padding: 64px 0 0 0;
             display: flex;
             flex-direction: column;
         }
@@ -80,6 +86,10 @@
 
     <!-- Tocas JS：模塊與 JavaScript 函式 -->
     <script src="{{ asset('js/tocas.js') }}"></script>
+    {{-- 收藏鈕現在出現在每一頁的商品卡片上，所以這支腳本改由版型統一載入。 --}}
+    {{-- 版號帶檔案的 mtime：它跟頁面上的 id 與 data 屬性是綁在一起的， --}}
+    {{-- 瀏覽器留著舊快取配新 HTML 會找不到元素而中斷。 --}}
+    <script src="{{ asset('js/favorites.js') }}?v={{ filemtime(public_path('js/favorites.js')) }}"></script>
     <script>
         if ('loading' in HTMLImageElement.prototype) {
             const images = document.querySelectorAll('img[loading="lazy"]');
@@ -102,6 +112,63 @@
     </script>
     <script>
         ts('.ts.dropdown:not(.basic)').dropdown();
+
+        // tocas.js 的 dropdown 沒有 toggle：它每次點擊都先收合所有展開的、再展開
+        // 自己（tocas.js 的 ts.fn.dropdown），所以點第二次還是開著。這裡在捕獲階段
+        // 攔下「已經開著時的點擊」，處理完就擋住它的 handler。
+        document.querySelectorAll('.ts.dropdown:not(.basic)').forEach(function(dropdown) {
+            dropdown.addEventListener('click', function(event) {
+                if (!dropdown.classList.contains('visible')) {
+                    return;
+                }
+
+                event.stopImmediatePropagation();
+                dropdown.classList.remove('visible');
+                dropdown.classList.add('hidden');
+            }, true);
+        });
+    </script>
+    <script>
+        /*
+         * 排序這種「選了就該生效」的下拉。沒有 JavaScript 時旁邊那顆送出鈕是
+         * 唯一的出路，所以是它被藏起來、不是反過來讓下拉在沒有腳本時失效。
+         */
+        document.querySelectorAll('select[data-auto-submit]').forEach(function(select) {
+            select.addEventListener('change', function() {
+                select.form.submit();
+            });
+
+            select.form.querySelectorAll('[data-auto-submit-fallback]').forEach(function(button) {
+                button.hidden = true;
+            });
+        });
+    </script>
+    <script>
+        // 章節選單：每頁最多一個，有就把捲動監聽掛上去，active 才會跟著捲動走。
+        // id 在選單本身，不在外面那層負責 sticky 的容器。
+        const sectionMenu = document.querySelector('.uq-section-menu .ts.menu');
+
+        if (sectionMenu) {
+            ts('body').scrollspy({
+                target: '#' + sectionMenu.id
+            });
+
+            // scrollspy 判斷 active 的條件是「這一段的錨點捲到離容器頂 10px 以
+            // 內」，初始化當下就算對每個錨點都跑過一次同樣的判斷，頁面剛載入、
+            // 使用者還沒捲動時第一段通常在畫面中段而不是頂端，條件不成立，選單
+            // 就完全沒有 active、看起來像純文字。這裡補上：初始化後如果還沒有
+            // 任何一項是 active，先讓第一項頂著，之後使用者一捲動就交還給
+            // scrollspy 接手（它會依實際位置正確地加或拿掉 active）。
+            // 只挑連結型的項目：分類總覽的選單第一項是品牌小標（.header.item），
+            // 它不是連結、scrollspy 也不認它，選到它等於把小標標成「目前這一段」
+            if (!sectionMenu.querySelector('.item.active')) {
+                const firstItem = sectionMenu.querySelector('a.item');
+
+                if (firstItem) {
+                    firstItem.classList.add('active');
+                }
+            }
+        }
     </script>
     <script>
         const showOnPx = 100;

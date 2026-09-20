@@ -69,52 +69,8 @@
         </div>
     </div>
     <div class="ts very padded horizontally fitted attached fluid secondary center aligned segment">
-        <div class="ts small buttons">
-            {{-- Previous Page Link --}}
-            @if ($styleHints->onFirstPage())
-                <a class="ts icon disabled button" aria-disabled="true" aria-label="@lang('pagination.previous')">
-                    <i class="left chevron icon"></i>
-                </a>
-            @else
-                <a class="ts icon button" href="{{ $styleHints->previousPageUrl() }}" rel="prev"
-                    aria-label="@lang('pagination.previous')">
-                    <i class="left chevron icon"></i>
-                </a>
-            @endif
-
-            {{-- Pagination Elements --}}
-            @foreach ($elements as $element)
-                {{-- "Three Dots" Separator --}}
-                @if (is_string($element))
-                    <a class="ts icon disabled button" aria-disabled="true">{{ $element }}</a>
-                @endif
-
-                {{-- Array Of Links --}}
-                @if (is_array($element))
-                    @foreach ($element as $page => $url)
-                        @if ($page == $styleHints->currentPage())
-                            <a class="ts icon active button" href="{{ $url }}" aria-current="page">
-                                {{ $page }}
-                            </a>
-                        @else
-                            <a class="ts icon button" href="{{ $url }}">{{ $page }}</a>
-                        @endif
-                    @endforeach
-                @endif
-            @endforeach
-
-            {{-- Next Page Link --}}
-            @if ($styleHints->hasMorePages())
-                <a class="ts icon button" href="{{ $styleHints->nextPageUrl() }}" rel="next"
-                    aria-label="@lang('pagination.next')">
-                    <i class="right chevron icon"></i>
-                </a>
-            @else
-                <a class="ts icon disabled button" aria-disabled="true" aria-label="@lang('pagination.next')">
-                    <i class="right chevron icon"></i>
-                </a>
-            @endif
-        </div>
+        {{-- bare=true：這層 fluid secondary segment 已經是外框，不用 partial 自己再包一層 --}}
+        @include('partials.pagination', ['paginator' => $styleHints, 'bare' => true])
     </div>
 @endsection
 

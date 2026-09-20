@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\CategoryLevel;
+use App\Repositories\HmallCategoryRepository;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use Spatie\Sitemap\Sitemap;
@@ -13,17 +15,28 @@ class SitemapService extends Service
 
     protected $hmallProductRepository;
 
-    public function __construct(ProductRepository $productRepository, HmallProductRepository $hmallProductRepository)
-    {
+    protected $hmallCategoryRepository;
+
+    public function __construct(
+        ProductRepository $productRepository,
+        HmallProductRepository $hmallProductRepository,
+        HmallCategoryRepository $hmallCategoryRepository
+    ) {
         $this->productRepository = $productRepository;
         $this->hmallProductRepository = $hmallProductRepository;
+        $this->hmallCategoryRepository = $hmallCategoryRepository;
     }
 
     public function make()
     {
         $sitemap = Sitemap::create();
 
+        // 這份清單是手寫的，順序跟 routes/web.php 的 lists 那一段一致，方便對照有沒有漏。
+        // most-visited 就是這樣漏掉過一次：路由、robots.txt、頁面的標準網址都有它，
+        // 只有這裡沒有。以後新增清單頁記得回來補一行（底下的分類頁是從資料表長出來的，
+        // 不受這個限制）。
         $pages = [
+            'categories',
             'lists/limited-offers',
             'lists/sale',
             'lists/most-reviewed',
@@ -33,6 +46,7 @@ class SitemapService extends Service
             'lists/coming-soon',
             'lists/multi-buy',
             'lists/online-special',
+            'lists/most-visited',
             'products/limited-offers',
             'products/sales',
             'products/multi-buys',
@@ -45,6 +59,24 @@ class SitemapService extends Service
 
         foreach ($pages as $page) {
             $sitemap->add($page);
+        }
+
+        // 分類頁從資料表長出來，新分類會自己進 sitemap，不用回頭改這份清單。
+        // 只收還有商品的分類，避免把點進去是 404 的網址送給搜尋引擎。
+        $categories = $this->hmallCategoryRepository->getCategoriesWithProducts([
+            CategoryLevel::One,
+            CategoryLevel::Two,
+        ]);
+
+        foreach ($categories as $category) {
+            // code 直接內插進字串沒有做 URL 編碼；正式資料裡有分類 code 帶零寬
+            // 空白這種要編碼的字元，跟頁面自己用 route() 產生的連結（例如
+            // categories/index.blade.php）會變成兩個不同的網址。改用 route()
+            // 讓兩邊走同一套編碼規則，sitemap 規格也要求 <loc> 是已編碼的網址。
+            $sitemap->add(Url::create(route('categories.show', [
+                'brand' => $category->brand->slug(),
+                'code' => $category->code,
+            ])));
         }
 
         $hmallProducts = $this->hmallProductRepository->getAllProductsForSitemap();
@@ -67,7 +99,7 @@ class SitemapService extends Service
             );
         }
 
-        $sitemapFileName = 'sitemap' . config('app.sitemap_name') . '.xml';
+        $sitemapFileName = 'sitemap'.config('app.sitemap_name').'.xml';
         $sitemap->writeToFile(public_path($sitemapFileName));
     }
 }

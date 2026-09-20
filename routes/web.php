@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HmallProductController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ListController;
@@ -48,7 +50,8 @@ Route::group(['prefix' => 'gu-products'], function () {
     Route::get('/{gu_product_code}/style-hints', [StyleHintController::class, 'show'])->name('gu-style-hints.show');
 });
 
-Route::group(['prefix' => 'search'], function () {
+// 搜尋會打到資料庫做全表掃描，限流避免被當成免費的查詢介面
+Route::group(['prefix' => 'search', 'middleware' => 'throttle:30,1'], function () {
     Route::get('/', [SearchController::class, 'index'])->name('search.index');
     Route::get('/keywords', [SearchController::class, 'searchByGoogleCse'])->name('search.google-cse');
     Route::get('/{query}', [SearchController::class, 'show'])->name('search.show');
@@ -57,6 +60,25 @@ Route::group(['prefix' => 'search'], function () {
 Route::group(['prefix' => 'pages'], function () {
     Route::get('/changelog', [PageController::class, 'getChangelog'])->name('pages.changelog');
     Route::get('/privacy', [PageController::class, 'getPrivacyPolicy'])->name('pages.privacy-policy');
+});
+
+Route::group(['prefix' => 'favorites'], function () {
+    Route::get('/', [FavoriteController::class, 'index'])->name('favorites.index');
+    // 收藏清單在瀏覽器，這支只是拿一串商品編號換卡片，限流避免被當批次查價介面
+    Route::post('/cards', [FavoriteController::class, 'cards'])
+        ->middleware('throttle:60,1')
+        ->name('favorites.cards');
+});
+
+// 分類頁先用分類縮到單一分類才做關鍵字比對，這個前提在商品數多的大分類上不
+// 成立：EXPLAIN ANALYZE 顯示是先對全表逐筆算完三個 LIKE、再逐筆確認分類歸屬
+// （只有商品數極少的分類優化器才會反過來），跟已限流的 /search 是同一種工作量，
+// 理由一樣就跟著限流。
+Route::group(['prefix' => 'categories', 'middleware' => 'throttle:30,1'], function () {
+    Route::get('/', [CategoryController::class, 'index'])->name('categories.index');
+    Route::get('/{brand}/{code}', [CategoryController::class, 'show'])
+        ->where('brand', 'uniqlo|gu')
+        ->name('categories.show');
 });
 
 Route::group(['prefix' => 'lists'], function () {

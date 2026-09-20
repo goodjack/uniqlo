@@ -1,0 +1,40 @@
+{{--
+    麵包屑。只有分類頁與商品頁有：那兩頁是分類樹上的一個位置，往上一層是有意義的
+    去處。清單、搜尋、收藏、分類總覽都是從導覽列直接進來的單層頁面，加一條「首頁 ›
+    自己」只是佔一行。
+
+    手機（max-width: 767px）只顯示最後兩層（上一層與目前），完整路徑留在桌機；
+    見 app.css 對應規則。
+
+    crumbs  陣列，每一筆是 ['label' => string, 'url' => ?string]。
+            url 是 null 的那幾層只當文字（例如導覽的分組名、沒有自己頁面的頂層分類）。
+            最後一筆一律是當頁：不做連結、標 aria-current="page"。
+--}}
+@if (!empty($crumbs))
+    {{--
+        外面包一層 Tocas 的 basic horizontally fitted segment。麵包屑自己的
+        margin 是 0，擺在內容最上面就等於貼著固定導覽列的下緣（實測商品頁 1280
+        麵包屑 top 60.88、導覽列 bottom 63.31，上緣被蓋掉 2.4px）。segment 的上下
+        1em padding 給它呼吸空間，horizontally fitted 讓左右仍然對齊 container、
+        basic 去掉框線與底色。導覽列本身那 3px 的高度差是版型的 body padding-top
+        與 --uq-nav-height 一起補到 64px，不靠這一層掩蓋。
+    --}}
+    <div class="ts basic horizontally fitted segment">
+        {{-- 不加 small：Tocas 的 .ts.small.breadcrumb 是 13px，低於站上 14px 的地板 --}}
+        <nav class="ts breadcrumb" aria-label="麵包屑">
+            @foreach ($crumbs as $crumb)
+                @if ($loop->last)
+                    <div class="active section" aria-current="page">{{ $crumb['label'] }}</div>
+                @elseif (!empty($crumb['url']))
+                    <a class="section" href="{{ $crumb['url'] }}">{{ $crumb['label'] }}</a>
+                @else
+                    <div class="section">{{ $crumb['label'] }}</div>
+                @endif
+
+                @unless ($loop->last)
+                    <i class="angle right icon divider" aria-hidden="true"></i>
+                @endunless
+            @endforeach
+        </nav>
+    </div>
+@endif
