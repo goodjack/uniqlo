@@ -7,6 +7,7 @@ use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use App\Services\HmallProductService;
 use App\Support\ProductSaveResult;
+use Exception;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
@@ -719,5 +720,37 @@ class HmallProductServiceTest extends TestCase
         $this->assertSame('未執行缺貨判定，目錄有缺頁', $result->note);
         // checkpoint 保留，同一天可以接著從第 2 頁跑完剩下的
         $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
+    }
+
+    public function test_a_database_error_while_saving_does_not_hit_the_source_again()
+    {
+        Cache::flush();
+        Config::set('app.crawler.retry.times', 3);
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        Http::fake([
+            '*' => Http::response([
+                'resp' => [
+                    [
+                        'productList' => [],
+                        'productSum' => 0,
+                    ],
+                ],
+            ]),
+        ]);
+
+        $repository = $this->createMock(HmallProductRepository::class);
+        $repository->method('saveProductsFromV3')
+            ->willThrowException(new Exception('Deadlock found when trying to get lock'));
+
+        $service = new HmallProductService($repository, $this->mockProductRepository);
+
+        Log::shouldReceive('warning')->andReturnNull();
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $service->fetchAllHmallProducts('UNIQLO');
+
+        Http::assertSentCount(1);
     }
 }

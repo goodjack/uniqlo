@@ -762,7 +762,24 @@ class HmallProductRepository extends Repository
     {
         // 分類主檔整批先寫，一頁商品只打一次資料庫，而不是每個商品各寫十幾筆。
         // 回傳的 code 對 id 對照表給下面掛關聯用，省掉每個商品各查一次。
-        $categoryIds = $this->saveCategoriesFromV3($products, $brand);
+        try {
+            $categoryIds = $this->saveCategoriesFromV3($products, $brand);
+        } catch (Throwable $e) {
+            // 分類主檔整批寫不進去（死鎖、連線中斷）時，這一頁的商品也不要寫：
+            // 沒有 code 對 id 的對照表，分類關聯會整頁掛不上去。
+            //
+            // 重點是這個例外不可以往外丟。往外丟會穿出呼叫端的 retry，被當成
+            // 可重試而拿資料庫的問題去重打官網好幾次，最後還被歸成「整頁沒抓到」，
+            // 通知寫「目錄有缺頁」，把人指向錯的方向。改成回報成「這一頁的商品
+            // 都寫入失敗」，缺貨判定把它們排除掉就不會冤枉標成下架。
+            Log::error('saveCategoriesFromV3 error - counting the whole page as write failures', [
+                'brand' => $brand,
+            ]);
+
+            report($e);
+
+            return $this->countEveryProductAsFailed($products);
+        }
 
         $failedProductCodes = [];
         $unidentifiedFailureCount = 0;
@@ -857,6 +874,33 @@ class HmallProductRepository extends Repository
                 ]);
 
                 report($e);
+            }
+        });
+
+        return new ProductSaveResult(
+            array_values(array_unique($failedProductCodes)),
+            $unidentifiedFailureCount
+        );
+    }
+
+    /**
+     * 整頁都算寫入失敗時，把商品編號整理成呼叫端要的格式。
+     *
+     * 跟逐商品失敗走的是同一條判準：拿得到編號才排除得掉，拿不到的只能算成
+     * 無法辨識、讓呼叫端整輪不做缺貨判定。
+     */
+    private function countEveryProductAsFailed($products): ProductSaveResult
+    {
+        $failedProductCodes = [];
+        $unidentifiedFailureCount = 0;
+
+        collect($products)->each(function ($product) use (&$failedProductCodes, &$unidentifiedFailureCount) {
+            $productCode = $product->productCode ?? null;
+
+            if (is_string($productCode) && $productCode !== '') {
+                $failedProductCodes[] = $productCode;
+            } else {
+                $unidentifiedFailureCount++;
             }
         });
 

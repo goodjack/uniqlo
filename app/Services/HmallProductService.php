@@ -123,16 +123,12 @@ class HmallProductService extends Service
 
         do {
             try {
-                $productSum = retry(
+                // retry 只包住「打官網、解析回傳」。寫資料庫不放進來：資料庫的問題
+                // 重打官網也修不好，以前寫在裡面，一次死鎖就會讓同一頁重新 POST
+                // 官網 N 次，最後還被歸成「整頁沒抓到」，訊息把人指向錯的方向。
+                [$products, $productSum] = retry(
                     config('app.crawler.retry.times'),
-                    function ($attempts) use (
-                        $searchApiUrl,
-                        $brand,
-                        $page,
-                        $pageSize,
-                        &$failedProductCodes,
-                        &$unidentifiedFailures
-                    ) {
+                    function ($attempts) use ($searchApiUrl, $page, $pageSize) {
                         $response = Http::withHeaders($this->buildHeaders())
                             ->throw()
                             ->post($searchApiUrl, [
@@ -157,32 +153,32 @@ class HmallProductService extends Service
                             throw new Exception("Product list does not exist. {$response->body()}");
                         }
 
-                        // 逐商品的寫入例外在 repository 裡被吞掉了（一筆壞資料不該
-                        // 讓同一頁其他幾十件寫不進去）。這一頁的目錄內容其實看完了，
-                        // 所以不算整頁失敗，但寫不進去的那幾件要記下來，最後從缺貨
-                        // 判定裡排除，不然它們會被當成「今天沒看到」而標成下架。
-                        $saveResult = $this->repository->saveProductsFromV3($products, $brand);
-
-                        if ($saveResult->hasFailures()) {
-                            $failedProductCodes = array_merge(
-                                $failedProductCodes,
-                                $saveResult->failedProductCodes
-                            );
-                            $unidentifiedFailures += $saveResult->unidentifiedFailureCount;
-
-                            logger()->error('Some products on this page could not be saved', [
-                                'brand' => $brand,
-                                'page' => $page,
-                                'failed_product_codes' => $saveResult->failedProductCodes,
-                                'unidentified_failures' => $saveResult->unidentifiedFailureCount,
-                            ]);
-                        }
-
-                        return $responseBody->resp[0]->productSum;
+                        return [$products, $responseBody->resp[0]->productSum];
                     },
                     fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
                     fn ($e) => $this->shouldRetry($e),
                 );
+
+                // 逐商品的寫入例外在 repository 裡被吞掉了（一筆壞資料不該
+                // 讓同一頁其他幾十件寫不進去）。這一頁的目錄內容其實看完了，
+                // 所以不算整頁失敗，但寫不進去的那幾件要記下來，最後從缺貨
+                // 判定裡排除，不然它們會被當成「今天沒看到」而標成下架。
+                $saveResult = $this->repository->saveProductsFromV3($products, $brand);
+
+                if ($saveResult->hasFailures()) {
+                    $failedProductCodes = array_merge(
+                        $failedProductCodes,
+                        $saveResult->failedProductCodes
+                    );
+                    $unidentifiedFailures += $saveResult->unidentifiedFailureCount;
+
+                    logger()->error('Some products on this page could not be saved', [
+                        'brand' => $brand,
+                        'page' => $page,
+                        'failed_product_codes' => $saveResult->failedProductCodes,
+                        'unidentified_failures' => $saveResult->unidentifiedFailureCount,
+                    ]);
+                }
 
                 $hasSucceeded = true;
 
