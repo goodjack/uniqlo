@@ -115,9 +115,9 @@ class HmallProductServiceDbTest extends TestCase
             app(ProductRepository::class)
         );
 
-        $outcome = $service->fetchAllHmallProducts('UNIQLO');
+        $result = $service->fetchAllHmallProducts('UNIQLO');
 
-        $this->assertSame(CrawlOutcome::PartiallySucceeded, $outcome);
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
         $this->assertNull(
             $this->stockoutAtOf($codeOfFailedProduct),
             '寫入失敗的商品在來源其實還在，不可以被標成下架'

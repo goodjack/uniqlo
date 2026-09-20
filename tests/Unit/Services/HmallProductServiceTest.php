@@ -150,10 +150,11 @@ class HmallProductServiceTest extends TestCase
         $this->mockHmallRepository->expects($this->never())
             ->method('setStockoutHmallProducts');
 
-        $outcome = $this->service->fetchAllHmallProducts('UNIQLO');
+        $result = $this->service->fetchAllHmallProducts('UNIQLO');
 
         // 通知要看得出這次沒做完整掃描
-        $this->assertSame(CrawlOutcome::PartiallySucceeded, $outcome);
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        $this->assertSame('未執行缺貨判定，這一輪是從上次中斷的地方接著跑', $result->note);
         // checkpoint 清掉，明天才會重新從第 1 頁完整掃
         $this->assertNull(Cache::get('hmall_products:page:UNIQLO'));
     }
@@ -184,7 +185,7 @@ class HmallProductServiceTest extends TestCase
 
         $this->assertSame(
             CrawlOutcome::Succeeded,
-            $this->service->fetchAllHmallProducts('UNIQLO')
+            $this->service->fetchAllHmallProducts('UNIQLO')->outcome
         );
     }
 
@@ -412,10 +413,11 @@ class HmallProductServiceTest extends TestCase
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        $this->assertSame(
-            CrawlOutcome::PartiallySucceeded,
-            $service->fetchAllHmallProducts('UNIQLO')
-        );
+        $result = $service->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        // 通知要看得出缺貨判定其實有做，只是排除了幾件
+        $this->assertSame('已執行缺貨判定，排除 1 件寫入失敗商品', $result->note);
         // checkpoint 要清掉：留著只會讓下一輪從空頁起跑，白白跳過一次完整掃描
         $this->assertNull(Cache::get('hmall_products:page:UNIQLO'));
     }
@@ -453,10 +455,11 @@ class HmallProductServiceTest extends TestCase
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        $this->assertSame(
-            CrawlOutcome::PartiallySucceeded,
-            $service->fetchAllHmallProducts('UNIQLO')
-        );
+        $result = $service->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        // 通知要講清楚這一輪根本沒做缺貨判定，以及為什麼
+        $this->assertSame('未執行缺貨判定，1 件失敗資料缺少商品編號', $result->note);
         $this->assertNull(Cache::get('hmall_products:page:UNIQLO'));
     }
 
@@ -503,8 +506,8 @@ class HmallProductServiceTest extends TestCase
         $firstRun = $service->fetchAllHmallProducts('UNIQLO');
         $secondRun = $service->fetchAllHmallProducts('UNIQLO');
 
-        $this->assertSame(CrawlOutcome::PartiallySucceeded, $firstRun);
-        $this->assertSame(CrawlOutcome::PartiallySucceeded, $secondRun);
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $firstRun->outcome);
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $secondRun->outcome);
         // 兩輪都要從第 1 頁開始，不能有任何一輪是從 checkpoint 續跑
         $this->assertSame([1, 1], $requestedPages);
     }
@@ -549,8 +552,8 @@ class HmallProductServiceTest extends TestCase
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        $this->assertSame(CrawlOutcome::PartiallySucceeded, $service->fetchAllHmallProducts('UNIQLO'));
-        $this->assertSame(CrawlOutcome::Succeeded, $service->fetchAllHmallProducts('UNIQLO'));
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $service->fetchAllHmallProducts('UNIQLO')->outcome);
+        $this->assertSame(CrawlOutcome::Succeeded, $service->fetchAllHmallProducts('UNIQLO')->outcome);
         $this->assertSame([['u0000000053204'], []], $stockoutCalls);
     }
 
@@ -631,5 +634,50 @@ class HmallProductServiceTest extends TestCase
             Cache::get('hmall_products:page:UNIQLO'),
             'Checkpoint must not be cleared when no pages succeeded'
         );
+    }
+
+    /**
+     * 只有幾頁失敗（不是全部）：目錄有缺口，缺貨判定不能做、checkpoint 保留。
+     *
+     * 通知要看得出原因是缺頁，跟「有商品寫不進去但目錄看完了」是兩回事。
+     */
+    public function test_some_pages_failing_skips_stockout_and_says_the_catalog_has_gaps()
+    {
+        Cache::flush();
+        Config::set('app.crawler.retry.times', 1);
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        $call = 0;
+        Http::fake(['https://api.example.com/search' => function () use (&$call) {
+            $call++;
+
+            // 第 1 頁抓得到，而且 productSum 大於一頁，迴圈會再去抓第 2 頁
+            if ($call === 1) {
+                return Http::response([
+                    'resp' => [
+                        [
+                            'productList' => [],
+                            'productSum' => 25,
+                        ],
+                    ],
+                ]);
+            }
+
+            return Http::response([], 500);
+        }]);
+
+        $this->mockHmallRepository->expects($this->never())
+            ->method('setStockoutHmallProducts');
+
+        Log::shouldReceive('warning')->andReturnNull();
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $result = $this->service->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        $this->assertSame('未執行缺貨判定，目錄有缺頁', $result->note);
+        // checkpoint 保留，同一天可以接著從第 2 頁跑完剩下的
+        $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
     }
 }

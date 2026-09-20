@@ -6,6 +6,7 @@ use App\Enums\CrawlOutcome;
 use App\Events\AppTaskFinished;
 use App\Events\AppTaskStarting;
 use App\Services\HmallProductService;
+use App\Support\TaskNotes;
 use Illuminate\Console\Command;
 
 class FetchHmallProducts extends Command
@@ -29,8 +30,13 @@ class FetchHmallProducts extends Command
      *
      * 回傳值直接用 CrawlOutcome 的值當 exit code，讓排程在通知裡分得出
      * 「整支掛掉」與「抓到一部分」。
+     *
+     * exit code 只有三種，但「抓到一部分」底下有好幾種狀況，急迫程度不一樣：
+     * 目錄有缺頁代表這一輪沒做缺貨判定、站上還是上一次完整掃描的結果；排除幾件
+     * 寫入失敗的商品之後做了缺貨判定是另一回事。所以另外把這一輪的說明留給排程，
+     * 讓彙整出來的通知寫得出差別。
      */
-    public function handle(HmallProductService $hmallProductService): int
+    public function handle(HmallProductService $hmallProductService, TaskNotes $taskNotes): int
     {
         $brand = $this->argument('brand');
         $fresh = $this->option('fresh');
@@ -42,15 +48,17 @@ class FetchHmallProducts extends Command
         $this->info("Fetching Hmall products for {$brand}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $outcome = $hmallProductService->fetchAllHmallProducts($brand, $fresh);
+        $result = $hmallProductService->fetchAllHmallProducts($brand, $fresh);
 
         // 只有整批都抓完才算完成，部分成功交給排程彙總成失敗通知
-        if ($outcome === CrawlOutcome::Succeeded) {
+        if ($result->outcome === CrawlOutcome::Succeeded) {
             AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        } elseif ($result->note !== null) {
+            $taskNotes->put($this->getName(), $brand, $result->note);
         }
 
-        $this->info("Fetched Hmall products for {$brand}（{$outcome->label()}）");
+        $this->info("Fetched Hmall products for {$brand}（{$result->describe()}）");
 
-        return $outcome->value;
+        return $result->outcome->value;
     }
 }

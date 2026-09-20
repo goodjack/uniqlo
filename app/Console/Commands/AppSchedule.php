@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\Brand;
 use App\Enums\CrawlOutcome;
 use App\Events\AppTaskFailed;
+use App\Support\TaskNotes;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -121,8 +122,8 @@ class AppSchedule extends Command
      * 把 exit code 翻成通知裡看得懂的原因。
      *
      * 「部分成功」與「完全失敗」要分開，因為要看的東西不同：部分成功代表資料庫裡
-     * 還有昨天的完整資料、而且這一輪刻意沒做缺貨判定，站上顯示的是舊資料；完全
-     * 失敗代表連一頁都沒抓到，通常是被擋。兩種都不會自己好，差別只在急迫程度。
+     * 還有昨天的完整資料；完全失敗代表連一頁都沒抓到，通常是被擋。兩種都不會自己
+     * 好，差別只在急迫程度。
      *
      * CrawlOutcome 認得的值一律用它的中文標籤。非爬蟲步驟的 exit code 1 也會被
      * 標成「完全失敗」——對那些步驟來說 1 本來就是整步失敗，讀起來仍然對。
@@ -138,11 +139,25 @@ class AppSchedule extends Command
         return "exit code {$exitCode}";
     }
 
+    /**
+     * 組出通知裡的一行，例如
+     * 「hmall-product:fetch UNIQLO（部分成功：已執行缺貨判定，排除 1 件寫入失敗商品）」。
+     *
+     * 光看 exit code 分不出「部分成功」底下的差別：目錄有缺頁代表這一輪根本沒做
+     * 缺貨判定、站上還是上一次完整掃描的結果，跟排除幾件寫入失敗的商品之後做了
+     * 缺貨判定，處理的急迫程度不一樣。指令有留說明就接在結果後面。
+     */
     private function describeStep(string $command, array $arguments, string $reason): string
     {
         $describedArguments = collect($arguments)
             ->reject(fn ($value, $key) => str_starts_with((string) $key, '--'))
             ->implode(' ');
+
+        $note = app(TaskNotes::class)->pull($command, $describedArguments);
+
+        if ($note !== null) {
+            $reason = "{$reason}：{$note}";
+        }
 
         return trim("{$command} {$describedArguments}")."（{$reason}）";
     }

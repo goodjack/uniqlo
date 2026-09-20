@@ -7,6 +7,7 @@ use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use App\Services\Traits\AntiBlockingCrawler;
+use App\Support\CrawlResult;
 use Exception;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
@@ -84,8 +85,11 @@ class HmallProductService extends Service
      * 混在一起的後果是缺貨判定永遠不會執行：只要有一件商品固定寫不進去，第一天
      * 完整掃完會被當成部分失敗而保留 checkpoint，第二天從 checkpoint 續跑抓到空頁
      * 又因為不是完整掃描而跳過，第三天回到第一天——已經下架的商品就一直掛在站上。
+     *
+     * 回傳值除了結果本身，還帶一句說明：部分成功有好幾種，通知只寫「部分成功」
+     * 看不出這一輪到底有沒有做缺貨判定。
      */
-    public function fetchAllHmallProducts($brand = 'UNIQLO', bool $fresh = false): CrawlOutcome
+    public function fetchAllHmallProducts($brand = 'UNIQLO', bool $fresh = false): CrawlResult
     {
         $searchApiUrl = $this->getV3SearchApiUrl($brand);
 
@@ -196,7 +200,7 @@ class HmallProductService extends Service
                     ]);
                     report($e);
 
-                    return CrawlOutcome::Failed;
+                    return new CrawlResult(CrawlOutcome::Failed);
                 }
 
                 // retry() exhausted - skip page and continue
@@ -218,7 +222,7 @@ class HmallProductService extends Service
         if (! $hasSucceeded) {
             logger()->error('No pages were successfully fetched - preserving checkpoint', ['brand' => $brand]);
 
-            return CrawlOutcome::Failed;
+            return new CrawlResult(CrawlOutcome::Failed);
         }
 
         if ($hasPageFailures) {
@@ -226,7 +230,7 @@ class HmallProductService extends Service
             // checkpoint 保留，讓同一天可以接著跑完剩下的頁。
             logger()->error('Some pages failed - preserving checkpoint, skipping stockout', ['brand' => $brand]);
 
-            return CrawlOutcome::PartiallySucceeded;
+            return new CrawlResult(CrawlOutcome::PartiallySucceeded, '未執行缺貨判定，目錄有缺頁');
         }
 
         // 每一頁都完整抓到了，checkpoint 沒有續跑的價值，一律清掉讓下一輪從第 1 頁開始。
@@ -242,7 +246,10 @@ class HmallProductService extends Service
                 'started_from_page' => $startPage,
             ]);
 
-            return CrawlOutcome::PartiallySucceeded;
+            return new CrawlResult(
+                CrawlOutcome::PartiallySucceeded,
+                '未執行缺貨判定，這一輪是從上次中斷的地方接著跑'
+            );
         }
 
         $failedProductCodes = array_values(array_unique($failedProductCodes));
@@ -256,7 +263,10 @@ class HmallProductService extends Service
                 'failed_product_codes' => $failedProductCodes,
             ]);
 
-            return CrawlOutcome::PartiallySucceeded;
+            return new CrawlResult(
+                CrawlOutcome::PartiallySucceeded,
+                "未執行缺貨判定，{$unidentifiedFailures} 件失敗資料缺少商品編號"
+            );
         }
 
         // 從第 1 頁掃到最後一頁、每一頁都完整抓到，這時候「沒看到」才等於下架。
@@ -266,7 +276,7 @@ class HmallProductService extends Service
         if ($failedProductCodes === []) {
             logger()->info("Completed fetching Hmall products for {$brand}");
 
-            return CrawlOutcome::Succeeded;
+            return new CrawlResult(CrawlOutcome::Succeeded);
         }
 
         logger()->error('Stockout ran with the products that failed to save excluded', [
@@ -274,7 +284,10 @@ class HmallProductService extends Service
             'excluded_product_codes' => $failedProductCodes,
         ]);
 
-        return CrawlOutcome::PartiallySucceeded;
+        return new CrawlResult(
+            CrawlOutcome::PartiallySucceeded,
+            sprintf('已執行缺貨判定，排除 %d 件寫入失敗商品', count($failedProductCodes))
+        );
     }
 
     public function fetchAllHmallProductDescriptions(string $brand = 'UNIQLO', bool $updateTimestamps = false, bool $fresh = false): bool

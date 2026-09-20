@@ -5,6 +5,7 @@ namespace Tests\Feature\Console\Commands;
 use App\Console\Commands\AppSchedule;
 use App\Enums\CrawlOutcome;
 use App\Events\AppTaskFailed;
+use App\Support\TaskNotes;
 use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\Kernel;
@@ -105,24 +106,63 @@ class AppScheduleTest extends TestCase
     }
 
     /**
+     * 兩種「部分成功」在通知裡要分得出來。
+     *
+     * 目錄有缺頁代表這一輪根本沒做缺貨判定、站上還是上一次完整掃描的結果；排除
+     * 幾件寫入失敗的商品之後做了缺貨判定是另一回事，急迫程度不一樣。exit code
+     * 只有一種「部分成功」，所以指令會另外留一句說明給排程接在後面。
+     */
+    public function test_the_notification_tells_the_two_kinds_of_partial_success_apart(): void
+    {
+        $this->fakeAllSteps(
+            partiallySucceeding: ['hmall-product:fetch'],
+            notes: ['hmall-product:fetch UNIQLO' => '已執行缺貨判定，排除 1 件寫入失敗商品'],
+        );
+
+        $this->artisan('app:schedule')->run();
+
+        Event::assertDispatched(AppTaskFailed::class, function (AppTaskFailed $event) {
+            $failedSteps = $event->data['failed_steps'];
+
+            return in_array(
+                'hmall-product:fetch UNIQLO（部分成功：已執行缺貨判定，排除 1 件寫入失敗商品）',
+                $failedSteps,
+                true
+            )
+                // 沒留說明的步驟維持原本的寫法，說明也不會跑到別的品牌那一行去
+                && in_array('hmall-product:fetch GU（部分成功）', $failedSteps, true);
+        });
+    }
+
+    /**
      * 把排程的每個步驟換成假指令，避免測試真的去打官網或寫資料庫。
      *
      * @param  array<int, string>  $failing  這些指令回傳 exit code 1
      * @param  array<int, string>  $throwing  這些指令丟例外
      * @param  array<int, string>  $partiallySucceeding  這些指令回傳爬蟲的「部分成功」
+     * @param  array<string, string>  $notes  指令留給通知的說明，key 是「指令名 品牌」
      */
     private function fakeAllSteps(
         array $failing = [],
         array $throwing = [],
         array $partiallySucceeding = [],
+        array $notes = [],
     ): void {
         $test = $this;
 
         foreach ($this->stepCommands() as $command) {
             $fake = new ClosureCommand(
                 "{$command} {brand?} {country?} {--only-recent} {--is-scheduled}",
-                function () use ($test, $command, $failing, $throwing, $partiallySucceeding) {
+                function () use ($test, $command, $failing, $throwing, $partiallySucceeding, $notes) {
                     $test->recordExecution($command);
+
+                    // 真的指令跑完會把這一輪的說明留給排程，假指令照做
+                    $brand = $this->argument('brand');
+                    $note = $notes[trim("{$command} {$brand}")] ?? null;
+
+                    if ($note !== null) {
+                        app(TaskNotes::class)->put($command, $brand, $note);
+                    }
 
                     if (in_array($command, $throwing, true)) {
                         throw new Exception("測試用的失敗：{$command}");

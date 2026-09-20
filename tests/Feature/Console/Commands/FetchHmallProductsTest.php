@@ -4,6 +4,8 @@ namespace Tests\Feature\Console\Commands;
 
 use App\Enums\CrawlOutcome;
 use App\Services\HmallProductService;
+use App\Support\CrawlResult;
+use App\Support\TaskNotes;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -32,7 +34,7 @@ class FetchHmallProductsTest extends TestCase
         $mockService->expects($this->once())
             ->method('fetchAllHmallProducts')
             ->with('UNIQLO', true)
-            ->willReturn(CrawlOutcome::Succeeded);
+            ->willReturn(new CrawlResult(CrawlOutcome::Succeeded));
 
         $this->app->instance(HmallProductService::class, $mockService);
 
@@ -44,7 +46,7 @@ class FetchHmallProductsTest extends TestCase
     {
         $mockService = $this->createMock(HmallProductService::class);
         $mockService->method('fetchAllHmallProducts')
-            ->willReturn(CrawlOutcome::Succeeded);
+            ->willReturn(new CrawlResult(CrawlOutcome::Succeeded));
 
         $this->app->instance(HmallProductService::class, $mockService);
 
@@ -57,7 +59,7 @@ class FetchHmallProductsTest extends TestCase
     {
         $mockService = $this->createMock(HmallProductService::class);
         $mockService->method('fetchAllHmallProducts')
-            ->willReturn(CrawlOutcome::Failed);
+            ->willReturn(new CrawlResult(CrawlOutcome::Failed));
 
         $this->app->instance(HmallProductService::class, $mockService);
 
@@ -73,11 +75,53 @@ class FetchHmallProductsTest extends TestCase
         $mockService->expects($this->once())
             ->method('fetchAllHmallProducts')
             ->with('UNIQLO', false)
-            ->willReturn(CrawlOutcome::Succeeded);
+            ->willReturn(new CrawlResult(CrawlOutcome::Succeeded));
 
         $this->app->instance(HmallProductService::class, $mockService);
 
         $this->artisan('hmall-product:fetch UNIQLO')
             ->assertExitCode(0);
+    }
+
+    /**
+     * 部分成功時，指令要把這一輪的說明留給排程。
+     *
+     * 排程彙整通知時只看得到 exit code，兩種部分成功長得一模一樣。說明留下來，
+     * 通知才寫得出「到底有沒有做缺貨判定」。
+     */
+    public function test_a_partial_success_leaves_an_explanation_for_the_schedule()
+    {
+        $mockService = $this->createMock(HmallProductService::class);
+        $mockService->method('fetchAllHmallProducts')
+            ->willReturn(new CrawlResult(
+                CrawlOutcome::PartiallySucceeded,
+                '已執行缺貨判定，排除 1 件寫入失敗商品'
+            ));
+
+        $this->app->instance(HmallProductService::class, $mockService);
+
+        $this->artisan('hmall-product:fetch UNIQLO')
+            ->assertExitCode(CrawlOutcome::PartiallySucceeded->value);
+
+        $this->assertSame(
+            '已執行缺貨判定，排除 1 件寫入失敗商品',
+            app(TaskNotes::class)->pull('hmall-product:fetch', 'UNIQLO')
+        );
+    }
+
+    /**
+     * 整批抓完、沒有任何問題時不留說明：通知只會寫成功，沒有什麼要多講的。
+     */
+    public function test_a_clean_run_leaves_no_explanation()
+    {
+        $mockService = $this->createMock(HmallProductService::class);
+        $mockService->method('fetchAllHmallProducts')
+            ->willReturn(new CrawlResult(CrawlOutcome::Succeeded));
+
+        $this->app->instance(HmallProductService::class, $mockService);
+
+        $this->artisan('hmall-product:fetch UNIQLO')->assertExitCode(0);
+
+        $this->assertNull(app(TaskNotes::class)->pull('hmall-product:fetch', 'UNIQLO'));
     }
 }
