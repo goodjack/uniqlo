@@ -54,7 +54,15 @@
     <div class="ts fluid slate">
         <i class="{{ $typeStyle }} {{ $typeIcon }} icon"></i>
         <span class="header">{{ $typeName }}</span>
-        <span class="description">
+        {{--
+            data-instant-subtitle／data-sort-text 給 list-search.js 用：即時篩
+            之後這句話的件數跟符合關鍵字要重算，sortText 是固定不變的那一段
+            （即時篩不影響排序），先存成 data 屬性讓腳本組字串時不用重新推算。
+            這裡刻意不在文字節點裡插標籤——ListSearchTest 的
+            assertStringContainsString('N 件符合「關鍵字」') 是比對原始 HTML
+            字串，插進去的標籤會插斷這段文字，讓字串比對失敗。
+        --}}
+        <span class="description" data-instant-subtitle data-sort-text="{{ $sortText }}">
             @if ($currentQ !== '')
                 {{ $count }} 件符合「{{ $currentQ }}」，{{ $sortText }}
             @else

@@ -208,6 +208,23 @@ class ListServiceTest extends TestCase
     }
 
     /**
+     * short_product_code（'u'.後七碼）是卡片上唯一看得到的編號，使用者照畫面
+     * 抄下來搜的多半是這個，不是完整的 product_code（PR #76 審查留言
+     * 4057184155：兩邊都比不到卡片上顯示的那串）。
+     */
+    public function test_keyword_matches_the_short_product_code(): void
+    {
+        $products = $this->createProductCollection([
+            ['sex' => '男裝', 'name' => '牛仔超寬版短褲', 'code' => '359225', 'product_code' => 'u0000000053204'],
+            ['sex' => '男裝', 'name' => 'AIRism 圓領T恤', 'code' => '474238', 'product_code' => 'u0000000099999'],
+        ]);
+
+        $filtered = $this->listService->filterHmallProducts($products, $this->listRequest(['q' => 'u0053204']));
+
+        $this->assertSame(['359225'], $filtered->map->code->values()->all());
+    }
+
+    /**
      * 多個空白分開的詞是「全部都要命中」，不是任一命中——跟標籤的多選聯集是
      * 不同的語意，這裡是同一個欄位縮小範圍，不是擴大範圍。
      */

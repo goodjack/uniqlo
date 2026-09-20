@@ -120,7 +120,17 @@ class ListService extends Service
 
     private function hmallProductMatchesKeyword(HmallProduct $hmallProduct, string $keyword): bool
     {
-        foreach ([$hmallProduct->name, $hmallProduct->code, $hmallProduct->product_code] as $field) {
+        // short_product_code 是卡片上唯一看得到的編號（'u'.後七碼），使用者
+        // 照畫面抄下來的多半是這個，不是完整的 product_code（PR #76 審查
+        // 留言 4057184155：兩邊都比不到卡片上顯示的那串）。
+        $fields = [
+            $hmallProduct->name,
+            $hmallProduct->code,
+            $hmallProduct->product_code,
+            $hmallProduct->short_product_code,
+        ];
+
+        foreach ($fields as $field) {
             if ($field !== null && mb_stripos((string) $field, $keyword) !== false) {
                 return true;
             }
