@@ -866,6 +866,28 @@ window.UqFavorites = (function () {
     }
 
     /**
+     * session 過期後，頁面渲染當下寫進 options.csrfToken 的那個 token 永遠
+     * 是舊的，重新整理以外沒有別的辦法拿到新的。GET 自己這一頁不用帶 token
+     * （VerifyCsrfToken 只驗會改資料的動詞），但 Laravel 的 CSRF 中介層會在
+     * 回應裡重新核發一份 XSRF-TOKEN cookie；讀那顆 cookie（要 decodeURIComponent，
+     * 瀏覽器存的是編碼過的字串）就能換到一個新鮮、跟目前 session 對得起來的
+     * token。cookie 本身是加密過的，所以要送 X-XSRF-TOKEN 這個表頭，讓
+     * Laravel 走它自己會解密的那條路徑——跟頁面渲染當下用的 X-CSRF-TOKEN
+     * 不是同一個表頭。
+     */
+    async function refreshXsrfToken() {
+        try {
+            await fetch(location.href, { credentials: 'same-origin' });
+        } catch (e) {
+            return null;
+        }
+
+        const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+
+        return match ? decodeURIComponent(match[1]) : null;
+    }
+
+    /**
      * 一批一批換卡片，任一批失敗就整個失敗——只渲染一半的清單比讀不到更難懂。
      *
      * 逾時是每一批各自 15 秒，不是整支函式共用一個計時器：分 3 批送的清單，
@@ -874,14 +896,25 @@ window.UqFavorites = (function () {
     async function fetchCards(options, wanted, signal) {
         let html = '';
         let authHeaders = { 'X-CSRF-TOKEN': options.csrfToken };
+        let csrfRetried = false;
 
         for (let start = 0; start < wanted.length; start += BATCH_SIZE) {
-            const response = await requestCardsBatch(
-                options.cardsUrl,
-                authHeaders,
-                wanted.slice(start, start + BATCH_SIZE),
-                signal,
-            );
+            const batch = wanted.slice(start, start + BATCH_SIZE);
+            let response = await requestCardsBatch(options.cardsUrl, authHeaders, batch, signal);
+
+            // 419 只重試一次：換一次新 token 就能解決的是「session 剛好在這
+            // 之間過期」，換過還是 419 代表另有問題（例如 session 真的被登出），
+            // 重試下去只會一直卡在這裡。
+            if (response.status === 419 && !csrfRetried) {
+                csrfRetried = true;
+
+                const freshToken = await refreshXsrfToken();
+
+                if (freshToken) {
+                    authHeaders = { 'X-XSRF-TOKEN': freshToken };
+                    response = await requestCardsBatch(options.cardsUrl, authHeaders, batch, signal);
+                }
+            }
 
             if (!response.ok) {
                 const error = new Error('HTTP ' + response.status);
@@ -979,6 +1012,11 @@ window.UqFavorites = (function () {
 
             if (e && e.status === 429) {
                 showRetryAfter(e.retryAfter);
+            } else if (e && e.status === 419) {
+                // fetchCards 已經試過換一次新 token 重送，還是 419 才會到這裡
+                // ——不是單純的「載入失敗」，按「重新載入」也沒用，要請使用者
+                // 真的重新整理頁面。
+                showState('favorites-error', '頁面已經過期，請重新整理頁面');
             } else {
                 showState('favorites-error', '收藏清單還在你的瀏覽器裡');
             }
