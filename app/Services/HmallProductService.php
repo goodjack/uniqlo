@@ -86,6 +86,11 @@ class HmallProductService extends Service
      * 完整掃完會被當成部分失敗而保留 checkpoint，第二天從 checkpoint 續跑抓到空頁
      * 又因為不是完整掃描而跳過，第三天回到第一天——已經下架的商品就一直掛在站上。
      *
+     * 「每一頁都抓到了」還不足以當成「整份目錄看過一遍」：官網回 HTTP 200、JSON
+     * 合法、但 productList 是空陣列時（WAF 軟擋、上游過濾條件跑掉、暫時無資料都
+     * 長這樣），上面每個條件都成立，缺貨判定卻會把整個品牌標成下架而且回報成功。
+     * 所以還要看這一輪實際看到幾件商品，一件都沒看到就不做缺貨判定。
+     *
      * 回傳值除了結果本身，還帶一句說明：部分成功有好幾種，通知只寫「部分成功」
      * 看不出這一輪到底有沒有做缺貨判定。
      */
@@ -114,6 +119,9 @@ class HmallProductService extends Service
         $hasSucceeded = false;
         // 整頁沒抓到：目錄有缺口
         $hasPageFailures = false;
+        // 這一輪實際看到幾件商品。缺貨判定的守門，不能用官網回的 productSum：
+        // 那正是空目錄情境裡會騙人的那個數字。
+        $productsSeen = 0;
         // 頁面抓到了、個別商品寫不進去，而且知道是哪幾件：缺貨判定要排除它們
         $failedProductCodes = [];
         // 同樣是個別商品寫不進去，但連商品編號都拿不到，沒辦法排除
@@ -158,6 +166,8 @@ class HmallProductService extends Service
                     fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
                     fn ($e) => $this->shouldRetry($e),
                 );
+
+                $productsSeen += collect($products)->count();
 
                 // 逐商品的寫入例外在 repository 裡被吞掉了（一筆壞資料不該
                 // 讓同一頁其他幾十件寫不進去）。這一頁的目錄內容其實看完了，
@@ -245,6 +255,22 @@ class HmallProductService extends Service
             return new CrawlResult(
                 CrawlOutcome::PartiallySucceeded,
                 '未執行缺貨判定，這一輪是從上次中斷的地方接著跑'
+            );
+        }
+
+        // 每一頁都抓到了，但一件商品都沒看到：官網回 200、JSON 合法、productList
+        // 是空陣列時，上面所有條件都成立，缺貨判定卻會把整個品牌標成下架，而且
+        // 回報成功、一封通知都不發。來源暫時沒資料、WAF 軟擋、上游過濾條件跑掉
+        // 都長這樣，沒有一種應該讓整個品牌從站上消失。
+        if ($productsSeen === 0) {
+            logger()->error('The catalog came back empty - skipping stockout', [
+                'brand' => $brand,
+                'started_from_page' => $startPage,
+            ]);
+
+            return new CrawlResult(
+                CrawlOutcome::PartiallySucceeded,
+                '未執行缺貨判定，這一輪一件商品都沒看到'
             );
         }
 

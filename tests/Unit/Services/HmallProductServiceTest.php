@@ -201,21 +201,17 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
-     * 從第 1 頁開始、全部成功才是完整掃描，這時候缺貨判定才該跑。
+     * 從第 1 頁開始、全部成功、而且真的看到商品，才是完整掃描，這時候缺貨判定才該跑。
+     *
+     * 這支以前餵的是空目錄，等於把「一件商品都沒看到也照做缺貨判定」寫成了
+     * 預期行為。空目錄該走的是 test_an_empty_catalog_never_marks_products_as_stocked_out。
      */
     public function test_a_full_clean_crawl_still_marks_products_as_stocked_out()
     {
         Cache::flush();
 
         Http::fake([
-            '*' => Http::response([
-                'resp' => [
-                    [
-                        'productList' => [],
-                        'productSum' => 0,
-                    ],
-                ],
-            ]),
+            '*' => Http::response($this->searchResponse(3)),
         ]);
 
         Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
@@ -429,14 +425,7 @@ class HmallProductServiceTest extends TestCase
         Cache::flush();
 
         Http::fake([
-            '*' => Http::response([
-                'resp' => [
-                    [
-                        'productList' => [],
-                        'productSum' => 0,
-                    ],
-                ],
-            ]),
+            '*' => Http::response($this->searchResponse(3)),
         ]);
 
         Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
@@ -474,14 +463,7 @@ class HmallProductServiceTest extends TestCase
         Cache::flush();
 
         Http::fake([
-            '*' => Http::response([
-                'resp' => [
-                    [
-                        'productList' => [],
-                        'productSum' => 0,
-                    ],
-                ],
-            ]),
+            '*' => Http::response($this->searchResponse(3)),
         ]);
 
         Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
@@ -522,14 +504,7 @@ class HmallProductServiceTest extends TestCase
         Http::fake(['https://api.example.com/search' => function ($request) use (&$requestedPages) {
             $requestedPages[] = $request->data()['pageInfo']['page'];
 
-            return Http::response([
-                'resp' => [
-                    [
-                        'productList' => [],
-                        'productSum' => 0,
-                    ],
-                ],
-            ]);
+            return Http::response($this->searchResponse(3));
         }]);
 
         $repository = $this->createMock(HmallProductRepository::class);
@@ -561,14 +536,7 @@ class HmallProductServiceTest extends TestCase
         Cache::flush();
 
         Http::fake([
-            '*' => Http::response([
-                'resp' => [
-                    [
-                        'productList' => [],
-                        'productSum' => 0,
-                    ],
-                ],
-            ]),
+            '*' => Http::response($this->searchResponse(3)),
         ]);
 
         Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
@@ -606,14 +574,7 @@ class HmallProductServiceTest extends TestCase
         Cache::flush();
 
         Http::fake([
-            '*' => Http::response([
-                'resp' => [
-                    [
-                        'productList' => [],
-                        'productSum' => 0,
-                    ],
-                ],
-            ]),
+            '*' => Http::response($this->searchResponse(3)),
         ]);
 
         Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
@@ -722,6 +683,37 @@ class HmallProductServiceTest extends TestCase
         $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
     }
 
+    /**
+     * 來源回空目錄時，絕對不可以做缺貨判定，也不可以回報成功。
+     *
+     * 官網回 HTTP 200、JSON 合法、productList 是空陣列、productSum 是 0——WAF 軟擋、
+     * 上游過濾條件跑掉、暫時無資料都長這樣。以前這種回應通過每一道檢查（有成功抓到頁、
+     * 從第 1 頁開始、沒有失敗），缺貨判定就用空的排除清單跑下去，把整個品牌 updated_at
+     * 比今天早的商品全部標成下架，回傳成功、exit code 0，一封通知都不發。
+     */
+    public function test_an_empty_catalog_never_marks_products_as_stocked_out()
+    {
+        Cache::flush();
+
+        Http::fake([
+            '*' => Http::response($this->searchResponse(0)),
+        ]);
+
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        $this->mockHmallRepository->expects($this->never())
+            ->method('setStockoutHmallProducts');
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $result = $this->service->fetchAllHmallProducts('UNIQLO');
+
+        // 不能回成功：回成功等於排程判定今天一切正常，沒有人會知道整份目錄是空的
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        $this->assertSame('未執行缺貨判定，這一輪一件商品都沒看到', $result->note);
+    }
+
     public function test_a_database_error_while_saving_does_not_hit_the_source_again()
     {
         Cache::flush();
@@ -752,5 +744,30 @@ class HmallProductServiceTest extends TestCase
         $service->fetchAllHmallProducts('UNIQLO');
 
         Http::assertSentCount(1);
+    }
+
+    /**
+     * 一頁商品的假回應。
+     *
+     * 服務層不看商品內容（寫入交給 repository，測試裡都是 mock），只數這一輪看到
+     * 幾件——缺貨判定的守門就是靠這個數字，所以要做缺貨判定的測試不能再餵空陣列。
+     */
+    private function searchResponse(int $productCount, ?int $productSum = null): array
+    {
+        $productList = $productCount > 0
+            ? array_map(
+                fn (int $index) => ['productCode' => sprintf('u%011d', $index)],
+                range(1, $productCount)
+            )
+            : [];
+
+        return [
+            'resp' => [
+                [
+                    'productList' => $productList,
+                    'productSum' => $productSum ?? $productCount,
+                ],
+            ],
+        ];
     }
 }
