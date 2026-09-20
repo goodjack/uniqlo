@@ -412,21 +412,72 @@ window.UqFavorites = (function () {
      * onChange 收到的是畫面上還剩幾列，跟移除之前一樣。
      */
     function bindRemoveButtons(container, options, onChange) {
-        let pending = null; // { key: 該筆原始資料, ... }，只在還沒過期／還沒復原前存在
+        let pending = null; // { key: { snapshot, row } }，只在還沒過期／還沒復原前存在
 
         function undoLabel(count) {
             return count === 1 ? '已移除收藏' : ('已移除 ' + count + ' 件收藏');
         }
 
+        /**
+         * 復原不重新整份重抓——收藏很多的使用者反覆「移除→復原」時，每次
+         * 都整份重抓會在一分鐘內就把 throttle:60,1 的額度用完（PR 審查留言
+         * 4057184148）。移除的當下那個列元素只是從畫面上 detach，資料跟
+         * 綁定的事件都還在，復原就是照 sortedKeys 的順序把它們塞回去，
+         * 完全不用打伺服器。
+         */
         function restore(entries) {
             const favorites = read();
 
             Object.keys(entries).forEach(function (key) {
-                favorites[key] = entries[key];
+                favorites[key] = entries[key].snapshot;
             });
 
-            write(favorites);
-            renderPage(options);
+            // 跟清空那條一樣：寫不進去就不要假裝復原成功。
+            if (!write(favorites)) {
+                showState('favorites-error', '復原失敗，收藏沒有存回去');
+
+                return;
+            }
+
+            // 現在確定會有東西要顯示了，先把「都已下架／還沒有收藏」這類
+            // 空狀態收起來，等下面的 onChange 用真正的筆數重新判斷一次。
+            showState(null);
+
+            const order = sortedKeys(favorites);
+
+            order.forEach(function (key) {
+                const entry = entries[key];
+
+                if (!entry || !entry.row) {
+                    return;
+                }
+
+                // 這筆在畫面上已經有列了（例如另一個分頁的異動觸發了
+                // storage 事件、整份重新渲染過），不要把 detach 的舊節點
+                // 又塞進去，會變成同一筆兩列。
+                if (container.querySelector('[data-favorite-key="' + key + '"]')) {
+                    return;
+                }
+
+                let insertBefore = null;
+
+                for (let i = order.indexOf(key) + 1; i < order.length; i += 1) {
+                    const candidate = container.querySelector('[data-favorite-key="' + order[i] + '"]');
+
+                    if (candidate) {
+                        insertBefore = candidate;
+                        break;
+                    }
+                }
+
+                if (insertBefore) {
+                    container.insertBefore(entry.row, insertBefore);
+                } else {
+                    container.appendChild(entry.row);
+                }
+            });
+
+            onChange(container.querySelectorAll('[data-favorite-key]').length);
         }
 
         container.querySelectorAll('[data-favorite-remove]').forEach(function (control) {
@@ -456,7 +507,7 @@ window.UqFavorites = (function () {
                     pending = {};
                 }
 
-                pending[key] = snapshot;
+                pending[key] = { snapshot: snapshot, row: row };
 
                 const batch = pending;
 
