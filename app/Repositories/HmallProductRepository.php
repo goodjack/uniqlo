@@ -1167,6 +1167,9 @@ class HmallProductRepository extends Repository
                 'weightedViews' => $weightedViews,
             ];
         })
+            // 編號過不了白名單的整筆丟掉：GA 收得到任何人亂打的網址，
+            // 這些片段本來就對不到商品，沒有理由讓它往下走。
+            ->filter(fn ($item) => $item['productCode'] !== null)
             ->unique(fn ($item) => "{$item['brand']}_{$item['productCode']}")
             ->sortByDesc('weightedViews');
     }
@@ -1176,9 +1179,20 @@ class HmallProductRepository extends Repository
         return str_contains($fullPageUrl, '/gu-products/') ? 'GU' : 'UNIQLO';
     }
 
-    private function getProductCodeFromUrl(string $fullPageUrl): string
+    /**
+     * 從 GA 的 fullPageUrl 取商品編號。
+     *
+     * 這個值是外部可以自己灌進來的：任何人反覆打 /hmall-products/<任意字串>，
+     * 就算回 404，錯誤頁一樣 include 了 GA 的 script，那個路徑還是會被記成一筆
+     * pagePath，再被 getDimensionFilter() 的 BEGINS_WITH 收進這份排行。所以一律
+     * 先過白名單，只認英數、底線與連字號；不合格式的回 null，讓呼叫端整筆丟掉，
+     * 不要讓它有機會進到任何一段 SQL。
+     */
+    private function getProductCodeFromUrl(string $fullPageUrl): ?string
     {
-        return explode('/', $fullPageUrl)[2];
+        $productCode = explode('/', $fullPageUrl)[2] ?? '';
+
+        return preg_match('/^[A-Za-z0-9_-]+$/', $productCode) === 1 ? $productCode : null;
     }
 
     private function fetchRankedProducts(Collection $rank): Collection
@@ -1187,20 +1201,27 @@ class HmallProductRepository extends Repository
             return collect([]);
         }
 
-        $productIdentifiers = $rank->map(fn ($item) => "{$item['brand']}_{$item['productCode']}");
+        $productIdentifiers = $rank
+            ->map(fn ($item) => "{$item['brand']}_{$item['productCode']}")
+            ->values()
+            ->all();
 
-        $orderClause = $rank->map(fn ($item) => "'{$item['brand']}_{$item['productCode']}'")
-            ->join(',');
-
-        $orderByField = sprintf('FIELD(CONCAT(brand, \'_\', product_code), %s)', $orderClause);
+        // ORDER BY 的名次清單跟上面的 whereIn 一樣要走 binding。以前這裡是把
+        // 商品編號加引號直接拼進字串，而編號來自 GA 的網址片段（外部值），
+        // 等於把 ORDER BY 開放給外部寫入。編號那端已經有白名單，這端用佔位符，
+        // 兩層都守住。
+        $orderByField = sprintf(
+            'FIELD(CONCAT(brand, \'_\', product_code), %s)',
+            implode(', ', array_fill(0, count($productIdentifiers), '?'))
+        );
 
         return $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->whereIn(DB::raw("CONCAT(brand, '_', product_code)"), $productIdentifiers->toArray())
+            ->whereIn(DB::raw("CONCAT(brand, '_', product_code)"), $productIdentifiers)
             ->where('stock', 'Y')
             ->whereNull('stockout_at')
-            ->orderByRaw($orderByField)
+            ->orderByRaw($orderByField, $productIdentifiers)
             ->get();
     }
 }
