@@ -69,7 +69,14 @@ class SitemapService extends Service
         ]);
 
         foreach ($categories as $category) {
-            $sitemap->add(Url::create("categories/{$category->brand->slug()}/{$category->code}"));
+            // code 直接內插進字串沒有做 URL 編碼；正式資料裡有分類 code 帶零寬
+            // 空白這種要編碼的字元，跟頁面自己用 route() 產生的連結（例如
+            // categories/index.blade.php）會變成兩個不同的網址。改用 route()
+            // 讓兩邊走同一套編碼規則，sitemap 規格也要求 <loc> 是已編碼的網址。
+            $sitemap->add(Url::create(route('categories.show', [
+                'brand' => $category->brand->slug(),
+                'code' => $category->code,
+            ])));
         }
 
         $hmallProducts = $this->hmallProductRepository->getAllProductsForSitemap();
