@@ -30,15 +30,58 @@ window.UqFavorites = (function () {
     let currentOptions = null;
 
     /**
+     * 每次 renderPage 遞增一次，讓「這次渲染是不是已經過期」有東西可以比對。
+     * 清空收藏、換一次新的 renderPage 都會讓舊的那輪變成過期——回應晚到時
+     * 舊那輪要安靜地不動畫面，不能把資料已經清空的畫面蓋回去。
+     *
+     * currentController 是跟目前這個 token 綁在一起的 fetch 控制器：新的一輪
+     * 開始、或清空收藏時，都要先 abort 掉上一輪還沒回來的請求，讓它們不要
+     * 繼續佔連線、也不要在 abort 之後又跑出一次不必要的錯誤畫面。
+     */
+    let renderToken = 0;
+    let currentController = null;
+
+    /** 單一批次的逾時，不是整個 renderPage 的逾時——分批送的清單不該因為
+     * 前面幾批比較慢就連坐失敗。 */
+    const FETCH_TIMEOUT_MS = 15000;
+
+    /**
      * 隱私模式或使用者關掉網站資料時，localStorage 的存取本身就會丟例外，
      * 所以每一次讀寫都要能安靜地退回「沒有收藏」的狀態，不能讓整頁掛掉。
      */
+    /**
+     * 只有 JSON.parse 失敗會被擋，解出來的形狀完全沒被檢查——使用者自己改過、
+     * 瀏覽器擴充套件寫壞、或以後換格式沒處理到，都可能讓某一筆變成 null 或
+     * 整包變成字串。每一筆都驗過形狀，壞的丟掉並寫回，其餘正常使用，不讓一筆
+     * 壞資料卡住整頁。
+     */
     function read() {
+        let parsed;
+
         try {
-            return JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
+            parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || {};
         } catch (e) {
             return {};
         }
+
+        const favorites = {};
+        let hasInvalidEntry = false;
+
+        Object.keys(parsed).forEach(function (key) {
+            const item = parsed[key];
+
+            if (item && typeof item === 'object' && typeof item.brand === 'string' && typeof item.code === 'string') {
+                favorites[key] = item;
+            } else {
+                hasInvalidEntry = true;
+            }
+        });
+
+        if (hasInvalidEntry) {
+            write(favorites);
+        }
+
+        return favorites;
     }
 
     function write(favorites) {
@@ -532,6 +575,10 @@ window.UqFavorites = (function () {
                     return true;
                 }
 
+                // 清空成功了，不管畫面上是不是還在等一輪 renderPage 的回應，
+                // 都要讓那一輪過期——回應晚到時才不會把清空後的畫面蓋回去。
+                invalidatePendingRender();
+
                 const container = document.getElementById('favorites-cards');
 
                 container.innerHTML = '';
@@ -548,7 +595,15 @@ window.UqFavorites = (function () {
                         favorites[key] = snapshot[key];
                     });
 
-                    write(favorites);
+                    // 跟清空那條一樣：寫不進去（storage 剛好滿了）就不要假裝復原
+                    // 成功——不重新載入，直接說清楚，不然畫面會安靜地維持在
+                    // 「還沒有收藏任何商品」，使用者以為那是正常的空清單。
+                    if (!write(favorites)) {
+                        showState('favorites-error', '復原失敗，收藏沒有存回去');
+
+                        return;
+                    }
+
                     renderPage(currentOptions);
                 }, function () {});
 
@@ -597,7 +652,31 @@ window.UqFavorites = (function () {
         }
     }
 
+    /**
+     * 429 逾時倒數用的計時器。放在模組層是因為它要在下一次 showState 呼叫、
+     * 或清空收藏時被清掉——不然畫面已經換到別的狀態，倒數卻還在背景改
+     * #favorites-summary 的文字，把使用者不相關的畫面蓋回去。
+     */
+    let retryCountdownTimer = null;
+
+    function clearRetryCountdown() {
+        if (retryCountdownTimer !== null) {
+            clearInterval(retryCountdownTimer);
+            retryCountdownTimer = null;
+        }
+
+        const retryButton = document.getElementById('favorites-retry');
+
+        if (retryButton) {
+            retryButton.disabled = false;
+        }
+    }
+
     function showState(name, summaryText) {
+        // 任何狀態切換都代表倒數已經不適用了——不管是使用者自己重新載入，
+        // 還是清空收藏蓋掉了正在等待的錯誤畫面。
+        clearRetryCountdown();
+
         ['favorites-empty', 'favorites-gone', 'favorites-error'].forEach(function (id) {
             document.getElementById(id).hidden = id !== name;
         });
@@ -605,6 +684,44 @@ window.UqFavorites = (function () {
         if (summaryText !== undefined) {
             document.getElementById('favorites-summary').textContent = summaryText;
         }
+    }
+
+    /**
+     * 429 時後端會回 Retry-After（秒數），比起固定的「請稍後再試」，讓使用者
+     * 知道具體要等多久、按「重新載入」前先擋住，不然使用者只會一直重試、
+     * 在同一個限流視窗裡永遠救不回來。
+     */
+    function showRetryAfter(retryAfterHeader) {
+        const seconds = parseInt(retryAfterHeader, 10);
+
+        if (!Number.isFinite(seconds) || seconds <= 0) {
+            showState('favorites-error', '操作太頻繁，請稍後再試一次');
+
+            return;
+        }
+
+        showState('favorites-error', '操作太頻繁，請等 ' + seconds + ' 秒後再試');
+
+        const summary = document.getElementById('favorites-summary');
+        const retryButton = document.getElementById('favorites-retry');
+        let remaining = seconds;
+
+        if (retryButton) {
+            retryButton.disabled = true;
+        }
+
+        retryCountdownTimer = setInterval(function () {
+            remaining -= 1;
+
+            if (remaining <= 0) {
+                clearRetryCountdown();
+                summary.textContent = '可以再試一次了，請按重新載入';
+
+                return;
+            }
+
+            summary.textContent = '操作太頻繁，請等 ' + remaining + ' 秒後再試';
+        }, 1000);
     }
 
     /**
@@ -711,24 +828,68 @@ window.UqFavorites = (function () {
     }
 
     /**
-     * 一批一批換卡片，任一批失敗就整個失敗——只渲染一半的清單比讀不到更難懂。
+     * 單一批次的請求。逾時跟「這一輪被更新的一輪取消」共用同一顆
+     * AbortController：外面傳進來的 signal abort 時，這裡的逾時計時器也要
+     * 跟著清掉（避免兩顆各自 abort、造成重複的錯誤處理）；反過來，逾時
+     * 也直接 abort 掉這次請求，效果跟被取消一樣，呼叫端不用分開處理。
      */
-    async function fetchCards(options, wanted) {
+    async function requestCardsBatch(cardsUrl, headers, batchItems, signal) {
+        if (signal.aborted) {
+            throw new DOMException('Aborted', 'AbortError');
+        }
+
+        const timeoutController = new AbortController();
+        const onOuterAbort = function () {
+            timeoutController.abort();
+        };
+        const timeoutId = setTimeout(onOuterAbort, FETCH_TIMEOUT_MS);
+
+        signal.addEventListener('abort', onOuterAbort);
+
+        try {
+            return await fetch(cardsUrl, {
+                method: 'POST',
+                headers: Object.assign(
+                    {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    headers,
+                ),
+                body: JSON.stringify({ items: batchItems }),
+                signal: timeoutController.signal,
+            });
+        } finally {
+            clearTimeout(timeoutId);
+            signal.removeEventListener('abort', onOuterAbort);
+        }
+    }
+
+    /**
+     * 一批一批換卡片，任一批失敗就整個失敗——只渲染一半的清單比讀不到更難懂。
+     *
+     * 逾時是每一批各自 15 秒，不是整支函式共用一個計時器：分 3 批送的清單，
+     * 前面幾批正常、只有某一批卡住時，不該連坐判定成整體逾時。
+     */
+    async function fetchCards(options, wanted, signal) {
         let html = '';
+        let authHeaders = { 'X-CSRF-TOKEN': options.csrfToken };
 
         for (let start = 0; start < wanted.length; start += BATCH_SIZE) {
-            const response = await fetch(options.cardsUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': options.csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify({ items: wanted.slice(start, start + BATCH_SIZE) }),
-            });
+            const response = await requestCardsBatch(
+                options.cardsUrl,
+                authHeaders,
+                wanted.slice(start, start + BATCH_SIZE),
+                signal,
+            );
 
             if (!response.ok) {
-                throw new Error('HTTP ' + response.status);
+                const error = new Error('HTTP ' + response.status);
+
+                error.status = response.status;
+                error.retryAfter = response.headers.get('Retry-After');
+
+                throw error;
             }
 
             html += await response.text();
@@ -737,8 +898,45 @@ window.UqFavorites = (function () {
         return html;
     }
 
+    /**
+     * 清空收藏不是走 renderPage，是直接操作畫面（見 bindClearAll 的
+     * onApprove），所以載入途中按清空時，要自己讓正在等待的那一輪 renderPage
+     * 過期並 abort 掉它的請求——不然那些回應晚到時，還是會把已經清空的畫面
+     * 蓋回 300 張卡片（PR 審查留言 4057184136 講的就是這個）。
+     */
+    function invalidatePendingRender() {
+        renderToken += 1;
+
+        if (currentController) {
+            currentController.abort();
+            currentController = null;
+        }
+
+        const loading = document.getElementById('favorites-loading');
+
+        if (loading) {
+            loading.hidden = true;
+        }
+
+        clearRetryCountdown();
+    }
+
     async function renderPage(options) {
         currentOptions = options;
+
+        // 新的一輪一律讓上一輪過期，並且真的把它的請求 abort 掉——不然清空
+        // 收藏、或連按兩次重新載入時，晚到的回應還是會把畫面蓋回去（見
+        // fetchCards 的逾時／取消共用同一顆 controller 的說明）。
+        renderToken += 1;
+        const token = renderToken;
+
+        if (currentController) {
+            currentController.abort();
+        }
+
+        const controller = new AbortController();
+
+        currentController = controller;
 
         const container = document.getElementById('favorites-cards');
         const loading = document.getElementById('favorites-loading');
@@ -770,13 +968,30 @@ window.UqFavorites = (function () {
         let html;
 
         try {
-            html = await fetchCards(options, wanted);
+            html = await fetchCards(options, wanted, controller.signal);
         } catch (e) {
-            showState('favorites-error', '收藏清單還在你的瀏覽器裡');
+            // 這一輪已經被更新的一輪（或清空收藏）取代了，不管是逾時、取消
+            // 還是真的失敗，都不該再動畫面——畫面現在該長什麼樣是新的那輪
+            // 的事。
+            if (token !== renderToken) {
+                return;
+            }
+
+            if (e && e.status === 429) {
+                showRetryAfter(e.retryAfter);
+            } else {
+                showState('favorites-error', '收藏清單還在你的瀏覽器裡');
+            }
 
             return;
         } finally {
-            loading.hidden = true;
+            if (token === renderToken) {
+                loading.hidden = true;
+            }
+        }
+
+        if (token !== renderToken) {
+            return;
         }
 
         container.innerHTML = html;
@@ -839,6 +1054,51 @@ window.UqFavorites = (function () {
         scope.querySelectorAll('[data-favorite-card]').forEach(bindCardButton);
     }
 
+    /**
+     * 把畫面上已經綁定的收藏鈕重新上色，跟 localStorage 現在的狀態對齊。
+     * 用在跨分頁同步：另一個分頁改了收藏，這一頁的按鈕沒有機會自己重新
+     * 讀一次 has()，畫面會停在舊狀態。
+     */
+    function resyncButtons(root) {
+        const scope = root || document;
+
+        scope.querySelectorAll('[data-favorite-button]').forEach(function (button) {
+            paintButton(button, has(button.dataset.brand, button.dataset.productCode));
+        });
+
+        scope.querySelectorAll('[data-favorite-card]').forEach(function (button) {
+            paintCardButton(button, has(button.dataset.brand, button.dataset.productCode));
+        });
+    }
+
+    /**
+     * 只在同一個瀏覽器的「別的」分頁改動 localStorage 時才會觸發——這個分頁
+     * 自己寫不會觸發自己的 storage 事件，不用擔心跟 renderPage／toggle 打架。
+     *
+     * 在收藏頁（currentOptions 已經設過，代表 renderPage 至少跑過一次）：
+     * 直接重新整理整份清單，最簡單也最不容易漏掉「這筆從別的分頁被移除了」
+     * 這種要整理排序、summary、空狀態的情況。
+     *
+     * 在其他頁（商品頁、清單頁的卡片）：沒有清單可以重新整理，改成只重新
+     * 上色目前畫面上已經綁定的按鈕。
+     */
+    function bindStorageSync() {
+        window.addEventListener('storage', function (event) {
+            // key 是 null 代表整個 localStorage 被 clear()，也要當成有變動處理。
+            if (event.key !== null && event.key !== STORAGE_KEY) {
+                return;
+            }
+
+            if (currentOptions) {
+                renderPage(currentOptions);
+
+                return;
+            }
+
+            resyncButtons();
+        });
+    }
+
     return {
         has: has,
         toggle: toggle,
@@ -849,6 +1109,7 @@ window.UqFavorites = (function () {
         bindAll: bindAll,
         bindClearAll: bindClearAll,
         bindOfferFilter: bindOfferFilter,
+        bindStorageSync: bindStorageSync,
         renderPage: renderPage,
     };
 })();
@@ -857,4 +1118,5 @@ document.addEventListener('DOMContentLoaded', function () {
     window.UqFavorites.bindAll();
     window.UqFavorites.bindClearAll();
     window.UqFavorites.bindOfferFilter();
+    window.UqFavorites.bindStorageSync();
 });
