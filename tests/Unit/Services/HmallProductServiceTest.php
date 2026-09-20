@@ -6,6 +6,7 @@ use App\Enums\CrawlOutcome;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use App\Services\HmallProductService;
+use App\Support\ProductSaveResult;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
@@ -42,8 +43,8 @@ class HmallProductServiceTest extends TestCase
 
         // Mock repositories
         $this->mockHmallRepository = $this->createMock(HmallProductRepository::class);
-        // 回傳值是「這一頁有幾件商品寫失敗」，預設一件都沒失敗
-        $this->mockHmallRepository->method('saveProductsFromV3')->willReturn(0);
+        // 回傳值是「這一頁有哪幾件商品寫失敗」，預設一件都沒失敗
+        $this->mockHmallRepository->method('saveProductsFromV3')->willReturn(new ProductSaveResult);
         $this->mockHmallRepository->method('setStockoutHmallProducts')->willReturn(true);
         $this->mockHmallRepository->method('updateProductDescriptionsFromV3')->willReturn(true);
 
@@ -375,14 +376,13 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
-     * 逐商品的寫入失敗要讓整頁不算完全成功。
+     * 完整掃描中有商品寫不進去時，缺貨判定照做、但要排除那幾件。
      *
-     * repository 對單一商品的 save、pivot sync 與價格歷史都包了 try/catch（一筆
-     * 壞資料不該讓同頁其他幾十件也寫不進去），但它原本只寫 log，整頁照樣回報成功、
-     * checkpoint 照樣推進。結果是缺貨判定會拿一份少了幾件的資料去判斷，那幾件
-     * 就被標成下架。
+     * 這一輪其實把整份目錄都看過了，只是那幾件的 updated_at 沒被摸到。以前這種
+     * 情況整輪跳過缺貨判定、還保留 checkpoint，只要有一件資料固定寫不進去，缺貨
+     * 判定就永遠不會執行，下架的商品一直掛在站上。
      */
-    public function test_products_that_fail_to_save_make_the_run_partially_successful()
+    public function test_a_full_scan_still_marks_stockout_but_excludes_the_products_that_failed_to_save()
     {
         Cache::flush();
 
@@ -401,7 +401,51 @@ class HmallProductServiceTest extends TestCase
 
         // 這一輪從第 1 頁開始、HTTP 全部成功，唯一的問題是有一件商品寫不進去
         $repository = $this->createMock(HmallProductRepository::class);
-        $repository->method('saveProductsFromV3')->willReturn(1);
+        $repository->method('saveProductsFromV3')
+            ->willReturn(new ProductSaveResult(['u0000000053204']));
+        $repository->expects($this->once())
+            ->method('setStockoutHmallProducts')
+            ->with('UNIQLO', null, ['u0000000053204']);
+
+        $service = new HmallProductService($repository, $this->mockProductRepository);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->assertSame(
+            CrawlOutcome::PartiallySucceeded,
+            $service->fetchAllHmallProducts('UNIQLO')
+        );
+        // checkpoint 要清掉：留著只會讓下一輪從空頁起跑，白白跳過一次完整掃描
+        $this->assertNull(Cache::get('hmall_products:page:UNIQLO'));
+    }
+
+    /**
+     * 寫入失敗但拿不到商品編號時，缺貨判定不能做。
+     *
+     * 不知道要排除誰，照跑就會把那件商品冤枉標成下架。checkpoint 一樣清掉，
+     * 讓下一輪重新從第 1 頁完整掃。
+     */
+    public function test_a_failure_without_a_product_code_skips_stockout()
+    {
+        Cache::flush();
+
+        Http::fake([
+            '*' => Http::response([
+                'resp' => [
+                    [
+                        'productList' => [],
+                        'productSum' => 0,
+                    ],
+                ],
+            ]),
+        ]);
+
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        $repository = $this->createMock(HmallProductRepository::class);
+        $repository->method('saveProductsFromV3')
+            ->willReturn(new ProductSaveResult([], 1));
         $repository->expects($this->never())->method('setStockoutHmallProducts');
 
         $service = new HmallProductService($repository, $this->mockProductRepository);
@@ -413,6 +457,148 @@ class HmallProductServiceTest extends TestCase
             CrawlOutcome::PartiallySucceeded,
             $service->fetchAllHmallProducts('UNIQLO')
         );
+        $this->assertNull(Cache::get('hmall_products:page:UNIQLO'));
+    }
+
+    /**
+     * 同一件商品固定寫不進去時，不可以再形成「失敗日、清 checkpoint 日、重新失敗日」的循環。
+     *
+     * 以前的循環是這樣：第一天完整掃完但有一件寫失敗，保留 checkpoint、跳過缺貨判定；
+     * 第二天從 checkpoint 續跑只抓到一頁空的，因為不是完整掃描又跳過；第三天回到第一天。
+     * 缺貨判定就永遠沒有執行的一天。修正後每一輪都從第 1 頁開始、每一輪都做帶排除清單的
+     * 缺貨判定。
+     */
+    public function test_a_product_that_keeps_failing_does_not_stall_stockout_day_after_day()
+    {
+        Cache::flush();
+
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        $requestedPages = [];
+        Http::fake(['https://api.example.com/search' => function ($request) use (&$requestedPages) {
+            $requestedPages[] = $request->data()['pageInfo']['page'];
+
+            return Http::response([
+                'resp' => [
+                    [
+                        'productList' => [],
+                        'productSum' => 0,
+                    ],
+                ],
+            ]);
+        }]);
+
+        $repository = $this->createMock(HmallProductRepository::class);
+        $repository->method('saveProductsFromV3')
+            ->willReturn(new ProductSaveResult(['u0000000053204']));
+        $repository->expects($this->exactly(2))
+            ->method('setStockoutHmallProducts')
+            ->with('UNIQLO', null, ['u0000000053204']);
+
+        $service = new HmallProductService($repository, $this->mockProductRepository);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $firstRun = $service->fetchAllHmallProducts('UNIQLO');
+        $secondRun = $service->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $firstRun);
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $secondRun);
+        // 兩輪都要從第 1 頁開始，不能有任何一輪是從 checkpoint 續跑
+        $this->assertSame([1, 1], $requestedPages);
+    }
+
+    /**
+     * 那件商品隔天寫得進去了，就不該再出現在排除清單裡，整輪回到完全成功。
+     */
+    public function test_a_recovered_product_is_no_longer_excluded()
+    {
+        Cache::flush();
+
+        Http::fake([
+            '*' => Http::response([
+                'resp' => [
+                    [
+                        'productList' => [],
+                        'productSum' => 0,
+                    ],
+                ],
+            ]),
+        ]);
+
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        $repository = $this->createMock(HmallProductRepository::class);
+        $repository->method('saveProductsFromV3')
+            ->willReturnOnConsecutiveCalls(
+                new ProductSaveResult(['u0000000053204']),
+                new ProductSaveResult,
+            );
+
+        $stockoutCalls = [];
+        $repository->method('setStockoutHmallProducts')
+            ->willReturnCallback(function ($brand, $updatedIsBefore, $excluded) use (&$stockoutCalls) {
+                $stockoutCalls[] = $excluded;
+
+                return true;
+            });
+
+        $service = new HmallProductService($repository, $this->mockProductRepository);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $service->fetchAllHmallProducts('UNIQLO'));
+        $this->assertSame(CrawlOutcome::Succeeded, $service->fetchAllHmallProducts('UNIQLO'));
+        $this->assertSame([['u0000000053204'], []], $stockoutCalls);
+    }
+
+    /**
+     * 兩個品牌各自累積自己的排除清單，UNIQLO 的失敗不會影響 GU 的缺貨判定。
+     */
+    public function test_each_brand_keeps_its_own_exclusion_list()
+    {
+        Cache::flush();
+
+        Http::fake([
+            '*' => Http::response([
+                'resp' => [
+                    [
+                        'productList' => [],
+                        'productSum' => 0,
+                    ],
+                ],
+            ]),
+        ]);
+
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+        Config::set('gu.api.v3.search.tw', 'https://api.example.com/gu-search');
+
+        $repository = $this->createMock(HmallProductRepository::class);
+        $repository->method('saveProductsFromV3')
+            ->willReturnCallback(fn ($products, $brand) => $brand === 'UNIQLO'
+                ? new ProductSaveResult(['u0000000053204'])
+                : new ProductSaveResult);
+
+        $stockoutCalls = [];
+        $repository->method('setStockoutHmallProducts')
+            ->willReturnCallback(function ($brand, $updatedIsBefore, $excluded) use (&$stockoutCalls) {
+                $stockoutCalls[$brand] = $excluded;
+
+                return true;
+            });
+
+        $service = new HmallProductService($repository, $this->mockProductRepository);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $service->fetchAllHmallProducts('UNIQLO');
+        $service->fetchAllHmallProducts('GU');
+
+        $this->assertSame(['u0000000053204'], $stockoutCalls['UNIQLO']);
+        $this->assertSame([], $stockoutCalls['GU']);
     }
 
     public function test_all_pages_fail_preserves_checkpoint_and_skips_stockout()

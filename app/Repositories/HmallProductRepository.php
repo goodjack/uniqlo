@@ -8,6 +8,7 @@ use App\Models\HmallCategory;
 use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
 use App\Models\Product;
+use App\Support\ProductSaveResult;
 use Carbon\Carbon;
 use Google\Analytics\Data\V1beta\Filter;
 use Google\Analytics\Data\V1beta\Filter\StringFilter;
@@ -750,21 +751,28 @@ class HmallProductRepository extends Repository
     }
 
     /**
-     * 寫入一頁商品，回傳寫失敗的筆數。
+     * 寫入一頁商品，回傳這一頁有哪幾件沒寫進去。
      *
      * 單一商品失敗不中斷整頁——一筆壞資料不該讓同一頁其他幾十件也寫不進去。
-     * 但失敗要讓呼叫端知道：這個回傳值是爬蟲判斷「這一頁到底算不算成功」的依據，
-     * 只寫 log 然後回報成功的話，缺貨判定會拿一份不完整的資料去做判斷。
+     * 但失敗要讓呼叫端知道是「哪幾件」而不只是「幾件」：那幾件商品在來源其實還在，
+     * 只是資料沒更新到，缺貨判定要把它們排除掉才不會冤枉標成下架。連商品編號都
+     * 拿不到的失敗沒辦法排除，另外算一個數字，讓呼叫端知道這一輪不能做缺貨判定。
      */
-    public function saveProductsFromV3($products, $brand = 'UNIQLO'): int
+    public function saveProductsFromV3($products, $brand = 'UNIQLO'): ProductSaveResult
     {
         // 分類主檔整批先寫，一頁商品只打一次資料庫，而不是每個商品各寫十幾筆。
         // 回傳的 code 對 id 對照表給下面掛關聯用，省掉每個商品各查一次。
         $categoryIds = $this->saveCategoriesFromV3($products, $brand);
 
-        $failedCount = 0;
+        $failedProductCodes = [];
+        $unidentifiedFailureCount = 0;
 
-        collect($products)->each(function ($product) use ($brand, $categoryIds, &$failedCount) {
+        collect($products)->each(function ($product) use (
+            $brand,
+            $categoryIds,
+            &$failedProductCodes,
+            &$unidentifiedFailureCount
+        ) {
             try {
                 /** @var HmallProduct $model */
                 $model = $this->model->firstOrNew([
@@ -833,34 +841,59 @@ class HmallProductRepository extends Repository
                     $model->hmallPriceHistories()->save($hmallPriceHistory);
                 });
             } catch (Throwable $e) {
-                $failedCount++;
+                $productCode = $product->productCode ?? null;
+
+                // 拿得到編號才排除得掉。官方回傳格式跑掉時 productCode 可能是缺的、
+                // 空的、甚至是陣列，這幾種都只能算成無法辨識。
+                if (is_string($productCode) && $productCode !== '') {
+                    $failedProductCodes[] = $productCode;
+                } else {
+                    $unidentifiedFailureCount++;
+                }
 
                 Log::error('saveProductsFromHmall error', [
                     'brand' => $brand,
-                    'product_code' => $product->productCode ?? null,
+                    'product_code' => is_string($productCode) ? $productCode : null,
                 ]);
 
                 report($e);
             }
         });
 
-        return $failedCount;
+        return new ProductSaveResult(
+            array_values(array_unique($failedProductCodes)),
+            $unidentifiedFailureCount
+        );
     }
 
-    public function setStockoutHmallProducts($brand = 'UNIQLO', $updatedIsBefore = null)
+    /**
+     * 把這一輪沒被更新到的商品標成下架。
+     *
+     * $excludedProductCodes 是這一輪寫入失敗、但來源其實還在的商品：它們的
+     * updated_at 這次沒被摸到，不排除就會被冤枉標成下架。品牌條件本來就在，
+     * 同一個編號在另一個品牌底下不受影響。
+     *
+     * @param  array<int, string>  $excludedProductCodes
+     */
+    public function setStockoutHmallProducts($brand = 'UNIQLO', $updatedIsBefore = null, array $excludedProductCodes = [])
     {
         if (is_null($updatedIsBefore)) {
             $updatedIsBefore = today();
         }
 
-        $this->model
+        $query = $this->model
             ->whereNull('stockout_at')
             ->where('brand', $brand)
-            ->where('updated_at', '<', $updatedIsBefore)
-            ->update([
-                'stockout_at' => now(),
-                'updated_at' => DB::raw('updated_at'),
-            ]);
+            ->where('updated_at', '<', $updatedIsBefore);
+
+        if ($excludedProductCodes !== []) {
+            $query->whereNotIn('product_code', $excludedProductCodes);
+        }
+
+        $query->update([
+            'stockout_at' => now(),
+            'updated_at' => DB::raw('updated_at'),
+        ]);
     }
 
     public function updateProductDescriptionsFromV3(

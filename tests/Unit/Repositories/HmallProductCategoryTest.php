@@ -147,25 +147,53 @@ class HmallProductCategoryTest extends TestCase
     }
 
     /**
-     * 寫不進去的商品要被數出來回報，不能只寫 log 就當這一頁沒事。
+     * 寫不進去的商品要回報是「哪幾件」，不能只回報幾件。
+     *
+     * 缺貨判定要靠這份編號清單把它們排除掉：那幾件在來源其實還在，只是資料沒寫進去，
+     * 沒排除就會被當成「今天沒看到」而標成下架。
      */
-    public function test_reports_how_many_products_failed_to_save(): void
+    public function test_reports_which_products_failed_to_save(): void
     {
         $products = $this->products();
 
         // 價格欄位是 decimal，塞進不是數字的值會被 MySQL 擋下來（strict mode）
         $products[0]->minPrice = '這不是價格';
 
-        $failedCount = $this->repository->saveProductsFromV3($products);
+        $result = $this->repository->saveProductsFromV3($products);
 
-        $this->assertSame(1, $failedCount);
+        $this->assertSame(['u0000000053204'], $result->failedProductCodes);
+        $this->assertSame(0, $result->unidentifiedFailureCount);
         // 同一頁其他商品照樣要寫進去，一筆壞資料不該拖垮整頁
         $this->assertSame(count($products) - 1, HmallProduct::count());
     }
 
-    public function test_reports_zero_when_every_product_saves(): void
+    public function test_reports_an_empty_list_when_every_product_saves(): void
     {
-        $this->assertSame(0, $this->repository->saveProductsFromV3($this->products()));
+        $result = $this->repository->saveProductsFromV3($this->products());
+
+        $this->assertSame([], $result->failedProductCodes);
+        $this->assertSame(0, $result->unidentifiedFailureCount);
+        $this->assertFalse($result->hasFailures());
+    }
+
+    /**
+     * 拿不到商品編號的失敗要單獨算一個數字，不能安靜吞掉。
+     *
+     * 這種失敗沒辦法從缺貨判定裡排除（不知道要排除誰），呼叫端只能整輪不做缺貨判定，
+     * 所以它必須看得到這個數字。官方回傳格式跑掉時 productCode 就可能是空的。
+     */
+    public function test_a_failure_without_a_product_code_is_counted_separately(): void
+    {
+        $products = $this->products();
+
+        $products[0]->productCode = '';
+        $products[0]->minPrice = '這不是價格';
+
+        $result = $this->repository->saveProductsFromV3($products);
+
+        $this->assertSame([], $result->failedProductCodes);
+        $this->assertSame(1, $result->unidentifiedFailureCount);
+        $this->assertTrue($result->hasFailures());
     }
 
     /**
@@ -195,9 +223,9 @@ class HmallProductCategoryTest extends TestCase
         $badSort->sort = '000000001';
         $products[0]->categorySortList[] = $badSort;
 
-        $failedCount = $this->repository->saveProductsFromV3($products);
+        $result = $this->repository->saveProductsFromV3($products);
 
-        $this->assertSame(1, $failedCount);
+        $this->assertSame(['u0000000053204'], $result->failedProductCodes);
         $this->assertSame($originalMinPrice, $product->fresh()->min_price);
         $this->assertSame($historyCountBeforeRetry, HmallPriceHistory::count());
     }
