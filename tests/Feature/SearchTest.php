@@ -110,6 +110,21 @@ class SearchTest extends TestCase
     }
 
     /**
+     * 貨號帶前導零時精準比對不到（450001 跟 0450001 是資料庫裡不同的字串），
+     * 查無貨號結果要退回關鍵字搜尋，讓使用者看到空狀態跟「改用 Google 搜尋」
+     * 的出口，不能只有一頁「共 0 件」的空卡片格、沒有任何出路。
+     */
+    public function test_a_leading_zero_code_falls_back_to_keyword_search_with_an_empty_state(): void
+    {
+        $response = $this->get(route('search.show', ['query' => '0450001']));
+
+        $response->assertOk();
+        $response->assertDontSee('商品編號 0450001');
+        $response->assertSee('找不到符合的商品');
+        $response->assertSee('改用 Google 搜尋');
+    }
+
+    /**
      * UNIQLO 常把多個貨號共用同一個商品頁：這件商品的 code 是 482516，
      * 但 name 裡列著這頁涵蓋的另外三個號碼，其中一個是搜尋字。
      */
@@ -167,7 +182,12 @@ class SearchTest extends TestCase
     }
 
     /**
-     * 48251 只是 482514 的前綴，不是這個號碼本身，不該命中。
+     * 48251 只是 482514 的前綴，不是這個號碼本身，貨號的精準比對／共用號碼
+     * 規則比對都不該命中。查無貨號結果時退回關鍵字搜尋（SearchController::
+     * showProductCodeResults()），這裡斷言的是「這頁變成關鍵字結果」，不是
+     * 「AIRism 完全不會出現」——LIKE 比對不看數字邊界，那件商品的名稱裡帶著
+     * 「482514」，含有「48251」這個子字串，退回關鍵字搜尋後會被撈到，跟
+     * 「48251 是不是這個貨號」是兩件事。
      */
     public function test_a_number_that_is_only_a_prefix_of_another_code_does_not_match(): void
     {
@@ -180,8 +200,8 @@ class SearchTest extends TestCase
         $response = $this->get(route('search.show', ['query' => '48251']));
 
         $response->assertOk();
-        $response->assertDontSee('AIRism');
-        $response->assertSee('0 件');
+        $response->assertDontSee('商品編號 48251');
+        $response->assertSee('「48251」');
     }
 
     /**

@@ -75,11 +75,22 @@ class SearchController extends Controller
      */
     private function showProductCodeResults(string $query)
     {
+        $hmallProducts = $this->searchService->findHmallProductsByCodeOrSharedNumber($query);
+        $products = Product::where('id', 'like', "{$query}%")->get();
+
+        // 全是數字只代表「長得像貨號」，不代表這組號碼真的存在——例如貨號帶
+        // 前導零（0474238）精準比對不到 474238。查無貨號結果時退回關鍵字
+        // 搜尋，使用者才能看到空狀態與「改用 Google 搜尋」的出口，而不是一頁
+        // 只有「共 0 件」、沒有任何出路的空卡片格。
+        if ($hmallProducts->isEmpty() && $products->isEmpty()) {
+            return $this->showKeywordResults($query);
+        }
+
         return view('search.results', [
             'query' => $query,
             'isProductCodeSearch' => true,
-            'hmallProducts' => $this->searchService->findHmallProductsByCodeOrSharedNumber($query),
-            'products' => Product::where('id', 'like', "{$query}%")->get(),
+            'hmallProducts' => $hmallProducts,
+            'products' => $products,
         ]);
     }
 
