@@ -807,52 +807,34 @@ window.UqFavorites = (function () {
     }
 
     /**
-     * 單一批次的請求。逾時跟「這一輪被更新的一輪取消」共用同一顆
-     * AbortController：外面傳進來的 signal abort 時，這裡的逾時計時器也要
-     * 跟著清掉（避免兩顆各自 abort、造成重複的錯誤處理）；反過來，逾時
-     * 也直接 abort 掉這次請求，效果跟被取消一樣，呼叫端不用分開處理。
+     * 逾時是每一批各自計算，不是整份清單共用：分好幾批送時，前面幾批慢不該
+     * 連坐後面。讀回應本體也在逾時範圍內，連線卡在傳本體時一樣會放棄。
+     * 外面傳進來的 signal 代表「這一輪已經被新的一輪取代」，跟逾時走同一顆
+     * controller，呼叫端不用分開處理。
      */
     async function requestCardsBatch(cardsUrl, batchItems, signal) {
+        const controller = new AbortController();
+        const abort = function () {
+            controller.abort();
+        };
+        const timeoutId = setTimeout(abort, FETCH_TIMEOUT_MS);
+
+        signal.addEventListener('abort', abort);
+
         if (signal.aborted) {
-            throw new DOMException('Aborted', 'AbortError');
+            abort();
         }
 
-        const timeoutController = new AbortController();
-        const onOuterAbort = function () {
-            timeoutController.abort();
-        };
-        const timeoutId = setTimeout(onOuterAbort, FETCH_TIMEOUT_MS);
-
-        signal.addEventListener('abort', onOuterAbort);
-
         try {
-            return await fetch(cardsUrl, {
+            const response = await fetch(cardsUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                 },
                 body: JSON.stringify({ items: batchItems }),
-                signal: timeoutController.signal,
+                signal: controller.signal,
             });
-        } finally {
-            clearTimeout(timeoutId);
-            signal.removeEventListener('abort', onOuterAbort);
-        }
-    }
-
-    /**
-     * 一批一批換卡片，任一批失敗就整個失敗——只渲染一半的清單比讀不到更難懂。
-     *
-     * 逾時是每一批各自 15 秒，不是整支函式共用一個計時器：分 3 批送的清單，
-     * 前面幾批正常、只有某一批卡住時，不該連坐判定成整體逾時。
-     */
-    async function fetchCards(options, wanted, signal) {
-        let html = '';
-
-        for (let start = 0; start < wanted.length; start += BATCH_SIZE) {
-            const batch = wanted.slice(start, start + BATCH_SIZE);
-            const response = await requestCardsBatch(options.cardsUrl, batch, signal);
 
             if (!response.ok) {
                 const error = new Error('HTTP ' + response.status);
@@ -863,7 +845,21 @@ window.UqFavorites = (function () {
                 throw error;
             }
 
-            html += await response.text();
+            return await response.text();
+        } finally {
+            clearTimeout(timeoutId);
+            signal.removeEventListener('abort', abort);
+        }
+    }
+
+    /**
+     * 任一批失敗就整份失敗：只渲染一半的清單比讀不到更難懂。
+     */
+    async function fetchCards(options, wanted, signal) {
+        let html = '';
+
+        for (let start = 0; start < wanted.length; start += BATCH_SIZE) {
+            html += await requestCardsBatch(options.cardsUrl, wanted.slice(start, start + BATCH_SIZE), signal);
         }
 
         return html;
