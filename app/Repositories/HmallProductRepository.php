@@ -8,6 +8,7 @@ use App\Models\HmallCategory;
 use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
 use App\Models\Product;
+use App\Support\Keywords;
 use App\Support\ProductSaveResult;
 use Carbon\Carbon;
 use Google\Analytics\Data\V1beta\Filter;
@@ -619,9 +620,7 @@ class HmallProductRepository extends Repository
      */
     private function applyKeywordFilterForCategory($query, string $q): void
     {
-        $keywords = preg_split('/\s+/u', trim($q), -1, PREG_SPLIT_NO_EMPTY);
-
-        foreach ($keywords as $keyword) {
+        foreach (Keywords::split($q) as $keyword) {
             $pattern = '%'.$this->escapeLikeWildcards($keyword).'%';
 
             $query->where(function ($subQuery) use ($pattern) {
