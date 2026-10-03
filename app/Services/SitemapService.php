@@ -6,6 +6,7 @@ use App\Enums\CategoryLevel;
 use App\Repositories\HmallCategoryRepository;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
+use Illuminate\Support\Facades\Route;
 use Spatie\Sitemap\Sitemap;
 use Spatie\Sitemap\Tags\Url;
 
@@ -31,31 +32,14 @@ class SitemapService extends Service
     {
         $sitemap = Sitemap::create();
 
-        // 手寫清單：新增清單頁要回來補一行（順序同 routes/web.php）
-        $pages = [
-            'categories',
-            'lists/limited-offers',
-            'lists/sale',
-            'lists/most-reviewed',
-            'lists/japan-most-reviewed',
-            'lists/top-wearing',
-            'lists/new',
-            'lists/coming-soon',
-            'lists/multi-buy',
-            'lists/online-special',
-            'lists/most-visited',
-            'products/limited-offers',
-            'products/sales',
-            'products/multi-buys',
-            'products/news',
-            'products/stockouts',
-            'products/most-reviewed',
-            'pages/changelog',
-            'pages/privacy',
-        ];
+        // 清單頁直接從路由表長出來，新增清單頁不用回來改這裡
+        $listRoutes = collect(Route::getRoutes()->getRoutesByName())
+            ->keys()
+            ->filter(fn (string $name) => str_starts_with($name, 'lists.'));
 
-        foreach ($pages as $page) {
-            $sitemap->add($page);
+        // products/ 底下的舊清單網址都是 301，不放進 sitemap
+        foreach (['categories.index', ...$listRoutes, 'products.stockouts', 'pages.changelog', 'pages.privacy-policy'] as $name) {
+            $sitemap->add(route($name));
         }
 
         // 只收還有商品的分類，沒商品的分類頁是 404
