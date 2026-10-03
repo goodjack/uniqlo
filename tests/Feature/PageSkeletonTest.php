@@ -9,24 +9,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * 全站共同骨架的驗收：麵包屑只出現在分類樹上的那兩頁、最後一層都是當頁，
- * 卡片上的收藏鈕不會變成連結的子孫、卡片標籤全部攤開來看得完，商品頁右欄
- * 不再靠小標題分段。
- *
- * 這些都是「改一頁很容易忘記另外六頁」的類型，所以用一組測試把七種頁面
- * 一起釘住，而不是各自散在各頁的測試裡。
+ * 跨頁共同骨架：改一頁很容易忘記另外幾頁的規則，集中在這裡一起釘住。
  */
 class PageSkeletonTest extends TestCase
 {
     use RefreshDatabase;
 
     /**
-     * 卡片與收藏列上的狀態標籤。外觀回到 Tocas 原生的
-     * .ts.horizontal.basic.circular.label，一色一義的顏色寫在裡層 <span>
-     * 的 style 上（見 hmall-products/partials/card-labels.blade.php）。
-     *
-     * 認 horizontal 加 circular 這個組合，不是只認 .label：頁首 slate 與圖片
-     * 右上角的品牌角標也都是 .ts.label，只有狀態標籤是這個組合。
+     * 狀態標籤。認 horizontal 加 circular 的組合：品牌角標與頁首也都是 .ts.label。
      */
     private const CARD_LABEL_XPATH = '//*[contains(@class, "horizontal")][contains(@class, "circular")][contains(@class, "label")]';
 
@@ -40,9 +30,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 麵包屑是分類樹上的位置，往上一層要是有意義的去處。首頁是起點；清單、
-     * 搜尋、收藏、分類總覽都是從導覽列直接進來的單層頁面，一條「首頁 › 自己」
-     * 只是佔一行。
+     * 單層頁面的「首頁 › 自己」只是佔一行。
      *
      * @dataProvider pagesWithoutBreadcrumb
      */
@@ -99,8 +87,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 卡片整張原本是一個 <a>，收藏鈕放進去就是巢狀互動元素——無效的 HTML，
-     * 無障礙樹裡也讀不出「這是另一顆按鈕」。
+     * 收藏鈕放進 <a> 是巢狀互動元素，無效的 HTML。
      *
      * @dataProvider pagesWithCards
      */
@@ -129,12 +116,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * HmallProductPresenter::getProductTags() 以前直接 or 了 is_app_offer／
-     * is_ec_only，跟 ProductTag::LimitedOffer->matches()（見
-     * tests/Unit/Enums/ProductTagTest.php 的 test_app_and_ec_only_are_no_longer_limited_offers）
-     * 各自認定不同：identity 只有 APP 的商品在清單頁與篩選不算期間限定，
-     * 卡片上卻掛著「期間限定特價」。兩個判準已經統一成同一個 matches()，
-     * APP 限定商品現在只掛「APP 限定特價」。
+     * 卡片標籤與清單篩選用同一個 ProductTag::LimitedOffer->matches() 判準。
      */
     public function test_a_card_with_only_the_app_identity_does_not_get_the_limited_offer_label(): void
     {
@@ -156,8 +138,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 第三輪 UI 拿掉「最多兩個加 +N」：站主判定高低不齊比漏資訊好接受，
-     * 分類頁、清單頁與收藏清單現在全部一樣，標籤攤開來看得完。
+     * 標籤全部攤開，不收成「+N」：卡片高低不齊比漏資訊好接受。
      */
     public function test_a_card_shows_every_label(): void
     {
@@ -177,9 +158,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 商品頁的標籤是那個清單頁的入口：master 每個標籤都是 <a>，presenter 也一直
-     * 算好了 url，v3 的 blade 沒讀它，標籤就變成純文字。有對應清單頁的才是連結
-     * （歷史新低價、已售罄與六個屬性標籤沒有清單頁，維持純文字）。
+     * 商品頁的標籤是對應清單頁的入口；沒有清單頁的標籤維持純文字。
      */
     public function test_the_product_page_labels_link_back_to_their_lists(): void
     {
@@ -199,7 +178,6 @@ class PageSkeletonTest extends TestCase
             '特價商品要連回特價清單'
         );
 
-        // icon 也照 master 補回來，一個標籤一個
         $this->assertSame(
             1,
             $this->countNodes(
@@ -218,9 +196,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 六個屬性標籤（豐富尺碼、男女適穿、旗艦店款、大型店商品、特定店商品、修改
-     * 褲長）只在商品頁：它們講的是這件商品怎麼買、怎麼改，是決定要不要買的時候
-     * 才要看的細節。master 也只有商品頁的 presenter 有，卡片那份沒有。
+     * 屬性標籤（豐富尺碼、男女適穿等）只在商品頁，是決定要不要買時才看的細節。
      */
     public function test_the_attribute_labels_stay_off_the_cards(): void
     {
@@ -268,8 +244,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 清單頁四個性別段一律都列，沒有商品的那段寫「沒有商品」——「男裝 0 件」
-     * 也是資訊。v3 把 0 件的段整段藏起來，使用者會以為那一段不存在。
+     * 四個性別段一律都列：藏掉 0 件的段，使用者會以為那一段不存在。
      */
     public function test_a_list_page_shows_every_gender_section(): void
     {
@@ -290,8 +265,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * <title> 照 master 的句型：「1 件商品特價中」單獨一行就讀得懂。頁面上的
-     * 標題維持「特價商品」加副標，那裡還有一行可以講件數與排序。
+     * <title> 用「1 件商品特價中」的句型，單獨出現在分頁標籤上也讀得懂。
      */
     public function test_a_list_page_title_uses_the_master_phrasing(): void
     {
@@ -308,12 +282,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 商品頁右欄原本每一段各有一個小標題（標籤、所屬分類、商品資訊），三個標題
-     * 加起來比它們標的內容還長，那三個 <h3> 拿掉了。
-     *
-     * 商品資訊與分類後來整段搬出右欄、變成 hero 底下的第一個章節（見
-     * test_the_facts_live_in_their_own_section），所以「商品資訊」這四個字現在
-     * 是章節標題 <h2>，不是右欄裡的小標題。
+     * 右欄不用小標題分段，標題會比它標的內容還長。
      */
     public function test_the_product_page_right_column_has_no_section_headings(): void
     {
@@ -339,11 +308,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 商品資訊（適用對象、季節、網路商店編號）與分類那一行是屬性資料，不是站在
-     * 價格前面決定要不要買的當下要看的東西，所以搬出 hero 右欄，跟商品實照、
-     * 歷史價格一樣是往下讀的章節，並排在章節選單的第一項。
-     *
-     * hero 右欄只剩：標題、元資料列、價格與狀態行、CTA 列、分隔線、商品說明。
+     * 商品資訊與分類是屬性資料，不擠在價格與按鈕旁邊，是章節選單的第一段。
      */
     public function test_the_facts_live_in_their_own_section(): void
     {
@@ -375,14 +340,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 商品說明是這一頁的正文，住在 master 的 #comment 框裡。
-     *
-     * 那個框在桌機是固定 400px、超出自己捲（見 show.blade.php 的 @section('css')），
-     * 這就是「描述短的時候上下也很平衡」的來源：右欄總高度不隨說明長短變動，
-     * 價格與 CTA 固定落在圖片底部附近。所以說明長短都是同一種呈現，不再有自訂
-     * 的「顯示更多」收合。
-     *
-     * 本機資料庫沒有這個欄位的內容（正式機有），所以自己塞一段進去。
+     * 商品說明放在固定高度的 #comment 框裡，不另做「顯示更多」收合。
      */
     public function test_the_description_sits_in_the_fixed_comment_box(): void
     {
@@ -398,11 +356,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 截止日寫在「期間限定」那個標籤本身（截至 MM/DD 限定價格），卡片與商品頁
-     * 都一樣——這是 master 的做法，列表上看得到哪天結束才決定得了要不要現在買。
-     *
-     * 檔期過了 is_limited_offer 就是 false，標籤連同日期一起消失，不會剩一行
-     * 日期孤零零掛在價格底下。
+     * 截止日寫在「期間限定」標籤上；檔期過了標籤連同日期一起消失。
      */
     public function test_the_limited_offer_deadline_is_on_the_label_and_only_within_the_window(): void
     {
@@ -458,8 +412,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 收藏鈕擺在卡片內容區、不疊在照片上，所以圖片容器不該有它；而且它要是
-     * 真的 <button>，不是套了 icon 的 <a> 或 <div>。
+     * 收藏鈕在內容區、不疊在照片上，而且是真的 <button>。
      *
      * @dataProvider pagesWithCards
      */
@@ -482,8 +435,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 品名是卡片最主要的資訊。版面回到 Tocas 的 .ts.card 預設之後，品名是
-     * .smaller.header，不再是自訂的 .uq-card-name。
+     * 品名用 Tocas 卡片的 .smaller.header。
      *
      * @dataProvider pagesWithCards
      */
@@ -500,8 +452,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 狀態標籤用 Tocas 原生的 .ts.horizontal.basic.circular.label，跟 master
-     * 一樣，不是自己寫一套純文字的狀態行。
+     * 狀態標籤用 Tocas 原生的 label，不自己寫一套。
      */
     public function test_a_card_uses_tocas_labels_for_its_status(): void
     {
@@ -523,12 +474,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 卡片不重複講同一件事：歷史區間已經把最高與最低寫出來了，不再另外放一條
-     * 「原價 $XXX」的刪除線。官方的 origin_price 常常就等於歷史最高，兩行讀
-     * 起來是同一個意思。
-     *
-     * 直接 render hmall-products.card，不透過分類頁那條路徑：這裡驗的是卡片
-     * 模板本身的呈現，跟清單查詢查得到哪些欄位是兩件事，分開驗。
+     * 卡片不放原價刪除線：歷史區間已經講了同一件事。
      */
     public function test_a_card_does_not_repeat_the_origin_price(): void
     {
@@ -556,16 +502,11 @@ class PageSkeletonTest extends TestCase
         $this->assertSame(1, $range->length);
         $this->assertStringContainsString('790', $range->item(0)->textContent);
         $this->assertStringContainsString('390', $range->item(0)->textContent);
-        // 2026-09 這輪把寫死的 #8BB96E（白底只有 2.27:1）加深到 --uq-new-text
-        // token（跟 HmallProductPresenter::COLOR_NEW 同一個顏色，見 app.css）
         $this->assertStringContainsString('var(--uq-new-text)', $html, '現價還高於歷史最低時，最低價染綠');
     }
 
     /**
-     * 商品頁的價格回到 master：分隔線底下一個 <h2>，只寫現價，沒有原價那一行。
-     *
-     * 原價跟卡片上的歷史區間是同一件事的兩種講法，站主判定重複；歷史價格另外
-     * 有一整個章節（含圖表），比一行刪除線講得清楚。
+     * 商品頁的價格只寫現價，歷史價格另有章節。
      */
     public function test_the_product_page_price_is_a_plain_h2_without_an_origin_price(): void
     {
