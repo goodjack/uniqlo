@@ -91,113 +91,125 @@
     {{-- 瀏覽器留著舊快取配新 HTML 會找不到元素而中斷。 --}}
     <script src="{{ asset('js/favorites.js') }}?v={{ filemtime(public_path('js/favorites.js')) }}"></script>
     <script>
-        if ('loading' in HTMLImageElement.prototype) {
-            const images = document.querySelectorAll('img[loading="lazy"]');
-            images.forEach(img => {
-                img.src = img.dataset.src;
-            });
-        } else {
-            // Dynamically import the LazySizes library
-            const script = document.createElement('script');
-
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.2/lazysizes.min.js';
-            script.integrity =
-                'sha512-q583ppKrCRc7N5O0n2nzUiJ+suUv7Et1JGels4bXOaMFQcamPk9HjdUknZuuFjBNs7tsMuadge5k9RzdmO+1GQ==';
-            script.crossOrigin = 'anonymous';
-            script.referrerPolicy = 'no-referrer';
-            script.async = true;
-
-            document.body.appendChild(script);
-        }
-    </script>
-    <script>
-        ts('.ts.dropdown:not(.basic)').dropdown();
-
-        // tocas.js 的 dropdown 沒有 toggle：它每次點擊都先收合所有展開的、再展開
-        // 自己（tocas.js 的 ts.fn.dropdown），所以點第二次還是開著。這裡在捕獲階段
-        // 攔下「已經開著時的點擊」，處理完就擋住它的 handler。
-        document.querySelectorAll('.ts.dropdown:not(.basic)').forEach(function(dropdown) {
-            dropdown.addEventListener('click', function(event) {
-                if (!dropdown.classList.contains('visible')) {
-                    return;
-                }
-
-                event.stopImmediatePropagation();
-                dropdown.classList.remove('visible');
-                dropdown.classList.add('hidden');
-            }, true);
-        });
-    </script>
-    <script>
-        /*
-         * 排序這種「選了就該生效」的下拉。沒有 JavaScript 時旁邊那顆送出鈕是
-         * 唯一的出路，所以是它被藏起來、不是反過來讓下拉在沒有腳本時失效。
-         */
-        document.querySelectorAll('select[data-auto-submit]').forEach(function(select) {
-            select.addEventListener('change', function() {
-                select.form.submit();
-            });
-
-            select.form.querySelectorAll('[data-auto-submit-fallback]').forEach(function(button) {
-                button.hidden = true;
-            });
-        });
-    </script>
-    <script>
-        // 章節選單：每頁最多一個，有就把捲動監聽掛上去，active 才會跟著捲動走。
-        // id 在選單本身，不在外面那層負責 sticky 的容器。
-        const sectionMenu = document.querySelector('.uq-section-menu .ts.menu');
-
-        if (sectionMenu) {
-            ts('body').scrollspy({
-                target: '#' + sectionMenu.id
-            });
-
-            // scrollspy 判斷 active 的條件是「這一段的錨點捲到離容器頂 10px 以
-            // 內」，初始化當下就算對每個錨點都跑過一次同樣的判斷，頁面剛載入、
-            // 使用者還沒捲動時第一段通常在畫面中段而不是頂端，條件不成立，選單
-            // 就完全沒有 active、看起來像純文字。這裡補上：初始化後如果還沒有
-            // 任何一項是 active，先讓第一項頂著，之後使用者一捲動就交還給
-            // scrollspy 接手（它會依實際位置正確地加或拿掉 active）。
-            // 只挑連結型的項目：分類總覽的選單第一項是品牌小標（.header.item），
-            // 它不是連結、scrollspy 也不認它，選到它等於把小標標成「目前這一段」
-            if (!sectionMenu.querySelector('.item.active')) {
-                const firstItem = sectionMenu.querySelector('a.item');
-
-                if (firstItem) {
-                    firstItem.classList.add('active');
-                }
-            }
-        }
-    </script>
-    <script>
-        const showOnPx = 100;
-        const backToTopButton = document.querySelector(".back-to-top")
-
-        const scrollContainer = () => {
-            return document.documentElement || document.body;
-        };
-
-        document.addEventListener("scroll", () => {
-            if (scrollContainer().scrollTop > showOnPx) {
-                backToTopButton.classList.remove("hidden")
+        (function () {
+            if ('loading' in HTMLImageElement.prototype) {
+                const images = document.querySelectorAll('img[loading="lazy"]');
+                images.forEach(img => {
+                    img.src = img.dataset.src;
+                });
             } else {
-                backToTopButton.classList.add("hidden")
+                // Dynamically import the LazySizes library
+                const script = document.createElement('script');
+
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.2/lazysizes.min.js';
+                script.integrity =
+                    'sha512-q583ppKrCRc7N5O0n2nzUiJ+suUv7Et1JGels4bXOaMFQcamPk9HjdUknZuuFjBNs7tsMuadge5k9RzdmO+1GQ==';
+                script.crossOrigin = 'anonymous';
+                script.referrerPolicy = 'no-referrer';
+                script.async = true;
+
+                document.body.appendChild(script);
             }
-        })
-
-        const goToTop = () => {
-            document.body.scrollIntoView();
-        };
-
-        backToTopButton.addEventListener("click", goToTop)
+        })();
     </script>
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('{{ asset('service-worker.js') }}');
+        (function () {
+            ts('.ts.dropdown:not(.basic)').dropdown();
+
+            // tocas.js 的 dropdown 沒有 toggle：它每次點擊都先收合所有展開的、再展開
+            // 自己（tocas.js 的 ts.fn.dropdown），所以點第二次還是開著。這裡在捕獲階段
+            // 攔下「已經開著時的點擊」，處理完就擋住它的 handler。
+            document.querySelectorAll('.ts.dropdown:not(.basic)').forEach(function(dropdown) {
+                dropdown.addEventListener('click', function(event) {
+                    if (!dropdown.classList.contains('visible')) {
+                        return;
+                    }
+
+                    event.stopImmediatePropagation();
+                    dropdown.classList.remove('visible');
+                    dropdown.classList.add('hidden');
+                }, true);
             });
-        }
+        })();
+    </script>
+    <script>
+        (function () {
+            /*
+             * 排序這種「選了就該生效」的下拉。沒有 JavaScript 時旁邊那顆送出鈕是
+             * 唯一的出路，所以是它被藏起來、不是反過來讓下拉在沒有腳本時失效。
+             */
+            document.querySelectorAll('select[data-auto-submit]').forEach(function(select) {
+                select.addEventListener('change', function() {
+                    select.form.submit();
+                });
+
+                select.form.querySelectorAll('[data-auto-submit-fallback]').forEach(function(button) {
+                    button.hidden = true;
+                });
+            });
+        })();
+    </script>
+    <script>
+        (function () {
+            // 章節選單：每頁最多一個，有就把捲動監聽掛上去，active 才會跟著捲動走。
+            // id 在選單本身，不在外面那層負責 sticky 的容器。
+            const sectionMenu = document.querySelector('.uq-section-menu .ts.menu');
+
+            if (sectionMenu) {
+                ts('body').scrollspy({
+                    target: '#' + sectionMenu.id
+                });
+
+                // scrollspy 判斷 active 的條件是「這一段的錨點捲到離容器頂 10px 以
+                // 內」，初始化當下就算對每個錨點都跑過一次同樣的判斷，頁面剛載入、
+                // 使用者還沒捲動時第一段通常在畫面中段而不是頂端，條件不成立，選單
+                // 就完全沒有 active、看起來像純文字。這裡補上：初始化後如果還沒有
+                // 任何一項是 active，先讓第一項頂著，之後使用者一捲動就交還給
+                // scrollspy 接手（它會依實際位置正確地加或拿掉 active）。
+                // 只挑連結型的項目：分類總覽的選單第一項是品牌小標（.header.item），
+                // 它不是連結、scrollspy 也不認它，選到它等於把小標標成「目前這一段」
+                if (!sectionMenu.querySelector('.item.active')) {
+                    const firstItem = sectionMenu.querySelector('a.item');
+
+                    if (firstItem) {
+                        firstItem.classList.add('active');
+                    }
+                }
+            }
+        })();
+    </script>
+    <script>
+        (function () {
+            const showOnPx = 100;
+            const backToTopButton = document.querySelector(".back-to-top")
+
+            const scrollContainer = () => {
+                return document.documentElement || document.body;
+            };
+
+            document.addEventListener("scroll", () => {
+                if (scrollContainer().scrollTop > showOnPx) {
+                    backToTopButton.classList.remove("hidden")
+                } else {
+                    backToTopButton.classList.add("hidden")
+                }
+            })
+
+            const goToTop = () => {
+                document.body.scrollIntoView();
+            };
+
+            backToTopButton.addEventListener("click", goToTop)
+        })();
+    </script>
+    <script>
+        (function () {
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register(@js(asset('service-worker.js')));
+                });
+            }
+        })();
     </script>
 
     @yield('javascript')
