@@ -222,20 +222,19 @@ class HmallProductCategoryTest extends TestCase
     }
 
     /**
-     * 分類同步半路丟例外時，新價格與價格歷史要一起回滾，否則下次抓到同價會被判
-     * 「沒變」，價格走勢永久缺一筆。
+     * 分類同步丟例外時，價格與價格歷史照寫，既有分類關聯不動。
      *
      * categorySortList 裡 code 是陣列的項目會讓 mapWithKeys 丟 TypeError，
      * 官方回傳格式跑掉時真的會發生。
      */
-    public function test_a_failed_category_sync_rolls_back_the_saved_price_and_history(): void
+    public function test_a_failed_category_sync_still_saves_the_price_and_history(): void
     {
-        // 先正常存一次，讓商品在資料庫裡有一筆基準價格，才能比對「有沒有被改到」
         $this->repository->saveProductsFromV3($this->products());
 
         $product = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail();
         $originalMinPrice = $product->min_price;
         $historyCountBeforeRetry = HmallPriceHistory::count();
+        $linkedCategoryIds = $product->categories()->pluck('hmall_categories.id')->sort()->values()->all();
 
         $products = $this->products();
         // 換一個不同的價格，確保這次會被判「價格有變」而嘗試寫歷史
@@ -248,9 +247,14 @@ class HmallProductCategoryTest extends TestCase
 
         $result = $this->repository->saveProductsFromV3($products);
 
-        $this->assertSame(['u0000000053204'], $result->failedProductCodes);
-        $this->assertSame($originalMinPrice, $product->fresh()->min_price);
-        $this->assertSame($historyCountBeforeRetry, HmallPriceHistory::count());
+        $this->assertSame([], $result->failedProductCodes);
+        $this->assertEquals($originalMinPrice + 100, $product->fresh()->min_price);
+        $this->assertSame($historyCountBeforeRetry + 1, HmallPriceHistory::count());
+        $this->assertSame(
+            $linkedCategoryIds,
+            $product->categories()->pluck('hmall_categories.id')->sort()->values()->all()
+        );
+        $this->assertNotEmpty($linkedCategoryIds);
     }
 
     /**

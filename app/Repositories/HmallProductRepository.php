@@ -75,7 +75,6 @@ class HmallProductRepository extends Repository
         'hmall_products.product_code',
         'hmall_products.name',
         'hmall_products.min_price',
-        'hmall_products.origin_price',
         'hmall_products.lowest_record_price',
         'hmall_products.highest_record_price',
         'hmall_products.lowest_record_price_count',
@@ -330,7 +329,7 @@ class HmallProductRepository extends Repository
     }
 
     /**
-     * 以下清單的成員判準一律走 ProductTag（兩家品牌的官方代碼對照都收在那裡），
+     * 以下清單的成員判準一律走 ProductTag（兩家品牌的官方標記對照都收在那裡），
      * 這裡只管排序與快取。標籤條件要包在自己的 where() 群組裡，OR 才不會漏到
      * 庫存條件外面。
      */
@@ -796,12 +795,10 @@ class HmallProductRepository extends Repository
                 $model->stockout_at = $this->getStockoutAt($model, $product);
                 $model->stock = $product->stock ?? null;
 
-                // 三步要一起回滾：新價格先寫進去而歷史沒寫的話，下次抓到同價會被判
-                // 「沒變」，價格走勢就永久缺一筆
-                DB::transaction(function () use ($model, $product, $categoryIds, $isChangedThePrice) {
+                // 價格與歷史要一起回滾：新價格先寫進去而歷史沒寫的話，下次抓到同價
+                // 會被判「沒變」，價格走勢就永久缺一筆
+                DB::transaction(function () use ($model, $isChangedThePrice) {
                     $model->save();
-
-                    $this->syncCategories($model, $product, $categoryIds);
 
                     if (! $isChangedThePrice) {
                         return;
@@ -825,6 +822,20 @@ class HmallProductRepository extends Repository
                 Log::error('saveProductsFromHmall error', [
                     'brand' => $brand,
                     'product_code' => is_string($productCode) ? $productCode : null,
+                ]);
+
+                report($e);
+
+                return;
+            }
+
+            // 分類是附屬資訊，同步失敗只留紀錄、既有關聯不動，不能讓價格跟著寫不進去
+            try {
+                $this->syncCategories($model, $product, $categoryIds);
+            } catch (Throwable $e) {
+                Log::error('syncCategories error - keeping existing category links', [
+                    'brand' => $brand,
+                    'product_code' => $model->product_code,
                 ]);
 
                 report($e);
