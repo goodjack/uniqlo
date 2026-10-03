@@ -76,6 +76,36 @@ class HmallProductCategoryTest extends TestCase
         );
     }
 
+    /**
+     * 官方真的有尾巴帶零寬空白（U+200B）的 code。預設的比對規則會把它跟乾淨的
+     * 同名 code、或只差大小寫的 code 當成同一筆，唯一鍵就把兩個分類合併掉。
+     */
+    public function test_codes_differing_only_by_invisible_characters_or_case_are_separate_rows(): void
+    {
+        $products = $this->products();
+        $variants = ['kids-trend', "kids-trend\u{200B}", 'Kids-Trend'];
+
+        foreach ($variants as $code) {
+            $category = new stdClass;
+            $category->code = $code;
+            $category->name = $code;
+            $category->parentCode = 'ALL';
+            $products[0]->levelOne[] = $category;
+        }
+
+        $this->repository->saveProductsFromV3($products);
+
+        foreach ($variants as $code) {
+            $this->assertNotNull($this->findCategory($code), "分類 {$code} 沒有獨立成一筆");
+        }
+        $this->assertSame(3, HmallCategory::where('name', 'like', 'kids-trend%')->count());
+
+        $product = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail();
+        $this->assertSame(3, $product->categories->filter(
+            fn (HmallCategory $category) => in_array($category->code, $variants, true)
+        )->count());
+    }
+
     public function test_links_product_to_its_categories_with_official_sort(): void
     {
         $this->repository->saveProductsFromV3($this->products());
