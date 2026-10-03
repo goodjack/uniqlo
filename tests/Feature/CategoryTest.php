@@ -7,7 +7,6 @@ use App\Models\HmallCategory;
 use App\Models\HmallProduct;
 use App\Services\CategoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class CategoryTest extends TestCase
@@ -222,23 +221,31 @@ class CategoryTest extends TestCase
         $this->assertSame(0, $nested->length, '章節選單不該巢狀在任何 container 元素底下');
     }
 
+    public function test_browsing_a_category_is_not_throttled(): void
+    {
+        $this->attachProduct($this->createProduct(), 'all_women-tops');
+        $url = route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']);
+
+        for ($i = 0; $i < 31; $i++) {
+            $this->get($url)->assertOk();
+        }
+    }
+
+    public function test_searching_within_a_category_is_throttled_like_search(): void
+    {
+        $this->attachProduct($this->createProduct(), 'all_women-tops');
+        $url = route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops', 'q' => '上衣']);
+
+        for ($i = 0; $i < 30; $i++) {
+            $this->get($url)->assertOk();
+        }
+
+        $this->get($url)->assertStatus(429);
+    }
+
     /**
      * 分類本身有商品時，帶著任何未知的 query string 進來都不該變成 404。
      */
-    /**
-     * 分類頁先用分類縮到單一分類才做關鍵字比對，這個前提在大分類上不成立
-     * （EXPLAIN ANALYZE 顯示是先對全表跑完三個 LIKE），跟已限流的 /search
-     * 是同一種工作量，理由一樣就要跟著限流，不能只限流搜尋頁那一邊。
-     */
-    public function test_category_routes_are_throttled_the_same_as_search(): void
-    {
-        $showMiddleware = Route::getRoutes()->getByName('categories.show')->gatherMiddleware();
-        $indexMiddleware = Route::getRoutes()->getByName('categories.index')->gatherMiddleware();
-
-        $this->assertContains('throttle:30,1', $showMiddleware);
-        $this->assertContains('throttle:30,1', $indexMiddleware);
-    }
-
     public function test_an_unknown_query_string_does_not_turn_the_page_into_404(): void
     {
         $this->attachProduct($this->createProduct(['brand' => 'UNIQLO', 'name' => '短袖上衣']), 'all_women-tops');

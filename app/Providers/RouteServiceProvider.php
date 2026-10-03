@@ -38,6 +38,14 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        // 分類頁的關鍵字比對在大分類上會掃全表（跟 /search 同一種工作量），
+        // 純瀏覽只是帶分頁的索引查詢，不需要限流。
+        RateLimiter::for('category-search', function (Request $request) {
+            return $request->filled('q')
+                ? Limit::perMinute(30)->by($request->ip())
+                : Limit::none();
+        });
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')
