@@ -309,32 +309,26 @@ class HmallProductCategoryTest extends TestCase
     }
 
     /**
-     * 分類主檔整批寫不進去時，不可以把例外往外丟。
-     *
-     * saveCategoriesFromV3() 在逐商品的 try/catch 之外，它丟的例外會穿出呼叫端的
-     * retry，而 retry 對所有非 403 的例外都當成可重試——等於拿資料庫的問題去重打
-     * 官網好幾次，最後還被歸成「整頁沒抓到」，通知寫「目錄有缺頁」，把人指向錯的
-     * 方向。實際上 HTTP 全部成功、目錄也完整看到了。
-     *
-     * 正確的歸類是「這一頁的商品都寫入失敗」：缺貨判定把它們排除掉就不會冤枉標成
-     * 下架，通知也寫得出真正的原因。
+     * 分類主檔整批寫不進去時，例外不能往外丟（會穿出呼叫端的 retry、重打官網），
+     * 商品也要照寫：分類寫不進去不該讓整頁價格停住。既有的分類關聯不動。
      */
-    public function test_a_category_master_failure_is_reported_as_write_failures(): void
+    public function test_a_category_master_failure_still_saves_prices_and_keeps_existing_links(): void
     {
+        $this->repository->saveProductsFromV3($this->products());
+
+        $product = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail();
+        $newMinPrice = $product->min_price + 100;
+
         $products = $this->products();
-        // 分類的 code 欄位是 string(255)，超長值會讓整批 upsert 在 strict mode 下丟例外
+        $products[0]->minPrice = $newMinPrice;
+        // code 欄位是 string(255)，超長值會讓整批 upsert 在 strict mode 下丟例外
         $products[0]->topCategories[0]->code = str_repeat('x', 300);
 
         $result = $this->repository->saveProductsFromV3($products);
 
-        // 例外沒有往外丟，而是整頁歸成寫入失敗
-        $this->assertSame(
-            ['u0000000053204', 'u0000000053340'],
-            $result->failedProductCodes
-        );
-        $this->assertSame(0, $result->unidentifiedFailureCount);
-        // 沒有對照表就不寫商品，免得分類關聯整頁掛不上去
-        $this->assertSame(0, HmallProduct::count());
+        $this->assertFalse($result->hasFailures());
+        $this->assertEquals($newMinPrice, $product->fresh()->min_price);
+        $this->assertCount(24, $product->fresh()->categories);
     }
 
     /**
