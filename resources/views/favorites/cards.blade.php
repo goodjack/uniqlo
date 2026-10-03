@@ -1,8 +1,6 @@
 @inject('hmallProductPresenter', 'App\Presenters\HmallProductPresenter')
 
-{{-- 收藏頁的清單片段，由前端帶著品牌與商品編號來換。 --}}
-{{-- 用 item 而不是卡片：收藏是一份清單，緊湊的列表比一格格的卡片好掃。 --}}
-{{-- 不吐價格，只留「這件現在特價」這種狀態標籤——那才是使用者追蹤它的原因。 --}}
+{{-- 不吐價格（理由見 FavoriteController::cards），只留「現在特價」這類狀態標籤 --}}
 @foreach ($hmallProducts as $hmallProduct)
     @include('hmall-products.item', [
         'hmallProduct' => $hmallProduct,

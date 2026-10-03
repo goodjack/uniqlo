@@ -41,9 +41,7 @@
 
         body {
             height: 100%;
-            /* 固定導覽列實測高 63.31px。跟 app.css 的 --uq-nav-height 是同一個值：
-               sticky 章節選單的 top 與章節錨點的偏移量都吃那個 token，三處對不齊
-               的話麵包屑會被導覽列蓋住、跳錨點也會落在選單底下 */
+            /* 固定導覽列的高度，要跟 app.css 的 --uq-nav-height 一致 */
             padding: 64px 0 0 0;
             display: flex;
             flex-direction: column;
@@ -86,9 +84,7 @@
 
     <!-- Tocas JS：模塊與 JavaScript 函式 -->
     <script src="{{ asset('js/tocas.js') }}"></script>
-    {{-- 收藏鈕現在出現在每一頁的商品卡片上，所以這支腳本改由版型統一載入。 --}}
-    {{-- 版號帶檔案的 mtime：它跟頁面上的 id 與 data 屬性是綁在一起的， --}}
-    {{-- 瀏覽器留著舊快取配新 HTML 會找不到元素而中斷。 --}}
+    {{-- 每一頁的商品卡片都有收藏鈕；版號帶 mtime，避免舊快取的腳本配上新的 HTML --}}
     <script src="{{ asset('js/favorites.js') }}?v={{ filemtime(public_path('js/favorites.js')) }}"></script>
     <script>
         (function () {
@@ -116,9 +112,8 @@
         (function () {
             ts('.ts.dropdown:not(.basic)').dropdown();
 
-            // tocas.js 的 dropdown 沒有 toggle：它每次點擊都先收合所有展開的、再展開
-            // 自己（tocas.js 的 ts.fn.dropdown），所以點第二次還是開著。這裡在捕獲階段
-            // 攔下「已經開著時的點擊」，處理完就擋住它的 handler。
+            // tocas.js 的 dropdown 點第二次不會收合（它每次都先全部收合再展開自己），
+            // 在捕獲階段攔下「已經開著時的點擊」自己收合
             document.querySelectorAll('.ts.dropdown:not(.basic)').forEach(function(dropdown) {
                 dropdown.addEventListener('click', function(event) {
                     if (!dropdown.classList.contains('visible')) {
@@ -134,10 +129,7 @@
     </script>
     <script>
         (function () {
-            /*
-             * 排序這種「選了就該生效」的下拉。沒有 JavaScript 時旁邊那顆送出鈕是
-             * 唯一的出路，所以是它被藏起來、不是反過來讓下拉在沒有腳本時失效。
-             */
+            // 選了就送出；送出鈕留給沒有 JavaScript 的情況，有 JavaScript 才藏起來
             document.querySelectorAll('select[data-auto-submit]').forEach(function(select) {
                 select.addEventListener('change', function() {
                     select.form.submit();
@@ -151,8 +143,6 @@
     </script>
     <script>
         (function () {
-            // 章節選單：每頁最多一個，有就把捲動監聽掛上去，active 才會跟著捲動走。
-            // id 在選單本身，不在外面那層負責 sticky 的容器。
             const sectionMenu = document.querySelector('.uq-section-menu .ts.menu');
 
             if (sectionMenu) {
@@ -160,14 +150,8 @@
                     target: '#' + sectionMenu.id
                 });
 
-                // scrollspy 判斷 active 的條件是「這一段的錨點捲到離容器頂 10px 以
-                // 內」，初始化當下就算對每個錨點都跑過一次同樣的判斷，頁面剛載入、
-                // 使用者還沒捲動時第一段通常在畫面中段而不是頂端，條件不成立，選單
-                // 就完全沒有 active、看起來像純文字。這裡補上：初始化後如果還沒有
-                // 任何一項是 active，先讓第一項頂著，之後使用者一捲動就交還給
-                // scrollspy 接手（它會依實際位置正確地加或拿掉 active）。
-                // 只挑連結型的項目：分類總覽的選單第一項是品牌小標（.header.item），
-                // 它不是連結、scrollspy 也不認它，選到它等於把小標標成「目前這一段」
+                // scrollspy 要等某段捲到頂端才標 active，剛載入時選單會一項都沒標、
+                // 看起來像純文字，先標第一個連結（分類總覽第一項是品牌小標，不算）
                 if (!sectionMenu.querySelector('.item.active')) {
                     const firstItem = sectionMenu.querySelector('a.item');
 

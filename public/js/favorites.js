@@ -400,7 +400,7 @@ window.UqFavorites = (function () {
         container.querySelectorAll('[data-favorite-remove]').forEach(function (control) {
             control.addEventListener('click', function () {
                 const brand = control.dataset.brand;
-                const code = control.dataset.code;
+                const code = control.dataset.productCode;
                 const key = keyOf(brand, code);
                 const snapshot = read()[key];
 
