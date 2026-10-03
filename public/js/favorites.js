@@ -685,31 +685,7 @@ window.UqFavorites = (function () {
         }
     }
 
-    /**
-     * 429 逾時倒數用的計時器。放在模組層是因為它要在下一次 showState 呼叫、
-     * 或清空收藏時被清掉——不然畫面已經換到別的狀態，倒數卻還在背景改
-     * #favorites-summary 的文字，把使用者不相關的畫面蓋回去。
-     */
-    let retryCountdownTimer = null;
-
-    function clearRetryCountdown() {
-        if (retryCountdownTimer !== null) {
-            clearInterval(retryCountdownTimer);
-            retryCountdownTimer = null;
-        }
-
-        const retryButton = document.getElementById('favorites-retry');
-
-        if (retryButton) {
-            retryButton.disabled = false;
-        }
-    }
-
     function showState(name, summaryText) {
-        // 任何狀態切換都代表倒數已經不適用了——不管是使用者自己重新載入，
-        // 還是清空收藏蓋掉了正在等待的錯誤畫面。
-        clearRetryCountdown();
-
         ['favorites-empty', 'favorites-gone', 'favorites-error'].forEach(function (id) {
             document.getElementById(id).hidden = id !== name;
         });
@@ -719,42 +695,12 @@ window.UqFavorites = (function () {
         }
     }
 
-    /**
-     * 429 時後端會回 Retry-After（秒數），比起固定的「請稍後再試」，讓使用者
-     * 知道具體要等多久、按「重新載入」前先擋住，不然使用者只會一直重試、
-     * 在同一個限流視窗裡永遠救不回來。
-     */
-    function showRetryAfter(retryAfterHeader) {
+    function throttledMessage(retryAfterHeader) {
         const seconds = parseInt(retryAfterHeader, 10);
 
-        if (!Number.isFinite(seconds) || seconds <= 0) {
-            showState('favorites-error', '操作太頻繁，請稍後再試一次');
-
-            return;
-        }
-
-        showState('favorites-error', '操作太頻繁，請等 ' + seconds + ' 秒後再試');
-
-        const summary = document.getElementById('favorites-summary');
-        const retryButton = document.getElementById('favorites-retry');
-        let remaining = seconds;
-
-        if (retryButton) {
-            retryButton.disabled = true;
-        }
-
-        retryCountdownTimer = setInterval(function () {
-            remaining -= 1;
-
-            if (remaining <= 0) {
-                clearRetryCountdown();
-                summary.textContent = '可以再試一次了，請按重新載入';
-
-                return;
-            }
-
-            summary.textContent = '操作太頻繁，請等 ' + remaining + ' 秒後再試';
-        }, 1000);
+        return seconds > 0
+            ? '操作太頻繁，請等 ' + seconds + ' 秒後再試'
+            : '操作太頻繁，請稍後再試一次';
     }
 
     /**
@@ -942,8 +888,6 @@ window.UqFavorites = (function () {
         if (loading) {
             loading.hidden = true;
         }
-
-        clearRetryCountdown();
     }
 
     async function renderPage(options) {
@@ -1003,7 +947,7 @@ window.UqFavorites = (function () {
             }
 
             if (e && e.status === 429) {
-                showRetryAfter(e.retryAfter);
+                showState('favorites-error', throttledMessage(e.retryAfter));
             } else {
                 showState('favorites-error', '收藏清單還在你的瀏覽器裡');
             }
