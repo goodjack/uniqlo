@@ -5,6 +5,10 @@
     use App\Support\Breadcrumb;
 
     $currentUrl = url()->current();
+    // 每一頁的 canonical 指向自己（第 1 頁不帶 page），篩選參數不算另一頁
+    $canonicalUrl = $hmallProducts->currentPage() > 1
+        ? $currentUrl.'?page='.$hmallProducts->currentPage()
+        : $currentUrl;
     $title = "{$category->name}（{$hmallProducts->total()} 件）";
 
     $categoryUrl = fn($code) => route('categories.show', ['brand' => $brand->slug(), 'code' => $code]);
@@ -40,14 +44,14 @@
 @section('title', $category->name)
 
 @section('metadata')
-    <link rel="canonical" href="{{ $currentUrl }}" />
+    <link rel="canonical" href="{{ $canonicalUrl }}" />
     @if ($currentQ !== '')
         {{-- 帶關鍵字的分類頁是既有分類的重組，不需要另外被索引，做法照搜尋結果頁 --}}
         <meta name="robots" content="noindex, follow" />
     @endif
     <meta name="description" content="{{ $category->name }} 的 UNIQLO 與 GU 商品比價 | UQ 搜尋" />
     <meta property="og:title" content="{{ $category->name }} | UQ 搜尋" />
-    <meta property="og:url" content="{{ $currentUrl }}" />
+    <meta property="og:url" content="{{ $canonicalUrl }}" />
     <meta property="og:description" content="{{ $title }} | UNIQLO 比價 | UQ 搜尋" />
 @endsection
 

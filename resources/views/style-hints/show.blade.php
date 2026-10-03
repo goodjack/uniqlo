@@ -3,7 +3,10 @@
 
 @php
     $shareText = $hmallProductPresenter->getFullName($hmallProduct) . ' | UNIQLO 比價 | UQ 搜尋';
-    $currentUrl = url()->current();
+    // 每一頁的 canonical 指向自己（第 1 頁不帶 page）
+    $currentUrl = $styleHints->currentPage() > 1
+        ? url()->current().'?page='.$styleHints->currentPage()
+        : url()->current();
 @endphp
 
 @section('title', "{$hmallProductPresenter->getFullName($hmallProduct)} 的 StyleHint 網友穿搭靈感")

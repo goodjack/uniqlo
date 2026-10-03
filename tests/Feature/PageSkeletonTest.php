@@ -584,6 +584,25 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
+     * 分頁的每一頁都是自己的 canonical：指回第 1 頁的話，搜尋引擎會把第 2 頁
+     * 之後的商品當成重複內容丟掉。篩選參數（q、tags）則不算另一頁。
+     */
+    public function test_a_paginated_category_page_is_its_own_canonical(): void
+    {
+        foreach (range(1, 25) as $i) {
+            $this->seedProduct(['code' => (string) (990000 + $i), 'product_code' => 'u'.(990000 + $i)]);
+        }
+
+        $base = route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']);
+        $canonical = fn (string $url) => $this->xpath($this->get($url)->assertOk()->getContent())
+            ->query('//link[@rel="canonical"]/@href')->item(0)->nodeValue;
+
+        $this->assertSame($base, $canonical($base));
+        $this->assertSame($base, $canonical("{$base}?page=1"));
+        $this->assertSame("{$base}?page=2", $canonical("{$base}?page=2&q=%E4%B8%8A%E8%A1%A3"));
+    }
+
+    /**
      * 麵包屑每一層的文字。
      *
      * @return array<int, string>
