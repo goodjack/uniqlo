@@ -5,12 +5,10 @@
      * partials/tag-filter-button 的 label，兩個 partial 要成對出現。
      */
     $tagOptions = \App\Enums\ProductTag::cases();
-    $selectedTags = collect(\App\Enums\ProductTag::fromValues((array) request('tags', [])))
-        ->map->value
-        ->all();
+    $selectedTags = (array) request('tags', []);
 
-    // 保留品牌、排序與關鍵字；只收字串，網址塞陣列（?q[]=x）時不能讓 Blade 轉字串而 500
-    $otherParams = array_filter(request()->only(['brand', 'sort', 'q']), 'is_string');
+    // 切換篩選時保留品牌、排序與關鍵字
+    $otherParams = request()->only(['brand', 'sort', 'q']);
 @endphp
 
 {{-- 勾選框要跟 chip 列同一層而且排在前面，CSS 的 ~ 才選得到 --}}

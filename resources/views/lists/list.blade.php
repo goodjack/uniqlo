@@ -10,11 +10,10 @@
         array_filter(array_merge(request()->only(['brand', 'sort', 'tags', 'q']), $changes))
     );
 
-    $currentBrand = in_array(request('brand'), ['UNIQLO', 'GU'], true) ? request('brand') : null;
+    // ListRequest 已經丟掉不合法的品牌、排序、標籤與關鍵字，這裡讀到的都是乾淨的值
+    $currentBrand = request('brand');
     $sortByPrice = request('sort') === \App\Services\ListService::SORT_PRICE_ASC;
-    $selectedTagValues = collect(\App\Enums\ProductTag::fromValues((array) request('tags', [])))
-        ->map->value
-        ->all();
+    $selectedTagValues = (array) request('tags', []);
     $currentQ = (string) request('q');
     $sortText = $sortByPrice ? '依價格由低到高排序' : $sortSummary;
 
