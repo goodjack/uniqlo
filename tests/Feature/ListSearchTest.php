@@ -6,11 +6,6 @@ use App\Models\HmallProduct;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/**
- * 清單頁「在這個清單裡找」的端到端驗收：q 這個 GET 參數真的能篩到
- * ListService::filterHmallProducts() 預熱好的 Collection，不是只有表單
- * 長對而已（那部分留給 ListFilterTest 跟 ListServiceTest）。
- */
 class ListSearchTest extends TestCase
 {
     use RefreshDatabase;
@@ -37,10 +32,6 @@ class ListSearchTest extends TestCase
         $this->assertStringNotContainsString('牛仔超寬版短褲', $content);
     }
 
-    /**
-     * 清單頁一次載入全部卡片，跟有分頁的分類頁不同，即時篩不會誤導使用者——
-     * 輸入框要掛 list-search.js 用來啟用即時篩的 data-instant-filter。
-     */
     public function test_the_search_input_enables_instant_filtering(): void
     {
         $this->seedSaleProduct(['name' => '牛仔超寬版短褲', 'code' => '359225', 'sex' => '男裝']);

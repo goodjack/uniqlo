@@ -1,37 +1,16 @@
 /**
- * 清單頁的「在這個清單裡找」：邊打邊篩畫面上已經渲染好的卡片，不打 API。
+ * 清單頁的「在這個清單裡找」：邊打邊篩已經渲染好的卡片，不打 API。按 Enter
+ * 或沒有 JavaScript 時照常用 GET 送出，由後端篩。
  *
- * 啟用靠輸入框身上的 [data-instant-filter]，這支腳本不判斷「現在是哪一
- * 頁」。只掛在一次載入全部卡片的頁面（清單頁）——伺服器端的 q 參數走
- * Collection 篩，跟這裡篩的是同一份完整資料，先看到的結果不會跟按 Enter
- * 之後拿到的不一致。
+ * 只掛在一次載入全部卡片的清單頁；分類頁有分頁，畫面上只有一頁的商品，即時篩
+ * 會讓人以為篩了整個分類，所以那邊的輸入框不掛 [data-instant-filter]。
  *
- * 分類頁有分頁，畫面上永遠只有這一頁載入到的商品，即時篩只能篩到這一頁
- * 會誤導使用者以為篩了整個分類，所以分類頁的輸入框不掛
- * [data-instant-filter]，單純是一個 GET 表單、按 Enter 交給後端對全分類
- * 下 SQL LIKE（站主試用後的裁決；曾經試過停止輸入後自動送出表單，但整頁
- * 自動 submit 會打斷中文輸入法組字與游標焦點，改回單純 Enter 送出）。
- *
- * 按 Enter 或沒有 JavaScript 時都一樣：表單照常用 GET 送出。
- *
- * 比對邏輯要跟後端 ListService::filterHmallProductsByKeyword() /
- * hmallProductMatchesKeyword() 一致，不然使用者在按 Enter 前後會看到不一樣
- * 的結果（PR #76 審查留言 4057184154）：
- * - 多個空白分開的詞要「每個詞都命中」，不是整串當一個子字串比對。
- * - 比對的欄位要含完整料號（product_code）跟卡片上顯示的短編號
- *   （short_product_code），不能只比品名加 code——不然卡片上唯一看得到的
- *   編號反而搜不到自己（審查留言 4057184155）。
- * - 卡片藏起來之後，件數（頁首副標、各性別段「共 N 件」、章節選單數字）
- *   要跟著重算，全部藏起來時要換成跟後端一樣的空狀態，不能維持篩選前的
- *   舊數字或維持四段都在的版面。
+ * 比對規則要跟後端 ListService::hmallProductMatchesKeyword() 一致（每個詞都要
+ * 命中；比品名、code、完整料號、短編號），不然按 Enter 前後結果會不一樣。
  */
 (function () {
     const instantFilterInputs = document.querySelectorAll('[data-instant-filter]');
 
-    /**
-     * 把輸入切成詞：先去頭尾空白、轉小寫，再用空白分詞。跟後端
-     * preg_split('/\s+/u', trim($q), -1, PREG_SPLIT_NO_EMPTY) 同一個切法。
-     */
     function tokensOf(value) {
         return value
             .trim()
@@ -42,12 +21,8 @@
             });
     }
 
-    /**
-     * 這張卡是不是每個詞都命中。haystack 是品名、code、完整料號、卡片上的
-     * 短編號用空白接起來的字串（見 card-base.blade.php 的 data-card-search），
-     * 詞本身不含空白，「詞出現在接起來的字串裡」等於「詞出現在其中一個欄位
-     * 裡」，跟後端逐欄位比對是同一件事。
-     */
+    // data-card-search 是各欄位用空白接起來的字串，詞本身不含空白，所以
+    // 「詞出現在整串裡」等於「詞出現在某一欄裡」
     function cardMatchesTokens(card, tokens) {
         if (tokens.length === 0) {
             return true;
@@ -93,14 +68,8 @@
     }
 
     /**
-     * 依關鍵字顯示或隱藏卡片，並且在某個性別段的卡片全部被藏起來時，
-     * 把那一段的標題跟章節選單的項目也一起藏起來。只有清單頁的輸入框
-     * 會掛 data-instant-filter，分類頁不會走到這裡。
-     *
-     * allHidden（篩完一張卡片都不剩）時整頁換成跟後端 $count === 0 一樣的
-     * 空狀態：連「這段本來就沒有商品」那幾段固定顯示的「沒有商品」也要一起
-     * 藏起來——那是「四段都在、只是某段沒貨」的版面，不是「搜尋沒有結果」
-     * 的版面，兩種空狀態的意思不一樣，不能混著顯示。
+     * 篩完一張都不剩時，整頁換成跟後端沒有結果時一樣的空狀態，連本來就寫著
+     * 「沒有商品」的性別段也藏起來：「某段沒貨」跟「搜尋沒有結果」是兩種版面。
      */
     function filterCards(rawQuery) {
         const tokens = tokensOf(rawQuery);
@@ -142,9 +111,7 @@
                 return;
             }
 
-            // 這段本來就沒有商品（清單頁一律列出四段，沒貨的那段寫「沒有商品」），
-            // 不受搜尋關鍵字影響，維持顯示——但如果上一輪因為 allHidden 把它藏過，
-            // 這裡要恢復顯示。
+            // 本來就沒有商品的那段不受關鍵字影響，上一輪全藏過的話要放回來
             if (!body || !body.querySelector('[data-card-name]')) {
                 heading.hidden = false;
 
