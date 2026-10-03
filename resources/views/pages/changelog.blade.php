@@ -25,6 +25,29 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        {{ config('nav.links.changelog.version') }}
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">全新功能上線</div>
+                        <ul>
+                            <li>新增「分類」頁面，依照 UNIQLO 與 GU 官網的商品分類瀏覽</li>
+                            <li>搜尋框支援中文關鍵字，直接在站內找商品，不再跳到 Google</li>
+                            <li>新增「收藏」功能，按下商品上的愛心就能收藏，清單存在這台裝置的瀏覽器裡</li>
+                        </ul>
+                        <div class="header">功能優化</div>
+                        <ul>
+                            <li>列表頁可以依價格由低到高排序，也能在清單裡搜尋、用標籤篩選</li>
+                            <li>首頁新增限時特價、新品上市、熱門穿搭三個區塊</li>
+                            <li>商品頁新增章節選單與麵包屑，快速跳到想看的段落</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v4.1.0
                     </h2>
                     <!-- / 標題 -->

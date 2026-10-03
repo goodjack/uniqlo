@@ -9,6 +9,9 @@ use App\Enums\ProductTag;
  * 同一組名稱與分組，再抄一份遲早會跟導覽列對不起來。
  */
 
+// 站上的版號只寫在這裡：導覽列、頁尾與更新日誌最新那篇的標題都讀它
+$version = 'v4.2.0';
+
 return [
     /*
      * 不屬於任何分組的單一入口。
@@ -38,13 +41,10 @@ return [
             'title' => '搜尋',
             'icon' => 'search',
         ],
-        /*
-         * 更新日誌。master 的導覽列桌機與手機各有一個入口，標籤帶著版號；
-         * 版號跟 pages/changelog.blade.php 最新那一篇綁在一起，改那頁要順手改這裡。
-         */
         'changelog' => [
             'route' => 'pages.changelog',
-            'label' => 'v4.1.0 更新日誌',
+            'version' => $version,
+            'label' => "{$version} 更新日誌",
             'title' => '更新日誌',
         ],
     ],
