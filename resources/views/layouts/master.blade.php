@@ -41,8 +41,7 @@
 
         body {
             height: 100%;
-            /* 固定導覽列的高度，要跟 app.css 的 --uq-nav-height 一致 */
-            padding: 64px 0 0 0;
+            padding: var(--uq-nav-height) 0 0 0;
             display: flex;
             flex-direction: column;
         }
