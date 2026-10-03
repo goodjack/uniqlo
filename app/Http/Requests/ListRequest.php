@@ -10,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class ListRequest extends FormRequest
 {
+    private const MAX_QUERY_LENGTH = 50;
+
     /**
      * Determine if the user is authorized to make this request.
      *
@@ -21,33 +23,29 @@ class ListRequest extends FormRequest
     }
 
     /**
-     * 清單／分類內搜尋的關鍵字先修剪再截斷，不讓超長輸入變成 422。
+     * 篩選參數來自網址，舊連結、爬蟲或手改網址都會帶進不合法的值。
+     * 一律丟掉不合法的部分、照常顯示頁面，不讓驗證失敗把人轉走。
      *
-     * 一般網頁導覽（Accept: text/html）驗證失敗時 Laravel 是導回上一頁而不是
-     * 回 422，這裡截斷成不會觸發規則失敗的長度，使用者只會看到搜尋框內容
-     * 被裁掉，而不是整頁失敗。
-     *
-     * $this->merge() 只改到這個 FormRequest 自己那份副本，Controller 跟
-     * Service 拿到的是這一份沒錯；但 FormRequestServiceProvider 沒有把容器
-     * 裡的 'request' 換成這份副本（只是從舊的複製資料過來建新的），Blade 裡
-     * 到處在用的全域 request() helper 解析到的還是原本沒截斷過的那個實例。
-     * 這裡額外對 request() 也 merge 一次，兩邊才會看到同一個修剪過的值。
+     * 同時改寫全域的 request()：Blade 讀的是那一份，FormRequest 只是它的副本。
      */
     protected function prepareForValidation()
     {
-        if (! $this->has('q')) {
-            return;
+        $normalized = [
+            'brand' => $this->normalizeBrand($this->query('brand')),
+            'sort' => $this->query('sort') === ListService::SORT_PRICE_ASC ? ListService::SORT_PRICE_ASC : null,
+            'tags' => $this->normalizeTags($this->query('tags')),
+            'q' => $this->normalizeQuery($this->query('q')),
+        ];
+
+        foreach ($normalized as $key => $value) {
+            foreach ([$this, request()] as $request) {
+                if ($value === null) {
+                    $request->offsetUnset($key);
+                } else {
+                    $request->merge([$key => $value]);
+                }
+            }
         }
-
-        // ?q[]=x 這種陣列輸入不能直接 (string) 轉型：PHP 會發 Array to string
-        // conversion warning，Laravel 的 error handler 把它轉成 ErrorException，
-        // 頁面還沒走到 rules() 的 'string' 規則就先 500 了。不是字串就當作沒填，
-        // 讓使用者看到的是搜尋框是空的，而不是整頁壞掉。
-        $q = $this->input('q');
-        $normalizedQ = is_string($q) ? mb_substr(trim($q), 0, 50) : '';
-
-        $this->merge(['q' => $normalizedQ]);
-        request()->merge(['q' => $normalizedQ]);
     }
 
     /**
@@ -58,16 +56,44 @@ class ListRequest extends FormRequest
     public function rules()
     {
         return [
-            // 可選的品牌就是 Brand enum 的那兩個，不另外維護一份字串清單
             'brand' => ['nullable', Rule::enum(Brand::class)],
             'sort' => ['nullable', Rule::in([ListService::SORT_PRICE_ASC])],
-            'tags' => 'nullable|array|max:'.count(ProductTag::cases()),
-            // 可選的標籤就是 enum 定義的那些，不另外維護一份清單。
-            // 已售罄不在其中：清單與分類本來就只收還買得到的商品。
+            'tags' => 'nullable|array',
             'tags.*' => [Rule::enum(ProductTag::class)],
-            // 清單／分類內搜尋，品名或編號含關鍵字。prepareForValidation() 已經
-            // 修剪並截斷成 50 字以內，這條規則是防呆，不是真正擋住超長輸入的關卡
-            'q' => ['nullable', 'string', 'max:50'],
+            'q' => ['nullable', 'string', 'max:'.self::MAX_QUERY_LENGTH],
         ];
+    }
+
+    private function normalizeBrand(mixed $brand): ?string
+    {
+        return is_string($brand) ? Brand::tryFrom($brand)?->value : null;
+    }
+
+    /**
+     * @return array<int, string>|null
+     */
+    private function normalizeTags(mixed $tags): ?array
+    {
+        if (! is_array($tags)) {
+            return null;
+        }
+
+        $values = array_map(fn (ProductTag $tag) => $tag->value, ProductTag::fromValues($tags));
+
+        return $values === [] ? null : $values;
+    }
+
+    /**
+     * 超長的關鍵字截斷而不是拒絕，使用者只會看到搜尋框內容被裁掉。
+     */
+    private function normalizeQuery(mixed $q): ?string
+    {
+        if (! is_string($q)) {
+            return null;
+        }
+
+        $q = mb_substr(trim($q), 0, self::MAX_QUERY_LENGTH);
+
+        return $q === '' ? null : $q;
     }
 }

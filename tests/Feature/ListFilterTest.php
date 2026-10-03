@@ -50,6 +50,27 @@ class ListFilterTest extends TestCase
     }
 
     /**
+     * 舊連結、爬蟲或手改網址帶來的不合法值要丟掉、照常顯示，不能被轉走。
+     */
+    public function test_invalid_filter_values_are_dropped_instead_of_redirecting(): void
+    {
+        $content = $this->get(route('lists.sale').'?brand=ZARA&sort=oops&tags=abc')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringNotContainsString('name="brand" value="ZARA"', $content);
+        $this->assertStringNotContainsString('name="sort" value="oops"', $content);
+    }
+
+    public function test_invalid_tags_are_dropped_while_valid_ones_still_apply(): void
+    {
+        $this->get(route('lists.sale').'?tags[]=sale&tags[]=nope')
+            ->assertOk();
+
+        $this->assertSame(['sale'], request()->query('tags'));
+    }
+
+    /**
      * 只有品牌、排序與搜尋關鍵字需要跨越篩選保留，其餘參數不該被表單帶著走。
      */
     public function test_the_filter_form_only_carries_brand_sort_and_q(): void
