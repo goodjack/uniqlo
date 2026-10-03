@@ -6,6 +6,7 @@ use App\Enums\ProductTag;
 use App\Http\Requests\ListRequest;
 use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
+use App\Support\Keywords;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -77,14 +78,14 @@ class ListService extends Service
         $tags = $listRequest->input('tags') ?? [];
         $q = $listRequest->input('q');
 
-        if ($brand === 'UNIQLO' || $brand === 'GU') {
+        if ($brand !== null) {
             $hmallProducts = $hmallProducts->where('brand', $brand);
         }
 
-        $selectedTags = empty($tags) ? [] : ProductTag::fromValues($tags);
+        $selectedTags = ProductTag::fromValues($tags);
 
         if (! empty($selectedTags)) {
-            // 多選是「符合任一條件」：頁面本身已經是基礎集合，標籤只是再縮小範圍
+            // 多選是聯集：符合任一標籤即顯示
             $hmallProducts = $hmallProducts->filter(
                 fn (HmallProduct $hmallProduct) => collect($selectedTags)
                     ->contains(fn (ProductTag $tag) => $tag->matches($hmallProduct))
@@ -99,17 +100,11 @@ class ListService extends Service
     }
 
     /**
-     * 清單內搜尋：品名或編號含關鍵字，多個空白分開的詞要全部命中。
-     *
-     * 這裡篩的是清單頁預熱好的 Collection，跟分類頁走資料庫 LIKE 查詢
-     * （HmallProductRepository::getProductsByCategoryId()）是兩條不同的路——
-     * 清單本來就是每天算好放進快取的小集合，不值得為它另開一次資料庫查詢。
+     * 清單內搜尋。比對欄位要跟 public/js/list-search.js 的即時篩選一致。
      */
     private function filterHmallProductsByKeyword(Collection $hmallProducts, string $q): Collection
     {
-        $keywords = preg_split('/\s+/u', trim($q), -1, PREG_SPLIT_NO_EMPTY);
-
-        foreach ($keywords as $keyword) {
+        foreach (Keywords::split($q) as $keyword) {
             $hmallProducts = $hmallProducts->filter(
                 fn (HmallProduct $hmallProduct) => $this->hmallProductMatchesKeyword($hmallProduct, $keyword)
             );
@@ -120,9 +115,7 @@ class ListService extends Service
 
     private function hmallProductMatchesKeyword(HmallProduct $hmallProduct, string $keyword): bool
     {
-        // short_product_code 是卡片上唯一看得到的編號（'u'.後七碼），使用者
-        // 照畫面抄下來的多半是這個，不是完整的 product_code（PR #76 審查
-        // 留言 4057184155：兩邊都比不到卡片上顯示的那串）。
+        // short_product_code 是卡片上顯示的編號，使用者照畫面抄的多半是它
         $fields = [
             $hmallProduct->name,
             $hmallProduct->code,
@@ -140,10 +133,7 @@ class ListService extends Service
     }
 
     /**
-     * 依使用者選的軸重新排序，沒選就維持各清單原本的排序。
-     *
-     * 排序要在篩選之後、分組之前。分組用的是 groupBy，它照輸入順序把商品放進
-     * 各性別群組，所以先整體排序、群組內仍然是遞增的。
+     * 要在分組之前排：groupBy 保留輸入順序，群組內才會跟著有序。
      */
     public function sortHmallProducts(Collection $hmallProducts, ListRequest $listRequest): Collection
     {
@@ -151,8 +141,7 @@ class ListService extends Service
             return $hmallProducts;
         }
 
-        // 用 price 這個 accessor 而不是 min_price 欄位：那欄是 decimal，
-        // PDO 取回來是字串，直接排會變字典順序，「1000.00」會排在「299.00」前面
+        // min_price 是 decimal，PDO 取回字串，直接排會變字典順序
         return $hmallProducts->sortBy('price')->values();
     }
 
