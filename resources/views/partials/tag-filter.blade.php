@@ -27,7 +27,7 @@
 {{-- 勾選框要跟 chip 列同一層、而且排在它前面，CSS 的 ~ 才選得到 --}}
 <input type="checkbox" id="uq-tag-filter" class="uq-filter-switch" @checked(! empty($selectedTags))>
 
-<form method="GET" action="{{ url()->current() }}" class="uq-chip-row">
+<form method="GET" action="{{ url()->current() }}" class="uq-chip-row" data-keeps-q>
     @foreach ($otherParams as $key => $value)
         <input type="hidden" name="{{ $key }}" value="{{ $value }}">
     @endforeach

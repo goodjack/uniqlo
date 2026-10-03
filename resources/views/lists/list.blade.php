@@ -89,7 +89,7 @@
                     手機上也偏擠。同一列的搜尋框與排序下拉 Tocas 沒有現成的同高版本，
                     由 app.css 補到同一個高度——只縮按鈕會讓同一列又變成兩種高度。
                 --}}
-                <div class="ts compact buttons">
+                <div class="ts compact buttons" data-keeps-q>
                     <a class="ts button {{ $currentBrand === null ? 'active' : '' }}"
                         href="{{ $currentUrl }}?{{ $queryFor(['brand' => null]) }}">全部</a>
                     <a class="ts button {{ $currentBrand === 'UNIQLO' ? 'active' : '' }}"
@@ -130,7 +130,7 @@
 
                 {{-- 原生 <select>，不吃 JavaScript。外觀用 Tocas 的 .ts.basic.dropdown， --}}
                 {{-- 它本來就是給 <select> 用的，連下拉箭頭都畫好了 --}}
-                <form method="GET" action="{{ $currentUrl }}" class="uq-sort-form">
+                <form method="GET" action="{{ $currentUrl }}" class="uq-sort-form" data-keeps-q>
                     @if ($currentBrand)
                         <input type="hidden" name="brand" value="{{ $currentBrand }}">
                     @endif

@@ -105,7 +105,10 @@
     function filterCards(rawQuery) {
         const tokens = tokensOf(rawQuery);
         const cards = document.querySelectorAll('[data-card-name]');
-        let totalVisible = 0;
+
+        // 男女適穿的商品在男裝與女裝段各有一張卡，件數要跟伺服器一樣算不重複的
+        // 商品。data-card-search 含完整料號，可以當作商品的識別
+        const visibleProducts = new Set();
 
         cards.forEach(function (card) {
             const visible = cardMatchesTokens(card, tokens);
@@ -113,10 +116,11 @@
             card.hidden = !visible;
 
             if (visible) {
-                totalVisible += 1;
+                visibleProducts.add(card.dataset.cardSearch);
             }
         });
 
+        const totalVisible = visibleProducts.size;
         const allHidden = cards.length > 0 && totalVisible === 0;
 
         document.querySelectorAll('[data-gender-heading]').forEach(function (heading) {
@@ -186,9 +190,71 @@
         updateEmptyState(allHidden, trimmedQuery);
     }
 
-    instantFilterInputs.forEach(function (input) {
-        input.addEventListener('input', function () {
-            filterCards(input.value);
+    function withQuery(href, query) {
+        const url = new URL(href, location.href);
+
+        if (query === '') {
+            url.searchParams.delete('q');
+        } else {
+            url.searchParams.set('q', query);
+        }
+
+        return url.href;
+    }
+
+    /**
+     * 即時篩的字也寫進網址與頁面上會換頁的連結、表單（[data-keeps-q]），
+     * 換排序、品牌或標籤時才不會把打好的字丟掉，重新整理也還在。
+     */
+    function keepQuery(rawQuery) {
+        const query = rawQuery.trim();
+
+        history.replaceState(history.state, '', withQuery(location.href, query));
+
+        document.querySelectorAll('[data-keeps-q]').forEach(function (container) {
+            container.querySelectorAll('a[href]').forEach(function (link) {
+                link.href = withQuery(link.href, query);
+            });
+
+            if (container.tagName !== 'FORM') {
+                return;
+            }
+
+            let hidden = container.querySelector('input[type="hidden"][name="q"]');
+
+            if (query === '') {
+                if (hidden) {
+                    hidden.remove();
+                }
+
+                return;
+            }
+
+            if (!hidden) {
+                hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'q';
+                container.appendChild(hidden);
+            }
+
+            hidden.value = query;
         });
+    }
+
+    instantFilterInputs.forEach(function (input) {
+        function apply() {
+            filterCards(input.value);
+            keepQuery(input.value);
+        }
+
+        // 注音組字途中不篩，不然「ㄨㄞ」這種半成品會讓整頁閃成「沒有符合」。
+        // Chrome 組字中的 input 帶 isComposing，Safari 則是 compositionend 之後
+        // 才送 input，兩邊都由 compositionend 補一次
+        input.addEventListener('input', function (event) {
+            if (!event.isComposing) {
+                apply();
+            }
+        });
+        input.addEventListener('compositionend', apply);
     });
 })();
