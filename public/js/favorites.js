@@ -101,23 +101,21 @@ window.UqFavorites = (function () {
         return brand + ':' + code;
     }
 
-    function has(brand, code) {
-        return Object.prototype.hasOwnProperty.call(read(), keyOf(brand, code));
+    function has(favorites, brand, code) {
+        return Object.prototype.hasOwnProperty.call(favorites, keyOf(brand, code));
     }
 
     function toggle(brand, code) {
         const favorites = read();
         const key = keyOf(brand, code);
 
-        if (has(brand, code)) {
+        if (has(favorites, brand, code)) {
             delete favorites[key];
         } else {
             favorites[key] = { brand: brand, code: code, addedAt: new Date().toISOString() };
         }
 
         write(favorites);
-
-        return has(brand, code);
     }
 
     /**
@@ -356,67 +354,32 @@ window.UqFavorites = (function () {
         return { show: show, update: update };
     })();
 
+    const BUTTON_SELECTOR = '[data-favorite-button], [data-favorite-card]';
+
     /**
-     * 文字固定顯示「收藏」，不隨狀態改變——切換按鈕（toggle button）的可及名稱
-     * 不該隨狀態變（WAI-ARIA 的 button 模式），狀態交給 aria-pressed 與品牌紅
-     * 實心愛心。之前這裡連文字帶 aria-pressed 一起換，兩個一起用等於自己打架。
+     * 可及名稱固定不變，狀態只靠 aria-pressed 與實心／空心愛心表達（WAI-ARIA
+     * 的 toggle button 模式）。商品頁那顆另外掛 Tocas 的 active。
      */
-    function paintButton(button, isFavorite) {
-        button.classList.toggle('active', isFavorite);
-        // 底色與文字顏色由 app.css 的收藏鈕專屬規則負責（背景透明、已收藏時愛心紅色）。
-        // basic 類別兩種狀態都保留，讓邊框與未收藏、與分享鈕保持一致的視覺感受。
+    function paint(button, isFavorite) {
+        if (button.hasAttribute('data-favorite-button')) {
+            button.classList.toggle('active', isFavorite);
+        }
+
         button.querySelector('.icon').className = isFavorite ? 'heart icon' : 'heart outline icon';
         button.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
     }
 
     /**
-     * 卡片上的收藏鈕只有一顆愛心，沒有文字可以換，所以上色跟商品頁那顆不一樣：
-     * 只換 icon 的實心與否，狀態交給 aria-pressed（CSS 也是讀它上色）。
-     * 可及名稱是固定的「收藏 商品名」，不隨狀態改。
+     * 整頁重畫而不是只畫被按的那一顆：同一件商品在同一頁可能有好幾顆愛心
+     * （男女適穿的商品同時在男裝與女裝段），漏畫的那顆停在舊狀態，使用者
+     * 再按一次就把剛收藏的刪掉了。localStorage 只讀一次，清單頁上千張卡片
+     * 不必各自 JSON.parse。
      */
-    function paintCardButton(button, isFavorite) {
-        button.querySelector('.icon').className = isFavorite ? 'heart icon' : 'heart outline icon';
-        button.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
-    }
+    function paintAll(root) {
+        const favorites = read();
 
-    function bindCardButton(button) {
-        const brand = button.dataset.brand;
-        const code = button.dataset.productCode;
-
-        paintCardButton(button, has(brand, code));
-
-        button.addEventListener('click', function () {
-            repaintSameProduct(brand, code, toggle(brand, code));
-        });
-    }
-
-    function bindButton(button) {
-        const brand = button.dataset.brand;
-        const code = button.dataset.productCode;
-
-        paintButton(button, has(brand, code));
-
-        button.addEventListener('click', function () {
-            repaintSameProduct(brand, code, toggle(brand, code));
-        });
-    }
-
-    /**
-     * 同一件商品在同一頁可能有好幾顆愛心（男女適穿的商品會同時出現在男裝與
-     * 女裝段），只重畫被按的那一顆的話，另一顆停在舊狀態，使用者再按一次
-     * 就把剛收藏的刪掉了。
-     */
-    function repaintSameProduct(brand, code, isFavorite) {
-        document.querySelectorAll('[data-favorite-button], [data-favorite-card]').forEach(function (button) {
-            if (button.dataset.brand !== brand || button.dataset.productCode !== code) {
-                return;
-            }
-
-            if (button.hasAttribute('data-favorite-button')) {
-                paintButton(button, isFavorite);
-            } else {
-                paintCardButton(button, isFavorite);
-            }
+        (root || document).querySelectorAll(BUTTON_SELECTOR).forEach(function (button) {
+            paint(button, has(favorites, button.dataset.brand, button.dataset.productCode));
         });
     }
 
@@ -1152,30 +1115,16 @@ window.UqFavorites = (function () {
         summary.textContent = summaryFor(wanted.length, wanted.length - rendered.length);
     }
 
-    /**
-     * 綁定範圍內所有的收藏鈕。不給 root 就是整份文件。
-     */
     function bindAll(root) {
         const scope = root || document;
 
-        scope.querySelectorAll('[data-favorite-button]').forEach(bindButton);
-        scope.querySelectorAll('[data-favorite-card]').forEach(bindCardButton);
-    }
+        paintAll(scope);
 
-    /**
-     * 把畫面上已經綁定的收藏鈕重新上色，跟 localStorage 現在的狀態對齊。
-     * 用在跨分頁同步：另一個分頁改了收藏，這一頁的按鈕沒有機會自己重新
-     * 讀一次 has()，畫面會停在舊狀態。
-     */
-    function resyncButtons(root) {
-        const scope = root || document;
-
-        scope.querySelectorAll('[data-favorite-button]').forEach(function (button) {
-            paintButton(button, has(button.dataset.brand, button.dataset.productCode));
-        });
-
-        scope.querySelectorAll('[data-favorite-card]').forEach(function (button) {
-            paintCardButton(button, has(button.dataset.brand, button.dataset.productCode));
+        scope.querySelectorAll(BUTTON_SELECTOR).forEach(function (button) {
+            button.addEventListener('click', function () {
+                toggle(button.dataset.brand, button.dataset.productCode);
+                paintAll();
+            });
         });
     }
 
@@ -1203,7 +1152,7 @@ window.UqFavorites = (function () {
                 return;
             }
 
-            resyncButtons();
+            paintAll();
         });
     }
 
@@ -1212,8 +1161,6 @@ window.UqFavorites = (function () {
         toggle: toggle,
         remove: remove,
         items: items,
-        bindButton: bindButton,
-        bindCardButton: bindCardButton,
         bindAll: bindAll,
         bindClearAll: bindClearAll,
         bindOfferFilter: bindOfferFilter,
