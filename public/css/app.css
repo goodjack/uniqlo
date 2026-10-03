@@ -37,7 +37,7 @@
     --uq-line: #e9e9e9;
     --uq-panel: #f7f7f7;
 
-    /* 固定導覽列高度；master.blade.php 的 body padding-top 要同值，錨點才不會被蓋住 */
+    /* 固定導覽列高度；body 上方留白與錨點偏移都讀這個值 */
     --uq-nav-height: 64px;
     /* .uq-section-menu 的高度：項目 48 + 軌道 2 + 分隔線 1 */
     --uq-section-menu-height: 51px;
