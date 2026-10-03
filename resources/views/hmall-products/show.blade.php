@@ -20,10 +20,7 @@
 
     $productName = $hmallProductPresenter->getFullName($hmallProduct);
 
-    /*
-     * 麵包屑只走一條分類路徑，規則在 CategoryService::getPrimaryCategory()。
-     * 商品掛不到任何大類或品項時就只剩首頁那一層，不硬湊一條假的路徑。
-     */
+    // 只走一條分類路徑（CategoryService::getPrimaryCategory()）；掛不到分類就不硬湊
     $crumbs = array_merge(
         [\App\Support\Breadcrumb::home()],
         $categoryTrail->isEmpty() ? [] : [\App\Support\Breadcrumb::link('categories')],
@@ -45,15 +42,7 @@
 
     $productTags = $hmallProductPresenter->getProductTags($hmallProduct, true);
 
-    /*
-     * 商品資訊：只列出真的有值的欄位，空的一列比沒有那一列還難讀。
-     *
-     * 順序照「給誰穿 → 什麼季節 → 要去官網找的話編號是多少」，從最多人會看的
-     * 排到最少人會看的；編號是查詢用的，放最後。
-     *
-     * 「適穿」改叫「適用對象」：那是官方欄位名稱直接搬過來的，值卻是「男裝」
-     * 「女裝」這種對象而不是穿法，兩個字看不出在講什麼。
-     */
+    // 只列有值的欄位。「適用對象」不沿用官方的「適穿」：值是男裝、女裝這種對象
     $productFacts = array_filter([
         '適用對象' => $hmallProduct->sex,
         '季節' => $hmallProduct->season,
@@ -61,9 +50,8 @@
     ], fn($value) => filled($value));
 
     /*
-     * 網路商店編號改由上面那張小表呈現，說明文末那一行就重複了，畫面上拿掉。
-     * 只在這裡拿掉、不動 getDescription()：社群分享的描述與爬蟲判斷「說明是不是
-     * 太短」都在讀它的回傳值，改了會一起變。
+     * 說明文末的網路商店編號跟商品資訊重複，只在畫面上拿掉；getDescription() 不動，
+     * 社群分享描述與爬蟲判斷說明長短都讀它。
      */
     $descriptionHtml = preg_replace(
         '/(<br>)*網路商店編號：' . preg_quote($hmallProduct->product_code, '/') . '\s*$/u',
@@ -72,31 +60,35 @@
     );
 
 
-    /*
-     * 章節選單的項目要跟底下真的渲染出來的區段一致，所以條件跟各區段的 @if 同一份。
-     * 選單的字比標題短，橫向才排得下。
-     */
+    // 每一段有沒有內容。章節選單與下面各段的 @if 共用這一份，選單才不會指到不存在的段落
+    $shown = [
+        'facts' => ! empty($productFacts) || $categories->isNotEmpty(),
+        'videos' => (bool) optional($japanProduct)->has_videos,
+        'photos' => (bool) ($colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images),
+        'styles' => $styles->isNotEmpty(),
+        'style-hints' => $styleHints->isNotEmpty(),
+        'commonly-styled' => $commonlyStyledHmallProducts->isNotEmpty(),
+        'related' => $relatedHmallProducts->isNotEmpty(),
+        'price-history' => true,
+        'japan' => isset($japanProduct),
+        'legacy' => $relatedProducts->isNotEmpty(),
+    ];
+
+    // 選單用的短名，比各段標題短，橫向才排得下
     $sections = collect([
-        [
-            'anchor' => 'facts',
-            'label' => '商品資訊',
-            'shown' => ! empty($productFacts) || $categories->isNotEmpty(),
-        ],
-        ['anchor' => 'videos', 'label' => '商品影片', 'shown' => (bool) optional($japanProduct)->has_videos],
-        [
-            'anchor' => 'photos',
-            'label' => '商品實照',
-            'shown' => (bool) ($colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images),
-        ],
-        ['anchor' => 'styles', 'label' => '官方穿搭', 'shown' => $styles->isNotEmpty()],
-        ['anchor' => 'style-hints', 'label' => '網友穿搭', 'shown' => $styleHints->isNotEmpty()],
-        ['anchor' => 'commonly-styled', 'label' => '經常搭配', 'shown' => $commonlyStyledHmallProducts->isNotEmpty()],
-        ['anchor' => 'related', 'label' => '延伸商品', 'shown' => $relatedHmallProducts->isNotEmpty()],
-        ['anchor' => 'price-history', 'label' => '歷史價格', 'shown' => true],
-        ['anchor' => 'japan', 'label' => '日本版資訊', 'shown' => isset($japanProduct)],
-        ['anchor' => 'legacy', 'label' => '舊系統商品', 'shown' => $relatedProducts->isNotEmpty()],
+        'facts' => '商品資訊',
+        'videos' => '商品影片',
+        'photos' => '商品實照',
+        'styles' => '官方穿搭',
+        'style-hints' => '網友穿搭',
+        'commonly-styled' => '經常搭配',
+        'related' => '延伸商品',
+        'price-history' => '歷史價格',
+        'japan' => '日本版資訊',
+        'legacy' => '舊系統商品',
     ])
-        ->filter(fn($section) => $section['shown'])
+        ->filter(fn($label, $anchor) => $shown[$anchor])
+        ->map(fn($label, $anchor) => ['anchor' => $anchor, 'label' => $label])
         ->values()
         ->all();
 @endphp
@@ -170,8 +162,7 @@
             bottom: 0;
         }
 
-        /* 三顆分享 icon 的底色。提高白底圖示辨識度：master 的 #a0aec0 對白底只有
-           2.2:1，不到非文字元素 3:1 的門檻 */
+        /* 分享 icon 平常的顏色：master 的 #a0aec0 在白底不到 3:1 */
         #facebook {
             color: var(--uq-muted);
         }
@@ -202,8 +193,7 @@
             color: var(--uq-muted);
         }
 
-        /* LINE 品牌綠 #06b833 在白底只有 2.65:1，hover 的圖示看不清楚；
-           加深到 #05a52f 是 3.06:1，過 3:1 的非文字對比門檻 */
+        /* LINE 品牌綠在白底不到 3:1，加深一階 */
         #line:hover {
             background: #fff !important;
             color: #05a52f !important;
@@ -239,17 +229,13 @@
             background: #AE6F0A;
         }
 
-        /* 說明是這一頁的正文，字級跟 master 一樣是 16px（1.14286rem） */
+        /* 說明是這一頁的正文，16px 同 master */
         #comment {
             font-size: 1.14286rem;
             line-height: 1.625;
         }
 
-        /*
-         * 桌機把說明關進固定 400px 的捲動框，這就是 master「描述短的時候上下也
-         * 很平衡」的來源：右欄總高度不隨說明長度變動，價格與 CTA 那一列固定落
-         * 在圖片底部附近。手機一欄到底、沒有要對齊的東西，就讓它自然展開。
-         */
+        /* 桌機固定說明框高度（同 master），價格與按鈕那一列才會穩定落在圖片底部附近 */
         @media (min-width: 991px) {
             #comment {
                 height: 400px;
@@ -268,19 +254,6 @@
         @include('partials.breadcrumb', ['crumbs' => $crumbs])
     </div>
 
-    {{--
-        Hero 的骨架整組回 master：左邊圖片、右邊標題 → 元資料與分享 → 狀態標籤
-        → 說明，說明底下一條分隔線，再來是價格與 CTA 那一列。
-
-        「描述短的時候上下也很平衡」是 master 用 #comment 在桌機固定 400px 高
-        （超出就自己捲）換來的：右欄總高度不隨說明長度變動，價格與 CTA 就固定
-        落在圖片底部附近。這一版把那個固定框跟它的字級一起還原，也就不再需要
-        自訂的「顯示更多」收合。
-
-        這條 branch 額外加的東西只有三樣留在 hero 裡：麵包屑（在上面）、跟
-        「前往官網」同一列的收藏鈕，以及把分享三顆 icon 從純圖示換成有
-        aria-label 的按鈕。商品資訊與分類連結搬到底下的章節，不再擠在右欄尾巴。
-    --}}
     <div class="ts very padded horizontally fitted attached fluid segment">
         <div class="ts container relaxed grid">
             <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
@@ -325,11 +298,7 @@
                     </div>
                     <div class="sixteen wide column">
                         <div class="ts basic fitted segment">
-                            {{--
-                                狀態標籤照 master：Tocas 原生標籤加一色一義的 inline style，
-                                有對應清單頁的做成連結。顏色與順序由 getProductTags() 決定，
-                                卡片與商品頁共用同一份。
-                            --}}
+                            {{-- 有對應清單頁的標籤做成連結 --}}
                             @foreach ($productTags as $tag)
                                 @if ($tag['url'])
                                     <a class="ts horizontal basic circular label" href="{{ $tag['url'] }}">
@@ -337,7 +306,6 @@
                                                 class="{{ $tag['icon'] }} icon"></i>{{ $tag['text'] }}</span>
                                     </a>
                                 @else
-                                    {{-- 沒有 href 的 <a> 拿不到鍵盤焦點，也不是連結，用 div --}}
                                     <div class="ts horizontal basic circular label">
                                         <span style="color: {{ $tag['color'] }};"><i
                                                 class="{{ $tag['icon'] }} icon"></i>{{ $tag['text'] }}</span>
@@ -371,17 +339,11 @@
                                         target="_blank" rel="nofollow noopener" aria-label="UNIQLO">前往 UNIQLO 官網<i
                                             class="external icon"></i></a>
                                 @endif
-                                {{--
-                                    不給 aria-label：可及名稱交給 .label 的文字。文字固定顯示「收藏」，
-                                    不隨狀態改變（切換按鈕的名稱不該隨狀態變，WAI-ARIA 的 button 模式），
-                                    狀態交給 aria-pressed 與 favorites.js 切換的品牌紅實心愛心，跟卡片上
-                                    那顆的做法一致（paintCardButton 也是只換愛心、不換字）。
-                                --}}
+                                {{-- 文字固定「收藏」，狀態只靠 aria-pressed：切換按鈕的名稱不隨狀態變 --}}
                                 <button type="button" class="ts basic button" data-favorite-button
                                     data-brand="{{ $hmallProduct->brand }}"
                                     data-product-code="{{ $hmallProduct->product_code }}" aria-pressed="false"><i
                                         class="heart outline icon"></i><span class="label">收藏</span></button>
-                                {{-- 沒有 href 的 <a> 拿不到鍵盤焦點，Web Share 這顆本來就是動作不是連結 --}}
                                 <button type="button" class="ts basic button" id="share" style="display: none;"><i
                                         class="share icon" aria-hidden="true"></i>分享</button>
                             </div>
@@ -394,12 +356,7 @@
 
     @include('partials.section-menu', ['id' => 'product_menu', 'items' => $sections])
 
-    @if (!empty($productFacts) || $categories->isNotEmpty())
-        {{--
-            商品資訊與分類本來擠在 hero 右欄的最底下。它們是這件商品的屬性與
-            往回逛的入口，不是站在價格前面決定要不要買的當下要看的東西，所以
-            跟商品實照、歷史價格一樣做成往下讀的章節。
-        --}}
+    @if ($shown['facts'])
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'facts', 'menu' => 'product_menu'])
@@ -407,13 +364,7 @@
                 <div class="ts hidden divider"></div>
 
                 @if (!empty($productFacts))
-                    {{--
-                        三筆而已，用 Tocas 的 horizontal stackable list：桌機橫排、
-                        手機交給 stackable 自己直排。名稱與值包在同一個 span 裡，
-                        避免 Tocas 的 flex 版面把兩者拆開（.item 是 inline-flex，
-                        中間的半形空格會被吃掉）。uq-facts 是 PageSkeletonTest
-                        用來定位這一段的 class。
-                    --}}
+                    {{-- 名稱與值包在同一個 span：.item 是 inline-flex，中間的空格會被吃掉 --}}
                     <div class="ts horizontal stackable list uq-facts">
                         @foreach ($productFacts as $label => $value)
                             <div class="item"><span><b>{{ $label }}</b> {{ $value }}</span></div>
@@ -422,30 +373,7 @@
                 @endif
 
                 @if ($categories->isNotEmpty())
-                    {{--
-                        麵包屑只走一條路徑，這裡列出商品其他掛得上的分類，讓人往回逛。
-
-                        這些分類是平行的入口，不是一條由大到小的路徑：同一件商品會
-                        同時掛在男裝樹、女裝樹與特價企劃樹底下（實測抽樣的商品有
-                        21 到 24 筆，取前五筆之後常常整組都是同一層），所以用中點
-                        清單、不用麵包屑——麵包屑會宣稱一個資料上並不存在的父子關係。
-
-                        「分類」兩個字用跟上面三筆屬性同一套的粗體與字級，不用有框的
-                        標籤：四行講的都是這件商品的某個屬性，同一塊裡出現兩種視覺
-                        語言，會讓人以為分類跟前三筆不是同一類東西。
-
-                        名稱放在清單外面、不放進清單當第一項：Tocas 會給清單裡第二項
-                        之後的每一項畫中點，「分類」變成第一項的話，第一個分類前面就
-                        會多一個中點，看起來像「分類」也是其中一個入口。
-
-                        中點分隔由 Tocas 的 .middoted 用 ::before 畫，不是自己放 span：
-                        分隔符不會被連結的底線連著畫，複製這一行也不會把它帶走。
-
-                        另起一行、不併進上面那個橫排：分類最多五個連結，塞進前三筆
-                        後面會變成讀不動的一長列。外層這個 div 就是在做「另起一行」
-                        這件事（名稱與清單都是行內元素，不包起來會跟上面擠在一起），
-                        本身不需要任何樣式。
-                    --}}
+                    {{-- 商品同時掛在男裝、女裝、企劃等幾棵樹下，是平行的入口，所以用中點清單、不用麵包屑 --}}
                     <div>
                         <b>分類</b>
                         <div class="ts horizontal middoted list uq-categories-line">
@@ -463,7 +391,7 @@
         </div>
     @endif
 
-    @if (optional($japanProduct)->has_videos)
+    @if ($shown['videos'])
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'videos', 'menu' => 'product_menu'])
@@ -486,7 +414,7 @@
         </div>
     @endif
 
-    @if ($colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images)
+    @if ($shown['photos'])
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'photos', 'menu' => 'product_menu'])
@@ -519,7 +447,7 @@
         </div>
     @endif
 
-    @if ($styles->isNotEmpty())
+    @if ($shown['styles'])
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'styles', 'menu' => 'product_menu'])
@@ -536,15 +464,13 @@
         </div>
     @endif
 
-    @if ($styleHints->isNotEmpty())
+    @if ($shown['style-hints'])
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'style-hints', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">
                     StyleHint 網友穿搭靈感
                     <div class="inline sub header">共 {{ $styleHintCount }} 張</div>
-                    {{-- uq-header-action：跟首頁「看全部」同一個標題旁次要動作，字級
-                         不跟著標題走（見 app.css） --}}
                     <a class="ts right floated icon labeled button uq-header-action"
                         href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
                         <i class="camera retro icon" aria-hidden="true"></i>查看列表
@@ -563,7 +489,7 @@
         </div>
     @endif
 
-    @if ($commonlyStyledHmallProducts->isNotEmpty())
+    @if ($shown['commonly-styled'])
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'commonly-styled', 'menu' => 'product_menu'])
@@ -576,7 +502,7 @@
         </div>
     @endif
 
-    @if ($relatedHmallProducts->isNotEmpty())
+    @if ($shown['related'])
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'related', 'menu' => 'product_menu'])
@@ -607,7 +533,7 @@
     <div class="ts very padded horizontally fitted attached fluid tertiary segment">
         <div class="ts container">
             @include('partials.section-anchor', ['anchor' => 'price-history', 'menu' => 'product_menu'])
-                <h2 class="ts large dividing header">歷史價格</h2>
+            <h2 class="ts large dividing header">歷史價格</h2>
             <div class="ts hidden divider"></div>
             <div class="ts fluid container grid">
                 <div class="four wide computer sixteen wide tablet sixteen wide mobile column">
@@ -672,7 +598,7 @@
         </div>
     </div>
 
-    @isset($japanProduct)
+    @if ($shown['japan'])
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'japan', 'menu' => 'product_menu'])
@@ -777,9 +703,9 @@
                 </div>
             </div>
         </div>
-    @endisset
+    @endif
 
-    @if ($relatedProducts->isNotEmpty())
+    @if ($shown['legacy'])
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'legacy', 'menu' => 'product_menu'])
