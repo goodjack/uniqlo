@@ -16,6 +16,12 @@ class SearchController extends Controller
      */
     private const MAX_QUERY_LENGTH = 100;
 
+    /**
+     * 貨號固定 6 碼。更短的數字（2、100、2WAY 的 2）不是貨號，照編號查會用
+     * 數字邊界比對撈出一大串、而且沒有分頁，改走有分頁的關鍵字搜尋。
+     */
+    private const MIN_PRODUCT_CODE_LENGTH = 6;
+
     protected $searchService;
 
     public function __construct(SearchService $searchService)
@@ -31,9 +37,7 @@ class SearchController extends Controller
 
         $query = trim($request->query('query'));
 
-        if (ctype_digit($query)) {
-            // 一頁常共用多個貨號，所以命中判準跟 showProductCodeResults() 是同一條查詢：
-            // code 精準符合或 name 裡帶著這組號碼。舊軌 Product 維持精準比對不變。
+        if ($this->looksLikeProductCode($query)) {
             $results = $this->searchService->findHmallProductsByCodeOrSharedNumber($query)
                 ->concat(Product::select('id')->where('id', $query)->get());
 
@@ -55,11 +59,16 @@ class SearchController extends Controller
 
         abort_if(mb_strlen($query) > self::MAX_QUERY_LENGTH, 404);
 
-        if (ctype_digit($query)) {
+        if ($this->looksLikeProductCode($query)) {
             return $this->showProductCodeResults($query);
         }
 
         return $this->showKeywordResults($query);
+    }
+
+    private function looksLikeProductCode(string $query): bool
+    {
+        return ctype_digit($query) && strlen($query) >= self::MIN_PRODUCT_CODE_LENGTH;
     }
 
     public function searchByGoogleCse()

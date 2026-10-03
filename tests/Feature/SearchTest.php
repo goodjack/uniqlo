@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\CategoryLevel;
 use App\Models\HmallCategory;
 use App\Models\HmallProduct;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -202,6 +203,28 @@ class SearchTest extends TestCase
         $response->assertOk();
         $response->assertDontSee('商品編號 48251');
         $response->assertSee('「48251」');
+    }
+
+    /**
+     * 短數字常出現在品名（2WAY、100%），照編號比對會撈出整串沒有分頁的結果。
+     */
+    public function test_a_short_number_uses_paginated_keyword_search(): void
+    {
+        $this->createProduct(['name' => '2WAY 托特包', 'code' => '450010', 'product_code' => 'u450010']);
+
+        $response = $this->get(route('search.show', ['query' => '2']));
+
+        $response->assertOk();
+        $response->assertViewHas('isProductCodeSearch', false);
+        $response->assertViewHas('hmallProducts', fn ($products) => $products instanceof LengthAwarePaginator);
+    }
+
+    public function test_a_short_number_with_a_single_hit_does_not_redirect(): void
+    {
+        $this->createProduct(['name' => '2WAY 托特包', 'code' => '450010', 'product_code' => 'u450010']);
+
+        $this->get(route('search.index', ['query' => '2']))
+            ->assertRedirect(route('search.show', ['query' => '2']));
     }
 
     /**
