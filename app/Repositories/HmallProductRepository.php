@@ -831,7 +831,7 @@ class HmallProductRepository extends Repository
 
             // 分類是附屬資訊，同步失敗只留紀錄、既有關聯不動，不能讓價格跟著寫不進去
             try {
-                $this->syncCategories($model, $product, $categoryIds);
+                DB::transaction(fn () => $this->syncCategories($model, $product, $categoryIds));
             } catch (Throwable $e) {
                 Log::error('syncCategories error - keeping existing category links', [
                     'brand' => $brand,
