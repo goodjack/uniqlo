@@ -306,8 +306,12 @@ window.UqFavorites = (function () {
             }
 
             current = { onUndo: onUndo, onExpire: onExpire };
-            contentEl.textContent = content;
+            // 即時區域在 display:none 時內容變動不會被唸，先顯示、下一格再寫字
             el.classList.add('active');
+            contentEl.textContent = '';
+            requestAnimationFrame(function () {
+                contentEl.textContent = content;
+            });
             hovering = false;
             focused = false;
             remaining = UNDO_DURATION_MS;
@@ -351,7 +355,13 @@ window.UqFavorites = (function () {
             activate(content, onUndo, onExpire);
         }
 
-        return { show: show, update: update };
+        function focusUndo() {
+            if (current && actionEl) {
+                actionEl.focus();
+            }
+        }
+
+        return { show: show, update: update, focusUndo: focusUndo };
     })();
 
     const BUTTON_SELECTOR = '[data-favorite-button], [data-favorite-card]';
@@ -460,6 +470,33 @@ window.UqFavorites = (function () {
             });
 
             onChange(container.querySelectorAll('[data-favorite-key]').length);
+
+            const firstRestored = order.find(function (key) {
+                return entries[key] && entries[key].row && entries[key].row.isConnected;
+            });
+
+            if (firstRestored) {
+                entries[firstRestored].row.querySelector('[data-favorite-remove]').focus();
+            }
+        }
+
+        // iOS 15.4 以前不認得 :focus-visible，matches 會直接丟例外
+        function isKeyboardFocused(element) {
+            try {
+                return element.matches(':focus-visible');
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function nextVisibleRemoveButton(row) {
+            for (let next = row && row.nextElementSibling; next; next = next.nextElementSibling) {
+                if (!next.hidden && next.querySelector('[data-favorite-remove]')) {
+                    return next.querySelector('[data-favorite-remove]');
+                }
+            }
+
+            return null;
         }
 
         container.querySelectorAll('[data-favorite-remove]').forEach(function (control) {
@@ -478,6 +515,8 @@ window.UqFavorites = (function () {
                 }
 
                 const row = control.closest('[data-favorite-key]');
+                const usingKeyboard = isKeyboardFocused(control);
+                const nextRemove = nextVisibleRemoveButton(row);
 
                 if (row) {
                     row.remove();
@@ -499,6 +538,14 @@ window.UqFavorites = (function () {
                 }, function () {
                     pending = null;
                 });
+
+                // 按鈕跟著整列消失，焦點會掉回頁首。只在鍵盤操作時把焦點移進
+                // 提示條：焦點停在那裡會暫停倒數，滑鼠使用者不該被卡住
+                if (nextRemove) {
+                    nextRemove.focus();
+                } else if (usingKeyboard) {
+                    Snackbar.focusUndo();
+                }
             });
         });
     }
