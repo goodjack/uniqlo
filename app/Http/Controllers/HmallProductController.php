@@ -63,10 +63,8 @@ class HmallProductController extends Controller
         $styleHints = $this->service->getStyleHints($hmallProduct, 12);
         $styleHintCount = $this->service->getStyleHintCount($hmallProduct);
         $hmallPriceHistories = $hmallProduct->hmallPriceHistories()->get();
-        // 規則在 CategoryService::getCategoryLinksForProductPage()
         $categories = $this->categoryService->getCategoryLinksForProductPage($hmallProduct);
 
-        // 麵包屑只走一條路徑，規則在 CategoryService::getPrimaryCategory()
         $primaryCategory = $this->categoryService->getPrimaryCategory($hmallProduct);
 
         return view('hmall-products.show', [

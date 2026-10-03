@@ -15,16 +15,13 @@ use Illuminate\Support\Collection;
 class CategoryService extends Service
 {
     /**
-     * 商品頁列出幾個分類連結。再多就從導覽變成雜訊。
+     * 再多就從導覽變成雜訊。
      */
     private const CATEGORY_LINKS_ON_PRODUCT_PAGE = 5;
 
     /**
-     * 商品的性別對應到哪些頂層分類。
-     *
-     * 兩家的頂層 code 各成一套（UNIQLO 是 all_men、GU 是 men_all），名稱也不同
-     * （男裝／MEN），所以用 code 對照而不是比名稱。值是本機資料庫實際存在的
-     * 頂層分類；對不到的性別（包含空字串）就不套性別條件。
+     * 商品性別對應的頂層分類 code。兩家的頂層 code 與名稱各成一套，只能用
+     * code 對照；對不到的性別就不套性別條件。
      */
     private const GENDER_TOP_CATEGORIES = [
         '男裝' => ['all_men', 'men_all'],
@@ -36,8 +33,8 @@ class CategoryService extends Service
     ];
 
     /**
-     * 分類樹最深四層，往上回溯的次數上限。資料是爬蟲寫的，parent_code 萬一
-     * 兜成環，沒有上限就會轉不出來。
+     * 往上回溯的次數上限（樹最深四層）。parent_code 來自爬蟲，萬一兜成環
+     * 也不會無窮迴圈。
      */
     private const MAX_CATEGORY_DEPTH = 5;
 
@@ -55,46 +52,28 @@ class CategoryService extends Service
     }
 
     /**
-     * 分類總覽的內容：頂層當標題，底下掛它的大類。
-     *
-     * 只到大類為止。品項那層有三百多個，全部攤在同一頁反而找不到東西，
-     * 它們列在各自大類的頁面裡。
+     * 分類總覽：頂層當標題，底下掛大類。品項層有三百多個，攤在同一頁反而
+     * 找不到東西，留給各大類頁面。
      *
      * @return Collection<int, array{category: HmallCategory, children: Collection<int, HmallCategory>}>
      */
     public function getOverview(): Collection
     {
-        // 頂層自己有沒有掛到商品不重要，有還在售的大類就該出現在總覽上
         $ones = $this->repository->getCategoriesWithProducts([CategoryLevel::One]);
 
         return $ones
             ->filter(fn (HmallCategory $one) => $one->parent_code !== null)
-            // 兩家的分類樹各自獨立，同名的 parent_code 要連品牌一起分組
             ->groupBy(fn (HmallCategory $one) => $one->brand->value.':'.$one->parent_code)
             ->map(fn (Collection $children) => [
-                // 這裡刻意不用 load('parent')：parent 帶了品牌條件，eager load 只會
-                // 拿集合裡第一筆的品牌去套全部，混品牌的集合會整組查不到父分類。
-                // 分組後每一組本來就同品牌同 parent_code，取第一筆查一次就夠，
-                // 查詢次數是頂層分類數而不是大類數。
+                // 不能用 load('parent')：parent 關聯帶品牌條件，eager load 只會拿
+                // 第一筆的品牌套用全部，混品牌時整組查不到父分類。
                 'category' => $children->first()->parent,
-                // 兩家的分類名稱會撞（UNIQLO 的「男裝」與 GU 的「MEN」都是男裝），
-                // 標上品牌使用者才知道自己在看誰的分類
                 'brand' => $children->first()->brand,
                 'children' => $children->values(),
             ])
-            // 父分類不在主檔裡的（爬蟲只寫到子層）不做成群組，沒有標題可以掛
             ->filter(fn (array $group) => $group['category'] !== null)
-            /*
-             * 先 UNIQLO 再 GU，各品牌內部照大類數多的排前面。
-             *
-             * 品牌不能照字串排：'GU' < 'UNIQLO'，GU 會排在前面，但這個站的主體是
-             * UNIQLO（商品數是 GU 的好幾倍），使用者打開總覽第一眼該看到它。
-             *
-             * 品牌之內改照大類數，不再照官方 code：code 是官方的內部編號，對
-             * 使用者沒有先後可言，照它排會把只有一兩個大類的小群組排到男裝、
-             * 女裝前面。大類數多的群組同時也是內容最多的，值得先看到。
-             * 數量相同時退回 code，排序才穩定。
-             */
+            // 先 UNIQLO（站的主體）再 GU；品牌內大類多的群組排前面，男裝、女裝
+            // 這類主要入口才不會被只有一兩個大類的小群組擠到後面
             ->sortBy([
                 fn (array $a, array $b) => ($a['brand'] === Brand::Uniqlo ? 0 : 1)
                     <=> ($b['brand'] === Brand::Uniqlo ? 0 : 1),
@@ -105,11 +84,6 @@ class CategoryService extends Service
     }
 
     /**
-     * 從自己往上回溯到根，做成麵包屑。
-     *
-     * 分類樹每一層只有一個父分類，所以這條路徑是唯一的。深度上限是防呆——
-     * 資料是爬蟲寫的，萬一 parent_code 兜成環就會轉不出來。
-     *
      * @return Collection<int, HmallCategory>
      */
     public function getBreadcrumb(HmallCategory $category): Collection
@@ -131,20 +105,14 @@ class CategoryService extends Service
     }
 
     /**
-     * 這件商品的主分類，也就是麵包屑要走的那一條路徑。
+     * 商品頁麵包屑要走的主分類。官方沒有給主分類，規則是自己定的：
      *
-     * 一件商品平均掛十幾個分類，官方沒有給主分類，所以規則是自己定的：
+     * 一、取品項層（levelTwo），對「找同類商品」最有用。
+     * 二、只認跟商品性別相符的樹，否則常會選到「熱門推薦」這類促銷樹
+     *     （官方給它的 sort 常常最小）。
+     * 三、同層多個取官方 sort 最小的。
      *
-     * 一、取品項層（levelTwo），它比大類具體、對「找同類商品」最有用。
-     * 二、只認性別跟商品自己相符的那幾棵樹。少了這一條會選到「熱門推薦」——
-     *     那是促銷用的樹，官方給它的 sort 又常常最小。實測 u0000000055090
-     *     （女裝 HEATTECH）掛的四個品項裡 sort 最小的就是「熱門推薦 › 週週
-     *     新品一覽 › 女裝 新品一覽」，那不是使用者想回去逛的地方。
-     * 三、同一層有多個就取官方 sort 最小的。sort 是官方回傳的排序字串
-     *     （008004001008004009 這種），照字串比，不要轉成數字。
-     *
-     * 找不到符合性別的就退一步：先放寬到大類（levelOne），再放寬成不管性別。
-     * 掛得到分類就給得出麵包屑，比整條退成「首頁 › 商品」有用。
+     * 找不到就依序放寬到大類、再放寬成不管性別。
      */
     public function getPrimaryCategory(HmallProduct $product): ?HmallCategory
     {
@@ -160,9 +128,7 @@ class CategoryService extends Service
                     ->filter(fn (HmallCategory $category) => ! $matchGender
                         || $topCodes === null
                         || in_array($this->topCodeOf($category, $byCode), $topCodes, true))
-                    // SORT_STRING 不能省：PHP 的 <=> 對兩個數字字串是照數值比，
-                    // 而 sort 是長度不一的官方排序字串（008004001008004009 對
-                    // 014001999），照數值比會挑錯——實測就是這樣選到後面那個。
+                    // sort 是長度不一的數字字串（008004001008004009），照數值比會挑錯
                     ->sortBy(fn (HmallCategory $category) => (string) $category->pivot->sort, SORT_STRING)
                     ->first();
 
@@ -176,12 +142,7 @@ class CategoryService extends Service
     }
 
     /**
-     * 商品頁列出的分類連結。
-     *
-     * 一件商品平均掛十幾個分類，沒有唯一路徑可以做成麵包屑，所以列出分類連結。
-     * 兩件事要收斂：男女適穿的商品在男裝與女裝樹下各掛一份，名稱會重複
-     * （兩個「下身類」）；而且十幾個標籤對使用者是雜訊。品項層（levelTwo）
-     * 比大類具體、對找同類商品也最有用，所以優先顯示它，同名的只留一個。
+     * 男女適穿的商品在男裝、女裝樹下各掛一份同名分類，同名只留一個。
      *
      * @return Collection<int, HmallCategory>
      */
@@ -194,8 +155,6 @@ class CategoryService extends Service
     }
 
     /**
-     * 從一個分類往上回溯到頂層，回傳頂層的 code。中途斷掉就回 null。
-     *
      * @param  Collection<string, HmallCategory>  $byCode
      */
     private function topCodeOf(HmallCategory $category, Collection $byCode): ?string
@@ -218,13 +177,7 @@ class CategoryService extends Service
     }
 
     /**
-     * 分類頁上讓人往下鑽的子分類。
-     *
-     * 只有大類會列出子分類，品項頁一律回空集合。原因是能開頁面的只有 levelOne
-     * 與 levelTwo（findPageable 就是這麼定的），所以品項頁列出 levelThree 等於
-     * 在畫面上排一整列點下去必然 404 的連結。
-     *
-     * blade 對空集合已經有 @if，不會留下空白區塊。
+     * 只有大類列子分類：levelThree 沒有頁面，列出來點下去必然 404。
      *
      * @return Collection<int, HmallCategory>
      */
@@ -247,8 +200,7 @@ class CategoryService extends Service
     }
 
     /**
-     * 分類頁不提供品牌篩選：兩家的分類 code 各成一套，一個分類只會有一家的商品，
-     * 篩選另一家永遠是空的。品牌直接標在標題上。
+     * 不提供品牌篩選：一個分類只會有一家的商品。
      *
      * @param  array<int, ProductTag>  $tags
      */

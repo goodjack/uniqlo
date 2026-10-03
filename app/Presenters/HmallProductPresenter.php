@@ -94,19 +94,9 @@ class HmallProductPresenter
     }
 
     /*
-     * 標籤顏色。master 是一色一義（期間限定紅、特價與歷史新低同一個藍、新款綠……），
-     * 不是「價格類一色、其餘灰」的兩色系統：同色代表同一件事，改色等於改語意。
-     *
-     * 藍色是唯一的例外：master 的 #00ADEA 放在白底上對比只有 2.4:1，13px 的字讀不清，
-     * 所以白底的字改用加深版的 --uq-info-text（#0077A6，對比 5.0:1；#0087B8 實測只有
-     * 4.07:1，不到 AA 的 4.5:1，加深到這版才過）。GU 角標那種實心底色維持 #00ADEA，
-     * 那是底色不是字色，沒有對比問題。
-     *
-     * 2026-09 這一輪：實測發現除了藍色，其餘幾色在白底 12px 字級下也都不到 4.5:1
-     * （期間限定紅 3.89、新款綠 2.27、合購藍灰 2.59、熱門穿搭 3.13、熱門瀏覽
-     * 3.44、網路獨家橘 2.17）。做法跟藍色那次一樣：同色系加深，只換文字用的
-     * token，icon 與實心底角標維持原色不動（那些是非文字對比，3:1 就過，原色
-     * 已經夠）。新 token 定義與各自的對比數字見 app.css 的 :root。
+     * 標籤文字色，一色一義：同色代表同一件事，改色等於改語意。
+     * 文字用 app.css 裡加深過的 --uq-*-text（白底要達 4.5:1），icon 與實心底
+     * 角標維持原色。
      */
     private const COLOR_OFFER = 'var(--uq-offer-text)';
 
@@ -118,15 +108,6 @@ class HmallProductPresenter
 
     private const COLOR_MULTI_BUY = 'var(--uq-multi-buy-text)';
 
-    /*
-     * 網路獨家。master 這裡是兩個值：卡片 #F29E18（跟清單頁的 icon、商品頁那顆
-     * online-special 按鈕同色），商品頁的標籤卻是 #79A8B9（跟合購同色）。站主
-     * 09-07 定的原則是同一個意義全站同一個顏色，所以兩邊都用 #F29E18——那也是
-     * 這個意義在其他三個地方本來就在用的值，商品頁標籤才是落單的那一個。
-     *
-     * 這裡指的「兩邊都用 #F29E18」是 icon 與按鈕；標籤文字現在改讀
-     * --uq-online-special-text（加深版，見上），原色留給非文字的 icon 與按鈕用。
-     */
     private const COLOR_ONLINE_SPECIAL = 'var(--uq-online-special-text)';
 
     private const COLOR_NEUTRAL = '#5A5A5A';
@@ -136,18 +117,8 @@ class HmallProductPresenter
     private const COLOR_MOST_VISITED = 'var(--uq-most-visited-text)';
 
     /**
-     * 商品的狀態標籤，依「使用者最在意什麼」排序：省多少錢 › 買不買得到 › 其他屬性。
-     *
-     * 卡片與商品頁共用這一份順序與文案，同一件商品在列表與內頁強調的才會是同一
-     * 件事。差別只有最後那六個屬性標籤（豐富尺碼、男女適穿、旗艦店款、大型店商品、
-     * 特定店商品、修改褲長）：$forProductPage 為真才給。那六個講的是這件商品怎麼買、
-     * 怎麼改，是決定要不要買的時候才要看的細節，master 也只有商品頁列。
-     *
-     * 每一筆：
-     *   text   顯示文字
-     *   color  文字色，直接寫進 style。哪一色代表什麼見上面的顏色常數
-     *   icon   Tocas 的 icon class。商品頁畫在文字前面，卡片不畫
-     *   url    有對應清單頁時給。商品頁據此做成連結，點得回那個清單
+     * 商品的狀態標籤，依使用者在意的程度排序：省多少錢 › 買不買得到 › 其他屬性。
+     * 卡片與商品頁共用同一份順序與文案；尺碼、通路這類屬性只在商品頁給。
      *
      * @return array<int, array{text: string, color: string, icon: string, url: string|null}>
      */
@@ -155,12 +126,7 @@ class HmallProductPresenter
     {
         $tags = [];
 
-        $add = function (
-            string $text,
-            string $color,
-            string $icon,
-            ?string $url = null
-        ) use (&$tags) {
+        $add = function (string $text, string $color, string $icon, ?string $url = null) use (&$tags) {
             $tags[] = ['text' => $text, 'color' => $color, 'icon' => $icon, 'url' => $url];
         };
 
@@ -169,22 +135,10 @@ class HmallProductPresenter
         }
 
         if ($hmallProduct->is_limited_offer) {
-            // 截止日寫在標籤上，master 的卡片就是這樣：在列表上看得到哪天結束，
-            // 才決定得了要不要現在買。沒有檔期日期時退回「期間限定特價」
-            $add(
-                $this->getLimitedOfferMessage($hmallProduct),
-                self::COLOR_OFFER,
-                'certificate',
-                route('lists.limited-offers')
-            );
+            $add($this->getLimitedOfferMessage($hmallProduct), self::COLOR_OFFER, 'certificate', route('lists.limited-offers'));
         }
 
-        /*
-         * 這幾個文案刻意跟 ProductTag::label() 不同：那個 label 是篩選 chip 的
-         * 短名（特價、新品、合購、網路獨家），卡片要的是完整句子，讀起來才像
-         * 一句話而不是分類代號。ComingSoon 是唯一兩邊本來就同一句的（即將上市），
-         * 這裡直接讀 enum，其餘四個維持各自的卡片文案，不要為了統一硬改成短名。
-         */
+        // 文案刻意跟 ProductTag::label()（篩選用的短名）不同，卡片要的是完整說法
         if ($hmallProduct->is_sale) {
             $add('特價商品', self::COLOR_PRICE, 'shopping basket', route('lists.sale'));
         }
@@ -218,30 +172,17 @@ class HmallProductPresenter
         }
 
         if ($hmallProduct->top_wearing_rank) {
-            $rank = $hmallProduct->top_wearing_rank;
-            $add(
-                "穿搭 TOP {$rank}",
-                self::COLOR_TOP_WEARING,
-                'camera retro',
-                route('lists.top-wearing')
-            );
+            $add("穿搭 TOP {$hmallProduct->top_wearing_rank}", self::COLOR_TOP_WEARING, 'camera retro', route('lists.top-wearing'));
         }
 
         if ($hmallProduct->most_visited_rank) {
-            $rank = $hmallProduct->most_visited_rank;
-            $add(
-                "瀏覽 TOP {$rank}",
-                self::COLOR_MOST_VISITED,
-                'chart line',
-                route('lists.most-visited')
-            );
+            $add("瀏覽 TOP {$hmallProduct->most_visited_rank}", self::COLOR_MOST_VISITED, 'chart line', route('lists.most-visited'));
         }
 
         if (! $forProductPage) {
             return $tags;
         }
 
-        // 尺碼與通路這些屬性沒有對應的清單頁，也沒有輕重之分，一起排在最後
         $attributes = [
             'is_extended_size' => ['豐富尺碼', 'external square'],
             'is_unisex' => ['男女適穿', 'venus mars'],
@@ -261,18 +202,8 @@ class HmallProductPresenter
     }
 
     /**
-     * 「優惠中」：現在真的有價格上的好處、而且買得到。
-     *
-     * 收藏頁「只看優惠中」篩選鈕靠這個方法判斷，不解析畫面上的文字或顏色——
-     * 這是收藏頁與其他呼叫端共用的明確狀態。
-     *
-     * 算優惠中的六個狀態：期間限定特價、網路限定特價、歷史新低價、合購商品、
-     * 特價商品、APP 限定特價，全部都是「現在買比較划算」。新款商品、即將上市、
-     * 網路獨家販售、穿搭與瀏覽排行榜不算——那些講的是商品新不新、買不買得到、
-     * 受不受歡迎，跟現在划不划算是兩件事。
-     *
-     * 已售罄的商品即使同時掛著優惠標籤也不算：現在買不到，優惠沒有可以採取的
-     * 行動，跟「沒有優惠」對使用者來說是同一種結果。
+     * 「優惠中」＝現在買比較划算，而且買得到（收藏頁的「只看優惠中」）。
+     * 新品、排行、網路獨家講的不是划不划算，不算。
      */
     public function isOnOffer($hmallProduct): bool
     {
@@ -419,8 +350,6 @@ class HmallProductPresenter
     {
         $lastHmallPriceHistories = $hmallPriceHistories->last();
 
-        // 沒有任何價格歷史就沒有尾段可以畫。正常情況下爬蟲建檔時就會寫一筆，
-        // 但少了它不該讓整個商品頁 500。
         if ($lastHmallPriceHistories === null) {
             return null;
         }

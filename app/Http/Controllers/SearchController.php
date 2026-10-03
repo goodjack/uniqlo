@@ -9,10 +9,7 @@ use Illuminate\Http\Request;
 class SearchController extends Controller
 {
     /**
-     * 查詢字串長度上限。
-     *
-     * 兩個入口都要擋：搜尋表單走 index，但使用者可以直接開 /search/{query}，
-     * 只在 index 驗證等於沒有驗證。
+     * index 與 show 兩個入口都要擋：使用者可以直接開 /search/{query}。
      */
     private const MAX_QUERY_LENGTH = 100;
 
@@ -77,20 +74,15 @@ class SearchController extends Controller
     }
 
     /**
-     * 維持原本行為，含已凍結的舊軌 Product——編號是跨兩套系統唯一通用的識別。
-     *
-     * hmallProducts 那條查詢同時含 code 精準符合與「name 裡帶這組共用號碼」的商品
-     * （見 HmallProductRepository::findHmallProductsByCodeOrSharedNumber）。
+     * 含已凍結的舊軌 Product：編號是兩套系統唯一通用的識別。
      */
     private function showProductCodeResults(string $query)
     {
         $hmallProducts = $this->searchService->findHmallProductsByCodeOrSharedNumber($query);
         $products = Product::where('id', 'like', "{$query}%")->get();
 
-        // 全是數字只代表「長得像貨號」，不代表這組號碼真的存在——例如貨號帶
-        // 前導零（0474238）精準比對不到 474238。查無貨號結果時退回關鍵字
-        // 搜尋，使用者才能看到空狀態與「改用 Google 搜尋」的出口，而不是一頁
-        // 只有「共 0 件」、沒有任何出路的空卡片格。
+        // 查無貨號（例如帶前導零）時退回關鍵字搜尋，使用者才看得到空狀態與
+        // 「改用 Google 搜尋」的出口
         if ($hmallProducts->isEmpty() && $products->isEmpty()) {
             return $this->showKeywordResults($query);
         }
@@ -104,7 +96,7 @@ class SearchController extends Controller
     }
 
     /**
-     * 只查現行商品，不查已凍結的舊軌 Product。
+     * 只查現行商品。
      */
     private function showKeywordResults(string $query)
     {
@@ -114,10 +106,7 @@ class SearchController extends Controller
             'query' => $query,
             'isProductCodeSearch' => false,
             'keywords' => $keywords,
-            // 超過上限的關鍵字會被丟掉，那要讓使用者看得到，不然結果會莫名其妙
             'ignoredKeywords' => $this->searchService->ignoredKeywords($query),
-            // 分頁沿用 style-hints 頁那份共用 markup，onEachSide(1) 讓頁碼視窗跟它
-            // 一致（Laravel 預設是 3，會多擠出好幾顆按鈕）。
             'hmallProducts' => $this->searchService->searchHmallProducts($query)->onEachSide(1),
         ]);
     }

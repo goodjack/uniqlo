@@ -38,8 +38,6 @@ class ListController extends Controller
             $listRequest,
             '特價商品',
             '商品特價中',
-            // 語意 class，顏色在 app.css 的清單 icon 那一組。不用 Tocas 的 primary：
-            // 那是 #00ADEA，跟標籤上的特價藍 #0077A6 是同一個意思卻兩個值
             'sale',
             'shopping basket',
             '依特價幅度排序'
@@ -168,18 +166,8 @@ class ListController extends Controller
     }
 
     /**
-     * 每一種清單共用的取資料與渲染。
-     *
-     * $typeName 是頁面上看到的標題（「期間限定特價」），$titleName 是 <title>
-     * 與社群描述用的句型（「65 件商品期間限定特價中」）。兩者分開是因為頁面標題
-     * 底下還有一行副標可以講件數與排序，<title> 只有一行、要能單獨讀懂——master
-     * 就是後面那種句型，這裡把它留給 <title>。
-     *
-     * $sortSummary 是「預設排序是照什麼排的」一句話，進 slate 的副標
-     * （65 件，依特價幅度排序）。原本這裡傳的是「排序依據：特價幅度 > 評論數 >
-     * 評分 > 上架時間」那種完整權重鏈，寫在標題底下佔一整行，而且使用者選了
-     * 價格排序之後它還在講預設排序，是錯的——所以只留預設排序的說法，實際
-     * 排序由 blade 依 sort 參數決定要不要換句話。
+     * $typeName 是頁面標題，$titleName 是 <title> 與社群描述的句型（要能單獨讀懂），
+     * $sortSummary 是預設排序的說法。
      */
     private function getList(
         $hmallProducts,

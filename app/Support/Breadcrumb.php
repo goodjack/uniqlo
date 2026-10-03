@@ -3,17 +3,12 @@
 namespace App\Support;
 
 /**
- * 麵包屑的組裝。導覽資料本身在 config/nav.php，這裡只負責查詢與拼接。
- *
- * 每一層是 ['label' => string, 'url' => ?string]，url 是 null 的那幾層只當文字
- * （導覽的分組名、沒有自己頁面的頂層分類都是這種）。輸出直接餵給
- * resources/views/partials/breadcrumb.blade.php。
+ * 麵包屑的每一層：['label' => string, 'url' => ?string]，url 為 null 時只當文字。
+ * 導覽資料在 config/nav.php。
  */
 class Breadcrumb
 {
     /**
-     * 首頁那一層。除了首頁自己以外，每一頁的麵包屑都從它開始。
-     *
      * @return array{label: string, url: string}
      */
     public static function home(): array
@@ -22,8 +17,6 @@ class Breadcrumb
     }
 
     /**
-     * 只當文字、點不下去的一層。
-     *
      * @return array{label: string, url: null}
      */
     public static function text(string $label): array
@@ -32,7 +25,7 @@ class Breadcrumb
     }
 
     /**
-     * config/nav.php 的 links 裡某個單一入口那一層（商品分類、收藏）。
+     * config/nav.php 的 links 裡的單一入口。
      *
      * @return array{label: string, url: string}
      */
