@@ -101,8 +101,7 @@
 @section('javascript')
     <script>
         UqFavorites.renderPage({
-            cardsUrl: '{{ route('favorites.cards') }}',
-            csrfToken: '{{ csrf_token() }}',
+            cardsUrl: @js(route('favorites.cards')),
         });
     </script>
 @endsection

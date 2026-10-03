@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\VerifyCsrfToken;
 use App\Models\HmallProduct;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Tests\TestCase;
 
 class FavoriteTest extends TestCase
@@ -286,6 +289,28 @@ class FavoriteTest extends TestCase
         // data-favorite-key 是每一列唯一的識別屬性，一列一次，不像品名會在
         // alt 跟標題各出現一次、算起來要乘二
         $this->assertSame(100, substr_count($content, 'data-favorite-key="UNIQLO:u001"'));
+    }
+
+    /**
+     * 測試環境預設會跳過 CSRF 檢查，這裡把那個捷徑關掉，確認換卡片這支在
+     * 正式環境也不需要 token。
+     */
+    public function test_cards_endpoint_does_not_require_a_csrf_token(): void
+    {
+        $middleware = new class($this->app, $this->app['encrypter']) extends VerifyCsrfToken
+        {
+            protected function runningUnitTests()
+            {
+                return false;
+            }
+        };
+
+        $request = Request::create('/favorites/cards', 'POST');
+        $request->setLaravelSession($this->app['session.store']);
+
+        $response = $middleware->handle($request, fn () => new Response('passed'));
+
+        $this->assertSame('passed', $response->getContent());
     }
 
     private function createProduct(array $attributes): HmallProduct
