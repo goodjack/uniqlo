@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use PHPUnit\Framework\Attributes\DataProvider;
 use stdClass;
 use Tests\TestCase;
 
@@ -389,28 +390,31 @@ class HmallProductServiceTest extends TestCase
         $this->assertEquals(2, $sizeChartCount, 'SizeChart should retry independently');
     }
 
-    public function test_fetch_all_hmall_products_fetches_last_partial_page()
+    /**
+     * 頁數照 productSum 算：25 件要抓 2 頁，剛好 48 件也只抓 2 頁，不多抓一頁
+     * 超出範圍的空頁（官方對那一頁怎麼回沒有保證，回錯格式就會變成每天固定缺頁）。
+     */
+    #[DataProvider('pageCounts')]
+    public function test_fetches_exactly_the_pages_the_product_sum_needs(int $productSum, int $expectedRequests)
     {
-        // productSum=25, pageSize=24 → page 1 returns 25, page 2 should also be fetched
         Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
 
-        $requestCount = 0;
-        Http::fake(['https://api.example.com/search' => function ($request) use (&$requestCount) {
-            $requestCount++;
-
-            return Http::response([
-                'resp' => [
-                    [
-                        'productList' => [],
-                        'productSum' => 25,
-                    ],
-                ],
-            ]);
-        }]);
+        Http::fake(['https://api.example.com/search' => Http::response([
+            'resp' => [['productList' => [], 'productSum' => $productSum]],
+        ])]);
 
         $this->service->fetchAllHmallProducts('UNIQLO');
 
-        $this->assertEquals(2, $requestCount, 'Should fetch page 1 (25 >= 24) and page 2 (25 >= 24), stop at page 3 (25 < 48)');
+        Http::assertSentCount($expectedRequests);
+    }
+
+    public static function pageCounts(): array
+    {
+        return [
+            'one extra item spills onto page 2' => [25, 2],
+            'an exact multiple stops at the last full page' => [48, 2],
+            'an empty catalog stops after page 1' => [0, 1],
+        ];
     }
 
     /**

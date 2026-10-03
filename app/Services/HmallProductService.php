@@ -240,7 +240,7 @@ class HmallProductService extends Service
             }
 
             $page++;
-        } while ($productSum >= ($page - 1) * $pageSize);
+        } while ($productSum > ($page - 1) * $pageSize);
 
         if (! $hasSucceeded) {
             logger()->error('No pages were successfully fetched - preserving checkpoint', ['brand' => $brand]);
