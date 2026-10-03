@@ -998,6 +998,17 @@ html:has(.uq-section-menu) {
     padding-bottom: .685em;
 }
 
+/*
+ * 手機選單比矮螢幕（iPhone SE 667px）還長，又掛在固定導覽列底下、跟著頁面
+ * 捲不動，最後幾項會跑出畫面外。限高讓選單自己捲。
+ */
+.ts.top.fixed.menu .mobile.only .ts.dropdown>.menu {
+    max-height: calc(100vh - var(--uq-nav-height));
+    max-height: calc(100dvh - var(--uq-nav-height));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
 /* ------------------------------------------------------------------
  * 連結色。
  *
