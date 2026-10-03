@@ -755,6 +755,46 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
+     * 續跑點只在當天有效：同一天重跑從失敗頁接著跑，隔天一律從第 1 頁完整掃。
+     * 跨日續跑的話，某一頁天天失敗時前面幾頁的價格就從此不再更新。
+     */
+    public function test_the_checkpoint_only_lasts_until_the_end_of_the_day()
+    {
+        Cache::flush();
+        Config::set('app.crawler.retry.times', 1);
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        $this->travelTo(now()->setTime(9, 1));
+
+        $requestedPages = [];
+        Http::fake(['https://api.example.com/search' => function ($request) use (&$requestedPages) {
+            $page = $request->data()['pageInfo']['page'];
+            $requestedPages[] = $page;
+
+            return $page === 2
+                ? Http::response([], 500)
+                : Http::response($this->searchResponse(24, 60));
+        }]);
+
+        Log::shouldReceive('warning')->andReturnNull();
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->service->fetchAllHmallProducts('UNIQLO');
+        $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
+
+        $requestedPages = [];
+        $this->travelTo(now()->setTime(18, 0));
+        $this->service->fetchAllHmallProducts('UNIQLO');
+        $this->assertSame(2, $requestedPages[0], '同一天重跑要從失敗頁接著跑');
+
+        $requestedPages = [];
+        $this->travelTo(now()->addDay()->setTime(9, 1));
+        $this->service->fetchAllHmallProducts('UNIQLO');
+        $this->assertSame(1, $requestedPages[0], '隔天要從第 1 頁完整掃');
+    }
+
+    /**
      * 跑到一半被 403 擋下，前面幾頁已經寫進資料庫了，不能說成「完全失敗」。
      *
      * 完全失敗的定義是連一頁都沒抓到。看通知的人會據此判斷今天有沒有新資料：

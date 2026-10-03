@@ -196,8 +196,7 @@ class HmallProductService extends Service
 
                 $hasSucceeded = true;
 
-                // Update checkpoint
-                Cache::put($cacheKey, $page + 1, now()->addDays(7));
+                $this->saveCheckpoint($cacheKey, $page + 1);
 
                 $this->randomDelay();
             } catch (Throwable $e) {
@@ -213,7 +212,7 @@ class HmallProductService extends Service
                     report($e);
 
                     // 被擋的那一頁就是下次要從哪裡接著跑的那一頁
-                    Cache::put($cacheKey, $firstFailedPage, now()->addDays(7));
+                    $this->saveCheckpoint($cacheKey, $firstFailedPage);
 
                     if (! $hasSucceeded) {
                         return new CrawlResult(CrawlOutcome::Failed);
@@ -261,7 +260,7 @@ class HmallProductService extends Service
                 'first_failed_page' => $firstFailedPage,
             ]);
 
-            Cache::put($cacheKey, $firstFailedPage, now()->addDays(7));
+            $this->saveCheckpoint($cacheKey, $firstFailedPage);
 
             return new CrawlResult(CrawlOutcome::PartiallySucceeded, '未執行缺貨判定，目錄有缺頁');
         }
@@ -470,6 +469,15 @@ class HmallProductService extends Service
 
             throw $e;
         }
+    }
+
+    /**
+     * 續跑點只在當天有效。隔天的排程一律從第 1 頁完整掃：某一頁天天失敗時，
+     * 跨日續跑會讓前面那幾頁的價格從此不再更新，缺貨判定也永遠輪不到。
+     */
+    private function saveCheckpoint(string $cacheKey, int $page): void
+    {
+        Cache::put($cacheKey, $page, now()->endOfDay());
     }
 
     private function getV3SearchApiUrl($brand = 'UNIQLO'): string
