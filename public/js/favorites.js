@@ -1,59 +1,28 @@
 /**
  * 收藏清單。
  *
- * 整份清單只存在使用者自己的瀏覽器，不會送到伺服器；伺服器只會收到一批品牌加
- * 商品編號用來換卡片。每一筆只存品牌、商品編號與加入時間——收藏頁刻意不顯示
- * 任何價格，所以這裡也沒有價格可以存。
+ * 整份清單只存在使用者自己的瀏覽器，伺服器只會收到一批品牌加商品編號用來換
+ * 卡片。每一筆只存品牌、編號與加入時間；收藏頁刻意不顯示價格，所以也不存價格。
  */
 window.UqFavorites = (function () {
     const STORAGE_KEY = 'uq-favorites';
-
-    /**
-     * 後端一次最多收 100 件，超過整批 422。收藏數量由使用者決定，所以這裡
-     * 分批送再把卡片接起來，不讓「收藏很多」變成整頁載入失敗。
-     */
-    const BATCH_SIZE = 100;
-
-    const DEFAULT_SUMMARY = '只存在這個瀏覽器，換裝置看不到';
-
-    /**
-     * 移除、清空都是「先動手、再給復原機會」，不是先跳確認。8 秒是跟清空收藏
-     * 的確認視窗一起定案的數字：夠讓使用者反應過來，又不會長到擋在畫面上。
-     */
+    const BATCH_SIZE = 100; // 跟 FavoriteController::MAX_CODES 一致，超過整批 422
+    const FETCH_TIMEOUT_MS = 15000;
     const UNDO_DURATION_MS = 8000;
+    const DEFAULT_SUMMARY = '只存在這個瀏覽器，換裝置看不到';
+    const BUTTON_SELECTOR = '[data-favorite-button], [data-favorite-card]';
 
-    /**
-     * 記住最近一次 renderPage 用的參數，清空收藏的復原不是在 renderPage 的
-     * closure 裡觸發（它綁在工具列的固定按鈕上，只在 DOMContentLoaded 綁一次），
-     * 所以需要另外留一份可以呼叫 renderPage 的地方。
-     */
     let currentOptions = null;
 
-    /**
-     * 每次 renderPage 遞增一次，讓「這次渲染是不是已經過期」有東西可以比對。
-     * 清空收藏、換一次新的 renderPage 都會讓舊的那輪變成過期——回應晚到時
-     * 舊那輪要安靜地不動畫面，不能把資料已經清空的畫面蓋回去。
-     *
-     * currentController 是跟目前這個 token 綁在一起的 fetch 控制器：新的一輪
-     * 開始、或清空收藏時，都要先 abort 掉上一輪還沒回來的請求，讓它們不要
-     * 繼續佔連線、也不要在 abort 之後又跑出一次不必要的錯誤畫面。
-     */
+    // 每輪 renderPage 一個編號：清空收藏或新的一輪開始時，晚到的舊回應不能把畫面蓋回去
     let renderToken = 0;
     let currentController = null;
-
-    /** 單一批次的逾時，不是整個 renderPage 的逾時——分批送的清單不該因為
-     * 前面幾批比較慢就連坐失敗。 */
-    const FETCH_TIMEOUT_MS = 15000;
+    let staleWhileHidden = false;
 
     /**
-     * 隱私模式或使用者關掉網站資料時，localStorage 的存取本身就會丟例外，
-     * 所以每一次讀寫都要能安靜地退回「沒有收藏」的狀態，不能讓整頁掛掉。
-     */
-    /**
-     * 只有 JSON.parse 失敗會被擋，解出來的形狀完全沒被檢查——使用者自己改過、
-     * 瀏覽器擴充套件寫壞、或以後換格式沒處理到，都可能讓某一筆變成 null 或
-     * 整包變成字串。每一筆都驗過形狀，壞的丟掉並寫回，其餘正常使用，不讓一筆
-     * 壞資料卡住整頁。
+     * 隱私模式或關掉網站資料時，localStorage 的存取本身就會丟例外，一律退回
+     * 「沒有收藏」。形狀不對的項目（使用者手改、擴充套件寫壞）丟掉並寫回，
+     * 不讓一筆壞資料卡住整頁。
      */
     function read() {
         let parsed;
@@ -93,10 +62,7 @@ window.UqFavorites = (function () {
         }
     }
 
-    /**
-     * 兩家共用同一組商品編號，所以 key 一定要帶品牌，
-     * 不然 UNIQLO 的褲子跟 GU 的家居服會互相蓋掉。
-     */
+    // 兩家共用同一組商品編號，key 一定要帶品牌
     function keyOf(brand, code) {
         return brand + ':' + code;
     }
@@ -118,12 +84,7 @@ window.UqFavorites = (function () {
         write(favorites);
     }
 
-    /**
-     * 明確地移除，不是切換。收藏頁的移除鈕不能用 toggle：使用者在另一個分頁
-     * 已經移掉同一件商品時，toggle 會把它加回去。
-     *
-     * 回傳是否真的寫進去了，呼叫端才能決定要不要動畫面。
-     */
+    // 收藏頁的移除不能用 toggle：別的分頁已經移掉同一件時，toggle 會把它加回去
     function remove(brand, code) {
         const favorites = read();
 
@@ -132,22 +93,14 @@ window.UqFavorites = (function () {
         return write(favorites);
     }
 
-    /**
-     * addedAt 是後來才加的欄位，舊使用者瀏覽器裡那批收藏沒有這個值，重新整理
-     * 後也不會替它們補一個——補了就是造假的時間，會讓「最新收藏在前」失真。
-     */
     function isValidAddedAt(value) {
         return typeof value === 'string' && !isNaN(new Date(value).getTime());
     }
 
     /**
-     * 「最新收藏在前」的排序鍵。
-     *
-     * 規則：
-     * 1. addedAt 有效的依時間由新到舊。
-     * 2. 缺少時間或時間無效的舊收藏全部排在後面。
-     * 3. 同一類（都有效或都無效）時間相同（或都沒有時間）時，維持目前存在
-     *    localStorage 裡的先後順序——不補造假的時間，也不讓每次重新整理都跳動。
+     * 最新收藏在前。addedAt 是後來才加的欄位，早期的收藏沒有，也不替它們補
+     * （補的就是假時間）：沒有時間的排在最後，同類之間維持存放順序，重新整理
+     * 不會跳動。
      */
     function sortedKeys(favorites) {
         return Object.keys(favorites)
@@ -155,22 +108,18 @@ window.UqFavorites = (function () {
                 return { key: key, index: index };
             })
             .sort(function (a, b) {
-                const itemA = favorites[a.key];
-                const itemB = favorites[b.key];
-                const validA = isValidAddedAt(itemA.addedAt);
-                const validB = isValidAddedAt(itemB.addedAt);
-
-                if (validA && validB) {
-                    const diff = new Date(itemB.addedAt).getTime() - new Date(itemA.addedAt).getTime();
-
-                    return diff !== 0 ? diff : a.index - b.index;
-                }
+                const addedA = favorites[a.key].addedAt;
+                const addedB = favorites[b.key].addedAt;
+                const validA = isValidAddedAt(addedA);
+                const validB = isValidAddedAt(addedB);
 
                 if (validA !== validB) {
                     return validA ? -1 : 1;
                 }
 
-                return a.index - b.index;
+                const diff = validA ? new Date(addedB).getTime() - new Date(addedA).getTime() : 0;
+
+                return diff !== 0 ? diff : a.index - b.index;
             })
             .map(function (entry) {
                 return entry.key;
@@ -181,16 +130,14 @@ window.UqFavorites = (function () {
         const favorites = read();
 
         return sortedKeys(favorites).map(function (key) {
-            const item = favorites[key];
-
-            return { brand: item.brand, code: item.code };
+            return { brand: favorites[key].brand, code: favorites[key].code };
         });
     }
 
     /**
-     * 移除與清空共用的復原提示條。外觀是 Tocas 的 .ts.snackbar，但 Tocas 的
-     * ts().snackbar() 計時是寫死的 3.5 秒、沒有暫停機制，8 秒與滑鼠／鍵盤焦點
-     * 暫停倒數這裡自己控制，只借它的 class 跟 CSS。
+     * 移除與清空共用的復原提示條。只借 Tocas .ts.snackbar 的外觀：它內建的
+     * 計時固定約 3.5 秒、不能暫停，這裡要 8 秒，而且滑鼠移上去或焦點在裡面時
+     * 暫停倒數。
      */
     const Snackbar = (function () {
         let el = null;
@@ -221,19 +168,14 @@ window.UqFavorites = (function () {
                 hovering = true;
                 pause();
             });
-
             el.addEventListener('mouseleave', function () {
                 hovering = false;
                 resume();
             });
-
-            // focusin／focusout 會冒泡，掛在容器上就能知道焦點有沒有落在
-            // 提示條（或它裡面唯一能拿到焦點的「復原」按鈕）身上。
             el.addEventListener('focusin', function () {
                 focused = true;
                 pause();
             });
-
             el.addEventListener('focusout', function () {
                 focused = false;
                 resume();
@@ -271,12 +213,7 @@ window.UqFavorites = (function () {
                 return;
             }
 
-            remaining -= (Date.now() - tickStartedAt);
-
-            if (remaining < 0) {
-                remaining = 0;
-            }
-
+            remaining = Math.max(0, remaining - (Date.now() - tickStartedAt));
             clearScheduled();
         }
 
@@ -300,24 +237,6 @@ window.UqFavorites = (function () {
             }
         }
 
-        function activate(content, onUndo, onExpire) {
-            if (!ensure()) {
-                return;
-            }
-
-            current = { onUndo: onUndo, onExpire: onExpire };
-            // 即時區域在 display:none 時內容變動不會被唸，先顯示、下一格再寫字
-            el.classList.add('active');
-            contentEl.textContent = '';
-            requestAnimationFrame(function () {
-                contentEl.textContent = content;
-            });
-            hovering = false;
-            focused = false;
-            remaining = UNDO_DURATION_MS;
-            scheduleTick();
-        }
-
         function hide() {
             clearScheduled();
             current = null;
@@ -328,43 +247,42 @@ window.UqFavorites = (function () {
         }
 
         /**
-         * 開一條全新、跟現有這條無關的復原（例如清空收藏蓋掉還沒過期的單筆
-         * 移除）：先讓舊的那條直接失效（呼叫它的 onExpire），再開新的一條。
+         * 顯示或延續一條提示並重新計時。expirePrevious 為 true 代表這是一件
+         * 新的事（例如清空收藏蓋掉還沒過期的單筆移除），舊那條要先當成過期
+         * 處理；連續移除多件則是延續同一條，呼叫端傳進來的 callback 已經是
+         * 整批的最新版本。
          */
-        function show(content, onUndo, onExpire) {
-            if (current) {
-                const stale = current;
-
-                clearScheduled();
-                current = null;
-
-                if (stale.onExpire) {
-                    stale.onExpire();
-                }
+        function show(content, onUndo, onExpire, expirePrevious) {
+            if (!ensure()) {
+                return;
             }
 
-            activate(content, onUndo, onExpire);
-        }
+            if (expirePrevious && current && current.onExpire) {
+                current.onExpire();
+            }
 
-        /**
-         * 延續現有這條（移除多件時合併成同一條、重新計時）。沒有現有的就
-         * 等同 show——這裡不呼叫舊的 onExpire，因為呼叫端傳進來的 onUndo／
-         * onExpire 本來就是同一批待復原項目的最新版本。
-         */
-        function update(content, onUndo, onExpire) {
-            activate(content, onUndo, onExpire);
+            current = { onUndo: onUndo, onExpire: onExpire };
+            hovering = false;
+            focused = false;
+            remaining = UNDO_DURATION_MS;
+            scheduleTick();
+
+            // 即時區域在 display:none 時內容變動不會被唸，先顯示、下一格再寫字
+            el.classList.add('active');
+            contentEl.textContent = '';
+            requestAnimationFrame(function () {
+                contentEl.textContent = content;
+            });
         }
 
         function focusUndo() {
-            if (current && actionEl) {
+            if (current) {
                 actionEl.focus();
             }
         }
 
-        return { show: show, update: update, focusUndo: focusUndo };
+        return { show: show, focusUndo: focusUndo };
     })();
-
-    const BUTTON_SELECTOR = '[data-favorite-button], [data-favorite-card]';
 
     /**
      * 可及名稱固定不變，狀態只靠 aria-pressed 與實心／空心愛心表達（WAI-ARIA
@@ -380,10 +298,8 @@ window.UqFavorites = (function () {
     }
 
     /**
-     * 整頁重畫而不是只畫被按的那一顆：同一件商品在同一頁可能有好幾顆愛心
-     * （男女適穿的商品同時在男裝與女裝段），漏畫的那顆停在舊狀態，使用者
-     * 再按一次就把剛收藏的刪掉了。localStorage 只讀一次，清單頁上千張卡片
-     * 不必各自 JSON.parse。
+     * 一律整頁重畫：同一件商品在同一頁可能有好幾顆愛心（男女適穿的商品同時在
+     * 男裝與女裝段），漏畫的那顆停在舊狀態，使用者再按一次就把剛收藏的刪掉了。
      */
     function paintAll(root) {
         const favorites = read();
@@ -393,30 +309,41 @@ window.UqFavorites = (function () {
         });
     }
 
-    /**
-     * 綁定每一列的移除按鈕。
-     *
-     * 按下就整列立刻消失、資料也立刻寫掉，不是「先確認」——復原走的是提示條
-     * 的 8 秒，不是攔住這次點擊。連續按好幾顆會合併成同一條提示、復原一次
-     * 全部拿回來；復原用的是原本的 addedAt，不是重新收藏的新時間，所以商品
-     * 會回到原來的排序位置。
-     *
-     * onChange 收到的是畫面上還剩幾列，跟移除之前一樣。
-     */
-    function bindRemoveButtons(container, options, onChange) {
-        let pending = null; // { key: { snapshot, row } }，只在還沒過期／還沒復原前存在
+    function bindAll(root) {
+        const scope = root || document;
 
-        function undoLabel(count) {
-            return count === 1 ? '已移除收藏' : ('已移除 ' + count + ' 件收藏');
+        paintAll(scope);
+
+        scope.querySelectorAll(BUTTON_SELECTOR).forEach(function (button) {
+            button.addEventListener('click', function () {
+                toggle(button.dataset.brand, button.dataset.productCode);
+                paintAll();
+            });
+        });
+    }
+
+    // iOS 15.4 以前不認得 :focus-visible，matches 會直接丟例外
+    function isKeyboardFocused(element) {
+        try {
+            return element.matches(':focus-visible');
+        } catch (e) {
+            return false;
         }
+    }
 
-        /**
-         * 復原不重新整份重抓——收藏很多的使用者反覆「移除→復原」時，每次
-         * 都整份重抓會在一分鐘內就把 throttle:60,1 的額度用完（PR 審查留言
-         * 4057184148）。移除的當下那個列元素只是從畫面上 detach，資料跟
-         * 綁定的事件都還在，復原就是照 sortedKeys 的順序把它們塞回去，
-         * 完全不用打伺服器。
-         */
+    function rowsIn(container) {
+        return container.querySelectorAll('[data-favorite-key]');
+    }
+
+    /**
+     * 收藏頁每一列的移除鈕：直接移除，再給 8 秒復原，不先跳確認。連續移除會
+     * 併成同一條提示、一次復原全部；復原保留原本的 addedAt，商品回到原位。
+     * 復原把移除時拿下來的那一列塞回去，不重抓伺服器，反覆移除與復原才不會
+     * 撞到限流。
+     */
+    function bindRemoveButtons(container, onChange) {
+        let pending = null; // { key: { snapshot, row } }
+
         function restore(entries) {
             const favorites = read();
 
@@ -424,75 +351,46 @@ window.UqFavorites = (function () {
                 favorites[key] = entries[key].snapshot;
             });
 
-            // 跟清空那條一樣：寫不進去就不要假裝復原成功。
             if (!write(favorites)) {
                 showState('favorites-error', '復原失敗，收藏沒有存回去');
 
                 return;
             }
 
-            // 現在確定會有東西要顯示了，先把「都已下架／還沒有收藏」這類
-            // 空狀態收起來，等下面的 onChange 用真正的筆數重新判斷一次。
             showState(null);
 
             const order = sortedKeys(favorites);
+            let firstRestored = null;
 
-            order.forEach(function (key) {
+            order.forEach(function (key, position) {
                 const entry = entries[key];
 
-                if (!entry || !entry.row) {
+                // 別的分頁觸發過整份重畫時，這筆已經有新的一列，舊的不能再塞回去
+                if (!entry || !entry.row || container.querySelector('[data-favorite-key="' + key + '"]')) {
                     return;
                 }
 
-                // 這筆在畫面上已經有列了（例如另一個分頁的異動觸發了
-                // storage 事件、整份重新渲染過），不要把 detach 的舊節點
-                // 又塞進去，會變成同一筆兩列。
-                if (container.querySelector('[data-favorite-key="' + key + '"]')) {
-                    return;
-                }
+                const insertBefore = order.slice(position + 1).reduce(function (found, laterKey) {
+                    return found || container.querySelector('[data-favorite-key="' + laterKey + '"]');
+                }, null);
 
-                let insertBefore = null;
-
-                for (let i = order.indexOf(key) + 1; i < order.length; i += 1) {
-                    const candidate = container.querySelector('[data-favorite-key="' + order[i] + '"]');
-
-                    if (candidate) {
-                        insertBefore = candidate;
-                        break;
-                    }
-                }
-
-                if (insertBefore) {
-                    container.insertBefore(entry.row, insertBefore);
-                } else {
-                    container.appendChild(entry.row);
-                }
+                container.insertBefore(entry.row, insertBefore);
+                firstRestored = firstRestored || entry.row;
             });
 
-            onChange(container.querySelectorAll('[data-favorite-key]').length);
-
-            const firstRestored = order.find(function (key) {
-                return entries[key] && entries[key].row && entries[key].row.isConnected;
-            });
+            onChange(rowsIn(container).length);
 
             if (firstRestored) {
-                entries[firstRestored].row.querySelector('[data-favorite-remove]').focus();
-            }
-        }
-
-        // iOS 15.4 以前不認得 :focus-visible，matches 會直接丟例外
-        function isKeyboardFocused(element) {
-            try {
-                return element.matches(':focus-visible');
-            } catch (e) {
-                return false;
+                firstRestored.querySelector('[data-favorite-remove]').focus();
             }
         }
 
         function nextVisibleRemoveButton(row) {
-            for (let next = row && row.nextElementSibling; next; next = next.nextElementSibling) {
-                if (!next.hidden && next.querySelector('[data-favorite-remove]')) {
-                    return next.querySelector('[data-favorite-remove]');
+            for (let next = row.nextElementSibling; next; next = next.nextElementSibling) {
+                const button = next.hidden ? null : next.querySelector('[data-favorite-remove]');
+
+                if (button) {
+                    return button;
                 }
             }
 
@@ -500,16 +398,12 @@ window.UqFavorites = (function () {
         }
 
         container.querySelectorAll('[data-favorite-remove]').forEach(function (control) {
-            control.addEventListener('click', function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-
+            control.addEventListener('click', function () {
                 const brand = control.dataset.brand;
                 const code = control.dataset.code;
                 const key = keyOf(brand, code);
                 const snapshot = read()[key];
 
-                // 寫不進去（或這筆其實已經不在收藏裡）就不要動畫面
                 if (!snapshot || !remove(brand, code)) {
                     return;
                 }
@@ -518,29 +412,24 @@ window.UqFavorites = (function () {
                 const usingKeyboard = isKeyboardFocused(control);
                 const nextRemove = nextVisibleRemoveButton(row);
 
-                if (row) {
-                    row.remove();
-                }
+                row.remove();
+                onChange(rowsIn(container).length);
 
-                onChange(container.querySelectorAll('[data-favorite-key]').length);
-
-                if (!pending) {
-                    pending = {};
-                }
-
+                pending = pending || {};
                 pending[key] = { snapshot: snapshot, row: row };
 
                 const batch = pending;
+                const count = Object.keys(batch).length;
 
-                Snackbar.update(undoLabel(Object.keys(batch).length), function () {
+                Snackbar.show(count === 1 ? '已移除收藏' : ('已移除 ' + count + ' 件收藏'), function () {
                     pending = null;
                     restore(batch);
                 }, function () {
                     pending = null;
                 });
 
-                // 按鈕跟著整列消失，焦點會掉回頁首。只在鍵盤操作時把焦點移進
-                // 提示條：焦點停在那裡會暫停倒數，滑鼠使用者不該被卡住
+                // 按鈕跟著整列消失，焦點會掉回頁首。焦點停在提示條裡會暫停倒數，
+                // 所以只在鍵盤操作時才移進去
                 if (nextRemove) {
                     nextRemove.focus();
                 } else if (usingKeyboard) {
@@ -551,11 +440,8 @@ window.UqFavorites = (function () {
     }
 
     /**
-     * 清空收藏：按鈕不直接清空，先開確認視窗；確認後才真的清空，並且一樣給
-     * 8 秒的復原提示條。三個「清空收藏」入口（工具列、都已下架、載入失敗）
-     * 共用同一顆對話視窗，只在 DOMContentLoaded 綁一次——不能放進 bindAll，
-     * 那個會在每次 renderPage 重新渲染卡片時被呼叫，重複綁定會讓對話視窗的
-     * 按鈕跟背景關閉都疊加好幾份監聽。
+     * 清空收藏：先確認，確認後一樣給 8 秒復原。工具列、都已下架、載入失敗三個
+     * 入口共用同一顆對話視窗。
      */
     function bindClearAll() {
         const dialog = document.getElementById('favorites-clear-modal');
@@ -576,9 +462,8 @@ window.UqFavorites = (function () {
             }
         }
 
-        // Tocas 的對話視窗只是加上 open 屬性，不是原生 <dialog>.showModal()，
-        // 不會自動把背景變成不可聚焦，Tab 陷阱要自己顧：只在「已經在第一個／
-        // 最後一個可聚焦元素」時攔截，其餘照瀏覽器原生 tab 順序走。
+        // Tocas 的對話視窗只是加上 open 屬性，不是 showModal()，背景仍可聚焦，
+        // Tab 要自己困在視窗裡
         dialog.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
                 event.stopPropagation();
@@ -592,11 +477,12 @@ window.UqFavorites = (function () {
                 return;
             }
 
-            const focusables = Array.prototype.slice
-                .call(dialog.querySelectorAll('button, [href], [tabindex]'))
-                .filter(function (candidate) {
+            const focusables = Array.prototype.filter.call(
+                dialog.querySelectorAll('button, [href], [tabindex]'),
+                function (candidate) {
                     return candidate.offsetParent !== null;
-                });
+                },
+            );
 
             if (focusables.length === 0) {
                 return;
@@ -614,10 +500,8 @@ window.UqFavorites = (function () {
             }
         });
 
+        // 關閉鈕維持 Tocas 原生的 <i class="close icon">（排版依賴它），自己補鍵盤操作
         if (closeIcon) {
-            // 原生的 <i> 不會自己把 Enter／空白鍵轉成 click，用真的 button
-            // 會動到 Tocas 對「關閉鈕在對話視窗左上角」的排版假設，這裡補
-            // 鍵盤事件、外觀跟位置維持 Tocas 原生的 close icon。
             closeIcon.addEventListener('keydown', function (event) {
                 if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
@@ -637,6 +521,7 @@ window.UqFavorites = (function () {
         }
 
         ts(dialog).modal({
+            // 確認鈕是 negative 外觀，Tocas 預設把 .negative 當拒絕，所以明確指定
             approve: '.js-favorites-clear-confirm',
             deny: '.js-favorites-clear-cancel',
             onDeny: function () {
@@ -647,24 +532,18 @@ window.UqFavorites = (function () {
             onApprove: function () {
                 const snapshot = read();
 
-                // 寫不進去就不要動畫面：收藏其實還在，硬清空畫面會讓使用者
-                // 以為真的清掉了
                 if (!write({})) {
                     showState('favorites-error', '清空失敗，請再試一次');
 
                     return true;
                 }
 
-                // 清空成功了，不管畫面上是不是還在等一輪 renderPage 的回應，
-                // 都要讓那一輪過期——回應晚到時才不會把清空後的畫面蓋回去。
                 invalidatePendingRender();
 
                 const container = document.getElementById('favorites-cards');
 
                 container.innerHTML = '';
                 syncToolbar();
-                // 清空後重算一次：篩選鈕與「找不到符合的商品」空狀態都要
-                // 跟著收起來，不然開著篩選時清空會同時看到兩種空狀態
                 applyOfferFilter(container);
                 showState('favorites-empty', DEFAULT_SUMMARY);
 
@@ -675,9 +554,6 @@ window.UqFavorites = (function () {
                         favorites[key] = snapshot[key];
                     });
 
-                    // 跟清空那條一樣：寫不進去（storage 剛好滿了）就不要假裝復原
-                    // 成功——不重新載入，直接說清楚，不然畫面會安靜地維持在
-                    // 「還沒有收藏任何商品」，使用者以為那是正常的空清單。
                     if (!write(favorites)) {
                         showState('favorites-error', '復原失敗，收藏沒有存回去');
 
@@ -685,7 +561,7 @@ window.UqFavorites = (function () {
                     }
 
                     renderPage(currentOptions);
-                }, function () {});
+                }, null, true);
 
                 restoreFocus();
 
@@ -696,8 +572,7 @@ window.UqFavorites = (function () {
         document.querySelectorAll('[data-favorites-clear]').forEach(function (button) {
             button.addEventListener('click', function () {
                 lastTrigger = button;
-                // N 要看瀏覽器裡實際存的總數，包含下架、伺服器查不到而沒有
-                // 顯示成商品列的那些——items() 讀的是 localStorage，不是畫面。
+                // 數的是瀏覽器裡存的筆數，包含已下架、畫面上沒有列的那些
                 countEl.textContent = items().length;
                 ts(dialog).modal('show');
                 cancelBtn.focus();
@@ -705,25 +580,14 @@ window.UqFavorites = (function () {
         });
     }
 
-    /**
-     * master 版型的 lazy-load 腳本只在 DOMContentLoaded 跑一次，
-     * 之後動態插進來的圖片不會被處理，data-src 永遠不會搬到 src。
-     */
+    // master 版型的 lazy-load 只處理頁面載入當下就在的圖片
     function revealLazyImages(container) {
         container.querySelectorAll('img[data-src]').forEach(function (img) {
             img.src = img.dataset.src;
         });
     }
 
-    /**
-     * 三種空的情況要分開講：完全沒收藏、收藏的商品都下架了、以及這次載入失敗。
-     * 講成同一句會讓使用者以為自己的收藏不見了。
-     */
-    /**
-     * 「清空收藏」在工具列上，一件收藏都沒有的時候整條工具列不該佔版面。
-     * 判準看 localStorage 還剩幾筆，不是畫面上還剩幾列——下架的商品換不到卡片，
-     * 本來就不會出現在畫面上，但它們還在收藏裡、還清得掉。
-     */
+    // 看的是存了幾筆、不是畫面上幾列：已下架的商品沒有列，但還在收藏裡、還清得掉
     function syncToolbar() {
         const toolbar = document.getElementById('favorites-toolbar');
 
@@ -750,11 +614,8 @@ window.UqFavorites = (function () {
             : '操作太頻繁，請稍後再試一次';
     }
 
-    /**
-     * 頁首件數要跟清空收藏確認視窗數的是同一批（瀏覽器裡真正存起來的筆數），
-     * 不是畫面上列出來的卡片數——商品下架時，那筆還在收藏裡、只是換不到卡片，
-     * 兩個數字不一樣使用者會以為收藏憑空消失了，所以要附註找不到幾件。
-     */
+    // 件數跟清空確認視窗一致，是存了幾筆；換不到卡片的（已下架）另外註明，
+    // 不然使用者會以為收藏憑空少了
     function summaryFor(totalStored, notFoundCount) {
         if (notFoundCount > 0) {
             return '共 ' + totalStored + ' 件，其中 ' + notFoundCount + ' 件已經找不到，只存在這個瀏覽器';
@@ -764,28 +625,13 @@ window.UqFavorites = (function () {
     }
 
     /**
-     * 「只看優惠中」篩選：純前端即時篩選，不記住狀態（勾選框本身就是 DOM
-     * 狀態，重新整理頁面自然回到預設關閉，不用額外程式碼清掉）。
-     *
-     * data-on-offer 是後端算好寫進每一列的明確狀態（見
-     * favorites/cards.blade.php、HmallProductPresenter::isOnOffer()），這裡
-     * 只讀這個屬性，不解析文字或顏色。
-     */
-    function isOfferFilterOn() {
-        const checkbox = document.getElementById('favorites-offer-filter');
-
-        return !!checkbox && checkbox.checked;
-    }
-
-    /**
-     * 每次卡片重新渲染（載入、移除、復原、清空後復原）都要重跑一次：篩選
-     * 開關本身活在工具列裡不會被清掉，但卡片是新的，符合資格的筆數、要不要
-     * 顯示「找不到符合的商品」都要重算。
+     * 「只看優惠中」：純前端篩選、不記住狀態。是否優惠中由伺服器算好寫在
+     * data-on-offer。每次卡片變動後都要重算。
      */
     function applyOfferFilter(container) {
-        const on = isOfferFilterOn();
-        const rows = Array.prototype.slice.call(container.querySelectorAll('[data-favorite-key]'));
-        const total = rows.length;
+        const checkbox = document.getElementById('favorites-offer-filter');
+        const on = !!checkbox && checkbox.checked;
+        const rows = rowsIn(container);
         let matched = 0;
 
         rows.forEach(function (row) {
@@ -801,17 +647,16 @@ window.UqFavorites = (function () {
         const control = document.getElementById('favorites-filter-control');
         const summaryEl = document.getElementById('favorites-filter-summary');
         const filteredEmpty = document.getElementById('favorites-filter-empty');
-        // 有卡片、篩選開著、但一件都不符合：要顯示專用的空結果，不是
-        // 「還沒有收藏任何商品」——使用者其實有收藏，只是這次篩選沒有結果
-        const noMatches = total > 0 && on && matched === 0;
+        // 有收藏、只是篩選後沒有結果，要用專屬的空狀態，不是「還沒有收藏」
+        const noMatches = rows.length > 0 && on && matched === 0;
 
         if (control) {
-            control.hidden = total === 0;
+            control.hidden = rows.length === 0;
         }
 
         if (summaryEl) {
             summaryEl.textContent = on
-                ? ('顯示 ' + matched + '／共 ' + total + ' 件')
+                ? ('顯示 ' + matched + '／共 ' + rows.length + ' 件')
                 : ('優惠中 ' + matched);
         }
 
@@ -822,42 +667,31 @@ window.UqFavorites = (function () {
         container.hidden = noMatches;
     }
 
-    /**
-     * 篩選勾選框跟「顯示全部」只需要在 DOMContentLoaded 綁一次：勾選框本身
-     * 住在工具列，不在 #favorites-cards 裡面，renderPage 重新渲染卡片時
-     * 不會把它們洗掉。
-     */
     function bindOfferFilter() {
         const checkbox = document.getElementById('favorites-offer-filter');
         const showAllButton = document.getElementById('favorites-filter-show-all');
         const container = document.getElementById('favorites-cards');
 
-        if (checkbox) {
-            checkbox.addEventListener('change', function () {
-                applyOfferFilter(container);
-            });
+        if (!checkbox) {
+            return;
         }
+
+        checkbox.addEventListener('change', function () {
+            applyOfferFilter(container);
+        });
 
         if (showAllButton) {
             showAllButton.addEventListener('click', function () {
-                if (checkbox) {
-                    checkbox.checked = false;
-                }
-
+                checkbox.checked = false;
                 applyOfferFilter(container);
-
-                if (checkbox) {
-                    checkbox.focus();
-                }
+                checkbox.focus();
             });
         }
     }
 
     /**
-     * 逾時是每一批各自計算，不是整份清單共用：分好幾批送時，前面幾批慢不該
-     * 連坐後面。讀回應本體也在逾時範圍內，連線卡在傳本體時一樣會放棄。
-     * 外面傳進來的 signal 代表「這一輪已經被新的一輪取代」，跟逾時走同一顆
-     * controller，呼叫端不用分開處理。
+     * 逾時每一批各自計算，前面幾批慢不連坐後面；讀回應本體也算在內。外面傳進來
+     * 的 signal 代表這一輪已被取代，跟逾時共用同一顆 controller。
      */
     async function requestCardsBatch(cardsUrl, batchItems, signal) {
         const controller = new AbortController();
@@ -899,9 +733,7 @@ window.UqFavorites = (function () {
         }
     }
 
-    /**
-     * 任一批失敗就整份失敗：只渲染一半的清單比讀不到更難懂。
-     */
+    // 任一批失敗就整份失敗：只列出一半的清單比讀不到更難懂
     async function fetchCards(options, wanted, signal) {
         let html = '';
 
@@ -912,12 +744,6 @@ window.UqFavorites = (function () {
         return html;
     }
 
-    /**
-     * 清空收藏不是走 renderPage，是直接操作畫面（見 bindClearAll 的
-     * onApprove），所以載入途中按清空時，要自己讓正在等待的那一輪 renderPage
-     * 過期並 abort 掉它的請求——不然那些回應晚到時，還是會把已經清空的畫面
-     * 蓋回 300 張卡片（PR 審查留言 4057184136 講的就是這個）。
-     */
     function invalidatePendingRender() {
         renderToken += 1;
 
@@ -926,26 +752,14 @@ window.UqFavorites = (function () {
             currentController = null;
         }
 
-        const loading = document.getElementById('favorites-loading');
-
-        if (loading) {
-            loading.hidden = true;
-        }
+        document.getElementById('favorites-loading').hidden = true;
     }
 
     async function renderPage(options) {
         currentOptions = options;
+        invalidatePendingRender();
 
-        // 新的一輪一律讓上一輪過期，並且真的把它的請求 abort 掉——不然清空
-        // 收藏、或連按兩次重新載入時，晚到的回應還是會把畫面蓋回去（見
-        // fetchCards 的逾時／取消共用同一顆 controller 的說明）。
-        renderToken += 1;
         const token = renderToken;
-
-        if (currentController) {
-            currentController.abort();
-        }
-
         const controller = new AbortController();
 
         currentController = controller;
@@ -957,24 +771,19 @@ window.UqFavorites = (function () {
 
         container.innerHTML = '';
         showState(null);
-        // 重新載入前先歸零：0 張卡片時篩選鈕本來就該藏起來，等新內容渲染完
-        // 再重算一次真正的筆數
         applyOfferFilter(container);
+        syncToolbar();
 
         document.getElementById('favorites-retry').onclick = function () {
             renderPage(options);
         };
 
-        syncToolbar();
-
         if (wanted.length === 0) {
-            loading.hidden = true;
             showState('favorites-empty', DEFAULT_SUMMARY);
 
             return;
         }
 
-        // 「載入中」要在等回應的時候看得到，所以顯示與收起都夾著 fetch
         loading.hidden = false;
 
         let html;
@@ -982,128 +791,71 @@ window.UqFavorites = (function () {
         try {
             html = await fetchCards(options, wanted, controller.signal);
         } catch (e) {
-            // 這一輪已經被更新的一輪（或清空收藏）取代了，不管是逾時、取消
-            // 還是真的失敗，都不該再動畫面——畫面現在該長什麼樣是新的那輪
-            // 的事。
-            if (token !== renderToken) {
-                return;
-            }
-
-            if (e && e.status === 429) {
-                showState('favorites-error', throttledMessage(e.retryAfter));
-            } else {
-                showState('favorites-error', '收藏清單還在你的瀏覽器裡');
+            if (token === renderToken) {
+                loading.hidden = true;
+                showState('favorites-error', e.status === 429 ? throttledMessage(e.retryAfter) : '收藏清單還在你的瀏覽器裡');
             }
 
             return;
-        } finally {
-            if (token === renderToken) {
-                loading.hidden = true;
-            }
         }
 
         if (token !== renderToken) {
             return;
         }
 
+        loading.hidden = true;
         container.innerHTML = html;
         revealLazyImages(container);
-        // 動態插進來的內容不在 DOMContentLoaded 那一輪裡，要自己綁一次
         bindAll(container);
-
-        // 商品可能已經下架，回來的卡片會比收藏的少
-        const rendered = container.querySelectorAll('[data-favorite-key]');
-
-        // 篩選開關本身不受下架影響，一律重算：0 張卡片時它會自己藏起來
         applyOfferFilter(container);
 
-        // 有收藏、但回來的卡片是空的，代表那些商品都下架了
-        if (rendered.length === 0) {
+        const rendered = rowsIn(container).length;
+
+        // 有收藏卻一張卡都換不到，代表全部下架了
+        if (rendered === 0) {
             showState('favorites-gone');
 
             return;
         }
 
-        bindRemoveButtons(container, options, function (remaining) {
+        summary.textContent = summaryFor(wanted.length, wanted.length - rendered);
+
+        bindRemoveButtons(container, function (remaining) {
+            const totalStored = items().length;
+
             syncToolbar();
             applyOfferFilter(container);
 
             if (remaining > 0) {
-                const totalStored = items().length;
-
                 summary.textContent = summaryFor(totalStored, totalStored - remaining);
-
-                return;
-            }
-
-            /*
-             * 畫面上沒有列了不代表收藏是空的：下架的商品換不到卡片，本來就
-             * 不會出現在畫面上。判準要看 localStorage 還剩幾筆，否則 5 筆收藏
-             * 有 3 筆下架時，移完 2 列會說「還沒有收藏任何商品」，重新整理
-             * 又變成「都已下架」。
-             */
-            if (items().length === 0) {
+            } else if (totalStored === 0) {
                 showState('favorites-empty', DEFAULT_SUMMARY);
-
-                return;
+            } else {
+                // 畫面上沒有列了，但收藏裡還有換不到卡片的已下架商品
+                showState('favorites-gone');
             }
-
-            showState('favorites-gone');
-        });
-
-        showState(null);
-
-        summary.textContent = summaryFor(wanted.length, wanted.length - rendered.length);
-    }
-
-    function bindAll(root) {
-        const scope = root || document;
-
-        paintAll(scope);
-
-        scope.querySelectorAll(BUTTON_SELECTOR).forEach(function (button) {
-            button.addEventListener('click', function () {
-                toggle(button.dataset.brand, button.dataset.productCode);
-                paintAll();
-            });
         });
     }
 
     /**
-     * 只在同一個瀏覽器的「別的」分頁改動 localStorage 時才會觸發——這個分頁
-     * 自己寫不會觸發自己的 storage 事件，不用擔心跟 renderPage／toggle 打架。
-     *
-     * 在收藏頁（currentOptions 已經設過，代表 renderPage 至少跑過一次）：
-     * 直接重新整理整份清單，最簡單也最不容易漏掉「這筆從別的分頁被移除了」
-     * 這種要整理排序、summary、空狀態的情況。
-     *
-     * 在其他頁（商品頁、清單頁的卡片）：沒有清單可以重新整理，改成只重新
-     * 上色目前畫面上已經綁定的按鈕。
+     * 別的分頁改了收藏（同一個分頁自己寫不會觸發 storage 事件）。收藏頁整份
+     * 重畫；收藏頁在背景時先記著，回到前景才重抓，不然使用者在別的分頁每按
+     * 一次愛心就整份重抓一次，很快撞到限流。
      */
-    let staleWhileHidden = false;
-
     function bindStorageSync() {
         window.addEventListener('storage', function (event) {
-            // key 是 null 代表整個 localStorage 被 clear()，也要當成有變動處理。
+            // key 是 null 代表整個 localStorage 被 clear()
             if (event.key !== null && event.key !== STORAGE_KEY) {
                 return;
             }
 
             if (!currentOptions) {
                 paintAll();
-
-                return;
-            }
-
-            // 收藏頁在背景時，使用者在別的分頁每按一次愛心都整份重抓，很快就
-            // 撞到限流，捲動位置也會跳回頂端；先記著，回到前景再重抓一次。
-            if (document.hidden) {
+            } else if (document.hidden) {
                 staleWhileHidden = true;
-
-                return;
+            } else {
+                renderPage(currentOptions);
             }
-
-            renderPage(currentOptions);
         });
 
         document.addEventListener('visibilitychange', function () {
@@ -1114,22 +866,12 @@ window.UqFavorites = (function () {
         });
     }
 
-    return {
-        has: has,
-        toggle: toggle,
-        remove: remove,
-        items: items,
-        bindAll: bindAll,
-        bindClearAll: bindClearAll,
-        bindOfferFilter: bindOfferFilter,
-        bindStorageSync: bindStorageSync,
-        renderPage: renderPage,
-    };
-})();
+    document.addEventListener('DOMContentLoaded', function () {
+        bindAll();
+        bindClearAll();
+        bindOfferFilter();
+        bindStorageSync();
+    });
 
-document.addEventListener('DOMContentLoaded', function () {
-    window.UqFavorites.bindAll();
-    window.UqFavorites.bindClearAll();
-    window.UqFavorites.bindOfferFilter();
-    window.UqFavorites.bindStorageSync();
-});
+    return { renderPage: renderPage };
+})();
