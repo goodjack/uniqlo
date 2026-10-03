@@ -8,8 +8,7 @@ use Illuminate\Support\Collection;
 class HomeController extends Controller
 {
     /**
-     * 首頁每個區塊顯示幾張卡片。桌機是 .ts.doubling.link.cards.six，一排剛好
-     * 六張放滿，不用再往下捲；手機 doubling 成兩欄，一區塊三排。
+     * 跟卡片 grid 的 six 欄數一致：桌機剛好一排。
      */
     private const PRODUCTS_PER_SECTION = 6;
 
@@ -33,11 +32,8 @@ class HomeController extends Controller
      * 熱門瀏覽排第一：那份排名是這個站自己的流量資料，站內其他頁面都看不到，
      * 其餘三組在對應的清單頁都找得到。
      *
-     * 四組資料走的是 HmallProductRepository 的 Cache::has() 模式：平時排程
-     * 已經預熱好，首頁只讀快取；但快取沒暖（cache:clear 之後、換新機器部署、
-     * 或某支查詢從沒成功寫入過）時，第一個打進來的人會就地跑那支查詢，沒有
-     * 互斥鎖——同一時間有幾個人打進來，就會有幾份人各自跑一份相同的查詢，
-     * 其中 top-wearing 那支還帶一個 style_hint_items 的 group-by 子查詢 join。
+     * 已知風險：四組資料平時由排程預熱；快取被清掉後，第一批訪客會各自就地
+     * 跑一次查詢（沒有互斥鎖）。
      */
     private function getSections(): Collection
     {
@@ -85,9 +81,7 @@ class HomeController extends Controller
                     'products' => collect($products)->take(self::PRODUCTS_PER_SECTION),
                 ];
             })
-            // 該清單當天沒有商品，或「大家都在看」跟 GA 拿資料失敗退回空集合時
-            // （見 HmallProductRepository::setMostVisitedHmallProductsCache()），
-            // 整個區塊不出現，而不是留一排空白。
+            // 清單當天沒商品（或 GA 取不到瀏覽資料）時整個區塊不出現
             ->filter(fn (array $section) => $section['products']->isNotEmpty())
             ->values();
     }
