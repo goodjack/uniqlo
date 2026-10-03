@@ -3,15 +3,10 @@
 namespace App\Support;
 
 /**
- * 排程步驟留給彙整通知的說明文字。
+ * 指令留給 AppSchedule 彙整通知的說明文字（AppSchedule 只拿得到 exit code）。
  *
- * AppSchedule 只看得到每個步驟的 exit code，所以同樣是「部分成功」的兩種狀況在
- * 通知裡長得一模一樣。指令自己知道這一輪發生什麼事，跑完把說明留在這裡，
- * AppSchedule 彙整通知時取走，通知就分得出差別。
- *
- * 綁成 singleton，指令與排程才拿得到同一份（同一個 process 裡 $this->call()
- * 跑完一個步驟就會回到 AppSchedule）。取走即刪：排程對兩個品牌各跑一次同一個
- * 指令，上一次的說明不可以貼到下一次的通知上。
+ * 綁成 singleton，同一個 process 裡指令與排程才拿到同一份。取走即刪：同一個指令
+ * 會對兩個品牌各跑一次，上一次的說明不能貼到下一次。
  */
 final class TaskNotes
 {

@@ -101,8 +101,7 @@ class HmallProduct extends Model
     /**
      * Get whether the product is ec only or not.
      *
-     * ProductTag 沒有對應的 case（ECONLY 在那邊只是「網路獨家」的其中一個代碼，
-     * 不是自己一個標籤），所以這個保留原本的實作。
+     * 不走 ProductTag：ECONLY 在那邊只是「網路獨家」的其中一個代碼。
      *
      * @return bool
      */
@@ -202,8 +201,7 @@ class HmallProduct extends Model
     /**
      * Get whether the product is app offer or not.
      *
-     * ProductTag 沒有對應的 case（APP 已經從期間限定拿掉，它講的是通路不是檔期），
-     * 所以這個保留原本的實作。
+     * 不走 ProductTag：APP 講的是通路不是檔期，不屬於期間限定。
      *
      * @return bool
      */
@@ -305,14 +303,10 @@ class HmallProduct extends Model
     }
 
     /**
-     * 目前的價格就是有記錄以來的最低。
+     * 目前的價格就是有記錄以來的最低，給篩選用（ProductTag::LowestPrice 讀它）。
      *
-     * 這個刻意不委派給 ProductTag::LowestPrice：那個標籤的 matches() 讀的就是
-     * 這個 accessor，反過來委派會無限遞迴。
-     *
-     * 這是給篩選用的，跟卡片上那個「歷史新低價」標籤不同：那個標籤刻意排除官方
-     * 標為特價的商品，否則特價期間整頁會同時掛兩個標籤、互相干擾。但使用者想在
-     * 特價清單裡找「這波真的是史上最低」的商品時，要的正是被那個條件擋掉的東西。
+     * 跟卡片上的「歷史新低價」標籤不同：那個標籤排除了官方特價中的商品，
+     * 而使用者在特價清單裡找「這波是史上最低」時要的正是那些。
      */
     public function getIsAtLowestPriceAttribute(): bool
     {

@@ -64,35 +64,14 @@ class HmallProductService extends Service
     }
 
     /**
-     * 抓一個品牌的完整商品目錄。
+     * 抓一個品牌的完整商品目錄，最後做缺貨判定。
      *
-     * 缺貨判定（setStockoutHmallProducts）的作法是把 updated_at 比今天早的商品
-     * 標成下架，前提是這一輪真的把整份目錄看過一遍——少看任何一段，那一段的商品
-     * 都會被誤判。所以它只在「這次從第 1 頁開始，而且每一頁都完整抓到」時才跑。
+     * 缺貨判定是把 updated_at 早於今天的商品標成下架，前提是這一輪真的把整份目錄
+     * 看過一遍；看漏的那一段會被整批誤判成下架。所以只有「從第 1 頁開始、每一頁
+     * 都抓到、而且至少看到一件商品」才做。整頁沒抓到＝目錄有缺口，不做；頁面抓到
+     * 但個別商品寫不進去＝目錄其實看完了，照做但排除那幾件，不然它們會被冤枉下架。
      *
-     * 這個前提原本沒有被檢查，實際會這樣壞：某天中途幾頁失敗，後面成功的頁仍然
-     * 推進 checkpoint，當天結束時 checkpoint 停在最後一頁之後；隔天排程不帶
-     * --fresh，從那裡起跑、只抓到一頁空的、沒有任何失敗，於是缺貨判定照跑，把整個
-     * 品牌的商品全部標成下架，站上當天整片消失、後天才復原。
-     *
-     * 失敗分兩種，處理方式完全不同，不能混成同一個旗標：
-     *
-     * 1. 整頁沒抓到（HTTP 失敗、回傳格式不對）＝目錄不完整，缺貨判定一定不能做。
-     * 2. 頁面完整抓到、只有個別商品寫不進資料庫＝整份目錄其實都看過了，只是那幾件
-     *    的 updated_at 沒被摸到。這時候照跑缺貨判定會把那幾件冤枉標成下架，所以
-     *    改成「跑，但把那幾件排除掉」。
-     *
-     * 混在一起的後果是缺貨判定永遠不會執行：只要有一件商品固定寫不進去，第一天
-     * 完整掃完會被當成部分失敗而保留 checkpoint，第二天從 checkpoint 續跑抓到空頁
-     * 又因為不是完整掃描而跳過，第三天回到第一天——已經下架的商品就一直掛在站上。
-     *
-     * 「每一頁都抓到了」還不足以當成「整份目錄看過一遍」：官網回 HTTP 200、JSON
-     * 合法、但 productList 是空陣列時（WAF 軟擋、上游過濾條件跑掉、暫時無資料都
-     * 長這樣），上面每個條件都成立，缺貨判定卻會把整個品牌標成下架而且回報成功。
-     * 所以還要看這一輪實際看到幾件商品，一件都沒看到就不做缺貨判定。
-     *
-     * 回傳值除了結果本身，還帶一句說明：部分成功有好幾種，通知只寫「部分成功」
-     * 看不出這一輪到底有沒有做缺貨判定。
+     * 回傳的說明文字是給通知看的：同樣是「部分成功」，有沒有做缺貨判定處理方式不同。
      */
     public function fetchAllHmallProducts($brand = 'UNIQLO', bool $fresh = false): CrawlResult
     {
@@ -105,39 +84,31 @@ class HmallProductService extends Service
 
         $cacheKey = sprintf(self::CACHE_KEY_HMALL_PRODUCTS_PAGE, $brand);
 
-        // Clear checkpoint if fresh
         if ($fresh) {
             Cache::forget($cacheKey);
         }
 
         $startPage = (int) ($fresh ? 1 : (Cache::get($cacheKey) ?? 1));
-        // 缺貨判定的前提是「這次真的把整份目錄看過一遍」，所以要記住起點
         $startedFromFirstPage = $startPage === 1;
 
         $page = $startPage;
         $productSum = 0;
         $hasSucceeded = false;
-        // 整頁沒抓到：目錄有缺口
         $hasPageFailures = false;
-        // 這一輪第一個沒跑完的頁碼。每一頁成功都會把 checkpoint 往前推，失敗頁
-        // 後面只要還有成功的頁，checkpoint 就會停在失敗頁之後、那一頁永遠不補抓。
-        // 有失敗時要把 checkpoint 退回這裡。
+        // 每一頁成功都會把續跑點往後推，有失敗時要退回這裡，否則失敗頁永遠不補抓
         $firstFailedPage = null;
-        // 這一輪實際看到幾件商品。缺貨判定的守門，不能用官網回的 productSum：
-        // 那正是空目錄情境裡會騙人的那個數字。
+        // 數實際看到的件數，不信官網回的 productSum
         $productsSeen = 0;
-        // 頁面抓到了、個別商品寫不進去，而且知道是哪幾件：缺貨判定要排除它們
         $failedProductCodes = [];
-        // 同樣是個別商品寫不進去，但連商品編號都拿不到，沒辦法排除
+        // 寫不進去而且連商品編號都拿不到的件數，沒辦法從缺貨判定排除
         $unidentifiedFailures = 0;
 
         logger()->info("Fetching Hmall products for {$brand}, starting from page {$page}");
 
         do {
             try {
-                // retry 只包住「打官網、解析回傳」。寫資料庫不放進來：資料庫的問題
-                // 重打官網也修不好，以前寫在裡面，一次死鎖就會讓同一頁重新 POST
-                // 官網 N 次，最後還被歸成「整頁沒抓到」，訊息把人指向錯的方向。
+                // retry 只包住打官網與解析回傳。資料庫的問題重打官網修不好，
+                // 還會被歸成「整頁沒抓到」。
                 [$products, $productSum] = retry(
                     config('app.crawler.retry.times'),
                     function ($attempts) use ($searchApiUrl, $page, $pageSize) {
@@ -173,10 +144,6 @@ class HmallProductService extends Service
 
                 $productsSeen += collect($products)->count();
 
-                // 逐商品的寫入例外在 repository 裡被吞掉了（一筆壞資料不該
-                // 讓同一頁其他幾十件寫不進去）。這一頁的目錄內容其實看完了，
-                // 所以不算整頁失敗，但寫不進去的那幾件要記下來，最後從缺貨
-                // 判定裡排除，不然它們會被當成「今天沒看到」而標成下架。
                 $saveResult = $this->repository->saveProductsFromV3($products, $brand);
 
                 if ($saveResult->hasFailures()) {
@@ -202,7 +169,7 @@ class HmallProductService extends Service
             } catch (Throwable $e) {
                 $firstFailedPage ??= $page;
 
-                // 403 is a permanent block - stop immediately
+                // 403 是封鎖，再打只會更糟，整輪停下
                 if ($this->is403Error($e)) {
                     logger()->error('fetchAllHmallProducts blocked (403)', [
                         'brand' => $brand,
@@ -211,22 +178,19 @@ class HmallProductService extends Service
                     ]);
                     report($e);
 
-                    // 被擋的那一頁就是下次要從哪裡接著跑的那一頁
                     $this->saveCheckpoint($cacheKey, $firstFailedPage);
 
                     if (! $hasSucceeded) {
                         return new CrawlResult(CrawlOutcome::Failed);
                     }
 
-                    // 前面幾頁已經寫進資料庫了，說成「完全失敗」會讓看通知的人
-                    // 以為今天一筆新資料都沒有，跟「第 1 頁就被擋」的處理方式不同。
+                    // 前面幾頁已經寫進去了，不能說成完全失敗
                     return new CrawlResult(
                         CrawlOutcome::PartiallySucceeded,
                         "未執行缺貨判定，第 {$firstFailedPage} 頁起被擋下（403）"
                     );
                 }
 
-                // retry() exhausted - skip page and continue
                 $hasPageFailures = true;
                 logger()->error('fetchAllHmallProducts error - max retry exceeded', [
                     'brand' => $brand,
@@ -249,12 +213,6 @@ class HmallProductService extends Service
         }
 
         if ($hasPageFailures) {
-            // 有幾頁整頁沒抓到：這一輪看到的目錄是殘缺的，缺貨判定一定不能做。
-            //
-            // checkpoint 退回第一個失敗的頁碼，不是留著迴圈跑完後的值：每一頁成功
-            // 都會覆寫 checkpoint，失敗頁後面只要還有成功的頁，留下來的 checkpoint
-            // 就指到最後一頁之後，那一頁永遠不會被補抓，隔天還會從空頁起跑、
-            // 換來連續兩天沒有缺貨判定。
             logger()->error('Some pages failed - rewinding checkpoint, skipping stockout', [
                 'brand' => $brand,
                 'first_failed_page' => $firstFailedPage,
@@ -265,13 +223,11 @@ class HmallProductService extends Service
             return new CrawlResult(CrawlOutcome::PartiallySucceeded, '未執行缺貨判定，目錄有缺頁');
         }
 
-        // 每一頁都完整抓到了，checkpoint 沒有續跑的價值，一律清掉讓下一輪從第 1 頁開始。
-        // 個別商品寫入失敗不保留 checkpoint：保留只會讓隔天從空頁起跑、白白跳過一次
-        // 完整掃描，而完整掃描才是缺貨判定唯一的機會。
+        // 每一頁都抓到了，續跑點沒有用處；個別商品寫入失敗也不保留，
+        // 保留只會讓下一輪從空頁起跑、白白錯過一次完整掃描
         Cache::forget($cacheKey);
 
-        // 從 checkpoint 續跑：這次只看了目錄的後半段，前半段的商品這一輪一次都沒被
-        // updated_at 摸到，跑缺貨判定會把它們整批標成下架。缺貨判定留給下一次完整掃描。
+        // 續跑只看了目錄的後半段，前半段這一輪沒被摸到
         if (! $startedFromFirstPage) {
             logger()->info('Resumed crawl finished cleanly - stockout deferred to the next full scan', [
                 'brand' => $brand,
@@ -284,10 +240,8 @@ class HmallProductService extends Service
             );
         }
 
-        // 每一頁都抓到了，但一件商品都沒看到：官網回 200、JSON 合法、productList
-        // 是空陣列時，上面所有條件都成立，缺貨判定卻會把整個品牌標成下架，而且
-        // 回報成功、一封通知都不發。來源暫時沒資料、WAF 軟擋、上游過濾條件跑掉
-        // 都長這樣，沒有一種應該讓整個品牌從站上消失。
+        // 官網回 200 但 productList 是空的（WAF 軟擋、上游條件跑掉都長這樣），
+        // 照做缺貨判定會讓整個品牌從站上消失
         if ($productsSeen === 0) {
             logger()->error('The catalog came back empty - skipping stockout', [
                 'brand' => $brand,
@@ -302,8 +256,6 @@ class HmallProductService extends Service
 
         $failedProductCodes = array_values(array_unique($failedProductCodes));
 
-        // 有商品寫不進去、而且拿不到它的商品編號：沒辦法把它排除在缺貨判定之外，
-        // 只能整輪不做。checkpoint 已經清掉，下一輪從第 1 頁重來。
         if ($unidentifiedFailures > 0) {
             logger()->error('Product failures without a product code - skipping stockout', [
                 'brand' => $brand,
@@ -317,8 +269,6 @@ class HmallProductService extends Service
             );
         }
 
-        // 從第 1 頁掃到最後一頁、每一頁都完整抓到，這時候「沒看到」才等於下架。
-        // 寫入失敗的那幾件今天在來源其實還在，排除掉不讓它們被冤枉標成下架。
         $this->repository->setStockoutHmallProducts($brand, null, $failedProductCodes);
 
         if ($failedProductCodes === []) {

@@ -3,11 +3,8 @@
 namespace App\Support;
 
 /**
- * 寫入一頁商品的結果。
- *
- * 失敗要分兩種回報，因為缺貨判定對它們的處理方式不同：知道商品編號的失敗，代表
- * 那件商品今天在來源其實還在、只是資料沒寫進資料庫，缺貨判定把它排除掉就不會被
- * 冤枉標成下架；連商品編號都拿不到的失敗沒辦法排除，只能整輪不做缺貨判定。
+ * 寫入一頁商品的結果。知道編號的失敗可以從缺貨判定排除；拿不到編號的排除不了，
+ * 只能整輪不做缺貨判定。
  */
 final class ProductSaveResult
 {
@@ -23,10 +20,5 @@ final class ProductSaveResult
     public function hasFailures(): bool
     {
         return $this->failedProductCodes !== [] || $this->unidentifiedFailureCount > 0;
-    }
-
-    public function failureCount(): int
-    {
-        return count($this->failedProductCodes) + $this->unidentifiedFailureCount;
     }
 }

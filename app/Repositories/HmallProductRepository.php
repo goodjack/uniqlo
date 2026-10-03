@@ -56,19 +56,10 @@ class HmallProductRepository extends Repository
 
     private const CACHE_KEY_TOP_WEARING_RANKS = 'hmall_product:top_wearing_ranks';
 
-    /**
-     * 商品列表分頁的預設每頁筆數。分類頁與搜尋結果頁共用同一個值，
-     * 呼叫端（CategoryService、SearchService）都是明確傳這個常數進來，
-     * 這裡的預設值只是保底，不要讓兩邊各自寫一份 24。
-     */
+    /** 分類頁與搜尋結果頁共用的每頁筆數 */
     public const PRODUCTS_PER_PAGE = 24;
 
-    /**
-     * 關鍵字比對的欄位。
-     *
-     * 刻意不含 product_name 以外的長文字欄位：LIKE '%詞%' 一律全表掃描，
-     * 每多一欄就多掃一遍。
-     */
+    /** 關鍵字比對的欄位。LIKE '%詞%' 用不到索引，每多一欄就多掃一遍，不要隨手加長文字欄 */
     private const SEARCHABLE_COLUMNS = [
         'name',
         'product_name',
@@ -150,10 +141,7 @@ class HmallProductRepository extends Repository
     }
 
     /**
-     * 商品身上掛的分類，只留大類與品項層。
-     *
-     * 只到 levelTwo 為止：levelThree 是官方的錨點細分，不是使用者會想點進去
-     * 逛的分類。去重與上限交給呼叫端（見 CategoryService::getCategoryLinksForProductPage）。
+     * 商品身上掛的大類與品項層分類。levelThree 是官方的錨點細分，不是會想點進去逛的分類。
      *
      * @return Collection<int, HmallCategory>
      */
@@ -341,10 +329,9 @@ class HmallProductRepository extends Repository
     }
 
     /**
-     * 以下六個清單快取的成員判準一律走 ProductTag：品牌的官方代碼（UNIQLO 是
-     * ONLINE SPECIAL、GU 是 ECONLY 這種對照）全部收在那個 enum 裡，這裡只負責
-     * 排序與快取。標籤條件包在自己的 where() 群組內，OR 不會漏到 stock 與
-     * stockout_at 的條件外面。
+     * 以下清單的成員判準一律走 ProductTag（兩家品牌的官方代碼對照都收在那裡），
+     * 這裡只管排序與快取。標籤條件要包在自己的 where() 群組裡，OR 才不會漏到
+     * 庫存條件外面。
      */
     public function setLimitedOfferHmallProductsCache()
     {
@@ -556,14 +543,10 @@ class HmallProductRepository extends Repository
     }
 
     /**
-     * 依品牌與商品編號批次取商品，用於收藏清單。
+     * 依品牌與商品編號批次取商品，順序照傳入的順序（收藏頁要維持收藏順序）。
      *
-     * 一定要連品牌一起指定：兩家共用同一組編號空間，光看 product_code 會撈到
-     * 另一家的商品（例如 u0000000053204 在 UNIQLO 是打褶寬版錐形褲、在 GU 是
-     * 一件家居服）。商品的唯一鍵是 brand 加 product_code，跟爬蟲寫入時一致。
-     *
-     * 查詢先用 product_code 縮小範圍（那欄有索引，每個編號最多命中兩筆），
-     * 再在記憶體裡用品牌配對。順序照傳入的順序排，收藏頁才維持使用者的收藏順序。
+     * 兩家共用同一組編號空間，同一個 product_code 在兩家可能是不同商品，
+     * 所以一定要連品牌一起配對。
      *
      * @param  array<int, array{brand: string, code: string}>  $items
      * @return Collection<int, HmallProduct>
@@ -584,13 +567,10 @@ class HmallProductRepository extends Repository
     }
 
     /**
-     * 取出某個分類底下還買得到的商品。
+     * 取出某個分類底下還買得到的商品，照官方在該分類內的權重排（跟官網順序一致）。
      *
-     * 走 pivot join 直接查資料庫，不走清單頁那套預熱快取：清單頁是「促銷狀態」
-     * 這種每天算一次就好的小集合，分類是商品本體的軸，一個大類可能上千件、
-     * 還要跟品牌與分頁疊加，那是資料庫該做的事。
-     *
-     * 排序用官方在該分類內的權重，出來的順序就跟官網一致。
+     * 不走清單頁那套預熱快取：分類多、一個大類上千件，還要疊標籤、關鍵字與分頁。
+     * 標籤與關鍵字都要在查詢層篩，分頁後才篩會漏商品、頁數也會錯。
      *
      * @param  array<int, ProductTag>  $tags
      */
@@ -613,7 +593,6 @@ class HmallProductRepository extends Repository
             ->where('hmall_products.stock', 'Y')
             ->whereNull('hmall_products.stockout_at');
 
-        // 標籤要在查詢層篩，不能先取一頁再過濾——那會漏掉商品，頁數也會是錯的
         if (! empty($tags)) {
             $query->where(function ($group) use ($tags) {
                 foreach ($tags as $tag) {
@@ -622,7 +601,6 @@ class HmallProductRepository extends Repository
             });
         }
 
-        // 分類內搜尋同樣要在查詢層做，理由跟標籤一樣：分頁後才篩會漏商品
         if (filled($q)) {
             $this->applyKeywordFilterForCategory($query, $q);
         }
@@ -635,10 +613,9 @@ class HmallProductRepository extends Repository
     }
 
     /**
-     * 分類頁的關鍵字篩選：多個空白分開的詞要全部命中，比對品名與編號。
+     * 分類頁的關鍵字篩選：每個詞都要命中品名或編號。
      *
-     * 跟 searchByKeywords() 不同的是這裡不比對分類名稱：使用者已經在這個分類
-     * 裡，篩的是「這個分類內」符合關鍵字的商品，不需要再擴大到別的分類。
+     * 刻意不像 searchByKeywords() 比對分類名稱：已經在這個分類裡了。
      */
     private function applyKeywordFilterForCategory($query, string $q): void
     {
@@ -663,16 +640,7 @@ class HmallProductRepository extends Repository
      * 482514 / 474236」）。REGEXP 前後各夾一個「非數字或字串頭尾」，避免 482514
      * 誤中 4825140 這種只是前綴相同的號碼。
      *
-     * 呼叫端保證 $query 只含 ASCII 數字（ctype_digit() 驗過），這裡仍用 binding
-     * 帶進 REGEXP 樣式，不做字串拼接。
-     *
-     * 精準 code 命中排最前面（跟舊行為一致：這一頁本來就是這組編號的商品頁），
-     * 其餘依現價排序。
-     *
-     * 欄位與關聯跟其他清單查詢一致：卡片會讀 japanProduct 判斷要不要顯示影片
-     * 圖示，不先 eager load 就是一張卡片一次查詢；select 清單則擋掉 instruction
-     * 那種長文字欄，那些欄位在卡片上一個都用不到。改成共用號碼比對之後筆數會
-     * 放大，這兩件事才變成實際成本。
+     * 呼叫端要保證 $query 只含 ASCII 數字（它會被拼進正規表示式）。
      */
     public function findHmallProductsByCodeOrSharedNumber(string $query): Collection
     {
@@ -691,10 +659,8 @@ class HmallProductRepository extends Repository
     }
 
     /**
-     * 依關鍵字搜尋商品，每個關鍵字都要命中才算符合。
-     *
-     * 比對品名、編號與商品掛的分類名稱。用 LIKE 而不是全文索引：前後都有萬用字元的
-     * 比對本來就用不到 B-tree，為它加索引只會增加每日爬蟲的寫入成本。
+     * 依關鍵字搜尋商品，每個詞都要命中品名、編號或商品掛的分類名稱
+     * （「外套」這種詞只出現在分類上）。
      *
      * @param  array<int, string>  $keywords
      */
@@ -704,7 +670,7 @@ class HmallProductRepository extends Repository
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct');
 
-        // 沒有關鍵字時要回空結果，不能因為少了 where 就把整張表撈出來
+        // 少了 where 就是整張表
         if (empty($keywords)) {
             $query->whereRaw('1 = 0');
         }
@@ -717,12 +683,8 @@ class HmallProductRepository extends Repository
                     $subQuery->orWhere($column, 'like', $pattern);
                 }
 
-                // 也比對商品掛的分類名稱，讓「外套」這種只出現在分類、
-                // 不出現在品名裡的詞也搜得到。
-                //
-                // 這裡刻意用不相關的子查詢（不引用外層的 hmall_products），
-                // MySQL 才能先把符合的商品 id 一次算完；寫成 whereExists 會變成
-                // 每一筆商品各跑一次子查詢，實測慢十倍以上。
+                // 刻意用不引用外層的子查詢，MySQL 才會一次算完符合的 id；
+                // 改成 whereExists 會變成每筆商品各跑一次，慢十倍以上
                 $subQuery->orWhereIn('hmall_products.id', function ($ids) use ($pattern) {
                     $ids->select('search_pivot.hmall_product_id')
                         ->from('hmall_category_hmall_product as search_pivot')
@@ -738,7 +700,6 @@ class HmallProductRepository extends Repository
         }
 
         return $query
-            // 還買得到的排前面，其次是評論多的
             ->orderByRaw('stockout_at IS NOT NULL')
             ->orderBy('evaluation_count', 'desc')
             ->orderBy('score', 'desc')
@@ -747,23 +708,17 @@ class HmallProductRepository extends Repository
             ->withQueryString();
     }
 
-    /**
-     * 跳脫 LIKE 的萬用字元，讓使用者輸入的 % 與 _ 當成一般文字比對。
-     *
-     * 反斜線要先跳脫，否則後面補上的跳脫字元會再被吃掉一次。
-     */
+    /** 讓使用者輸入的 % 與 _ 當一般文字比對；反斜線要最先跳脫 */
     private function escapeLikeWildcards(string $value): string
     {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 
     /**
-     * 寫入一頁商品，回傳這一頁有哪幾件沒寫進去。
+     * 寫入一頁商品，回傳哪幾件沒寫進去（缺貨判定要排除它們）。
      *
-     * 單一商品失敗不中斷整頁——一筆壞資料不該讓同一頁其他幾十件也寫不進去。
-     * 但失敗要讓呼叫端知道是「哪幾件」而不只是「幾件」：那幾件商品在來源其實還在，
-     * 只是資料沒更新到，缺貨判定要把它們排除掉才不會冤枉標成下架。連商品編號都
-     * 拿不到的失敗沒辦法排除，另外算一個數字，讓呼叫端知道這一輪不能做缺貨判定。
+     * 單一商品失敗不中斷整頁。拿不到商品編號的失敗另外計數：排除不了，
+     * 呼叫端只能整輪不做缺貨判定。
      */
     public function saveProductsFromV3($products, $brand = 'UNIQLO'): ProductSaveResult
     {
@@ -842,9 +797,8 @@ class HmallProductRepository extends Repository
                 $model->stockout_at = $this->getStockoutAt($model, $product);
                 $model->stock = $product->stock ?? null;
 
-                // save、syncCategories、寫價格歷史三步包同一個交易：任何一步丟例外都要整件商品
-                // 一起回滾，不然分類同步失敗時新價格已經寫進去，下次抓到同價會被判「沒變」
-                // 直接跳過，價格走勢就永久缺一筆。
+                // 三步要一起回滾：新價格先寫進去而歷史沒寫的話，下次抓到同價會被判
+                // 「沒變」，價格走勢就永久缺一筆
                 DB::transaction(function () use ($model, $product, $categoryIds, $isChangedThePrice) {
                     $model->save();
 
@@ -862,8 +816,7 @@ class HmallProductRepository extends Repository
             } catch (Throwable $e) {
                 $productCode = $product->productCode ?? null;
 
-                // 拿得到編號才排除得掉。官方回傳格式跑掉時 productCode 可能是缺的、
-                // 空的、甚至是陣列，這幾種都只能算成無法辨識。
+                // 官方格式跑掉時 productCode 可能缺、空、甚至是陣列
                 if (is_string($productCode) && $productCode !== '') {
                     $failedProductCodes[] = $productCode;
                 } else {
@@ -886,11 +839,8 @@ class HmallProductRepository extends Repository
     }
 
     /**
-     * 把這一輪沒被更新到的商品標成下架。
-     *
-     * $excludedProductCodes 是這一輪寫入失敗、但來源其實還在的商品：它們的
-     * updated_at 這次沒被摸到，不排除就會被冤枉標成下架。品牌條件本來就在，
-     * 同一個編號在另一個品牌底下不受影響。
+     * 把這一輪沒被更新到的商品標成下架。$excludedProductCodes 是寫入失敗、
+     * 但來源其實還在的商品。
      *
      * @param  array<int, string>  $excludedProductCodes
      */
@@ -906,13 +856,8 @@ class HmallProductRepository extends Repository
             ->where('updated_at', '<', $updatedIsBefore);
 
         if ($excludedProductCodes !== []) {
-            // hmall_products.product_code 允許 NULL。SQL 的 NULL NOT IN (...)
-            // 永遠不成立（結果是 unknown，等同不符合），所以直接寫
-            // whereNotIn 會把品牌底下所有 product_code 是 NULL 的舊資料整批
-            // 排除在缺貨判定之外——跟排除清單完全無關，是誤傷。
-            // 目前真實資料裡沒有一件商品的 product_code 是空的，但欄位允許，
-            // 所以還是要處理。改成括號條件，OR 要收在括號裡才不會繞過外層
-            // 已經有的品牌與日期條件。
+            // product_code 允許 NULL，而 NULL NOT IN (...) 永遠不成立，
+            // 只寫 whereNotIn 會把 NULL 的商品一起排除掉
             $query->where(function ($query) use ($excludedProductCodes) {
                 $query->whereNotIn('product_code', $excludedProductCodes)
                     ->orWhereNull('product_code');
@@ -997,9 +942,7 @@ class HmallProductRepository extends Repository
     /**
      * 從整批商品的回傳裡取出分類主檔並寫入，回傳 code 對 id 的對照表。
      *
-     * 官方每筆商品都帶完整的四層分類物件（code、name、parentCode 齊全），
-     * 所以主檔不需要另外抓一支 endpoint。分類的身分是品牌加 code，
-     * upsert 的比對鍵也是這兩欄。
+     * 官方每筆商品都帶完整的四層分類物件，所以主檔不另外抓。
      *
      * @return Collection<string, int>
      */
@@ -1062,8 +1005,9 @@ class HmallProductRepository extends Repository
     /**
      * 更新商品掛在哪些分類底下。
      *
-     * 分類歸屬以四層陣列為準，categorySortList 只提供官方在該分類內的排序權重。
-     * 回傳沒有分類時不動既有關聯：那比較可能是這次回傳缺漏，而不是商品真的被移出所有分類。
+     * 分類歸屬以四層陣列為準，categorySortList 只提供該分類內的排序權重。
+     * 這次回傳沒有分類、或分類主檔沒寫進去時不動既有關聯：比較可能是缺漏，
+     * 不是商品真的被移出所有分類。
      */
     private function syncCategories(HmallProduct $model, $product, Collection $categoryIds): void
     {

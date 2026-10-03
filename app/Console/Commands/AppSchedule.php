@@ -64,29 +64,18 @@ class AppSchedule extends Command
     }
 
     /**
-     * exit code 要用 CrawlOutcome 翻譯的指令。
-     *
-     * CrawlOutcome::PartiallySucceeded 的值是 2，而 2 同時是 Symfony 留給
-     * 「參數不合法」的 Command::INVALID。目前十五個步驟裡只有 hmall-product:fetch
-     * 會回 2，所以今天沒有影響；但日後任何人照慣例在別的步驟寫 return self::INVALID，
-     * 通知就會寫成「部分成功」，值班的人會以為只是抓到一部分、可以晚點看，實際上
-     * 那一步整步沒做。
-     *
-     * 與其把 PartiallySucceeded 換成另一個「目前沒人用」的數字（下一個人照樣可能
-     * 撞上），不如把翻譯限定在真的回傳 CrawlOutcome 的指令上。
+     * exit code 照 CrawlOutcome 解讀的指令。其他指令的 2 是 Symfony 的
+     * Command::INVALID（參數不合法），不能讀成「部分成功」。
      */
     private const PARTIAL_SUCCESS_COMMANDS = [
         'hmall-product:fetch',
     ];
 
     /**
-     * 每日排程的步驟，順序即執行順序。
+     * 每日排程的步驟，順序即執行順序。一步失敗照樣往下跑：資料庫裡還有昨天的
+     * 完整資料，快取與 sitemap 跟著資料庫重建，比整條斷在第一步安全。
      *
-     * 前面的爬蟲失敗不會擋住後面的快取重建與 sitemap：資料庫裡還有昨天的完整資料，
-     * 讓快取跟著資料庫走，比讓整條排程斷在第一步安全。
-     *
-     * 寫成方法而不是 const：const 運算式要到 PHP 8.3 才能取 enum 的 ->value，
-     * 而 composer.json 宣告支援的是 ^8.1。
+     * 寫成方法而不是 const：const 運算式要 PHP 8.3 才能取 enum 的 ->value。
      *
      * @return array<int, array{0: string, 1?: array<string, mixed>}>
      */
@@ -112,11 +101,8 @@ class AppSchedule extends Command
     }
 
     /**
-     * 執行單一步驟。完全成功回傳 null，否則回傳給通知看的描述加上「是不是
-     * 只抓到一部分」。
-     *
-     * 失敗有兩種形態，兩種都要攔：丟例外，以及安靜回傳非 0 的 exit code
-     * （例如 FetchHmallProducts 爬蟲失敗時就是回傳非 0 而不丟例外）。
+     * 執行單一步驟。完全成功回傳 null，否則回傳通知用的描述與「是不是只抓到一部分」。
+     * 失敗可能是丟例外，也可能只回傳非 0 的 exit code，兩種都要攔。
      *
      * @return array{0: string, 1: bool}|null
      */
@@ -154,14 +140,8 @@ class AppSchedule extends Command
     }
 
     /**
-     * 把 exit code 翻成通知裡看得懂的原因。
-     *
-     * 「部分成功」與「完全失敗」要分開，因為要看的東西不同：部分成功代表資料庫裡
-     * 還有昨天的完整資料；完全失敗代表連一頁都沒抓到，通常是被擋。兩種都不會自己
-     * 好，差別只在急迫程度。
-     *
-     * exit code 1 對每個步驟都是整步失敗，所以一律標成「完全失敗」。只有爬蟲指令
-     * 的 2 才是部分成功，其他步驟的 2 沒有共同約定，照實寫出來比猜一個意思安全。
+     * 把 exit code 翻成通知裡的原因。1 對每個步驟都是整步失敗；其他沒有共同約定
+     * 的值照實寫出來，不猜意思。
      */
     private function describeExitCode(string $command, int $exitCode): string
     {
@@ -174,9 +154,6 @@ class AppSchedule extends Command
             : "exit code {$exitCode}";
     }
 
-    /**
-     * 這個步驟的 exit code 是不是「抓到一部分」。
-     */
     private function isPartialSuccess(string $command, int $exitCode): bool
     {
         return in_array($command, self::PARTIAL_SUCCESS_COMMANDS, true)
@@ -186,10 +163,7 @@ class AppSchedule extends Command
     /**
      * 組出通知裡的一行，例如
      * 「hmall-product:fetch UNIQLO（部分成功：已執行缺貨判定，排除 1 件寫入失敗商品）」。
-     *
-     * 光看 exit code 分不出「部分成功」底下的差別：目錄有缺頁代表這一輪根本沒做
-     * 缺貨判定、站上還是上一次完整掃描的結果，跟排除幾件寫入失敗的商品之後做了
-     * 缺貨判定，處理的急迫程度不一樣。指令有留說明就接在結果後面。
+     * 指令有留說明（TaskNotes）就接在後面：同樣是部分成功，有沒有做缺貨判定急迫程度不同。
      */
     private function describeStep(string $command, array $arguments, string $reason): string
     {
@@ -207,15 +181,8 @@ class AppSchedule extends Command
     }
 
     /**
-     * 發出彙整通知。
-     *
-     * 「整步沒做」與「抓到一部分」要分開算、也要分開送，因為兩者的處理方式
-     * 不同：整步沒做代表那件事今天沒發生，要有人去看；抓到一部分代表資料庫
-     * 裡還有完整的舊資料，站上不會缺，只要追那幾筆。
-     *
-     * 混在同一句「N of M scheduled steps failed」、同一封紅色通知的後果是
-     * 訓練人忽略通知：只要有一件商品來源資料長期寫不進去，爬蟲每天回部分成功，
-     * 就每天收到一封紅字，真正的整步失敗反而被淹掉。
+     * 發出彙整通知。只有部分成功時發一般的結束通知，有整步失敗才發紅色的失敗通知：
+     * 部分成功可能天天發生，每天一封紅字會讓人學會忽略，真正的失敗反而被淹掉。
      *
      * @param  array<int, string>  $failedSteps
      * @param  array<int, string>  $partialSteps

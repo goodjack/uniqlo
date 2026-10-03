@@ -19,14 +19,10 @@ class HmallCategory extends Model
     ];
 
     /**
-     * 父分類必定與自己同品牌：兩家的分類樹是各自獨立的。
+     * 父分類必定同品牌（兩家的分類樹各自獨立）。
      *
-     * 條件用 $this->brand 這個實際的值。原本寫的
-     * whereColumn('hmall_categories.brand', 'brand') 是同一張表拿自己跟自己比，
-     * 恆為真、等於沒有限制；兩家撞到同一個 parent_code 時會撈到另一家的分類。
-     *
-     * 代價是這個關聯不能用 with()／load() 一次撈：eager load 只會拿集合裡第一筆
-     * 的品牌去套全部。要一次取多筆的呼叫端請自己按品牌分組後再逐組取。
+     * 條件綁的是 $this->brand 的值，所以不能用 with()／load() 一次撈：
+     * eager load 會拿第一筆的品牌套全部。
      */
     public function parent()
     {
