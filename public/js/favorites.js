@@ -386,7 +386,7 @@ window.UqFavorites = (function () {
         paintCardButton(button, has(brand, code));
 
         button.addEventListener('click', function () {
-            paintCardButton(button, toggle(brand, code));
+            repaintSameProduct(brand, code, toggle(brand, code));
         });
     }
 
@@ -397,7 +397,26 @@ window.UqFavorites = (function () {
         paintButton(button, has(brand, code));
 
         button.addEventListener('click', function () {
-            paintButton(button, toggle(brand, code));
+            repaintSameProduct(brand, code, toggle(brand, code));
+        });
+    }
+
+    /**
+     * 同一件商品在同一頁可能有好幾顆愛心（男女適穿的商品會同時出現在男裝與
+     * 女裝段），只重畫被按的那一顆的話，另一顆停在舊狀態，使用者再按一次
+     * 就把剛收藏的刪掉了。
+     */
+    function repaintSameProduct(brand, code, isFavorite) {
+        document.querySelectorAll('[data-favorite-button], [data-favorite-card]').forEach(function (button) {
+            if (button.dataset.brand !== brand || button.dataset.productCode !== code) {
+                return;
+            }
+
+            if (button.hasAttribute('data-favorite-button')) {
+                paintButton(button, isFavorite);
+            } else {
+                paintCardButton(button, isFavorite);
+            }
         });
     }
 
