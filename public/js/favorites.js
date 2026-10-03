@@ -1033,6 +1033,8 @@ window.UqFavorites = (function () {
      * 在其他頁（商品頁、清單頁的卡片）：沒有清單可以重新整理，改成只重新
      * 上色目前畫面上已經綁定的按鈕。
      */
+    let staleWhileHidden = false;
+
     function bindStorageSync() {
         window.addEventListener('storage', function (event) {
             // key 是 null 代表整個 localStorage 被 clear()，也要當成有變動處理。
@@ -1040,13 +1042,28 @@ window.UqFavorites = (function () {
                 return;
             }
 
-            if (currentOptions) {
-                renderPage(currentOptions);
+            if (!currentOptions) {
+                paintAll();
 
                 return;
             }
 
-            paintAll();
+            // 收藏頁在背景時，使用者在別的分頁每按一次愛心都整份重抓，很快就
+            // 撞到限流，捲動位置也會跳回頂端；先記著，回到前景再重抓一次。
+            if (document.hidden) {
+                staleWhileHidden = true;
+
+                return;
+            }
+
+            renderPage(currentOptions);
+        });
+
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden && staleWhileHidden) {
+                staleWhileHidden = false;
+                renderPage(currentOptions);
+            }
         });
     }
 
