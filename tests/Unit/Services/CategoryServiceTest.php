@@ -9,12 +9,6 @@ use App\Services\CategoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/**
- * 商品頁麵包屑要走的那一條分類路徑。
- *
- * 一件商品掛十幾個分類、官方沒有給主分類，所以規則是自己定的，這裡把三種
- * 情況釘住：選得到品項層、只剩大類、以及兩層都沒有。
- */
 class CategoryServiceTest extends TestCase
 {
     use RefreshDatabase;
@@ -39,8 +33,7 @@ class CategoryServiceTest extends TestCase
     }
 
     /**
-     * 官方給「熱門推薦」那一棵的 sort 常常最小，只照 sort 選會選到促銷樹，
-     * 那不是使用者想回去逛的地方。所以先過性別，再比 sort。
+     * 只照 sort 會選到「熱門推薦」這類促銷樹，要先過性別。
      */
     public function test_the_primary_category_ignores_trees_that_do_not_match_the_gender(): void
     {
@@ -79,8 +72,7 @@ class CategoryServiceTest extends TestCase
     }
 
     /**
-     * 同一棵樹底下有好幾個品項時，照官方的 sort 選。sort 是字串，
-     * 不能轉成數字比——真實資料裡是 008004001008004009 這種十八位數。
+     * sort 是長度不一的數字字串，不能照數值比。
      */
     public function test_it_takes_the_smallest_official_sort_within_the_matching_tree(): void
     {
@@ -98,8 +90,7 @@ class CategoryServiceTest extends TestCase
     }
 
     /**
-     * 性別欄位是空的（真實資料裡有這種），就不套性別條件、照 sort 選，
-     * 不要因為對不到而整個回 null。
+     * 性別欄位是空的（真實資料有）就不套性別條件。
      */
     public function test_a_product_without_a_gender_still_gets_a_primary_category(): void
     {
@@ -112,8 +103,7 @@ class CategoryServiceTest extends TestCase
     }
 
     /**
-     * 商品頁的分類連結只到品項層為止，錨點層（levelThree）不是使用者會想
-     * 點進去逛的分類，不該出現在連結列表裡。
+     * 錨點層（levelThree）沒有頁面，不列進連結。
      */
     public function test_product_page_category_links_exclude_level_three(): void
     {
@@ -131,8 +121,7 @@ class CategoryServiceTest extends TestCase
     }
 
     /**
-     * 男女適穿的商品在男裝、女裝樹下各掛一份同名分類，畫面上只留一個，
-     * 不然會看到兩個一模一樣的連結。
+     * 男女適穿的商品在男裝、女裝樹下各掛一份同名分類，只留一個。
      */
     public function test_product_page_category_links_deduplicate_by_name(): void
     {

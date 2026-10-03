@@ -34,7 +34,6 @@ class CategoryTest extends TestCase
         $response->assertSee('女裝');
         $response->assertSee('上衣類');
         $response->assertDontSee('沒有商品的分類');
-        // 第三輪 UI 把子分類從 pill 改成文字連結列，不再是實心 pill
         $response->assertSee('uq-cat-list');
         $response->assertDontSee('uq-pill-small');
     }
@@ -48,15 +47,13 @@ class CategoryTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('短袖上衣');
-        // 子分類要列出來，讓使用者往下鑽
         $response->assertSee('T恤');
-        // 第三輪 UI 把工具列的子分類從 pill 改成文字連結列
         $response->assertSee('uq-cat-list');
         $response->assertDontSee('uq-pill-small');
     }
 
     /**
-     * 分類主檔只增不減，商品全部下架的分類仍留在表裡，不能讓它變成空頁面。
+     * 分類主檔只增不減，商品全部下架的分類仍留在表裡。
      */
     public function test_category_without_available_products_returns_404(): void
     {
@@ -95,9 +92,7 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 兩家的分類 code 各成一套（UNIQLO 是 all_women-tops、GU 是 women_all），
-     * 名稱又會撞，所以總覽要標出這是誰的分類——現在是分成兩個品牌區塊，
-     * 區塊標題就是品牌名（見 test_the_overview_puts_uniqlo_before_gu）。
+     * 兩家的分類名稱會撞，總覽要標出是誰的分類。
      */
     public function test_overview_labels_which_brand_each_group_belongs_to(): void
     {
@@ -116,10 +111,7 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 總覽先 UNIQLO 再 GU，各自一個區塊。
-     *
-     * 排序不能照品牌字串排：'GU' < 'UNIQLO'，GU 會排到前面，但這個站的主體是
-     * UNIQLO，打開總覽第一眼該看到它。
+     * 照品牌字串排 GU 會在前面，但站的主體是 UNIQLO。
      */
     public function test_the_overview_puts_uniqlo_before_gu(): void
     {
@@ -145,12 +137,7 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 同一個品牌之內，大類多的群組排前面。
-     *
-     * 原本照官方的 code 排。code 是官方的內部編號，對使用者沒有先後可言：
-     * 'all_men' < 'all_women' 只是字串比較的結果，不代表男裝該排在女裝前面。
-     * 這裡讓女裝有三個大類、男裝只有一個，照 code 排會是男裝在前，照大類數
-     * 排才會是女裝在前。
+     * 女裝三個大類、男裝一個：照 code 排男裝會在前，照大類數排女裝才在前。
      */
     public function test_the_overview_puts_groups_with_more_child_categories_first(): void
     {
@@ -173,12 +160,7 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 子分類照商品數多的排前面，不再照官方 code。
-     *
-     * 分類總覽的子分類列與分類頁的子分類列走的是同一支查詢
-     * （HmallCategoryRepository::getCategoriesWithProducts），所以這裡驗一次。
-     * T恤兩件、襯衫一件；照 code 排會是襯衫在前（'...-shirt' < '...-tshirt'），
-     * 照商品數排才會是 T恤在前。
+     * T恤兩件、襯衫一件：照 code 排襯衫會在前，照商品數排 T恤才在前。
      */
     public function test_child_categories_are_ordered_by_how_many_products_they_have(): void
     {
@@ -196,8 +178,7 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 第三輪 UI 修正：章節選單的 sticky 外層要站在頁面 container 外面，
-     * 自己再包一層 container，白底跟底線才是滿版而不是只跨中間那欄。
+     * 章節選單的白底與底線要滿版，不能被頁面 container 限制在中間那欄。
      */
     public function test_the_section_menu_sits_outside_the_page_container(): void
     {
@@ -257,54 +238,30 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 陣列型的 query 參數同樣不該炸掉頁面。篩選表單原本用 request()->except()
-     * 把所有其他參數塞進 hidden input，array 丟給 Blade 轉字串就是 500。
+     * 陣列型的 query 參數不該讓頁面 500。q 是分類內搜尋、query 是每一頁導覽列
+     * 搜尋框讀的參數。
+     *
+     * @dataProvider arrayQueryStrings
      */
-    public function test_an_array_query_string_does_not_break_the_category_page(): void
+    public function test_an_array_query_string_does_not_break_the_category_page(string $queryString): void
     {
         $this->attachProduct($this->createProduct(['brand' => 'UNIQLO', 'name' => '短袖上衣']), 'all_women-tops');
 
-        $response = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?ref[]=x');
+        $response = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).$queryString);
 
         $response->assertOk();
         $response->assertSee('短袖上衣');
     }
 
-    /**
-     * q 是分類頁真正會讀進 SQL 篩選的參數（走同一個 ListRequest），
-     * (string) 轉型遇到陣列會發 warning 被轉成 500，比沒人讀的 ref[]=x 更容易踩到。
-     */
-    public function test_an_array_q_does_not_break_the_category_page(): void
+    public static function arrayQueryStrings(): array
     {
-        $this->attachProduct($this->createProduct(['brand' => 'UNIQLO', 'name' => '短袖上衣']), 'all_women-tops');
-
-        $response = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?q[]=x');
-
-        $response->assertOk();
-        $response->assertSee('短袖上衣');
+        return [
+            'unknown' => ['?ref[]=x'],
+            'q' => ['?q[]=x'],
+            'query' => ['?query[]=x'],
+        ];
     }
 
-    /**
-     * query[] 不是 ListRequest 的欄位，但分類頁的 nav 一樣會引入
-     * layouts.search-bar，那裡的 request('query') 遇到陣列一樣會 500。
-     */
-    public function test_an_array_query_param_does_not_break_the_category_page(): void
-    {
-        $this->attachProduct($this->createProduct(['brand' => 'UNIQLO', 'name' => '短袖上衣']), 'all_women-tops');
-
-        $response = $this->get(
-            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?query[]=x'
-        );
-
-        $response->assertOk();
-        $response->assertSee('短袖上衣');
-    }
-
-    /**
-     * 分類頁的關鍵字篩選走資料庫 LIKE（HmallProductRepository::
-     * applyKeywordFilterForCategory()），跳脫是否正確之前只用 repository 單元
-     * 驗過，沒有測試從頁面這一層守著；改壞了不會有任何測試變紅。
-     */
     public function test_like_wildcards_in_the_query_are_escaped_on_the_category_page(): void
     {
         $this->attachProduct(
@@ -331,8 +288,7 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 篩選之後可能一件都不剩。原本這種情況只剩一片空白，使用者看不出是篩太緊
-     * 還是頁面壞掉。文案跟清單頁一致。
+     * 篩到一件不剩時要有空狀態，否則看不出是篩太緊還是頁面壞掉。
      */
     public function test_a_category_filtered_down_to_nothing_shows_an_empty_state(): void
     {
@@ -349,10 +305,6 @@ class CategoryTest extends TestCase
         $response->assertSee('試試看少選幾個條件');
     }
 
-    /**
-     * 分類頁的 q 要進 SQL 篩，比對品名與編號，跟清單頁走 Collection 篩是不同路徑
-     * （HmallProductRepository::getProductsByCategoryId() vs ListService::filterHmallProducts()）。
-     */
     public function test_q_filters_the_category_by_name(): void
     {
         $this->attachProduct($this->createProduct(['name' => '牛仔超寬版短褲', 'code' => '359225']), 'all_women-tops');
@@ -381,9 +333,6 @@ class CategoryTest extends TestCase
         $response->assertDontSee('牛仔超寬版短褲');
     }
 
-    /**
-     * 多個空白分開的詞要全部命中，跟清單頁的語意一致。
-     */
     public function test_q_with_multiple_keywords_requires_all_of_them(): void
     {
         $this->attachProduct($this->createProduct(['name' => '牛仔超寬版短褲', 'code' => '359225']), 'all_women-tops');
@@ -401,9 +350,6 @@ class CategoryTest extends TestCase
         $response->assertDontSee('AIRism');
     }
 
-    /**
-     * q 跟標籤各自獨立生效，兩個條件都要滿足才留下來。
-     */
     public function test_q_and_tags_apply_together_on_the_category_page(): void
     {
         $this->attachProduct($this->createProduct([
@@ -433,9 +379,6 @@ class CategoryTest extends TestCase
         $response->assertDontSee('特價上衣');
     }
 
-    /**
-     * q 找不到符合的商品時要換成空狀態，文案點名關鍵字。
-     */
     public function test_q_with_no_match_shows_the_empty_state_on_the_category_page(): void
     {
         $this->attachProduct($this->createProduct(['name' => '牛仔超寬版短褲']), 'all_women-tops');
@@ -449,9 +392,6 @@ class CategoryTest extends TestCase
         $response->assertSee('沒有符合「這個關鍵字不會有任何商品符合」的商品');
     }
 
-    /**
-     * 帶 q 的分類頁是既有分類的重組，不該被搜尋引擎索引。
-     */
     public function test_a_category_page_with_q_is_not_indexed(): void
     {
         $this->attachProduct($this->createProduct(['name' => '牛仔超寬版短褲']), 'all_women-tops');
@@ -469,10 +409,8 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 分類頁有分頁，前端即時篩只能篩到已經渲染出來的這一頁，會讓使用者誤以為篩了
-     * 整個分類（站主試用後的裁決）。輸入框不該掛 list-search.js 用來啟用即時篩的
-     * data-instant-filter，q 表單本身要留著、純 Enter 送出（曾經試過停止輸入後
-     * 自動 submit，但會打斷中文輸入法組字與游標焦點，站主與 Codex 對讀後撤回）。
+     * 分類頁有分頁，即時篩只篩得到這一頁，會讓人誤以為篩了整個分類，所以只
+     * 按 Enter 送出。停止輸入就自動送出會打斷注音組字，不要改回去。
      */
     public function test_the_search_input_does_not_enable_instant_filtering(): void
     {
@@ -487,11 +425,6 @@ class CategoryTest extends TestCase
         $this->assertStringContainsString('name="q"', $content);
     }
 
-    /**
-     * 換關鍵字等於重新送出搜尋表單，表單網址（$currentUrl = url()->current()）
-     * 沒帶 page，等於送出後永遠落回第 1 頁——跟品牌／標籤／排序共用同一套機制，
-     * 這裡只驗證分類頁的搜尋表單也遵守同一條規則。
-     */
     public function test_the_search_form_action_has_no_page_query_so_a_new_keyword_lands_on_page_one(): void
     {
         $this->attachProduct($this->createProduct(['name' => '牛仔超寬版短褲']), 'all_women-tops');
@@ -510,10 +443,6 @@ class CategoryTest extends TestCase
         $this->assertStringNotContainsString('page', (string) $form->getAttribute('action'));
     }
 
-    /**
-     * 分頁連結要保留 q，不然翻到第 2 頁就掉字——這是 repository 的
-     * withQueryString() 負責的，這裡驗證分類頁真的走到這條路徑。
-     */
     public function test_pagination_links_keep_the_q_parameter(): void
     {
         for ($i = 1; $i <= 30; $i++) {
@@ -538,11 +467,6 @@ class CategoryTest extends TestCase
         $this->assertStringContainsString('q=', $href);
     }
 
-    /**
-     * q 跟 tags[] 各自獨立生效、兩個條件都要滿足才留下來——
-     * test_q_and_tags_apply_together_on_the_category_page() 已經驗過伺服器端邏輯，
-     * 這裡再確認分頁連結把兩者都一起帶著走，不是只顧其中一個。
-     */
     public function test_pagination_links_keep_both_q_and_tags(): void
     {
         for ($i = 1; $i <= 30; $i++) {
@@ -572,9 +496,6 @@ class CategoryTest extends TestCase
         $this->assertStringContainsString('q=', $href);
     }
 
-    /**
-     * 官方在該分類內的排序權重決定顯示順序，出來就跟官網一致。
-     */
     public function test_products_follow_the_official_sort_within_the_category(): void
     {
         $this->attachProduct($this->createProduct(['name' => '排在後面的']), 'all_women-tops', '006002009');
@@ -590,12 +511,8 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 分類頁的卡片走的是 HmallProductRepository::SELECT_COLUMNS_FOR_LIST 這條
-     * 預先挑欄位的查詢路徑，跟商品頁的完整 model 不一樣。漏掉欄位的話卡片上
-     * 那一行會靜靜地不見——原價那一行以前就出過這個包。
-     *
-     * 現在卡片講的是歷史區間（$歷史最高 – $歷史最低），所以改釘這兩個欄位有
-     * 跟著查詢一起回來。
+     * 分類頁走 SELECT_COLUMNS_FOR_LIST 挑過欄位的查詢，漏掉欄位時卡片上那一行
+     * 會無聲消失。
      */
     public function test_category_page_cards_show_the_price_range(): void
     {
@@ -621,11 +538,6 @@ class CategoryTest extends TestCase
         $this->assertStringNotContainsString('原價', $content, '區間已經講完了，不再重複一行原價');
     }
 
-    /**
-     * 第三輪 UI 把分類頁的分頁換成跟 style-hints 頁共用的 markup
-     * （Tocas 的 .ts.icon.button 上一頁／頁碼／下一頁），不再是自訂的三顆
-     * pill。這裡塞超過一頁（24 件）的商品，確認新元件真的接上去了。
-     */
     public function test_category_page_uses_the_shared_pagination_component(): void
     {
         foreach (range(1, 25) as $index) {
@@ -645,8 +557,7 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 從 SEO 直接進分類頁的人需要知道自己在整棵樹的哪裡。
-     * 頂層沒有自己的頁面，所以只當文字不做連結。
+     * 頂層沒有自己的頁面，只當文字不做連結。
      */
     public function test_category_page_shows_a_breadcrumb_back_to_the_root(): void
     {
@@ -661,17 +572,13 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 分類的身分是品牌加 code，不是 code 本身。
-     *
-     * 兩家目前只有頂層的 ALL 同名，但沒有任何保證未來不會撞——撞到時父分類與
-     * 子分類都不能串到另一家。這個測試直接建兩個同 code 的分類來釘住。
+     * 分類的身分是品牌加 code：兩家同 code 時，父子關係不能串到另一家。
      */
     public function test_a_category_never_borrows_the_other_brands_tree(): void
     {
         $this->createCategory('all_top', 'UNIQLO 全部商品', null, CategoryLevel::Top, 'UNIQLO');
         $this->createCategory('all_top', 'GU 全部商品', null, CategoryLevel::Top, 'GU');
 
-        // 兩家各有一個 code 完全相同的大類，各自掛在自己的頂層底下
         $uniqloOne = $this->createCategory('shared_tops', '上衣類', 'all_top', CategoryLevel::One, 'UNIQLO');
         $guOne = $this->createCategory('shared_tops', 'TOPS', 'all_top', CategoryLevel::One, 'GU');
 
@@ -690,11 +597,7 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 品項頁不列出官方的錨點細分。
-     *
-     * 那一層開不出頁面（findPageable 只認 levelOne 與 levelTwo），列出來就是
-     * 一整排 404。本機實測 /categories/uniqlo/all_women-tops-t-shirts 上有 13 個
-     * 這種連結，真實資料裡受影響的品項頁有 246 個。
+     * 錨點那層開不出頁面，列出來就是一整排 404。
      */
     public function test_a_level_two_page_does_not_link_to_level_three_categories(): void
     {
@@ -711,9 +614,6 @@ class CategoryTest extends TestCase
         );
     }
 
-    /**
-     * 大類頁仍然要列出它的品項，那一層開得出頁面，是往下鑽的正常路徑。
-     */
     public function test_a_level_one_page_still_lists_its_level_two_children(): void
     {
         $this->attachProduct($this->createProduct(['name' => '短袖上衣']), 'all_women-tops');
@@ -744,10 +644,7 @@ class CategoryTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        /*
-         * 只看分類那一行。整頁比對會被麵包屑干擾：麵包屑走的是主分類那一條
-         * 路徑，本來就會連到其中一個「T恤」，跟這裡要驗的去重是兩件事。
-         */
+        // 只看分類那一行，麵包屑本來就會連到其中一個「T恤」
         $links = $this->categoryLinksInLine($content);
 
         $this->assertNotEmpty($links, '商品頁應該列出所屬分類');
@@ -760,8 +657,7 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 第三輪 UI 修正：分類那一行的「·」分隔符要是相鄰的 <span>，不是塞進
-     * <a> 裡的 ::before，不然 hover 底線會連著這個點一起畫出來。
+     * 分隔符不能在連結裡，否則 hover 底線會連著它一起畫。
      */
     public function test_the_categories_line_separator_is_not_inside_the_link(): void
     {
@@ -789,7 +685,6 @@ class CategoryTest extends TestCase
             );
         }
 
-        // 中點由 Tocas 的 .middoted 用 ::before 畫，DOM 裡本來就不該有分隔符節點
         $this->assertGreaterThan(
             0,
             $xpath->query('//*[contains(@class, "uq-categories-line")][contains(@class, "middoted")]')->length,
@@ -798,11 +693,6 @@ class CategoryTest extends TestCase
     }
 
     /**
-     * 抓出商品頁「分類」那一行裡的分類連結，只回傳分類 code。
-     *
-     * 原本是用「所屬分類」那個小標題定位。第二輪 UI 把三個小標題（標籤、
-     * 所屬分類、商品資訊）都拿掉了，改由那一行自己的 class 定位。
-     *
      * @return array<int, string>
      */
     private function categoryLinksInLine(string $html): array

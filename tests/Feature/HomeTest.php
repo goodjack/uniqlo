@@ -26,13 +26,8 @@ class HomeTest extends TestCase
     }
 
     /**
-     * 第三輪 UI 把首頁從橫向捲動列改回 master 的桌機六格 grid，手機靠
-     * doubling 自然變兩格；這裡釘住區塊用的是哪個 Tocas class 組合，
-     * 不讓它又被換回自訂的橫向捲動版型。
-     *
-     * 第五輪把 Tocas 的 link 拿掉、換成自己的 uq-product-cards：link 會讓整張
-     * 卡片滑入時浮起 3px，滑到卡片上的收藏鈕時整張卡在動、收藏鈕自己沒反應。
-     * 六格 grid 這件事沒有變，變的是它旁邊那個 class。
+     * 首頁用 Tocas 原生的六格 grid。不掛 Tocas 的 link：它讓整張卡片 hover
+     * 浮起，滑到收藏鈕上時看起來像整張卡在反應。
      */
     public function test_each_section_uses_the_six_column_grid(): void
     {
@@ -77,8 +72,7 @@ class HomeTest extends TestCase
 
         $response = $this->get(route('home'));
 
-        // 每張卡片一個 route_url 連結，第一個區塊被截到桌機一排的 6 張，
-        // 其餘三個區塊各 2 張，總共 12 個商品連結。
+        // 第一區塊截到 6 張，其餘三區塊各 2 張
         $this->assertSame(12, substr_count($response->getContent(), 'hmall-products/'));
     }
 

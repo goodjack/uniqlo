@@ -102,8 +102,7 @@ class ListServiceTest extends TestCase
     }
 
     /**
-     * 一個標籤底下的多個條件是「任一成立」，要跟卡片上那個標籤的顯示判準一致。
-     * 寫成「全部成立」的話，清單上標著「期間限定」的商品用同一個標籤會篩不到。
+     * 一個標籤底下的多個條件是「任一成立」，跟卡片上的標籤判準一致。
      */
     public function test_a_tag_matches_when_any_of_its_conditions_holds(): void
     {
@@ -141,9 +140,8 @@ class ListServiceTest extends TestCase
     }
 
     /**
-     * 「目前史上最低」是篩選專用的判準，跟卡片上那個「歷史新低價」標籤不同：
-     * 標籤刻意排除官方標為特價的商品，避免特價期間整頁掛兩個標籤互相干擾，
-     * 但使用者想在特價清單裡找的正是那些商品。
+     * 篩選的「目前史上最低」刻意不同於卡片的「歷史新低價」標籤：標籤排除了
+     * 特價商品（避免整頁掛兩個標籤），但使用者在特價清單裡要找的正是它們。
      */
     public function test_lowest_price_filter_includes_products_marked_as_on_sale(): void
     {
@@ -208,9 +206,7 @@ class ListServiceTest extends TestCase
     }
 
     /**
-     * short_product_code（'u'.後七碼）是卡片上唯一看得到的編號，使用者照畫面
-     * 抄下來搜的多半是這個，不是完整的 product_code（PR #76 審查留言
-     * 4057184155：兩邊都比不到卡片上顯示的那串）。
+     * short_product_code 是卡片上顯示的編號，使用者照畫面抄的多半是它。
      */
     public function test_keyword_matches_the_short_product_code(): void
     {
@@ -225,8 +221,7 @@ class ListServiceTest extends TestCase
     }
 
     /**
-     * 多個空白分開的詞是「全部都要命中」，不是任一命中——跟標籤的多選聯集是
-     * 不同的語意，這裡是同一個欄位縮小範圍，不是擴大範圍。
+     * 關鍵字是交集，跟標籤多選的聯集語意不同。
      */
     public function test_multiple_keywords_are_combined_with_and(): void
     {

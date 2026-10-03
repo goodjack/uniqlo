@@ -8,13 +8,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
-/**
- * HmallProductPresenter::isOnOffer() 決定收藏頁「只看優惠中」篩選鈕收不收
- * 這件商品。判準來自 Jack 2026-09-14 的定案：期間限定特價、網路限定特價、
- * 歷史新低價、合購商品、特價商品、APP 限定特價算優惠中；新款商品、即將
- * 上市、網路獨家販售、穿搭與瀏覽排行榜不算；已售罄一律不算，就算同時掛著
- * 優惠標籤也一樣。
- */
 class HmallProductPresenterTest extends TestCase
 {
     use RefreshDatabase;
@@ -78,8 +71,7 @@ class HmallProductPresenterTest extends TestCase
     }
 
     /**
-     * 已售罄的商品即使同時掛著優惠標籤，也不算優惠中——現在買不到，優惠沒有
-     * 可以採取的行動，對使用者來說跟「沒有優惠」是同一種結果。
+     * 已售罄的商品即使掛著優惠標籤也不算：現在買不到。
      */
     public function test_a_stockout_product_is_never_on_offer_even_with_a_sale_tag(): void
     {
@@ -101,7 +93,6 @@ class HmallProductPresenterTest extends TestCase
         Cache::put('hmall_product:top_wearing_ranks', [$product->id => 1]);
         Cache::put('hmall_product:most_visited_ranks', [$product->id => 1]);
 
-        // 先確認排名真的生效，排除「其實沒設成功、只是剛好也是 false」的偽陽性
         $this->assertSame(1, $product->top_wearing_rank);
         $this->assertSame(1, $product->most_visited_rank);
         $this->assertFalse($this->presenter->isOnOffer($product));

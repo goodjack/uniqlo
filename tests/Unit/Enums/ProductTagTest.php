@@ -16,8 +16,7 @@ class ProductTagTest extends TestCase
     {
         parent::setUp();
 
-        // 檔期判斷比的是「現在」。時間釘住，SQL 與記憶體兩邊才是同一個時刻，
-        // 測試也不會在檔期邊界上隨機失敗。
+        // 釘住時間，SQL 與記憶體兩邊才比同一個時刻
         Carbon::setTestNow('2026-09-03 12:00:00');
     }
 
@@ -29,8 +28,7 @@ class ProductTagTest extends TestCase
     }
 
     /**
-     * 同一個標籤在清單頁走記憶體過濾、在分類頁走 SQL，兩邊必須給出同一批商品。
-     * 這個測試存在的目的就是擋住那兩份實作各自演化。
+     * 清單頁走記憶體過濾、分類頁走 SQL，兩邊必須給出同一批商品。
      *
      * @dataProvider tagProvider
      */
@@ -63,11 +61,7 @@ class ProductTagTest extends TestCase
     }
 
     /**
-     * identity 的代碼要精準比對，不能命中以它開頭的其他代碼。
-     *
-     * ECONLYAD 是真實資料上的反例：本機 uniqlo 有 14 件，它們不是網路獨家，
-     * 但舊的裸 LIKE '%ECONLY%' 會把它們收進來（清單頁因此從 92 件變成 106 件）。
-     * SQL 與記憶體兩條路都要驗，只驗一條的話另一條照樣可以錯。
+     * identity 的代碼要精準比對：真實資料有 ECONLYAD，不是網路獨家。
      */
     public function test_identity_codes_are_matched_exactly(): void
     {
@@ -88,8 +82,8 @@ class ProductTagTest extends TestCase
     }
 
     /**
-     * 期間限定的判準要跟限時特價清單頁一致：落在檔期內就算，不必等官方掛
-     * time_doptimal。原本兩邊不是包含關係——真實資料上頁面 65 件、標籤 148 件。
+     * 期間限定的判準跟限時特價清單頁一致：落在檔期內就算，不必等官方掛
+     * time_doptimal。
      */
     public function test_limited_offer_follows_the_same_rule_as_its_list_page(): void
     {
@@ -136,8 +130,7 @@ class ProductTagTest extends TestCase
     }
 
     /**
-     * APP 與 ECONLY 從期間限定拿掉：它們講的是「哪裡買得到」，不是檔期。
-     * ECONLY 屬於網路獨家那一半，保留。
+     * APP 與 ECONLY 講的是「哪裡買得到」，不是檔期，不算期間限定。
      */
     public function test_app_and_ec_only_are_no_longer_limited_offers(): void
     {

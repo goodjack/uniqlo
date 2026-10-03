@@ -111,9 +111,7 @@ class SearchTest extends TestCase
     }
 
     /**
-     * 貨號帶前導零時精準比對不到（450001 跟 0450001 是資料庫裡不同的字串），
-     * 查無貨號結果要退回關鍵字搜尋，讓使用者看到空狀態跟「改用 Google 搜尋」
-     * 的出口，不能只有一頁「共 0 件」的空卡片格、沒有任何出路。
+     * 查無貨號時要退回關鍵字搜尋，使用者才看得到空狀態與 Google 搜尋的出口。
      */
     public function test_a_leading_zero_code_falls_back_to_keyword_search_with_an_empty_state(): void
     {
@@ -158,8 +156,7 @@ class SearchTest extends TestCase
     }
 
     /**
-     * code 精準符合的商品才是這組編號真正的商品頁，排序上要贏過只是
-     * name 裡帶到這組號碼的其他商品頁。
+     * code 精準符合的才是這組編號真正的商品頁。
      */
     public function test_a_precise_code_match_sorts_before_a_shared_number_match(): void
     {
@@ -183,12 +180,7 @@ class SearchTest extends TestCase
     }
 
     /**
-     * 48251 只是 482514 的前綴，不是這個號碼本身，貨號的精準比對／共用號碼
-     * 規則比對都不該命中。查無貨號結果時退回關鍵字搜尋（SearchController::
-     * showProductCodeResults()），這裡斷言的是「這頁變成關鍵字結果」，不是
-     * 「AIRism 完全不會出現」——LIKE 比對不看數字邊界，那件商品的名稱裡帶著
-     * 「482514」，含有「48251」這個子字串，退回關鍵字搜尋後會被撈到，跟
-     * 「48251 是不是這個貨號」是兩件事。
+     * 48251 只是 482514 的前綴，不算這個貨號；關鍵字搜尋本來就會用子字串撈到它。
      */
     public function test_a_number_that_is_only_a_prefix_of_another_code_does_not_match(): void
     {
@@ -228,11 +220,7 @@ class SearchTest extends TestCase
     }
 
     /**
-     * is_numeric('123.456') 會判成數字，而小數點在 REGEXP 樣式裡是萬用字元，
-     * 會誤中名稱裡剛好有「123 後面任一字元 456」的商品（例如「123/456」）；
-     * 改用 ctype_digit() 之後這種字串不算數字，不會直接單一命中就 redirect
-     * 到商品頁，要落到關鍵字搜尋（跟 test_keyword_query_no_longer_redirects_to_google
-     * 一樣走 search.show）。
+     * 小數點在 REGEXP 裡是萬用字元，不能把 123.456 當貨號查。
      */
     public function test_a_query_with_a_decimal_point_does_not_redirect_straight_to_a_product_page(): void
     {
@@ -247,10 +235,6 @@ class SearchTest extends TestCase
         $response->assertRedirect(route('search.show', ['query' => '123.456']));
     }
 
-    /**
-     * 同一組資料在結果頁也要走關鍵字搜尋：123.456 當成一整個關鍵字比對，
-     * 不會命中名稱裡的「123/456」（那是斜線，不是句點），所以查不到任何商品。
-     */
     public function test_a_query_with_a_decimal_point_finds_nothing_via_keyword_search(): void
     {
         $this->createProduct([
@@ -273,10 +257,6 @@ class SearchTest extends TestCase
         $response->assertRedirect(route('search.show', ['query' => '羽絨']));
     }
 
-    /**
-     * 搜尋表單走 index，但使用者可以直接開 /search/{query}。
-     * 只在 index 擋長度，等於沒有擋。
-     */
     public function test_an_over_long_query_is_rejected_on_the_direct_url_too(): void
     {
         $tooLong = str_repeat('羽', 101);
@@ -285,9 +265,6 @@ class SearchTest extends TestCase
         $this->get(route('search.show', ['query' => $tooLong]))->assertNotFound();
     }
 
-    /**
-     * 超過上限的關鍵字被丟掉時，畫面要講出來，不然結果會莫名其妙地變多。
-     */
     public function test_keywords_beyond_the_limit_are_reported_to_the_user(): void
     {
         $response = $this->get(route('search.show', ['query' => '一 二 三 四 五 六 七']));
