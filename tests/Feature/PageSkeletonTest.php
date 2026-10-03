@@ -584,6 +584,17 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
+     * 導覽列與頁尾的版號讀 config，更新日誌的每一篇是手寫的；發版時兩邊要一起改。
+     */
+    public function test_the_nav_version_matches_the_latest_changelog_entry(): void
+    {
+        $latest = $this->xpath($this->get(route('pages.changelog'))->assertOk()->getContent())
+            ->query('//h2[contains(@class, "dividing")]')->item(0)->textContent;
+
+        $this->assertSame(config('nav.links.changelog.version'), trim($latest));
+    }
+
+    /**
      * 分頁的每一頁都是自己的 canonical：指回第 1 頁的話，搜尋引擎會把第 2 頁
      * 之後的商品當成重複內容丟掉。篩選參數（q、tags）則不算另一頁。
      */

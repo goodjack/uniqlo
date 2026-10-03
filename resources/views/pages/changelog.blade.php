@@ -25,7 +25,7 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
-                        {{ config('nav.links.changelog.version') }}
+                        v4.2.0
                     </h2>
                     <!-- / 標題 -->
                     <div class="ts large compact basic fitted secondary message">
