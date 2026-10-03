@@ -72,7 +72,6 @@
         </div>
     </div>
     <div class="ts very padded horizontally fitted attached fluid secondary center aligned segment">
-        {{-- bare=true：這層 fluid secondary segment 已經是外框，不用 partial 自己再包一層 --}}
         @include('partials.pagination', ['paginator' => $styleHints, 'bare' => true])
     </div>
 @endsection

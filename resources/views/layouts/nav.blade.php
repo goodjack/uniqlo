@@ -1,8 +1,4 @@
 @php
-    /*
-     * 導覽的分組定義搬到 config/nav.php：麵包屑要用同一組名稱與分組，
-     * 資料留在這個 blade 裡的話只有導覽列讀得到。
-     */
     $navLinks = config('nav.links');
     $navGroups = config('nav.groups');
 
@@ -10,11 +6,7 @@
     $isCurrent = fn(string $route) => request()->routeIs($route);
     $groupIsCurrent = fn(array $items) => collect($items)->contains(fn($item) => request()->routeIs($item['route']));
 
-    /*
-     * 桌機導覽列：期間限定與特價站在外層一鍵直達（master 也是這樣），其餘清單
-     * 收在各自的分組下拉裡。被拉出來的那兩項不再出現在下拉裡，同一個入口不列兩次；
-     * 分組本身不動，麵包屑第二層讀的是同一份分組。
-     */
+    // 桌機：pinned 的清單放外層，下拉裡就不再列一次
     $pinnedItems = collect($navGroups)
         ->flatten(1)
         ->filter(fn($item) => $item['pinned'] ?? false)

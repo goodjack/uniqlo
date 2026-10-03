@@ -1,17 +1,8 @@
 @inject('hmallProductPresenter', 'App\Presenters\HmallProductPresenter')
 
 {{--
-    整列原本是一個 <a>，於是列裡面的任何操作按鈕都會變成巢狀互動元素——那是
-    無效的 HTML，無障礙樹裡也讀不出「這是另一顆按鈕」。改成整列是 div，圖片與
-    標題各自是連結，slot 裡的按鈕就是連結的兄弟節點而不是子孫。
-
-    .item 仍然是 .ts.items 的直接子元素、.image 與 .content 仍然是 .item 的直接
-    子元素，Tocas 的版面規則（含 divided 的分隔線）整組照樣套得到。
-
-    $actions 是選用的：不傳就完全不輸出（用 @isset 整段跳過，不是輸出空字串），
-    這個 partial 也給商品頁的延伸商品用，那邊沒有動作鈕，外觀不能多一個位元組。
-    有傳的話會渲染成 .item 的第三個直接子元素 .actions，跟 .image、.content
-    同一層，這是 Tocas items 文件裡「動作」跟「垂直對齊」那兩節的原生寫法。
+    整列不是 <a>：$actions 裡的按鈕不能是連結的子孫（巢狀互動元素）。
+    $actions 選用，不傳就不輸出 .actions（商品頁的延伸商品沒有動作鈕）。
 --}}
 <div class="item" {!! $itemAttributes ?? '' !!}>
     <a class="ts tiny image" href="{{ $hmallProduct->route_url }}">

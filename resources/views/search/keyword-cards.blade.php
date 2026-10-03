@@ -1,4 +1,4 @@
-{{-- 關鍵字搜尋的結果。只含現行商品，舊軌 Product 已凍結不納入搜尋。 --}}
+{{-- 只搜現行商品，舊系統的 Product 已凍結不納入 --}}
 @if ($hmallProducts->isNotEmpty())
     <div class="ts doubling cards four uq-product-cards">
         @each('hmall-products.card', $hmallProducts, 'hmallProduct')
@@ -6,7 +6,6 @@
 
     @include('partials.pagination', ['paginator' => $hmallProducts])
 @else
-    {{-- 搜尋的空狀態文案跟清單頁不同：這裡要改的是關鍵字，不是勾選的條件 --}}
     @include('partials.empty-state', [
         'icon' => 'search faded',
         'title' => '找不到符合的商品',
@@ -15,7 +14,7 @@
 @endif
 
 <div class="ts center aligned basic segment">
-    {{-- 參數名是 Google Programmable Search 的標準 q，CSE 元件會自己讀它帶入搜尋框 --}}
+    {{-- q 是 Google Programmable Search 會自己讀進搜尋框的參數 --}}
     <a class="ts basic button" href="{{ route('search.google-cse', ['q' => $query]) }}">
         <i class="google icon"></i>改用 Google 搜尋「{{ $query }}」
     </a>

@@ -12,7 +12,6 @@
 
 @section('metadata')
     @unless ($isProductCodeSearch)
-        {{-- 搜尋結果頁不需要被索引，內容是既有商品頁的重組 --}}
         <meta name="robots" content="noindex, follow" />
     @endunless
 @endsection
