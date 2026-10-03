@@ -85,10 +85,7 @@ class FetchHmallProductsTest extends TestCase
     }
 
     /**
-     * 部分成功時，指令要把這一輪的說明留給排程。
-     *
-     * 排程彙整通知時只看得到 exit code，兩種部分成功長得一模一樣。說明留下來，
-     * 通知才寫得出「到底有沒有做缺貨判定」。
+     * 部分成功時要把這一輪的說明留給排程，通知才寫得出有沒有做缺貨判定。
      */
     public function test_a_partial_success_leaves_an_explanation_for_the_schedule()
     {
@@ -111,11 +108,8 @@ class FetchHmallProductsTest extends TestCase
     }
 
     /**
-     * 部分成功時仍然要送結束通知。
-     *
-     * TaskNotes 只活在同一個 process 裡，沒有排程來取走就隨 process 消失。手動
-     * 執行的人只會看到 start，之後什麼都沒有，分不出是還在跑、卡住、還是掛了。
-     * 說明接在通知資料裡，才看得出這一輪到底有沒有做缺貨判定。
+     * 部分成功時仍然要送結束通知並附說明：手動執行時沒有排程彙整，不送的話
+     * start 之後就沒有下文。
      */
     public function test_a_partial_success_still_sends_the_finished_notification()
     {

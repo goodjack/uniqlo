@@ -13,11 +13,8 @@ class HmallProductNumberSearchTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * 數字搜尋的查詢次數不可以跟著卡片數長。
-     *
-     * 卡片會讀 japanProduct 判斷要不要顯示影片圖示，所以這條查詢沒有先 eager load
-     * 的話，就是一張卡片補一次查詢。舊行為是 code 精準比對、通常只有一筆，所以
-     * 看不出來；改成共用號碼比對之後一次可能撈出幾十筆，這才變成實際成本。
+     * 數字搜尋的查詢次數不可以跟著卡片數長（卡片會讀 japanProduct，共用號碼
+     * 比對一次可能撈出幾十筆）。
      */
     public function test_a_number_search_does_not_query_japan_products_once_per_card(): void
     {

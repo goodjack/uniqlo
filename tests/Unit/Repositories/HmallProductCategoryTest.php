@@ -178,10 +178,7 @@ class HmallProductCategoryTest extends TestCase
     }
 
     /**
-     * 寫不進去的商品要回報是「哪幾件」，不能只回報幾件。
-     *
-     * 缺貨判定要靠這份編號清單把它們排除掉：那幾件在來源其實還在，只是資料沒寫進去，
-     * 沒排除就會被當成「今天沒看到」而標成下架。
+     * 寫不進去的商品要回報是「哪幾件」：缺貨判定要靠這份清單排除它們。
      */
     public function test_reports_which_products_failed_to_save(): void
     {
@@ -208,10 +205,7 @@ class HmallProductCategoryTest extends TestCase
     }
 
     /**
-     * 拿不到商品編號的失敗要單獨算一個數字，不能安靜吞掉。
-     *
-     * 這種失敗沒辦法從缺貨判定裡排除（不知道要排除誰），呼叫端只能整輪不做缺貨判定，
-     * 所以它必須看得到這個數字。官方回傳格式跑掉時 productCode 就可能是空的。
+     * 拿不到商品編號的失敗要單獨計數：排除不了，呼叫端要知道這一輪不能做缺貨判定。
      */
     public function test_a_failure_without_a_product_code_is_counted_separately(): void
     {
@@ -228,13 +222,11 @@ class HmallProductCategoryTest extends TestCase
     }
 
     /**
-     * save、syncCategories、寫價格歷史三步要在同一個交易裡：分類同步半路丟例外時，
-     * 不能讓新價格已經留在資料庫裡——不然下次抓到同一個價格會被判「沒變」直接跳過，
-     * 價格走勢就永久缺一筆。
+     * 分類同步半路丟例外時，新價格與價格歷史要一起回滾，否則下次抓到同價會被判
+     * 「沒變」，價格走勢永久缺一筆。
      *
-     * categorySortList 塞一筆 code 是陣列的項目：syncCategories 拿它當 mapWithKeys
-     * 的 array key 時，PHP 對非 int/string 的 key 一律丟 TypeError，這是會在正式環境
-     * 真的發生的例外（官方回傳格式跑掉），不是為了測試硬造的假輸入。
+     * categorySortList 裡 code 是陣列的項目會讓 mapWithKeys 丟 TypeError，
+     * 官方回傳格式跑掉時真的會發生。
      */
     public function test_a_failed_category_sync_rolls_back_the_saved_price_and_history(): void
     {
@@ -262,11 +254,8 @@ class HmallProductCategoryTest extends TestCase
     }
 
     /**
-     * 刪掉商品時，它的分類關聯要跟著消失。
-     *
-     * pivot 的兩個關聯欄位原本沒有外鍵，任何人手動刪一筆商品（或日後加一支清舊
-     * 商品的指令），關聯就會留下指不到東西的列。所有讀取路徑都是 inner join，
-     * 畫面不會出錯，孤兒列只會無聲累積到沒有人發現。
+     * 刪掉商品時，它的分類關聯要跟著消失（讀取路徑都是 inner join，孤兒列不會
+     * 讓畫面出錯，只會無聲累積）。
      */
     public function test_deleting_a_product_takes_its_category_links_with_it(): void
     {

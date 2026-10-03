@@ -18,8 +18,7 @@ class HmallProductMostVisitedTest extends TestCase
      *
      * 熱門排行的商品編號來自 GA 的 fullPageUrl，而 GA 收得到任何人亂打的網址：
      * 反覆打 /hmall-products/<任意字串> 就算回 404，錯誤頁一樣載了 GA 的 script，
-     * 那個路徑還是會被記成一筆 pagePath，再被前 100 名的過濾條件收進來。以前
-     * ORDER BY 那段是把編號加引號直接拼成字串，等於讓外部寫得進 SQL。
+     * 那個路徑還是會被記成一筆 pagePath，再被前 100 名的過濾條件收進來。
      */
     public function test_a_quoted_url_fragment_never_reaches_the_order_by_clause(): void
     {

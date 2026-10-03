@@ -126,11 +126,8 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
-     * 從 checkpoint 續跑、而且每一頁都成功時，不可以做缺貨判定。
-     *
-     * setStockoutHmallProducts 是把 updated_at 比今天早的商品標成下架，前提是
-     * 這一輪從第 1 頁看過整份目錄。續跑只看了後半段，前半段的商品今天一次都沒被
-     * 摸到，照跑就會把它們整批標成下架——整個品牌當天從站上消失。
+     * 續跑只看了目錄的後半段，就算每一頁都成功也不可以做缺貨判定，
+     * 否則前半段會被整批標成下架。
      */
     public function test_a_resumed_crawl_never_marks_products_as_stocked_out()
     {
@@ -162,9 +159,7 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
-     * 續跑時，這一輪就算有具名商品寫入失敗，也不能因此才略過缺貨判定；
-     * 續跑本身已經足夠讓缺貨判定被跳過，不需要疊加別的理由，通知文字
-     * 要維持「續跑」那一句，不能被寫入失敗的訊息蓋掉或混在一起。
+     * 續跑時就算有商品寫入失敗，通知的說明仍然是「續跑」那一句。
      */
     public function test_a_resumed_crawl_with_a_named_failure_still_skips_stockout()
     {
@@ -203,9 +198,6 @@ class HmallProductServiceTest extends TestCase
 
     /**
      * 從第 1 頁開始、全部成功、而且真的看到商品，才是完整掃描，這時候缺貨判定才該跑。
-     *
-     * 這支以前餵的是空目錄，等於把「一件商品都沒看到也照做缺貨判定」寫成了
-     * 預期行為。空目錄該走的是 test_an_empty_catalog_never_marks_products_as_stocked_out。
      */
     public function test_a_full_clean_crawl_still_marks_products_as_stocked_out()
     {
@@ -418,11 +410,8 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
-     * 完整掃描中有商品寫不進去時，缺貨判定照做、但要排除那幾件。
-     *
-     * 這一輪其實把整份目錄都看過了，只是那幾件的 updated_at 沒被摸到。以前這種
-     * 情況整輪跳過缺貨判定、還保留 checkpoint，只要有一件資料固定寫不進去，缺貨
-     * 判定就永遠不會執行，下架的商品一直掛在站上。
+     * 完整掃描中有商品寫不進去時，缺貨判定照做、但要排除那幾件：目錄其實看完了，
+     * 整輪跳過的話只要有一件固定寫不進去，缺貨判定就永遠不會執行。
      */
     public function test_a_full_scan_still_marks_stockout_but_excludes_the_products_that_failed_to_save()
     {
@@ -457,10 +446,7 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
-     * 寫入失敗但拿不到商品編號時，缺貨判定不能做。
-     *
-     * 不知道要排除誰，照跑就會把那件商品冤枉標成下架。checkpoint 一樣清掉，
-     * 讓下一輪重新從第 1 頁完整掃。
+     * 寫入失敗但拿不到商品編號時，不知道要排除誰，缺貨判定不能做。
      */
     public function test_a_failure_without_a_product_code_skips_stockout()
     {
@@ -491,12 +477,8 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
-     * 同一件商品固定寫不進去時，不可以再形成「失敗日、清 checkpoint 日、重新失敗日」的循環。
-     *
-     * 以前的循環是這樣：第一天完整掃完但有一件寫失敗，保留 checkpoint、跳過缺貨判定；
-     * 第二天從 checkpoint 續跑只抓到一頁空的，因為不是完整掃描又跳過；第三天回到第一天。
-     * 缺貨判定就永遠沒有執行的一天。修正後每一輪都從第 1 頁開始、每一輪都做帶排除清單的
-     * 缺貨判定。
+     * 同一件商品固定寫不進去時，每一輪仍然從第 1 頁開始、每一輪都做帶排除清單的
+     * 缺貨判定，不會因為保留續跑點而讓缺貨判定一直輪不到。
      */
     public function test_a_product_that_keeps_failing_does_not_stall_stockout_day_after_day()
     {
@@ -643,9 +625,7 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
-     * 只有幾頁失敗（不是全部）：目錄有缺口，缺貨判定不能做、checkpoint 保留。
-     *
-     * 通知要看得出原因是缺頁，跟「有商品寫不進去但目錄看完了」是兩回事。
+     * 只有幾頁失敗：目錄有缺口，缺貨判定不能做、續跑點保留，通知說明是缺頁。
      */
     public function test_some_pages_failing_skips_stockout_and_says_the_catalog_has_gaps()
     {
@@ -688,12 +668,8 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
-     * 來源回空目錄時，絕對不可以做缺貨判定，也不可以回報成功。
-     *
-     * 官網回 HTTP 200、JSON 合法、productList 是空陣列、productSum 是 0——WAF 軟擋、
-     * 上游過濾條件跑掉、暫時無資料都長這樣。以前這種回應通過每一道檢查（有成功抓到頁、
-     * 從第 1 頁開始、沒有失敗），缺貨判定就用空的排除清單跑下去，把整個品牌 updated_at
-     * 比今天早的商品全部標成下架，回傳成功、exit code 0，一封通知都不發。
+     * 來源回空目錄（HTTP 200、productList 空陣列；WAF 軟擋、上游條件跑掉都長這樣）時，
+     * 不可以做缺貨判定，也不可以回報成功。
      */
     public function test_an_empty_catalog_never_marks_products_as_stocked_out()
     {
@@ -719,14 +695,8 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
-     * 中間頁失敗、後面頁成功時，續跑點要退回那個失敗的頁碼。
-     *
-     * 每一頁成功都會覆寫續跑點，所以失敗頁後面只要還有成功的頁，留下來的續跑點就
-     * 指到最後一頁之後：同一天重跑會直接跳過失敗那頁，隔天從超出範圍的頁碼起跑、
-     * 只抓到一頁空的、又因為是續跑而不做缺貨判定，第三天才回到完整掃描。一次暫時性
-     * 的缺頁換來連續兩天沒有缺貨判定。
-     *
-     * 既有的缺頁測試只讓最後一頁失敗，那正好是續跑點等於失敗頁的唯一情況，測不到這條。
+     * 中間頁失敗、後面頁成功時，續跑點要退回那個失敗的頁碼，不能被後面成功的頁
+     * 推過去（只讓最後一頁失敗的測試測不到這條）。
      */
     public function test_a_page_failing_in_the_middle_rewinds_the_checkpoint_to_that_page()
     {
@@ -799,10 +769,8 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
-     * 跑到一半被 403 擋下，前面幾頁已經寫進資料庫了，不能說成「完全失敗」。
-     *
-     * 完全失敗的定義是連一頁都沒抓到。看通知的人會據此判斷今天有沒有新資料：
-     * 說完全失敗，他以為整份資料是昨天的；實際上前面幾頁是今天的、後面才是昨天的。
+     * 跑到一半被 403 擋下，前面幾頁已經寫進資料庫了，不能說成「完全失敗」
+     * （完全失敗是連一頁都沒抓到）。
      */
     public function test_a_block_partway_through_is_reported_as_a_partial_success()
     {
@@ -833,11 +801,7 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
-     * 寫資料庫丟例外時不可以重打官網。
-     *
-     * 以前寫入放在 retry 的 closure 裡，而 shouldRetry() 對所有非 403 的例外都回
-     * 可重試，所以一次死鎖會讓同一頁重新 POST 官網好幾次——拿資料庫的問題去打官網，
-     * 打幾次都不會好，還多了被擋的風險。
+     * 寫資料庫丟例外時不可以重打官網：資料庫的問題打幾次官網都不會好，還多了被擋的風險。
      */
     public function test_a_database_error_while_saving_does_not_hit_the_source_again()
     {
@@ -872,10 +836,8 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
-     * 一頁商品的假回應。
-     *
-     * 服務層不看商品內容（寫入交給 repository，測試裡都是 mock），只數這一輪看到
-     * 幾件——缺貨判定的守門就是靠這個數字，所以要做缺貨判定的測試不能再餵空陣列。
+     * 一頁商品的假回應。服務層只數看到幾件（缺貨判定的守門），不看商品內容，
+     * 所以要做缺貨判定的測試不能餵空陣列。
      */
     private function searchResponse(int $productCount, ?int $productSum = null): array
     {

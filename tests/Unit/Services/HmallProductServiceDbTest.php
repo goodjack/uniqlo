@@ -74,7 +74,7 @@ class HmallProductServiceDbTest extends TestCase
     /**
      * 真的跑一次完整掃描，直接看資料庫裡三件既有商品最後的下場。
      *
-     * A：來源還有，但這一輪寫不進去 → 不可以被標成下架（這次修正的重點）
+     * A：來源還有，但這一輪寫不進去 → 不可以被標成下架
      * B：來源已經沒有了 → 要被標成下架
      * C：來源還有而且寫入成功 → 維持在售
      *
@@ -133,9 +133,8 @@ class HmallProductServiceDbTest extends TestCase
     }
 
     /**
-     * hmall_products.product_code 允許 NULL；排除清單非空時，NULL 不能被
-     * whereNotIn 誤保護住，否則同品牌所有編號空白的舊資料都不會被標下架
-     * ——因為 SQL 的 NULL NOT IN (...) 永遠不成立。
+     * product_code 允許 NULL，而 NULL NOT IN (...) 永遠不成立：排除清單非空時，
+     * 編號空白的商品不能因此被誤保護、永遠不標下架。
      */
     public function test_a_product_with_null_product_code_is_still_marked_as_stocked_out_when_exclusions_exist(): void
     {

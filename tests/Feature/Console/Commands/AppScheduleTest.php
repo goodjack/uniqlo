@@ -53,9 +53,7 @@ class AppScheduleTest extends TestCase
     }
 
     /**
-     * 最常見的失敗形態不丟例外，只是安靜回傳 exit code 1
-     * （FetchHmallProducts::handle() 就是 return $succeeded ? 0 : 1）。
-     * 只包 try/catch 會整個漏掉這條路徑。
+     * 爬蟲失敗時不丟例外，只回傳非 0 的 exit code，只包 try/catch 會漏掉。
      */
     public function test_non_zero_exit_code_counts_as_failure(): void
     {
@@ -109,11 +107,8 @@ class AppScheduleTest extends TestCase
     }
 
     /**
-     * 整天只有部分成功、沒有任何整步失敗時，不可以送紅色的失敗通知。
-     *
-     * 部分成功代表資料庫裡還有完整的舊資料、站上不會缺，只要追那幾筆。只要有
-     * 一件商品的來源資料長期寫不進去，爬蟲每天都會回部分成功；每天一封紅字會
-     * 訓練人忽略通知，真正的整步失敗就被淹掉了。
+     * 只有部分成功時不送紅色的失敗通知：部分成功可能天天發生，每天一封紅字會讓人
+     * 學會忽略，真正的整步失敗就被淹掉。
      */
     public function test_a_day_with_only_partial_successes_does_not_send_a_failure_notification(): void
     {
@@ -134,11 +129,7 @@ class AppScheduleTest extends TestCase
     }
 
     /**
-     * 兩種「部分成功」在通知裡要分得出來。
-     *
-     * 目錄有缺頁代表這一輪根本沒做缺貨判定、站上還是上一次完整掃描的結果；排除
-     * 幾件寫入失敗的商品之後做了缺貨判定是另一回事，急迫程度不一樣。exit code
-     * 只有一種「部分成功」，所以指令會另外留一句說明給排程接在後面。
+     * 兩種部分成功在通知裡要分得出來（有沒有做缺貨判定），靠指令留的說明。
      */
     public function test_the_notification_tells_the_two_kinds_of_partial_success_apart(): void
     {
@@ -163,12 +154,8 @@ class AppScheduleTest extends TestCase
     }
 
     /**
-     * 非爬蟲步驟回 exit code 2 時，不可以被讀成「部分成功」。
-     *
-     * 2 不是隨便一個數字，是 Symfony 留給「參數不合法」的 Command::INVALID。
-     * 日後任何人照慣例在 sitemap:generate 或新步驟寫 return self::INVALID，
-     * 通知若寫成「部分成功」，值班的人會以為只是抓到一部分、可以晚點看，
-     * 實際上那一步整步沒做。
+     * 非爬蟲步驟的 exit code 2 是 Symfony 的 Command::INVALID（整步沒做），
+     * 不可以讀成「部分成功」。
      */
     public function test_a_non_crawler_step_returning_two_is_not_called_a_partial_success(): void
     {
