@@ -271,6 +271,35 @@ class JapanProductServiceTest extends TestCase
         $this->assertSame(2, $requests);
     }
 
+    public function test_seeing_far_fewer_products_than_are_in_stock_skips_stockout()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
+        Http::fake(['https://api.example.com/products*' => Http::response($this->listResponse(4, 4))]);
+
+        $repository = $this->createMock(JapanProductRepository::class);
+        $repository->method('saveProducts')->willReturn(new ProductSaveResult);
+        $repository->method('countInStockProducts')->willReturn(900);
+        $repository->expects($this->never())->method('setStockoutProducts');
+
+        $result = (new JapanProductService($repository))->fetchAllProducts('UNIQLO');
+
+        $this->assertSame('未執行缺貨判定，這一輪只看到 4 件，目前在售 900 件', $result->note);
+    }
+
+    public function test_skipping_stockout_for_too_many_days_needs_attention()
+    {
+        Cache::flush();
+        Cache::forever('stockout:last-run:japan:UNIQLO', today()->subDays(3)->toDateString());
+        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
+        Http::fake(['https://api.example.com/products*' => Http::response($this->listResponse(0, 0))]);
+
+        $result = $this->serviceExpectingStockout($this->never())->fetchAllProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::StockoutOverdue, $result->outcome);
+        $this->assertStringContainsString('已經 3 天沒有執行缺貨判定', $result->note);
+    }
+
     /**
      * 有幾件寫不進去時目錄其實看完了：缺貨判定照做，但要排除那幾件，
      * 否則它們會因為 updated_at 沒更新而被冤枉下架。

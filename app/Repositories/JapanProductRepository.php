@@ -71,6 +71,11 @@ class JapanProductRepository
         return new ProductSaveResult(array_values(array_unique($failedIds)), $unidentifiedFailureCount);
     }
 
+    public function countInStockProducts(string $brand): int
+    {
+        return $this->model->where('brand', $brand)->whereNull('stockout_at')->count();
+    }
+
     /**
      * @param  array<int, string>  $excludedIds  寫入失敗、但官網其實還在賣的 l1Id
      */

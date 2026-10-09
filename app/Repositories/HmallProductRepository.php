@@ -865,6 +865,11 @@ class HmallProductRepository extends Repository
         );
     }
 
+    public function countInStockHmallProducts(string $brand): int
+    {
+        return $this->model->where('brand', $brand)->whereNull('stockout_at')->count();
+    }
+
     /**
      * 把這一輪沒被更新到的商品標成下架。$excludedProductCodes 是寫入失敗、
      * 但來源其實還在的商品。

@@ -9,6 +9,7 @@ use App\Repositories\ProductRepository;
 use App\Services\Traits\AntiBlockingCrawler;
 use App\Support\CatalogScan;
 use App\Support\CrawlResult;
+use App\Support\StockoutGate;
 use Exception;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
@@ -69,7 +70,8 @@ class HmallProductService extends Service
      *
      * 缺貨判定是把 updated_at 早於今天的商品標成下架，前提是這一輪真的把整份目錄
      * 看過一遍；看漏的那一段會被整批誤判成下架。所以只有「從第 1 頁開始、每一頁
-     * 都抓到而且件數對得上總數、至少看到一件商品」才做（判斷見 CatalogScan）。
+     * 都抓到而且件數對得上總數、至少看到一件商品」才做（判斷見 CatalogScan），
+     * 看到的件數也不能遠少於目前在售件數；跳過太多天會升級成失敗通知（StockoutGate）。
      * 頁面抓到但個別商品寫不進去＝目錄其實看完了，照做但排除那幾件，不然它們會被
      * 冤枉下架。
      *
@@ -98,6 +100,7 @@ class HmallProductService extends Service
         $hasSucceeded = false;
         // 每一頁成功都會把續跑點往後推，有缺口時要退回最早的缺口，否則那一頁永遠不補抓
         $scan = new CatalogScan($pageSize);
+        $gate = new StockoutGate('hmall', $brand);
         $retryTimes = (int) config('app.crawler.retry.times');
         $failedProductCodes = [];
         // 寫不進去而且連商品編號都拿不到的件數，沒辦法從缺貨判定排除
@@ -206,8 +209,7 @@ class HmallProductService extends Service
                     // 前面幾頁已經寫進去了，不能說成完全失敗
                     $note = "未執行缺貨判定，第 {$page} 頁起被擋下（403）";
 
-                    return new CrawlResult(
-                        CrawlOutcome::PartiallySucceeded,
+                    return $gate->skip(
                         $earlierGapPage === null ? $note : "{$note}，更早在第 {$earlierGapPage} 頁就有缺頁"
                     );
                 }
@@ -229,6 +231,13 @@ class HmallProductService extends Service
 
         $scan->recordEnd(($page - 1) * $pageSize);
 
+        // 官網回的總數跟實際件數常態差多少，要靠這筆紀錄才判斷得了
+        logger()->info('fetchAllHmallProducts catalog summary', [
+            'brand' => $brand,
+            'largest_product_sum' => $scan->largestTotal(),
+            'items_seen' => $scan->itemsSeen(),
+        ]);
+
         if (! $hasSucceeded) {
             logger()->error('No pages were successfully fetched - preserving checkpoint', ['brand' => $brand]);
 
@@ -245,10 +254,7 @@ class HmallProductService extends Service
 
             $this->saveCheckpoint($cacheKey, $firstGapPage);
 
-            return new CrawlResult(
-                CrawlOutcome::PartiallySucceeded,
-                "未執行缺貨判定，目錄有缺頁（最早在第 {$firstGapPage} 頁）"
-            );
+            return $gate->skip("未執行缺貨判定，目錄有缺頁（最早在第 {$firstGapPage} 頁）");
         }
 
         // 每一頁都抓到了，續跑點沒有用處；個別商品寫入失敗也不保留，
@@ -262,10 +268,7 @@ class HmallProductService extends Service
                 'started_from_page' => $startPage,
             ]);
 
-            return new CrawlResult(
-                CrawlOutcome::PartiallySucceeded,
-                '未執行缺貨判定，這一輪是從上次中斷的地方接著跑'
-            );
+            return $gate->skip('未執行缺貨判定，這一輪是從上次中斷的地方接著跑');
         }
 
         // 官網回 200 但 productList 是空的（WAF 軟擋、上游條件跑掉都長這樣），
@@ -276,10 +279,7 @@ class HmallProductService extends Service
                 'started_from_page' => $startPage,
             ]);
 
-            return new CrawlResult(
-                CrawlOutcome::PartiallySucceeded,
-                '未執行缺貨判定，這一輪一件商品都沒看到'
-            );
+            return $gate->skip('未執行缺貨判定，這一輪一件商品都沒看到');
         }
 
         $failedProductCodes = array_values(array_unique($failedProductCodes));
@@ -291,13 +291,23 @@ class HmallProductService extends Service
                 'failed_product_codes' => $failedProductCodes,
             ]);
 
-            return new CrawlResult(
-                CrawlOutcome::PartiallySucceeded,
-                "未執行缺貨判定，{$unidentifiedFailures} 件失敗資料缺少商品編號"
-            );
+            return $gate->skip("未執行缺貨判定，{$unidentifiedFailures} 件失敗資料缺少商品編號");
+        }
+
+        $inStockCount = $this->repository->countInStockHmallProducts($brand);
+
+        if ($gate->seenTooFew($scan->itemsSeen(), $inStockCount)) {
+            logger()->error('Saw far fewer products than are in stock - skipping stockout', [
+                'brand' => $brand,
+                'items_seen' => $scan->itemsSeen(),
+                'in_stock' => $inStockCount,
+            ]);
+
+            return $gate->skip("未執行缺貨判定，這一輪只看到 {$scan->itemsSeen()} 件，目前在售 {$inStockCount} 件");
         }
 
         $this->repository->setStockoutHmallProducts($brand, null, $failedProductCodes);
+        $gate->recordRun();
 
         if ($failedProductCodes === []) {
             logger()->info("Completed fetching Hmall products for {$brand}");

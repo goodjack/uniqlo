@@ -67,7 +67,7 @@ class AppSchedule extends Command
      * exit code 照 CrawlOutcome 解讀的指令。其他指令的 2 是 Symfony 的
      * Command::INVALID（參數不合法），不能讀成「部分成功」。
      */
-    private const PARTIAL_SUCCESS_COMMANDS = [
+    private const CRAWL_OUTCOME_COMMANDS = [
         'hmall-product:fetch',
         'japan-product:fetch',
     ];
@@ -146,8 +146,10 @@ class AppSchedule extends Command
      */
     private function describeExitCode(string $command, int $exitCode): string
     {
-        if ($this->isPartialSuccess($command, $exitCode)) {
-            return CrawlOutcome::PartiallySucceeded->label();
+        $crawlOutcome = $this->crawlOutcomeOf($command, $exitCode);
+
+        if ($crawlOutcome !== null) {
+            return $crawlOutcome->label();
         }
 
         return $exitCode === self::FAILURE
@@ -157,8 +159,14 @@ class AppSchedule extends Command
 
     private function isPartialSuccess(string $command, int $exitCode): bool
     {
-        return in_array($command, self::PARTIAL_SUCCESS_COMMANDS, true)
-            && CrawlOutcome::tryFrom($exitCode) === CrawlOutcome::PartiallySucceeded;
+        return $this->crawlOutcomeOf($command, $exitCode) === CrawlOutcome::PartiallySucceeded;
+    }
+
+    private function crawlOutcomeOf(string $command, int $exitCode): ?CrawlOutcome
+    {
+        return in_array($command, self::CRAWL_OUTCOME_COMMANDS, true)
+            ? CrawlOutcome::tryFrom($exitCode)
+            : null;
     }
 
     /**

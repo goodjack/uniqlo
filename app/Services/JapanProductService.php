@@ -7,6 +7,7 @@ use App\Repositories\JapanProductRepository;
 use App\Services\Traits\AntiBlockingCrawler;
 use App\Support\CatalogScan;
 use App\Support\CrawlResult;
+use App\Support\StockoutGate;
 use Exception;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
@@ -25,7 +26,7 @@ class JapanProductService
      * 抓一個品牌的日本官網商品，最後做缺貨判定。缺貨判定的前提跟台灣那支一樣：
      * 從頭開始、每一批都抓到而且件數對得上總數、至少看到一件商品（見 CatalogScan），
      * 否則沒看到的那一段會被整批標成下架。寫不進去的商品也比照台灣：知道 l1Id 的
-     * 排除，拿不到的整輪不做。
+     * 排除，拿不到的整輪不做。在售件數比例與逾期升級同樣走 StockoutGate。
      */
     public function fetchAllProducts($brand = 'UNIQLO', bool $fresh = false): CrawlResult
     {
@@ -46,6 +47,7 @@ class JapanProductService
         $total = 0;
         $hasSucceeded = false;
         $scan = new CatalogScan($limit);
+        $gate = new StockoutGate('japan', $brand);
         $retryTimes = (int) config('app.crawler.retry.times');
         $failedIds = [];
         $unidentifiedFailures = 0;
@@ -137,8 +139,7 @@ class JapanProductService
 
                     $note = "未執行缺貨判定，第 {$scan->pageOf($offset)} 頁起被擋下（403）";
 
-                    return new CrawlResult(
-                        CrawlOutcome::PartiallySucceeded,
+                    return $gate->skip(
                         $earlierGapPage === null ? $note : "{$note}，更早在第 {$earlierGapPage} 頁就有缺頁"
                     );
                 }
@@ -160,6 +161,13 @@ class JapanProductService
 
         $scan->recordEnd($offset);
 
+        // 官網回的總數跟實際件數常態差多少，要靠這筆紀錄才判斷得了
+        logger()->info('JapanProductService fetchAllProducts catalog summary', [
+            'brand' => $brand,
+            'largest_total' => $scan->largestTotal(),
+            'items_seen' => $scan->itemsSeen(),
+        ]);
+
         if (! $hasSucceeded) {
             logger()->error('No batches were successfully fetched - preserving checkpoint', ['brand' => $brand]);
 
@@ -174,10 +182,7 @@ class JapanProductService
 
             $this->saveCheckpoint($cacheKey, $scan->firstGap());
 
-            return new CrawlResult(
-                CrawlOutcome::PartiallySucceeded,
-                "未執行缺貨判定，目錄有缺頁（最早在第 {$scan->pageOf($scan->firstGap())} 頁）"
-            );
+            return $gate->skip("未執行缺貨判定，目錄有缺頁（最早在第 {$scan->pageOf($scan->firstGap())} 頁）");
         }
 
         Cache::forget($cacheKey);
@@ -189,19 +194,13 @@ class JapanProductService
                 'started_from_offset' => $startOffset,
             ]);
 
-            return new CrawlResult(
-                CrawlOutcome::PartiallySucceeded,
-                '未執行缺貨判定，這一輪是從上次中斷的地方接著跑'
-            );
+            return $gate->skip('未執行缺貨判定，這一輪是從上次中斷的地方接著跑');
         }
 
         if ($scan->itemsSeen() === 0) {
             logger()->error('The catalog came back empty - skipping stockout', ['brand' => $brand]);
 
-            return new CrawlResult(
-                CrawlOutcome::PartiallySucceeded,
-                '未執行缺貨判定，這一輪一件商品都沒看到'
-            );
+            return $gate->skip('未執行缺貨判定，這一輪一件商品都沒看到');
         }
 
         if ($unidentifiedFailures > 0) {
@@ -210,15 +209,25 @@ class JapanProductService
                 'unidentified_failures' => $unidentifiedFailures,
             ]);
 
-            return new CrawlResult(
-                CrawlOutcome::PartiallySucceeded,
-                "未執行缺貨判定，{$unidentifiedFailures} 件失敗資料缺少商品識別"
-            );
+            return $gate->skip("未執行缺貨判定，{$unidentifiedFailures} 件失敗資料缺少商品識別");
+        }
+
+        $inStockCount = $this->repository->countInStockProducts($brand);
+
+        if ($gate->seenTooFew($scan->itemsSeen(), $inStockCount)) {
+            logger()->error('Saw far fewer Japan products than are in stock - skipping stockout', [
+                'brand' => $brand,
+                'items_seen' => $scan->itemsSeen(),
+                'in_stock' => $inStockCount,
+            ]);
+
+            return $gate->skip("未執行缺貨判定，這一輪只看到 {$scan->itemsSeen()} 件，目前在售 {$inStockCount} 件");
         }
 
         $failedIds = array_values(array_unique($failedIds));
 
         $this->repository->setStockoutProducts($brand, null, $failedIds);
+        $gate->recordRun();
 
         if ($failedIds === []) {
             logger()->info("Completed fetching Japan products for {$brand}");

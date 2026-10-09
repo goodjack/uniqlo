@@ -169,6 +169,25 @@ class AppScheduleTest extends TestCase
     }
 
     /**
+     * 缺貨判定連續多天沒做時，就算資料有更新也要發紅色的失敗通知，不能混在一般的結束通知裡。
+     */
+    public function test_an_overdue_stockout_sends_a_failure_notification(): void
+    {
+        $this->fakeAllSteps(
+            overdue: ['japan-product:fetch'],
+            notes: ['japan-product:fetch GU' => '未執行缺貨判定，目錄有缺頁（最早在第 2 頁）；已經 3 天沒有執行缺貨判定（上次 2026-10-06）'],
+        );
+
+        $this->assertSame(Command::FAILURE, $this->artisan('app:schedule')->run());
+
+        Event::assertDispatched(AppTaskFailed::class, fn (AppTaskFailed $event) => in_array(
+            'japan-product:fetch GU（缺貨判定逾期：未執行缺貨判定，目錄有缺頁（最早在第 2 頁）；已經 3 天沒有執行缺貨判定（上次 2026-10-06））',
+            $event->data['failed_steps'],
+            true
+        ));
+    }
+
+    /**
      * 非爬蟲步驟的 exit code 2 是 Symfony 的 Command::INVALID（整步沒做），
      * 不可以讀成「部分成功」。
      */
@@ -189,6 +208,7 @@ class AppScheduleTest extends TestCase
      * @param  array<int, string>  $failing  這些指令回傳 exit code 1
      * @param  array<int, string>  $throwing  這些指令丟例外
      * @param  array<int, string>  $partiallySucceeding  這些指令回傳爬蟲的「部分成功」
+     * @param  array<int, string>  $overdue  這些指令回傳爬蟲的「缺貨判定逾期」
      * @param  array<string, string>  $notes  指令留給通知的說明，key 是「指令名 品牌」
      */
     private function fakeAllSteps(
@@ -196,13 +216,14 @@ class AppScheduleTest extends TestCase
         array $throwing = [],
         array $partiallySucceeding = [],
         array $notes = [],
+        array $overdue = [],
     ): void {
         $test = $this;
 
         foreach ($this->stepCommands() as $command) {
             $fake = new ClosureCommand(
                 "{$command} {brand?} {country?} {--only-recent} {--is-scheduled}",
-                function () use ($test, $command, $failing, $throwing, $partiallySucceeding, $notes) {
+                function () use ($test, $command, $failing, $throwing, $partiallySucceeding, $notes, $overdue) {
                     $test->recordExecution($command);
 
                     // 真的指令跑完會把這一輪的說明留給排程，假指令照做
@@ -219,6 +240,10 @@ class AppScheduleTest extends TestCase
 
                     if (in_array($command, $partiallySucceeding, true)) {
                         return CrawlOutcome::PartiallySucceeded->value;
+                    }
+
+                    if (in_array($command, $overdue, true)) {
+                        return CrawlOutcome::StockoutOverdue->value;
                     }
 
                     return in_array($command, $failing, true) ? 1 : 0;

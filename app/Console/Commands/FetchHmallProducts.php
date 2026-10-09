@@ -50,7 +50,7 @@ class FetchHmallProducts extends Command
 
         // 部分成功也要送結束通知並附說明：手動執行時沒有排程彙整，
         // 不送的話 Discord 上 start 之後就沒有下文
-        if ($result->outcome !== CrawlOutcome::Failed) {
+        if (! $result->outcome->needsAttention()) {
             AppTaskFinished::dispatch(
                 class_basename(__CLASS__),
                 $brand,

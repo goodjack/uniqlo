@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\CrawlOutcome;
 use App\Events\AppTaskFinished;
 use App\Events\AppTaskStarting;
 use App\Services\JapanProductService;
@@ -46,7 +45,7 @@ class FetchJapanProducts extends Command
             $taskNotes->put($this->getName(), $brand, $result->note);
         }
 
-        if ($result->outcome !== CrawlOutcome::Failed) {
+        if (! $result->outcome->needsAttention()) {
             AppTaskFinished::dispatch(
                 class_basename(__CLASS__),
                 $brand,

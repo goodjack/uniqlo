@@ -147,6 +147,22 @@ class FetchHmallProductsTest extends TestCase
     }
 
     /**
+     * 缺貨判定逾期跟完全失敗一樣不送一般的結束通知，交給排程發紅色的失敗通知。
+     */
+    public function test_an_overdue_stockout_does_not_send_the_finished_notification()
+    {
+        $mockService = $this->createMock(HmallProductService::class);
+        $mockService->method('fetchAllHmallProducts')
+            ->willReturn(new CrawlResult(CrawlOutcome::StockoutOverdue, '已經 3 天沒有執行缺貨判定'));
+
+        $this->app->instance(HmallProductService::class, $mockService);
+
+        $this->artisan('hmall-product:fetch UNIQLO')->assertExitCode(CrawlOutcome::StockoutOverdue->value);
+
+        Event::assertNotDispatched(AppTaskFinished::class);
+    }
+
+    /**
      * 整批抓完、沒有任何問題時不留說明：通知只會寫成功，沒有什麼要多講的。
      */
     public function test_a_clean_run_leaves_no_explanation()

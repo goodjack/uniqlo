@@ -958,6 +958,59 @@ class HmallProductServiceTest extends TestCase
     }
 
     /**
+     * 第 1 頁就回一個很小、但前後一致的總數時看不出缺口；看到的件數不到在售的
+     * 一半，一定是看漏了，照做會把整個品牌標成缺貨。
+     */
+    public function test_seeing_far_fewer_products_than_are_in_stock_skips_stockout()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+        Http::fake(['https://api.example.com/search' => Http::response($this->searchResponse(24, 24))]);
+
+        $repository = $this->createMock(HmallProductRepository::class);
+        $repository->method('saveProductsFromV3')->willReturn(new ProductSaveResult);
+        $repository->method('countInStockHmallProducts')->willReturn(1672);
+        $repository->expects($this->never())->method('setStockoutHmallProducts');
+
+        $result = (new HmallProductService($repository, $this->mockProductRepository))->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        $this->assertSame('未執行缺貨判定，這一輪只看到 24 件，目前在售 1672 件', $result->note);
+    }
+
+    /**
+     * 缺貨判定連續超過兩天沒做，改成要人處理的結果，說明裡寫出幾天沒做。
+     */
+    public function test_skipping_stockout_for_too_many_days_needs_attention()
+    {
+        Cache::flush();
+        Cache::forever('stockout:last-run:hmall:UNIQLO', today()->subDays(3)->toDateString());
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+        Http::fake(['https://api.example.com/search' => fn ($request) => $request->data()['pageInfo']['page'] === 1
+            ? Http::response($this->searchResponse(24, 48))
+            : Http::response($this->searchResponse(0, 48))]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $result = $this->service->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::StockoutOverdue, $result->outcome);
+        $this->assertStringStartsWith('未執行缺貨判定，目錄有缺頁（最早在第 2 頁）；已經 3 天沒有執行缺貨判定', $result->note);
+    }
+
+    public function test_running_stockout_records_today_as_the_last_run()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+        Http::fake(['https://api.example.com/search' => Http::response($this->searchResponse(10, 10))]);
+
+        $this->service->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertSame(today()->toDateString(), Cache::get('stockout:last-run:hmall:UNIQLO'));
+    }
+
+    /**
      * 寫資料庫丟例外時不可以重打官網：資料庫的問題打幾次官網都不會好，還多了被擋的風險。
      */
     public function test_a_database_error_while_saving_does_not_hit_the_source_again()
