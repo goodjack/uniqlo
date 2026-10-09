@@ -639,14 +639,7 @@ class HmallProductServiceTest extends TestCase
 
             // 第 1 頁抓得到，而且 productSum 大於一頁，迴圈會再去抓第 2 頁
             if ($call === 1) {
-                return Http::response([
-                    'resp' => [
-                        [
-                            'productList' => [],
-                            'productSum' => 25,
-                        ],
-                    ],
-                ]);
+                return Http::response($this->searchResponse(24, 25));
             }
 
             return Http::response([], 500);
@@ -662,7 +655,7 @@ class HmallProductServiceTest extends TestCase
         $result = $this->service->fetchAllHmallProducts('UNIQLO');
 
         $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
-        $this->assertSame('未執行缺貨判定，目錄有缺頁', $result->note);
+        $this->assertSame('未執行缺貨判定，目錄有缺頁（最早在第 2 頁）', $result->note);
         // checkpoint 保留，同一天可以接著從第 2 頁跑完剩下的
         $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
     }
@@ -723,7 +716,7 @@ class HmallProductServiceTest extends TestCase
         $result = $this->service->fetchAllHmallProducts('UNIQLO');
 
         $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
-        $this->assertSame('未執行缺貨判定，目錄有缺頁', $result->note);
+        $this->assertSame('未執行缺貨判定，目錄有缺頁（最早在第 2 頁）', $result->note);
         // 第 3 頁成功過，但續跑點不可以被推到 4
         $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
     }
@@ -797,6 +790,112 @@ class HmallProductServiceTest extends TestCase
         $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
         $this->assertSame('未執行缺貨判定，第 2 頁起被擋下（403）', $result->note);
         // 續跑點停在被擋的那一頁
+        $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
+    }
+
+    /**
+     * 第 1 頁有貨、後面幾頁被軟擋（200 加空清單，或連總數都改小讓翻頁提早結束），
+     * 請求全都「成功」，但後面那一段根本沒看到，不可以做缺貨判定。
+     */
+    #[DataProvider('softBlockedLaterPages')]
+    public function test_later_pages_coming_back_empty_skip_stockout(int $softBlockedProductSum)
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        Http::fake(['https://api.example.com/search' => fn ($request) => $request->data()['pageInfo']['page'] === 1
+            ? Http::response($this->searchResponse(24, 240))
+            : Http::response($this->searchResponse(0, $softBlockedProductSum))]);
+
+        $this->mockHmallRepository->expects($this->never())
+            ->method('setStockoutHmallProducts');
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $result = $this->service->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        $this->assertSame('未執行缺貨判定，目錄有缺頁（最早在第 2 頁）', $result->note);
+        $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
+    }
+
+    public static function softBlockedLaterPages(): array
+    {
+        return [
+            'the total stays the same' => [240],
+            'the total drops to zero' => [0],
+        ];
+    }
+
+    /**
+     * 最後一頁回空清單、總數照舊，同樣是沒看到那幾件。
+     */
+    public function test_a_short_last_page_skips_stockout()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        Http::fake(['https://api.example.com/search' => fn ($request) => $request->data()['pageInfo']['page'] === 1
+            ? Http::response($this->searchResponse(24, 30))
+            : Http::response($this->searchResponse(0, 30))]);
+
+        $this->mockHmallRepository->expects($this->never())
+            ->method('setStockoutHmallProducts');
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->assertSame(
+            '未執行缺貨判定，目錄有缺頁（最早在第 2 頁）',
+            $this->service->fetchAllHmallProducts('UNIQLO')->note
+        );
+    }
+
+    /**
+     * 抓取途中有商品下架、總數少了一件，最後一頁跟著變短是正常的，照做缺貨判定。
+     */
+    public function test_the_total_shrinking_slightly_on_the_last_page_still_runs_stockout()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        Http::fake(['https://api.example.com/search' => fn ($request) => $request->data()['pageInfo']['page'] === 1
+            ? Http::response($this->searchResponse(24, 30))
+            : Http::response($this->searchResponse(5, 29))]);
+
+        $this->mockHmallRepository->expects($this->once())
+            ->method('setStockoutHmallProducts');
+
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->assertSame(CrawlOutcome::Succeeded, $this->service->fetchAllHmallProducts('UNIQLO')->outcome);
+    }
+
+    /**
+     * 403 的頁碼要寫被擋的那一頁；更早已經有缺頁時另外講，續跑點退回最早的缺口。
+     */
+    public function test_a_block_after_an_earlier_gap_names_both_pages()
+    {
+        Cache::flush();
+        Config::set('app.crawler.retry.times', 1);
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        Http::fake(['https://api.example.com/search' => fn ($request) => match ($request->data()['pageInfo']['page']) {
+            2 => Http::response([], 500),
+            4 => Http::response([], 403),
+            default => Http::response($this->searchResponse(24, 120)),
+        }]);
+
+        $this->mockHmallRepository->expects($this->never())
+            ->method('setStockoutHmallProducts');
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $result = $this->service->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertSame('未執行缺貨判定，第 4 頁起被擋下（403），更早在第 2 頁就有缺頁', $result->note);
         $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
     }
 

@@ -7,6 +7,7 @@ use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use App\Services\Traits\AntiBlockingCrawler;
+use App\Support\CatalogScan;
 use App\Support\CrawlResult;
 use Exception;
 use Illuminate\Http\Client\RequestException;
@@ -68,8 +69,9 @@ class HmallProductService extends Service
      *
      * 缺貨判定是把 updated_at 早於今天的商品標成下架，前提是這一輪真的把整份目錄
      * 看過一遍；看漏的那一段會被整批誤判成下架。所以只有「從第 1 頁開始、每一頁
-     * 都抓到、而且至少看到一件商品」才做。整頁沒抓到＝目錄有缺口，不做；頁面抓到
-     * 但個別商品寫不進去＝目錄其實看完了，照做但排除那幾件，不然它們會被冤枉下架。
+     * 都抓到而且件數對得上總數、至少看到一件商品」才做（判斷見 CatalogScan）。
+     * 頁面抓到但個別商品寫不進去＝目錄其實看完了，照做但排除那幾件，不然它們會被
+     * 冤枉下架。
      *
      * 回傳的說明文字是給通知看的：同樣是「部分成功」，有沒有做缺貨判定處理方式不同。
      */
@@ -94,11 +96,8 @@ class HmallProductService extends Service
         $page = $startPage;
         $productSum = 0;
         $hasSucceeded = false;
-        $hasPageFailures = false;
-        // 每一頁成功都會把續跑點往後推，有失敗時要退回這裡，否則失敗頁永遠不補抓
-        $firstFailedPage = null;
-        // 數實際看到的件數，不信官網回的 productSum
-        $productsSeen = 0;
+        // 每一頁成功都會把續跑點往後推，有缺口時要退回最早的缺口，否則那一頁永遠不補抓
+        $scan = new CatalogScan($pageSize);
         $failedProductCodes = [];
         // 寫不進去而且連商品編號都拿不到的件數，沒辦法從缺貨判定排除
         $unidentifiedFailures = 0;
@@ -142,7 +141,17 @@ class HmallProductService extends Service
                     fn ($e) => $this->shouldRetry($e),
                 );
 
-                $productsSeen += collect($products)->count();
+                $productSum = (int) $productSum;
+                $productCount = collect($products)->count();
+
+                if (! $scan->recordBatch(($page - 1) * $pageSize, $productCount, $productSum)) {
+                    logger()->error('fetchAllHmallProducts page came back short', [
+                        'brand' => $brand,
+                        'page' => $page,
+                        'product_count' => $productCount,
+                        'productSum' => $productSum,
+                    ]);
+                }
 
                 $saveResult = $this->repository->saveProductsFromV3($products, $brand);
 
@@ -167,8 +176,6 @@ class HmallProductService extends Service
 
                 $this->randomDelay();
             } catch (Throwable $e) {
-                $firstFailedPage ??= $page;
-
                 // 403 是封鎖，再打只會更糟，整輪停下
                 if ($this->is403Error($e)) {
                     logger()->error('fetchAllHmallProducts blocked (403)', [
@@ -178,20 +185,24 @@ class HmallProductService extends Service
                     ]);
                     report($e);
 
-                    $this->saveCheckpoint($cacheKey, $firstFailedPage);
+                    $earlierGapPage = $scan->hasGap() ? $this->pageOf($scan->firstGap(), $pageSize) : null;
+                    $scan->recordGap(($page - 1) * $pageSize);
+                    $this->saveCheckpoint($cacheKey, $this->pageOf($scan->firstGap(), $pageSize));
 
                     if (! $hasSucceeded) {
                         return new CrawlResult(CrawlOutcome::Failed);
                     }
 
                     // 前面幾頁已經寫進去了，不能說成完全失敗
+                    $note = "未執行缺貨判定，第 {$page} 頁起被擋下（403）";
+
                     return new CrawlResult(
                         CrawlOutcome::PartiallySucceeded,
-                        "未執行缺貨判定，第 {$firstFailedPage} 頁起被擋下（403）"
+                        $earlierGapPage === null ? $note : "{$note}，更早在第 {$earlierGapPage} 頁就有缺頁"
                     );
                 }
 
-                $hasPageFailures = true;
+                $scan->recordGap(($page - 1) * $pageSize);
                 logger()->error('fetchAllHmallProducts error - max retry exceeded', [
                     'brand' => $brand,
                     'page' => $page,
@@ -206,21 +217,28 @@ class HmallProductService extends Service
             $page++;
         } while ($productSum > ($page - 1) * $pageSize);
 
+        $scan->recordEnd(($page - 1) * $pageSize);
+
         if (! $hasSucceeded) {
             logger()->error('No pages were successfully fetched - preserving checkpoint', ['brand' => $brand]);
 
             return new CrawlResult(CrawlOutcome::Failed);
         }
 
-        if ($hasPageFailures) {
-            logger()->error('Some pages failed - rewinding checkpoint, skipping stockout', [
+        if ($scan->hasGap()) {
+            $firstGapPage = $this->pageOf($scan->firstGap(), $pageSize);
+
+            logger()->error('The catalog has gaps - rewinding checkpoint, skipping stockout', [
                 'brand' => $brand,
-                'first_failed_page' => $firstFailedPage,
+                'first_gap_page' => $firstGapPage,
             ]);
 
-            $this->saveCheckpoint($cacheKey, $firstFailedPage);
+            $this->saveCheckpoint($cacheKey, $firstGapPage);
 
-            return new CrawlResult(CrawlOutcome::PartiallySucceeded, '未執行缺貨判定，目錄有缺頁');
+            return new CrawlResult(
+                CrawlOutcome::PartiallySucceeded,
+                "未執行缺貨判定，目錄有缺頁（最早在第 {$firstGapPage} 頁）"
+            );
         }
 
         // 每一頁都抓到了，續跑點沒有用處；個別商品寫入失敗也不保留，
@@ -242,7 +260,7 @@ class HmallProductService extends Service
 
         // 官網回 200 但 productList 是空的（WAF 軟擋、上游條件跑掉都長這樣），
         // 照做缺貨判定會讓整個品牌從站上消失
-        if ($productsSeen === 0) {
+        if ($scan->itemsSeen() === 0) {
             logger()->error('The catalog came back empty - skipping stockout', [
                 'brand' => $brand,
                 'started_from_page' => $startPage,
@@ -428,6 +446,11 @@ class HmallProductService extends Service
     private function saveCheckpoint(string $cacheKey, int $page): void
     {
         Cache::put($cacheKey, $page, now()->endOfDay());
+    }
+
+    private function pageOf(int $offset, int $pageSize): int
+    {
+        return intdiv($offset, $pageSize) + 1;
     }
 
     private function getV3SearchApiUrl($brand = 'UNIQLO'): string
