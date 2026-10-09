@@ -40,8 +40,8 @@
                 @php($items = $dropdownItems($items))
                 @continue(empty($items))
                 <div class="ts item dropdown {{ $groupIsCurrent($items) ? 'active' : '' }}">
-                    <div class="text">{{ $groupName }}</div>
-                    <i class="dropdown icon"></i>
+                    <button type="button" class="text" aria-expanded="false">{{ $groupName }}</button>
+                    <i class="dropdown icon" aria-hidden="true"></i>
                     <div class="menu">
                         @foreach ($items as $item)
                             <a href="{{ route($item['route'], $brandQuery) }}" class="item"
@@ -64,8 +64,8 @@
         <div class="mobile only right menu">
             {{-- 手機維持單一選單，裡面用靜態小標題分組，不做多層下拉 --}}
             <div class="ts item dropdown">
-                <div class="text">選單</div>
-                <i class="dropdown icon"></i>
+                <button type="button" class="text" aria-expanded="false">選單</button>
+                <i class="dropdown icon" aria-hidden="true"></i>
                 <div class="menu">
                     {{-- 手機的 Logo 小又擠在搜尋框旁邊，「首頁」在選單裡才點得到 --}}
                     <a href="{{ route('home') }}" class="item" @if ($isCurrent('home')) aria-current="page" @endif>

@@ -111,18 +111,50 @@
         (function () {
             ts('.ts.dropdown:not(.basic)').dropdown();
 
-            // tocas.js 的 dropdown 點第二次不會收合（它每次都先全部收合再展開自己），
-            // 在捕獲階段攔下「已經開著時的點擊」自己收合
+            function close(dropdown) {
+                dropdown.classList.remove('visible');
+                dropdown.classList.add('hidden');
+            }
+
             document.querySelectorAll('.ts.dropdown:not(.basic)').forEach(function(dropdown) {
+                // tocas.js 的 dropdown 點第二次不會收合（它每次都先全部收合再展開自己），
+                // 在捕獲階段攔下「已經開著時的點擊」自己收合
                 dropdown.addEventListener('click', function(event) {
                     if (!dropdown.classList.contains('visible')) {
                         return;
                     }
 
                     event.stopImmediatePropagation();
-                    dropdown.classList.remove('visible');
-                    dropdown.classList.add('hidden');
+                    close(dropdown);
                 }, true);
+
+                // 觸發字是 <button>，Enter／Space 原生就會送 click；tocas.js 只認滑鼠，
+                // 展開狀態、Esc 與 Tab 離開都要自己補
+                const trigger = dropdown.querySelector(':scope > button.text');
+
+                if (!trigger) {
+                    return;
+                }
+
+                new MutationObserver(function() {
+                    trigger.setAttribute('aria-expanded', dropdown.classList.contains('visible') ? 'true' : 'false');
+                }).observe(dropdown, { attributes: true, attributeFilter: ['class'] });
+
+                dropdown.addEventListener('keydown', function(event) {
+                    if (event.key === 'Escape' && dropdown.classList.contains('visible')) {
+                        close(dropdown);
+                        trigger.focus();
+                    }
+                });
+
+                // 只在焦點確定移到選單外的元素時收合。relatedTarget 是 null 的情況
+                // （Safari 點連結不給焦點）交給 tocas.js 的點擊外部收合，不然選單會在
+                // mousedown 時先消失，連結點不到
+                dropdown.addEventListener('focusout', function(event) {
+                    if (event.relatedTarget && !dropdown.contains(event.relatedTarget)) {
+                        close(dropdown);
+                    }
+                });
             });
         })();
     </script>

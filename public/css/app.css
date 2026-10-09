@@ -621,6 +621,18 @@ html:has(.uq-section-menu) {
     padding-bottom: .685em;
 }
 
+/* 下拉的觸發字改成 <button> 才進得了 Tab 順序，外觀要跟 Tocas 原本的 .text 一樣 */
+.ts.dropdown>button.text {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    line-height: inherit;
+    cursor: pointer;
+}
+
 /* 手機選單比矮螢幕還長，又掛在固定導覽列底下捲不動，限高讓它自己捲 */
 .ts.top.fixed.menu .mobile.only .ts.dropdown>.menu {
     max-height: calc(100vh - var(--uq-nav-height));

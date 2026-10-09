@@ -555,6 +555,26 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
+     * 導覽列的下拉（桌機的分組與手機的「選單」）要能用鍵盤打開：tocas.js 只綁
+     * click，觸發字是 <div> 的話根本進不了 Tab 順序。
+     */
+    public function test_every_nav_dropdown_opens_from_a_keyboard_reachable_button(): void
+    {
+        $xpath = $this->xpath($this->get(route('home'))->assertOk()->getContent());
+        $dropdowns = $xpath->query('//*[contains(@class, "top")][contains(@class, "fixed")]//*[contains(concat(" ", @class, " "), " dropdown ")][not(self::i)]');
+
+        $this->assertGreaterThan(1, $dropdowns->length);
+
+        foreach ($dropdowns as $dropdown) {
+            $trigger = $xpath->query('./*[contains(@class, "text")]', $dropdown)->item(0);
+
+            $this->assertSame('button', $trigger->nodeName);
+            $this->assertSame('button', $trigger->getAttribute('type'));
+            $this->assertSame('false', $trigger->getAttribute('aria-expanded'));
+        }
+    }
+
+    /**
      * 麵包屑每一層的文字。
      *
      * @return array<int, string>
