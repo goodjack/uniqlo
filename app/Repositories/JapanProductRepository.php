@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\JapanProduct;
+use App\Support\ProductSaveResult;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -11,9 +12,15 @@ class JapanProductRepository
 {
     public function __construct(protected JapanProduct $model) {}
 
-    public function saveProducts($products, $brand = 'UNIQLO'): void
+    /**
+     * 回傳哪幾件寫不進去：知道 l1Id 的從下架判定排除，拿不到的只能整輪不做下架判定。
+     */
+    public function saveProducts($products, $brand = 'UNIQLO'): ProductSaveResult
     {
-        collect($products)->each(function ($product) use ($brand) {
+        $failedIds = [];
+        $unidentifiedFailureCount = 0;
+
+        collect($products)->each(function ($product) use ($brand, &$failedIds, &$unidentifiedFailureCount) {
             try {
                 /** @var JapanProduct $model */
                 $model = $this->model->firstOrNew([
@@ -44,30 +51,48 @@ class JapanProductRepository
 
                 $model->save();
             } catch (Throwable $e) {
-                Log::error('saveProductsFromHmall error', [
+                $l1Id = $product->l1Id ?? null;
+
+                if (is_string($l1Id) && $l1Id !== '') {
+                    $failedIds[] = $l1Id;
+                } else {
+                    $unidentifiedFailureCount++;
+                }
+
+                Log::error('saveJapanProducts error', [
                     'brand' => $brand,
-                    'l1Id' => $product->l1Id,
+                    'l1Id' => is_string($l1Id) ? $l1Id : null,
                 ]);
 
                 report($e);
             }
         });
+
+        return new ProductSaveResult(array_values(array_unique($failedIds)), $unidentifiedFailureCount);
     }
 
-    public function setStockoutProducts($brand = 'UNIQLO', $updatedIsBefore = null)
+    /**
+     * @param  array<int, string>  $excludedIds  寫入失敗、但官網其實還在賣的 l1Id
+     */
+    public function setStockoutProducts($brand = 'UNIQLO', $updatedIsBefore = null, array $excludedIds = [])
     {
         if (is_null($updatedIsBefore)) {
             $updatedIsBefore = today();
         }
 
-        $this->model
+        $query = $this->model
             ->whereNull('stockout_at')
             ->where('brand', $brand)
-            ->where('updated_at', '<', $updatedIsBefore)
-            ->update([
-                'stockout_at' => now(),
-                'updated_at' => DB::raw('updated_at'),
-            ]);
+            ->where('updated_at', '<', $updatedIsBefore);
+
+        if ($excludedIds !== []) {
+            $query->whereNotIn('l1Id', $excludedIds);
+        }
+
+        $query->update([
+            'stockout_at' => now(),
+            'updated_at' => DB::raw('updated_at'),
+        ]);
     }
 
     private function getPrices($model, $product)

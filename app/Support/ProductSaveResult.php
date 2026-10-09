@@ -9,8 +9,8 @@ namespace App\Support;
 final class ProductSaveResult
 {
     /**
-     * @param  array<int, string>  $failedProductCodes  寫入失敗、而且知道商品編號的那幾件
-     * @param  int  $unidentifiedFailureCount  寫入失敗、連商品編號都拿不到的筆數
+     * @param  array<int, string>  $failedProductCodes  寫入失敗、而且知道商品識別的那幾件（台灣是商品編號、日本是 l1Id）
+     * @param  int  $unidentifiedFailureCount  寫入失敗、連商品識別都拿不到的筆數
      */
     public function __construct(
         public readonly array $failedProductCodes = [],

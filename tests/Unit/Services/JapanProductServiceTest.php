@@ -5,6 +5,7 @@ namespace Tests\Unit\Services;
 use App\Enums\CrawlOutcome;
 use App\Repositories\JapanProductRepository;
 use App\Services\JapanProductService;
+use App\Support\ProductSaveResult;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -35,8 +36,7 @@ class JapanProductServiceTest extends TestCase
 
         // Mock repository
         $mockRepository = $this->createMock(JapanProductRepository::class);
-        $mockRepository->method('saveProducts');
-        $mockRepository->method('setStockoutProducts');
+        $mockRepository->method('saveProducts')->willReturn(new ProductSaveResult);
 
         $this->service = new JapanProductService($mockRepository);
     }
@@ -245,9 +245,51 @@ class JapanProductServiceTest extends TestCase
     private function serviceExpectingStockout($invocationRule): JapanProductService
     {
         $repository = $this->createMock(JapanProductRepository::class);
+        $repository->method('saveProducts')->willReturn(new ProductSaveResult);
         $repository->expects($invocationRule)->method('setStockoutProducts');
 
         return new JapanProductService($repository);
+    }
+
+    /**
+     * 有幾件寫不進去時目錄其實看完了：缺貨判定照做，但要排除那幾件，
+     * 否則它們會因為 updated_at 沒更新而被冤枉下架。
+     */
+    public function test_products_that_failed_to_save_are_excluded_from_stockout()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
+        Http::fake(['https://api.example.com/products*' => Http::response($this->listResponse(4, 4))]);
+
+        $repository = $this->createMock(JapanProductRepository::class);
+        $repository->method('saveProducts')->willReturn(new ProductSaveResult(['483870']));
+        $repository->expects($this->once())
+            ->method('setStockoutProducts')
+            ->with('UNIQLO', null, ['483870']);
+
+        $result = (new JapanProductService($repository))->fetchAllProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        $this->assertSame('已執行缺貨判定，排除 1 件寫入失敗商品', $result->note);
+    }
+
+    /**
+     * 寫不進去、連 l1Id 都拿不到的那一筆排除不了，只能整輪不做缺貨判定。
+     */
+    public function test_a_failure_without_an_l1_id_skips_stockout()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
+        Http::fake(['https://api.example.com/products*' => Http::response($this->listResponse(4, 4))]);
+
+        $repository = $this->createMock(JapanProductRepository::class);
+        $repository->method('saveProducts')->willReturn(new ProductSaveResult([], 1));
+        $repository->expects($this->never())->method('setStockoutProducts');
+
+        $result = (new JapanProductService($repository))->fetchAllProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        $this->assertSame('未執行缺貨判定，1 件失敗資料缺少商品識別', $result->note);
     }
 
     private function listResponse(int $itemCount, int $total): array

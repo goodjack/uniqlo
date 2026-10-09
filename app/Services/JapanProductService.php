@@ -24,7 +24,8 @@ class JapanProductService
     /**
      * 抓一個品牌的日本官網商品，最後做缺貨判定。缺貨判定的前提跟台灣那支一樣：
      * 從頭開始、每一批都抓到而且件數對得上總數、至少看到一件商品（見 CatalogScan），
-     * 否則沒看到的那一段會被整批標成下架。
+     * 否則沒看到的那一段會被整批標成下架。寫不進去的商品也比照台灣：知道 l1Id 的
+     * 排除，拿不到的整輪不做。
      */
     public function fetchAllProducts($brand = 'UNIQLO', bool $fresh = false): CrawlResult
     {
@@ -45,6 +46,8 @@ class JapanProductService
         $total = 0;
         $hasSucceeded = false;
         $scan = new CatalogScan($limit);
+        $failedIds = [];
+        $unidentifiedFailures = 0;
 
         logger()->info("Fetching Japan products for {$brand}, starting from offset {$offset}");
 
@@ -91,7 +94,12 @@ class JapanProductService
                     ]);
                 }
 
-                $this->repository->saveProducts($items, $brand);
+                $saveResult = $this->repository->saveProducts($items, $brand);
+
+                if ($saveResult->hasFailures()) {
+                    $failedIds = array_merge($failedIds, $saveResult->failedProductCodes);
+                    $unidentifiedFailures += $saveResult->unidentifiedFailureCount;
+                }
 
                 $offset += $limit;
 
@@ -188,10 +196,37 @@ class JapanProductService
             );
         }
 
-        $this->repository->setStockoutProducts($brand);
-        logger()->info("Completed fetching Japan products for {$brand}");
+        if ($unidentifiedFailures > 0) {
+            logger()->error('Japan product failures without an l1Id - skipping stockout', [
+                'brand' => $brand,
+                'unidentified_failures' => $unidentifiedFailures,
+            ]);
 
-        return new CrawlResult(CrawlOutcome::Succeeded);
+            return new CrawlResult(
+                CrawlOutcome::PartiallySucceeded,
+                "未執行缺貨判定，{$unidentifiedFailures} 件失敗資料缺少商品識別"
+            );
+        }
+
+        $failedIds = array_values(array_unique($failedIds));
+
+        $this->repository->setStockoutProducts($brand, null, $failedIds);
+
+        if ($failedIds === []) {
+            logger()->info("Completed fetching Japan products for {$brand}");
+
+            return new CrawlResult(CrawlOutcome::Succeeded);
+        }
+
+        logger()->error('Japan stockout ran with the products that failed to save excluded', [
+            'brand' => $brand,
+            'excluded_l1_ids' => $failedIds,
+        ]);
+
+        return new CrawlResult(
+            CrawlOutcome::PartiallySucceeded,
+            sprintf('已執行缺貨判定，排除 %d 件寫入失敗商品', count($failedIds))
+        );
     }
 
     /**
