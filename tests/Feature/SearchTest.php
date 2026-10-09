@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Enums\CategoryLevel;
 use App\Models\HmallCategory;
 use App\Models\HmallProduct;
+use App\Support\Url;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SearchTest extends TestCase
@@ -216,7 +218,8 @@ class SearchTest extends TestCase
         $this->createProduct(['name' => '2WAY 托特包', 'code' => '450010', 'product_code' => 'u450010']);
 
         $this->get(route('search.index', ['query' => '2']))
-            ->assertRedirect(route('search.show', ['query' => '2']));
+            ->assertOk()
+            ->assertSee('2WAY 托特包');
     }
 
     /**
@@ -230,9 +233,9 @@ class SearchTest extends TestCase
             'product_code' => 'u999001',
         ]);
 
-        $response = $this->get(route('search.index', ['query' => '123.456']));
-
-        $response->assertRedirect(route('search.show', ['query' => '123.456']));
+        $this->get(route('search.index', ['query' => '123.456']))
+            ->assertOk()
+            ->assertSee('「123.456」的搜尋結果');
     }
 
     public function test_a_query_with_a_decimal_point_finds_nothing_via_keyword_search(): void
@@ -250,11 +253,108 @@ class SearchTest extends TestCase
         $response->assertSee('找不到符合的商品');
     }
 
-    public function test_keyword_query_no_longer_redirects_to_google(): void
+    public function test_the_search_form_shows_keyword_results_without_redirecting(): void
     {
-        $response = $this->get(route('search.index', ['query' => '羽絨']));
+        $this->get(route('search.index', ['query' => '羽絨']))
+            ->assertOk()
+            ->assertSee('特級極輕羽絨外套')
+            ->assertDontSee('寬鬆工作短褲');
+    }
 
-        $response->assertRedirect(route('search.show', ['query' => '羽絨']));
+    /**
+     * 商品名與分類名常帶這些字元（「休閒長褲 469930 / 475382」「男裝/男女適穿」），
+     * 使用者直接複製貼上就會碰到。
+     */
+    #[DataProvider('queriesWithUnusualCharacters')]
+    public function test_queries_with_unusual_characters_reach_the_matching_product(string $query, string $name): void
+    {
+        $this->createProduct(['name' => $name, 'code' => '460001', 'product_code' => 'u460001']);
+
+        $this->get(route('search.index', ['query' => $query]))
+            ->assertOk()
+            ->assertSee($name);
+
+        $this->get(route('search.show', ['query' => Url::segment($query)]))
+            ->assertOk()
+            ->assertSee($name);
+    }
+
+    public static function queriesWithUnusualCharacters(): array
+    {
+        return [
+            'slash' => ['469930 / 475382', '休閒長褲 469930 / 475382'],
+            'slash inside a word' => ['T恤/短袖', '印花T恤/短袖'],
+            'hash' => ['C#', 'C#聯名T恤'],
+            'question mark' => ['why?', 'why?系列帽T'],
+            'percent' => ['100%', '男裝 100% 純棉工作短褲'],
+            'encoded-looking percent' => ['a%20b', '標籤 a%20b 測試'],
+        ];
+    }
+
+    /**
+     * /search/keywords 是 Google 站內搜尋頁，搜「keywords」這個字不能被帶過去。
+     */
+    public function test_searching_for_the_word_keywords_does_not_land_on_google_search(): void
+    {
+        $this->createProduct(['name' => 'keywords 印花T恤', 'code' => '460002', 'product_code' => 'u460002']);
+
+        $this->get(route('search.index', ['query' => 'keywords']))
+            ->assertOk()
+            ->assertSee('keywords 印花T恤')
+            ->assertDontSee('gcse-searchbox', false);
+    }
+
+    public function test_pagination_from_the_search_form_keeps_the_query(): void
+    {
+        for ($i = 1; $i <= 25; $i++) {
+            $this->createProduct(['name' => "羽絨背心 {$i}", 'code' => "47{$i}", 'product_code' => "u47{$i}"]);
+        }
+
+        $this->get(route('search.index', ['query' => '羽絨背心']))
+            ->assertOk()
+            ->assertSee('query=%E7%BE%BD%E7%B5%A8%E8%83%8C%E5%BF%83&amp;page=2', false);
+
+        $this->get(route('search.index', ['query' => '羽絨背心', 'page' => 2]))
+            ->assertOk()
+            ->assertSee('羽絨背心');
+    }
+
+    /**
+     * 驗證與取值要讀同一個來源：GET 只帶 JSON 內文時，網址參數是空的。
+     */
+    public function test_a_get_request_with_only_a_json_body_is_rejected_instead_of_crashing(): void
+    {
+        $this->call(
+            'GET',
+            route('search.index'),
+            server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
+            content: json_encode(['query' => '羽絨']),
+        )->assertUnprocessable();
+    }
+
+    /**
+     * 表單送出一次搜尋只能扣一次額度（以前會轉址到 /search/{query} 再扣一次）。
+     */
+    public function test_a_search_from_the_form_counts_once_against_the_limit(): void
+    {
+        for ($i = 0; $i < 30; $i++) {
+            $this->followingRedirects()
+                ->get(route('search.index', ['query' => '羽絨']))
+                ->assertOk();
+        }
+
+        $this->get(route('search.index', ['query' => '羽絨']))->assertTooManyRequests();
+    }
+
+    public function test_loading_favorites_does_not_use_up_the_search_limit(): void
+    {
+        for ($i = 0; $i < 60; $i++) {
+            $this->postJson(route('favorites.cards'), ['items' => [['brand' => 'UNIQLO', 'code' => 'u450001']]])
+                ->assertOk();
+        }
+
+        $this->get(route('search.index', ['query' => '羽絨']))->assertOk();
+        $this->get(route('search.show', ['query' => '羽絨']))->assertOk();
     }
 
     public function test_an_over_long_query_is_rejected_on_the_direct_url_too(): void

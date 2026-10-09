@@ -50,11 +50,16 @@ Route::group(['prefix' => 'gu-products'], function () {
     Route::get('/{gu_product_code}/style-hints', [StyleHintController::class, 'show'])->name('gu-style-hints.show');
 });
 
-// 搜尋會打到資料庫做全表掃描，限流避免被當成免費的查詢介面
-Route::group(['prefix' => 'search', 'middleware' => 'throttle:30,1'], function () {
-    Route::get('/', [SearchController::class, 'index'])->name('search.index');
+Route::group(['prefix' => 'search'], function () {
+    Route::get('/', [SearchController::class, 'index'])
+        ->middleware('throttle:search')
+        ->name('search.index');
     Route::get('/keywords', [SearchController::class, 'searchByGoogleCse'])->name('search.google-cse');
-    Route::get('/{query}', [SearchController::class, 'show'])->name('search.show');
+    // 關鍵字可能含 /（商品名「469930 / 475382」、分類名「男裝/男女適穿」）
+    Route::get('/{query}', [SearchController::class, 'show'])
+        ->where('query', '.+')
+        ->middleware('throttle:search')
+        ->name('search.show');
 });
 
 Route::group(['prefix' => 'pages'], function () {
@@ -64,9 +69,8 @@ Route::group(['prefix' => 'pages'], function () {
 
 Route::group(['prefix' => 'favorites'], function () {
     Route::get('/', [FavoriteController::class, 'index'])->name('favorites.index');
-    // 收藏清單在瀏覽器，這支只是拿一串商品編號換卡片，限流避免被當批次查價介面
     Route::post('/cards', [FavoriteController::class, 'cards'])
-        ->middleware('throttle:60,1')
+        ->middleware('throttle:favorites-cards')
         ->name('favorites.cards');
 });
 
