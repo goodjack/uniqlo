@@ -82,6 +82,7 @@ class SearchTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('寬鬆工作短褲');
+        $response->assertDontSee('特級極輕羽絨外套');
     }
 
     /**
@@ -270,12 +271,15 @@ class SearchTest extends TestCase
     {
         $this->createProduct(['name' => $name, 'code' => '460001', 'product_code' => 'u460001']);
 
+        // 斷言完整關鍵字：被截斷時（C# 變 C、why? 變 why）截剩的字照樣搜得到這件商品
         $this->get(route('search.index', ['query' => $query]))
             ->assertOk()
+            ->assertSee("「{$query}」共")
             ->assertSee($name);
 
         $this->get(route('search.show', ['query' => Url::segment($query)]))
             ->assertOk()
+            ->assertSee("「{$query}」共")
             ->assertSee($name);
     }
 
@@ -369,10 +373,9 @@ class SearchTest extends TestCase
     {
         $response = $this->get(route('search.show', ['query' => '一 二 三 四 五 六 七']));
 
+        // 「六」「七」本身也在搜尋框與標題裡，只看單字壞掉也會過
         $response->assertOk();
-        $response->assertSee('沒有用到');
-        $response->assertSee('六');
-        $response->assertSee('七');
+        $response->assertSee('這次沒有用到「六」「七」');
     }
 
     public function test_search_results_are_not_indexed(): void

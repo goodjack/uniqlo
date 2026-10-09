@@ -113,6 +113,7 @@ class FavoriteTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('還在的商品');
+        $this->assertSame(1, substr_count($response->getContent(), 'data-favorite-key='));
     }
 
     /**

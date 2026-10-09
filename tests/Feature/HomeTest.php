@@ -20,8 +20,11 @@ class HomeTest extends TestCase
 
         $response->assertOk();
 
+        // 「熱門穿搭」也是導覽列的清單名稱，只看字串壞掉也會過，要看區塊標題
+        $headings = $this->sectionHeadings($response->getContent());
+
         foreach (self::SECTION_TITLES as $title) {
-            $response->assertSee($title);
+            $this->assertContains($title, $headings);
         }
     }
 
@@ -49,10 +52,13 @@ class HomeTest extends TestCase
 
         $response = $this->get(route('home'));
 
-        $response->assertSee(route('lists.limited-offers'));
-        $response->assertSee(route('lists.new'));
-        $response->assertSee(route('lists.top-wearing'));
-        $response->assertSee(route('lists.most-visited'));
+        // 這幾個清單網址在導覽列與頁尾每頁都有，要看區塊自己的「看全部」
+        $this->assertSame([
+            route('lists.most-visited'),
+            route('lists.limited-offers'),
+            route('lists.new'),
+            route('lists.top-wearing'),
+        ], $this->xpathValues($response->getContent(), '//a[contains(@class, "uq-header-action")]/@href'));
     }
 
     public function test_empty_section_is_hidden_instead_of_rendering_an_empty_row(): void
@@ -79,6 +85,32 @@ class HomeTest extends TestCase
     /**
      * @param  array<string, int>  $counts  覆寫個別清單的商品數，預設每個清單 2 筆
      */
+    /**
+     * @return array<int, string>
+     */
+    private function sectionHeadings(string $html): array
+    {
+        // 區塊標題的文字節點（不含副標）
+        return array_map('trim', $this->xpathValues(
+            $html,
+            '//h2[a[contains(@class, "uq-header-action")]]/text()[normalize-space()]'
+        ));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function xpathValues(string $html, string $expression): array
+    {
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$html);
+
+        return array_map(
+            fn ($node) => $node->nodeValue,
+            iterator_to_array((new \DOMXPath($dom))->query($expression))
+        );
+    }
+
     private function mockListService(array $counts = []): void
     {
         $methods = [

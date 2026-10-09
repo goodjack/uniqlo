@@ -103,12 +103,17 @@ class CategoryTest extends TestCase
         $this->attachProduct($this->createProduct(['brand' => 'UNIQLO']), 'all_women-tops');
         $this->attachProduct($this->createProduct(['brand' => 'GU']), 'women_knitandcardigan');
 
-        $response = $this->get(route('categories.index'));
+        $content = $this->get(route('categories.index'))->assertOk()->getContent();
 
-        $response->assertOk();
-        $response->assertSee('UNIQLO');
-        $response->assertSee('GU');
-        $response->assertSee('針織上衣');
+        // UNIQLO、GU 在導覽列與頁尾每頁都有，要看分類落在哪個品牌標題底下
+        $uniqloHeading = strpos($content, 'uq-brand-h2">UNIQLO<');
+        $guHeading = strpos($content, 'uq-brand-h2">GU<');
+
+        $this->assertNotFalse($uniqloHeading);
+        $this->assertNotFalse($guHeading);
+        $this->assertGreaterThan($uniqloHeading, strpos($content, '上衣類'));
+        $this->assertLessThan($guHeading, strpos($content, '上衣類'));
+        $this->assertGreaterThan($guHeading, strpos($content, '針織上衣'));
     }
 
     /**
@@ -529,7 +534,7 @@ class CategoryTest extends TestCase
         $href = $pageTwoLinks->item(0)->getAttribute('href');
 
         $this->assertStringContainsString('page=2', $href);
-        $this->assertStringContainsString('q=', $href);
+        $this->assertStringContainsString('q='.urlencode('短褲'), $href);
     }
 
     public function test_pagination_links_keep_both_q_and_tags(): void
@@ -558,7 +563,7 @@ class CategoryTest extends TestCase
 
         $this->assertStringContainsString('page=2', $href);
         $this->assertStringContainsString('tags%5B0%5D=sale', $href);
-        $this->assertStringContainsString('q=', $href);
+        $this->assertStringContainsString('q='.urlencode('短褲'), $href);
     }
 
     public function test_products_follow_the_official_sort_within_the_category(): void
@@ -631,9 +636,18 @@ class CategoryTest extends TestCase
         $response = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops-tshirt']));
 
         $response->assertOk();
-        $response->assertSee('商品分類');
-        $response->assertSee('女裝');
-        $response->assertSee(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']));
+
+        // 「商品分類」在導覽列每頁都有、當頁網址在 canonical 裡，要看麵包屑本身
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$response->getContent());
+        $xpath = new \DOMXPath($dom);
+        $crumbs = $xpath->query('//nav[contains(@class, "breadcrumb")]//*[contains(@class, "section")]');
+        $labels = array_map(fn ($node) => trim($node->textContent), iterator_to_array($crumbs));
+        $hrefs = array_map(fn ($node) => $node->getAttribute('href'), iterator_to_array($crumbs));
+
+        $this->assertSame(['首頁', '商品分類', 'UNIQLO 女裝', '上衣類', 'T恤'], $labels);
+        $this->assertContains(route('categories.index'), $hrefs);
+        $this->assertContains(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']), $hrefs);
     }
 
     /**
