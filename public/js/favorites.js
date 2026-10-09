@@ -7,6 +7,10 @@
 window.UqFavorites = (function () {
     const STORAGE_KEY = 'uq-favorites';
     const BATCH_SIZE = 100; // 跟 FavoriteController::MAX_CODES 一致，超過整批 422
+    // 跟 App\Enums\Brand 與 FavoriteController 的單筆驗證一致；不合的那筆伺服器會略過，
+    // 留在瀏覽器裡就永遠換不到卡片、還被算成「已經找不到」
+    const BRANDS = ['UNIQLO', 'GU'];
+    const MAX_CODE_LENGTH = 191;
     const FETCH_TIMEOUT_MS = 15000;
     const UNDO_DURATION_MS = 8000;
     const DEFAULT_SUMMARY = '只存在這個瀏覽器，換裝置看不到';
@@ -19,9 +23,20 @@ window.UqFavorites = (function () {
     let currentController = null;
     let staleWhileHidden = false;
 
+    // Array.from 數的是字元，跟伺服器 max:191 的 mb_strlen 一致（.length 數的是 UTF-16 單位）
+    function isValidEntry(key, item) {
+        return !!item
+            && typeof item === 'object'
+            && BRANDS.indexOf(item.brand) !== -1
+            && typeof item.code === 'string'
+            && item.code.trim() !== ''
+            && Array.from(item.code).length <= MAX_CODE_LENGTH
+            && key === keyOf(item.brand, item.code);
+    }
+
     /**
      * 隱私模式或關掉網站資料時，localStorage 的存取本身就會丟例外，一律退回
-     * 「沒有收藏」。形狀不對的項目（使用者手改、擴充套件寫壞）丟掉並寫回，
+     * 「沒有收藏」。不合規則的項目（使用者手改、擴充套件寫壞）丟掉並寫回，
      * 不讓一筆壞資料卡住整頁。
      */
     function read() {
@@ -39,7 +54,7 @@ window.UqFavorites = (function () {
         Object.keys(parsed).forEach(function (key) {
             const item = parsed[key];
 
-            if (item && typeof item === 'object' && typeof item.brand === 'string' && typeof item.code === 'string') {
+            if (isValidEntry(key, item)) {
                 favorites[key] = item;
             } else {
                 hasInvalidEntry = true;
