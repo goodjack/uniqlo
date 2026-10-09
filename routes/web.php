@@ -76,8 +76,9 @@ Route::group(['prefix' => 'favorites'], function () {
 
 Route::group(['prefix' => 'categories', 'middleware' => 'throttle:category-search'], function () {
     Route::get('/', [CategoryController::class, 'index'])->name('categories.index');
+    // code 來自官網，可能含 / 等字元；連結一律用 App\Support\Url::category() 產生
     Route::get('/{brand}/{code}', [CategoryController::class, 'show'])
-        ->where('brand', 'uniqlo|gu')
+        ->where(['brand' => 'uniqlo|gu', 'code' => '.+'])
         ->name('categories.show');
 });
 

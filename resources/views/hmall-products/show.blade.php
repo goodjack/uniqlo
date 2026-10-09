@@ -30,10 +30,7 @@
                     ? \App\Support\Breadcrumb::text("{$crumb->brand->value} {$crumb->name}")
                     : [
                         'label' => $crumb->name,
-                        'url' => route('categories.show', [
-                            'brand' => $crumb->brand->slug(),
-                            'code' => $crumb->code,
-                        ]),
+                        'url' => \App\Support\Url::category($crumb->brand, $crumb->code),
                     ],
             )
             ->all(),
@@ -379,10 +376,7 @@
                         <div class="ts horizontal middoted list uq-categories-line">
                             @foreach ($categories as $category)
                                 <a class="item"
-                                    href="{{ route('categories.show', [
-                                        'brand' => $category->brand->slug(),
-                                        'code' => $category->code,
-                                    ]) }}">{{ $category->name }}</a>
+                                    href="{{ \App\Support\Url::category($category->brand, $category->code) }}">{{ $category->name }}</a>
                             @endforeach
                         </div>
                     </div>

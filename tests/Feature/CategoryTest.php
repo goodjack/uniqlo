@@ -7,6 +7,7 @@ use App\Models\HmallCategory;
 use App\Models\HmallProduct;
 use App\Services\CategoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class CategoryTest extends TestCase
@@ -222,6 +223,70 @@ class CategoryTest extends TestCase
         }
 
         $this->get($url)->assertStatus(429);
+    }
+
+    public function test_searching_within_a_category_does_not_use_up_the_site_search_limit(): void
+    {
+        $this->attachProduct($this->createProduct(), 'all_women-tops');
+        $url = route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops', 'q' => '上衣']);
+
+        for ($i = 0; $i < 30; $i++) {
+            $this->get($url)->assertOk();
+        }
+
+        $this->get(route('search.index', ['query' => '上衣']))->assertOk();
+    }
+
+    /**
+     * code 來自官網：站內產生的連結打回去，要拿到同一個分類。
+     */
+    #[DataProvider('unusualCodes')]
+    public function test_links_to_a_category_with_unusual_characters_lead_back_to_it(string $code): void
+    {
+        $this->createCategory($code, '特殊分類', 'all_women', CategoryLevel::One);
+        $this->attachProduct($this->createProduct(['name' => '特殊分類的商品']), $code);
+
+        $overview = $this->get(route('categories.index'))->assertOk()->getContent();
+
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$overview);
+        $href = (new \DOMXPath($dom))
+            ->query("//a[contains(normalize-space(.), '特殊分類')]/@href")
+            ->item(0)
+            ?->value;
+
+        $this->assertNotNull($href);
+        $this->get($href)
+            ->assertOk()
+            ->assertSee('特殊分類的商品')
+            ->assertSee('<link rel="canonical" href="'.$href.'"', false);
+    }
+
+    public function test_pagination_on_a_category_whose_code_has_a_slash_stays_on_that_category(): void
+    {
+        $this->createCategory('tops/inner', '特殊分類', 'all_women', CategoryLevel::One);
+
+        for ($i = 0; $i < 25; $i++) {
+            $this->attachProduct($this->createProduct(['name' => "內搭 {$i}"]), 'tops/inner');
+        }
+
+        $url = \App\Support\Url::category(\App\Enums\Brand::Uniqlo, 'tops/inner');
+        $content = $this->get($url)->assertOk()->getContent();
+
+        $this->assertStringContainsString(e($url.'?page=2'), $content);
+        $this->get($url.'?page=2')->assertOk()->assertSee('內搭');
+    }
+
+    public static function unusualCodes(): array
+    {
+        return [
+            'slash' => ['tops/inner'],
+            'hash' => ['tops#1'],
+            'question mark' => ['tops?new'],
+            'percent' => ['tops%20inner'],
+            'space' => ['tops inner'],
+            'zero width space' => ["kids-trend\u{200B}"],
+        ];
     }
 
     /**

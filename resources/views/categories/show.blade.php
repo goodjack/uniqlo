@@ -11,7 +11,7 @@
         : $currentUrl;
     $title = "{$category->name}（{$hmallProducts->total()} 件）";
 
-    $categoryUrl = fn($code) => route('categories.show', ['brand' => $brand->slug(), 'code' => $code]);
+    $categoryUrl = fn($code) => \App\Support\Url::category($brand, $code);
 
     $queryFor = fn(array $changes) => http_build_query(
         array_filter(array_merge(request()->only(['tags', 'q']), $changes))

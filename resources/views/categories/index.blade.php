@@ -59,7 +59,7 @@
                     <div class="ts horizontal middoted list uq-cat-list">
                         @foreach ($group['children'] as $child)
                             <a class="item"
-                                href="{{ route('categories.show', ['brand' => $group['brand']->slug(), 'code' => $child->code]) }}">
+                                href="{{ \App\Support\Url::category($group['brand'], $child->code) }}">
                                 {{ $child->name }}
                                 <div class="ts tiny circular label">{{ $child->hmall_products_count }}</div>
                             </a>
