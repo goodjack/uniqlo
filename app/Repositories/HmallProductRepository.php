@@ -808,6 +808,9 @@ class HmallProductRepository extends Repository
 
                 $model->stockout_at = $this->getStockoutAt($model, $product);
                 $model->stock = $product->stock ?? null;
+                // 缺貨判定以 updated_at 認定「這輪還看得到」，資料完全沒變時
+                // save() 不會碰它，商品會被誤標缺貨
+                $model->updated_at = now();
 
                 // 價格與歷史要一起回滾：新價格先寫進去而歷史沒寫的話，下次抓到同價
                 // 會被判「沒變」，價格走勢就永久缺一筆
