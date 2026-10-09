@@ -18,7 +18,7 @@ window.UqFavorites = (function () {
 
     let currentOptions = null;
 
-    // 每輪 renderPage 一個編號：清空收藏或新的一輪開始時，晚到的舊回應不能把畫面蓋回去
+    // 每輪 renderList 一個編號：清空收藏或新的一輪開始時，晚到的舊回應不能把畫面蓋回去
     let renderToken = 0;
     let currentController = null;
     let staleWhileHidden = false;
@@ -202,9 +202,10 @@ window.UqFavorites = (function () {
                 }
 
                 const onUndo = current.onUndo;
+                const viaKeyboard = isKeyboardFocused(actionEl);
 
                 hide();
-                onUndo();
+                onUndo(viaKeyboard);
             });
 
             return true;
@@ -349,6 +350,35 @@ window.UqFavorites = (function () {
         }
     }
 
+    // 重畫後焦點的去處，依序找第一個看得到的
+    const REFOCUS_ORDER = [
+        '[data-favorite-remove]',
+        '#favorites-offer-filter',
+        '#favorites-filter-show-all',
+        '#favorites-retry',
+        '[data-favorites-clear]',
+    ];
+
+    function focusFirstVisible(selectors) {
+        for (let i = 0; i < selectors.length; i++) {
+            const target = Array.prototype.find.call(document.querySelectorAll(selectors[i]), function (candidate) {
+                return candidate.offsetParent !== null;
+            });
+
+            if (target) {
+                target.focus();
+
+                return;
+            }
+        }
+    }
+
+    function focusIsInList() {
+        const list = document.getElementById('favorites-cards');
+
+        return !!list && list.parentElement.contains(document.activeElement);
+    }
+
     function rowsIn(container) {
         return container.querySelectorAll('[data-favorite-key]');
     }
@@ -362,7 +392,7 @@ window.UqFavorites = (function () {
     function bindRemoveButtons(container, onChange) {
         let pending = null; // { key: { snapshot, row } }
 
-        function restore(entries) {
+        function restore(entries, viaKeyboard) {
             const favorites = read();
 
             Object.keys(entries).forEach(function (key) {
@@ -372,13 +402,17 @@ window.UqFavorites = (function () {
             if (!write(favorites)) {
                 showState('favorites-error', '復原失敗，收藏沒有存回去');
 
+                if (viaKeyboard) {
+                    focusFirstVisible(REFOCUS_ORDER);
+                }
+
                 return;
             }
 
             showState(null);
 
             const order = sortedKeys(favorites);
-            let firstRestored = null;
+            const restoredRows = [];
 
             order.forEach(function (key, position) {
                 const entry = entries[key];
@@ -393,13 +427,20 @@ window.UqFavorites = (function () {
                 }, null);
 
                 container.insertBefore(entry.row, insertBefore);
-                firstRestored = firstRestored || entry.row;
+                restoredRows.push(entry.row);
             });
 
             onChange(rowsIn(container).length);
 
-            if (firstRestored) {
-                firstRestored.querySelector('[data-favorite-remove]').focus();
+            // 「只看優惠中」開著時，復原的那件可能被藏起來，焦點不能給看不到的按鈕
+            const visibleRow = restoredRows.find(function (row) {
+                return !row.hidden;
+            });
+
+            if (visibleRow) {
+                visibleRow.querySelector('[data-favorite-remove]').focus();
+            } else if (viaKeyboard) {
+                focusFirstVisible(['#favorites-offer-filter'].concat(REFOCUS_ORDER));
             }
         }
 
@@ -439,9 +480,9 @@ window.UqFavorites = (function () {
                 const batch = pending;
                 const count = Object.keys(batch).length;
 
-                Snackbar.show(count === 1 ? '已移除收藏' : ('已移除 ' + count + ' 件收藏'), function () {
+                Snackbar.show(count === 1 ? '已移除收藏' : ('已移除 ' + count + ' 件收藏'), function (viaKeyboard) {
                     pending = null;
-                    restore(batch);
+                    restore(batch, viaKeyboard);
                 }, function () {
                     pending = null;
                 });
@@ -548,10 +589,12 @@ window.UqFavorites = (function () {
                 return true;
             },
             onApprove: function () {
+                const viaKeyboard = isKeyboardFocused(document.activeElement);
                 const snapshot = read();
 
                 if (!write({})) {
                     showState('favorites-error', '清空失敗，請再試一次');
+                    restoreFocus();
 
                     return true;
                 }
@@ -565,7 +608,7 @@ window.UqFavorites = (function () {
                 applyOfferFilter(container);
                 showState('favorites-empty', DEFAULT_SUMMARY);
 
-                Snackbar.show('已清空收藏', function () {
+                Snackbar.show('已清空收藏', function (undoViaKeyboard) {
                     const favorites = read();
 
                     Object.keys(snapshot).forEach(function (key) {
@@ -575,13 +618,21 @@ window.UqFavorites = (function () {
                     if (!write(favorites)) {
                         showState('favorites-error', '復原失敗，收藏沒有存回去');
 
+                        if (undoViaKeyboard) {
+                            focusFirstVisible(REFOCUS_ORDER);
+                        }
+
                         return;
                     }
 
-                    renderPage(currentOptions);
+                    renderPage(currentOptions, undoViaKeyboard);
                 }, null, true);
 
-                restoreFocus();
+                // 三個清空入口清空後都藏起來了，鍵盤使用者的焦點只能交給「復原」；
+                // 滑鼠操作不移，焦點停在提示條裡會暫停倒數
+                if (viaKeyboard) {
+                    Snackbar.focusUndo();
+                }
 
                 return true;
             },
@@ -773,7 +824,22 @@ window.UqFavorites = (function () {
         document.getElementById('favorites-loading').hidden = true;
     }
 
-    async function renderPage(options) {
+    /**
+     * refocus：整份重畫會把焦點所在的列或按鈕一起換掉（重新載入、清空後復原、
+     * 別的分頁改了收藏），焦點原本在清單裡的話要放回看得到的第一個控制項。
+     */
+    async function renderPage(options, refocus) {
+        const pending = renderList(options);
+        const token = renderToken;
+
+        await pending;
+
+        if (refocus && token === renderToken) {
+            focusFirstVisible(REFOCUS_ORDER);
+        }
+    }
+
+    async function renderList(options) {
         currentOptions = options;
         invalidatePendingRender();
 
@@ -792,8 +858,8 @@ window.UqFavorites = (function () {
         applyOfferFilter(container);
         syncToolbar();
 
-        document.getElementById('favorites-retry').onclick = function () {
-            renderPage(options);
+        document.getElementById('favorites-retry').onclick = function (event) {
+            renderPage(options, isKeyboardFocused(event.currentTarget));
         };
 
         if (wanted.length === 0) {
@@ -872,14 +938,14 @@ window.UqFavorites = (function () {
             } else if (document.hidden) {
                 staleWhileHidden = true;
             } else {
-                renderPage(currentOptions);
+                renderPage(currentOptions, focusIsInList());
             }
         });
 
         document.addEventListener('visibilitychange', function () {
             if (!document.hidden && staleWhileHidden) {
                 staleWhileHidden = false;
-                renderPage(currentOptions);
+                renderPage(currentOptions, focusIsInList());
             }
         });
     }
