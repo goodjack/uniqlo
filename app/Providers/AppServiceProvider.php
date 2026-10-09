@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Support\TaskNotes;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,6 +24,14 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Schema::defaultStringLength(191);
+
+        // 框架預設用 input() 讀頁碼，GET 帶 JSON 內文時會讀到內文；分頁連結、
+        // canonical 與篩選都只認網址參數，頁碼也要讀同一份
+        Paginator::currentPageResolver(function ($pageName = 'page') {
+            $page = request()->query($pageName);
+
+            return filter_var($page, FILTER_VALIDATE_INT) !== false && (int) $page >= 1 ? (int) $page : 1;
+        });
 
         if (config('app.force_https')) {
             \URL::forceScheme('https');

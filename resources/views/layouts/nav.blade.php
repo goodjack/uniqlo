@@ -2,7 +2,8 @@
     $navLinks = config('nav.links');
     $navGroups = config('nav.groups');
 
-    $brandQuery = request()->only('brand');
+    // 導覽列在每一頁，多數頁面不經過 ListRequest，品牌要用同一套規則讀
+    $brandQuery = array_filter(['brand' => \App\Http\Requests\ListRequest::brandFrom(request())]);
     $isCurrent = fn(string $route) => request()->routeIs($route);
     $groupIsCurrent = fn(array $items) => collect($items)->contains(fn($item) => request()->routeIs($item['route']));
 

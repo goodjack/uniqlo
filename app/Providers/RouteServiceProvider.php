@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\Requests\ListRequest;
 use App\Models\HmallProduct;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
@@ -52,9 +53,10 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         // 分類頁的關鍵字比對在大分類上會掃全表（跟 /search 同一種工作量），
-        // 純瀏覽只是帶分頁的索引查詢，不需要限流。
+        // 純瀏覽只是帶分頁的索引查詢，不需要限流。「有沒有關鍵字」要跟實際篩選
+        // 讀同一份（只認網址參數），否則內文帶空的 q 就能繞過。
         RateLimiter::for('category-search', function (Request $request) {
-            return $request->filled('q')
+            return ListRequest::keywordFrom($request) !== null
                 ? Limit::perMinute(30)->by($request->ip())
                 : Limit::none();
         });

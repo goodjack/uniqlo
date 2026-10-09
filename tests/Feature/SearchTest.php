@@ -283,6 +283,17 @@ class SearchTest extends TestCase
             ->assertSee($name);
     }
 
+    /**
+     * 搜尋框帶回的字跟 SearchController 一樣只認網址參數，內文的同名欄位不算。
+     */
+    public function test_the_search_box_shows_the_query_string_value_not_a_json_body(): void
+    {
+        $this->call('GET', route('search.index', ['query' => '羽絨']), [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['query' => '短褲']))
+            ->assertOk()
+            ->assertSee('value="羽絨"', false)
+            ->assertDontSee('value="短褲"', false);
+    }
+
     public static function queriesWithUnusualCharacters(): array
     {
         return [

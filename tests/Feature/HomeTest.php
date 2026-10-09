@@ -86,6 +86,25 @@ class HomeTest extends TestCase
      * @param  array<string, int>  $counts  覆寫個別清單的商品數，預設每個清單 2 筆
      */
     /**
+     * 導覽列與頁尾在每一頁，多數頁面不經過 ListRequest：連結帶的品牌要跟清單頁
+     * 同一套規則（只認網址參數、只收 UNIQLO／GU），不合法或內文的值不能帶進連結。
+     */
+    public function test_nav_and_footer_links_carry_only_a_valid_brand_from_the_query_string(): void
+    {
+        $this->mockListService();
+
+        $this->get(route('home', ['brand' => 'GU']))
+            ->assertSee(route('lists.sale', ['brand' => 'GU']));
+
+        $this->get(route('home', ['brand' => 'junk']))
+            ->assertDontSee('brand=junk');
+
+        $this->call('GET', route('home'), [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['brand' => 'GU']))
+            ->assertOk()
+            ->assertDontSee('brand=GU');
+    }
+
+    /**
      * @return array<int, string>
      */
     private function sectionHeadings(string $html): array
