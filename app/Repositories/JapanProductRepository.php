@@ -9,9 +9,7 @@ use Throwable;
 
 class JapanProductRepository
 {
-    public function __construct(protected JapanProduct $model)
-    {
-    }
+    public function __construct(protected JapanProduct $model) {}
 
     public function saveProducts($products, $brand = 'UNIQLO'): void
     {
@@ -36,6 +34,10 @@ class JapanProductRepository
                 $model->main_images = json_decode(json_encode($product->images->main), true);
                 $model->sub_images = json_decode(json_encode($product->images->sub), true);
                 $model->sub_videos = json_decode(json_encode($product->images->sub), true);
+
+                // 日本的商品列表沒有庫存欄位，出現在回傳裡就是還在賣；
+                // 不清掉的話，被標過下架的商品重新上架也永遠顯示下架
+                $model->stockout_at = null;
 
                 $model->save();
             } catch (Throwable $e) {
