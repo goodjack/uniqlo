@@ -27,6 +27,9 @@ class ListRequest extends FormRequest
      * 一律丟掉不合法的部分、照常顯示頁面，不讓驗證失敗把人轉走。
      *
      * 同時改寫全域的 request()：Blade 讀的是那一份，FormRequest 只是它的副本。
+     *
+     * 只認網址參數，而 input() 與驗證讀的是「網址參數＋內文」：帶 JSON 內文的
+     * GET 會讓內文蓋過整理好的值，所以內文裡的同名欄位一併拿掉。
      */
     protected function prepareForValidation()
     {
@@ -39,10 +42,13 @@ class ListRequest extends FormRequest
 
         foreach ($normalized as $key => $value) {
             foreach ([$this, request()] as $request) {
+                $request->request->remove($key);
+                $request->json()->remove($key);
+
                 if ($value === null) {
-                    $request->offsetUnset($key);
+                    $request->query->remove($key);
                 } else {
-                    $request->merge([$key => $value]);
+                    $request->query->set($key, $value);
                 }
             }
         }

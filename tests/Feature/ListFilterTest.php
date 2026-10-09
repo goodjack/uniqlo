@@ -48,6 +48,22 @@ class ListFilterTest extends TestCase
         $this->assertStringNotContainsString('name="sort" value="oops"', $content);
     }
 
+    /**
+     * 帶 JSON 內文的 GET 會讓驗證改讀內文；整理過的網址參數跟驗證要讀同一份。
+     */
+    public function test_a_json_get_request_reads_filters_from_the_url_only(): void
+    {
+        $this->call(
+            'GET',
+            route('lists.sale').'?tags=abc&q[]=x',
+            server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
+            content: json_encode(['q' => 'from-body', 'tags' => ['sale']]),
+        )->assertOk();
+
+        $this->assertNull(request()->input('q'));
+        $this->assertNull(request()->input('tags'));
+    }
+
     public function test_invalid_tags_are_dropped_while_valid_ones_still_apply(): void
     {
         $this->get(route('lists.sale').'?tags[]=sale&tags[]=nope')
