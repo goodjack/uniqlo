@@ -46,6 +46,7 @@ class JapanProductService
         $total = 0;
         $hasSucceeded = false;
         $scan = new CatalogScan($limit);
+        $retryTimes = (int) config('app.crawler.retry.times');
         $failedIds = [];
         $unidentifiedFailures = 0;
 
@@ -55,8 +56,8 @@ class JapanProductService
             try {
                 // retry 只包住打官網與解析回傳，資料庫的問題重打官網修不好
                 [$items, $total] = retry(
-                    config('app.crawler.retry.times'),
-                    function ($attempts) use ($japanProductListApiUrl, $brand, $offset, $limit) {
+                    $retryTimes,
+                    function ($attempts) use ($japanProductListApiUrl, $brand, $offset, $limit, $scan, $retryTimes) {
                         $headers = $this->buildHeaders();
                         $headers['x-fr-clientid'] = $this->getClientId($brand);
 
@@ -77,7 +78,14 @@ class JapanProductService
                             throw new Exception("Items does not exist. {$response->body()}");
                         }
 
-                        return [$items, (int) $responseBody->result->pagination->total];
+                        $total = (int) $responseBody->result->pagination->total;
+
+                        // 200 加空清單常是一時的軟擋，先重打；最後一次仍不足才照實記成缺口
+                        if ($attempts < $retryTimes && count($items) < $scan->expectedCount($offset, $total)) {
+                            throw new Exception("Batch at offset {$offset} came back short");
+                        }
+
+                        return [$items, $total];
                     },
                     fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
                     fn ($e) => $this->shouldRetry($e),

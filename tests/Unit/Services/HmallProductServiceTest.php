@@ -391,9 +391,10 @@ class HmallProductServiceTest extends TestCase
     {
         Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
 
-        Http::fake(['https://api.example.com/search' => Http::response([
-            'resp' => [['productList' => [], 'productSum' => $productSum]],
-        ])]);
+        Http::fake(['https://api.example.com/search' => fn ($request) => Http::response($this->searchResponse(
+            min(24, max(0, $productSum - ($request->data()['pageInfo']['page'] - 1) * 24)),
+            $productSum
+        ))]);
 
         $this->service->fetchAllHmallProducts('UNIQLO');
 
@@ -850,6 +851,63 @@ class HmallProductServiceTest extends TestCase
             '未執行缺貨判定，目錄有缺頁（最早在第 2 頁）',
             $this->service->fetchAllHmallProducts('UNIQLO')->note
         );
+    }
+
+    /**
+     * 一頁回 200 加空清單常是一時的軟擋：先重打，重打後件數對得上就照常做缺貨判定。
+     */
+    public function test_a_page_that_comes_back_short_once_is_retried()
+    {
+        Cache::flush();
+        Config::set('app.crawler.retry.times', 3);
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        $page2Requests = 0;
+        Http::fake(['https://api.example.com/search' => function ($request) use (&$page2Requests) {
+            if ($request->data()['pageInfo']['page'] === 1) {
+                return Http::response($this->searchResponse(24, 30));
+            }
+
+            return Http::response($this->searchResponse(++$page2Requests === 1 ? 0 : 6, 30));
+        }]);
+
+        $this->mockHmallRepository->expects($this->once())
+            ->method('setStockoutHmallProducts');
+
+        $this->assertSame(CrawlOutcome::Succeeded, $this->service->fetchAllHmallProducts('UNIQLO')->outcome);
+        $this->assertSame(2, $page2Requests);
+    }
+
+    /**
+     * 重打到最後一次仍然不足，才照實記成缺口；不足的那頁有幾件就寫幾件。
+     */
+    public function test_a_page_that_stays_short_after_every_retry_is_a_gap()
+    {
+        Cache::flush();
+        Config::set('app.crawler.retry.times', 3);
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+
+        Http::fake(['https://api.example.com/search' => fn ($request) => $request->data()['pageInfo']['page'] === 1
+            ? Http::response($this->searchResponse(24, 30))
+            : Http::response($this->searchResponse(2, 30))]);
+
+        $repository = $this->createMock(HmallProductRepository::class);
+        $repository->expects($this->exactly(2))
+            ->method('saveProductsFromV3')
+            ->willReturn(new ProductSaveResult);
+        $repository->expects($this->never())
+            ->method('setStockoutHmallProducts');
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $service = new HmallProductService($repository, $this->mockProductRepository);
+
+        $this->assertSame(
+            '未執行缺貨判定，目錄有缺頁（最早在第 2 頁）',
+            $service->fetchAllHmallProducts('UNIQLO')->note
+        );
+        Http::assertSentCount(4);
     }
 
     /**

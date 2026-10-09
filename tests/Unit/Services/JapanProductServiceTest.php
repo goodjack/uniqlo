@@ -252,6 +252,26 @@ class JapanProductServiceTest extends TestCase
     }
 
     /**
+     * 一批回 200 加空清單常是一時的軟擋：先重打，重打後件數對得上就照常做缺貨判定。
+     */
+    public function test_a_batch_that_comes_back_short_once_is_retried()
+    {
+        Cache::flush();
+        Config::set('app.crawler.retry.times', 3);
+        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
+
+        $requests = 0;
+        Http::fake(['https://api.example.com/products*' => function () use (&$requests) {
+            return Http::response($this->listResponse(++$requests === 1 ? 0 : 4, 4));
+        }]);
+
+        $result = $this->serviceExpectingStockout($this->once())->fetchAllProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::Succeeded, $result->outcome);
+        $this->assertSame(2, $requests);
+    }
+
+    /**
      * 有幾件寫不進去時目錄其實看完了：缺貨判定照做，但要排除那幾件，
      * 否則它們會因為 updated_at 沒更新而被冤枉下架。
      */

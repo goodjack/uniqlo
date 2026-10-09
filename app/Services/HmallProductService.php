@@ -98,6 +98,7 @@ class HmallProductService extends Service
         $hasSucceeded = false;
         // 每一頁成功都會把續跑點往後推，有缺口時要退回最早的缺口，否則那一頁永遠不補抓
         $scan = new CatalogScan($pageSize);
+        $retryTimes = (int) config('app.crawler.retry.times');
         $failedProductCodes = [];
         // 寫不進去而且連商品編號都拿不到的件數，沒辦法從缺貨判定排除
         $unidentifiedFailures = 0;
@@ -109,8 +110,8 @@ class HmallProductService extends Service
                 // retry 只包住打官網與解析回傳。資料庫的問題重打官網修不好，
                 // 還會被歸成「整頁沒抓到」。
                 [$products, $productSum] = retry(
-                    config('app.crawler.retry.times'),
-                    function ($attempts) use ($searchApiUrl, $page, $pageSize) {
+                    $retryTimes,
+                    function ($attempts) use ($searchApiUrl, $page, $pageSize, $scan, $retryTimes) {
                         $response = Http::withHeaders($this->buildHeaders())
                             ->throw()
                             ->post($searchApiUrl, [
@@ -135,14 +136,23 @@ class HmallProductService extends Service
                             throw new Exception("Product list does not exist. {$response->body()}");
                         }
 
-                        return [$products, $responseBody->resp[0]->productSum];
+                        $productSum = (int) $responseBody->resp[0]->productSum;
+
+                        // 200 加空清單常是一時的軟擋，先重打；最後一次仍不足才照實記成缺口
+                        if (
+                            $attempts < $retryTimes
+                            && count($products) < $scan->expectedCount(($page - 1) * $pageSize, $productSum)
+                        ) {
+                            throw new Exception("Page {$page} came back short");
+                        }
+
+                        return [$products, $productSum];
                     },
                     fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
                     fn ($e) => $this->shouldRetry($e),
                 );
 
-                $productSum = (int) $productSum;
-                $productCount = collect($products)->count();
+                $productCount = count($products);
 
                 if (! $scan->recordBatch(($page - 1) * $pageSize, $productCount, $productSum)) {
                     logger()->error('fetchAllHmallProducts page came back short', [
