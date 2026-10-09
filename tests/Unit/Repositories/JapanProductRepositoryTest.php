@@ -5,6 +5,7 @@ namespace Tests\Unit\Repositories;
 use App\Models\JapanProduct;
 use App\Repositories\JapanProductRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class JapanProductRepositoryTest extends TestCase
@@ -20,6 +21,26 @@ class JapanProductRepositoryTest extends TestCase
         $repository->saveProducts([$this->item()]);
 
         $this->assertNull(JapanProduct::where('l1Id', '483870')->firstOrFail()->stockout_at);
+    }
+
+    /**
+     * 官網回的資料跟資料庫一字不差時 save() 不會寫入；這輪看到的商品仍要算
+     * 「還在」，不能被下架判定掃到。
+     */
+    public function test_a_product_seen_again_with_identical_data_is_not_marked_as_stocked_out(): void
+    {
+        $repository = app(JapanProductRepository::class);
+
+        Carbon::setTestNow('2026-10-08 09:30:00');
+        $repository->saveProducts([$this->item()]);
+
+        Carbon::setTestNow('2026-10-09 09:30:00');
+        $repository->saveProducts([$this->item()]);
+        $repository->setStockoutProducts();
+
+        $product = JapanProduct::where('l1Id', '483870')->firstOrFail();
+        $this->assertTrue($product->updated_at->isSameDay(now()));
+        $this->assertNull($product->stockout_at);
     }
 
     /**

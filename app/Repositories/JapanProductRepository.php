@@ -38,6 +38,9 @@ class JapanProductRepository
                 // 日本的商品列表沒有庫存欄位，出現在回傳裡就是還在賣；
                 // 不清掉的話，被標過下架的商品重新上架也永遠顯示下架
                 $model->stockout_at = null;
+                // 下架判定以 updated_at 認定「這輪還看得到」，資料完全沒變時
+                // save() 不會碰它，商品會被誤標下架
+                $model->updated_at = now();
 
                 $model->save();
             } catch (Throwable $e) {
