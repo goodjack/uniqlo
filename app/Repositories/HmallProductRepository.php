@@ -234,6 +234,7 @@ class HmallProductRepository extends Repository
             ->groupBy('hmall_products.id')
             ->orderByDesc('count')
             ->orderByDesc('hmall_products.evaluation_count')
+            ->orderByDesc('hmall_products.id')
             ->take($limit)
             ->get();
     }
@@ -345,6 +346,7 @@ class HmallProductRepository extends Repository
             ->orderBy('evaluation_count', 'desc')
             ->orderBy('score', 'desc')
             ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         Cache::forever(self::CACHE_KEY_LIMITED_OFFER, $hmallProducts);
@@ -362,6 +364,7 @@ class HmallProductRepository extends Repository
             ->orderBy('evaluation_count', 'desc')
             ->orderBy('score', 'desc')
             ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         Cache::forever(self::CACHE_KEY_SALE, $hmallProducts);
@@ -387,6 +390,7 @@ class HmallProductRepository extends Repository
             ->orderBy('evaluation_count', 'desc')
             ->orderBy('score', 'desc')
             ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         Cache::forever(self::CACHE_KEY_MOST_REVIEWED, $hmallProducts);
@@ -417,6 +421,7 @@ class HmallProductRepository extends Repository
             ->orderBy('hmall_products.evaluation_count', 'desc')
             ->orderBy('hmall_products.score', 'desc')
             ->orderBy('hmall_products.created_at', 'desc')
+            ->orderBy('hmall_products.id', 'desc')
             ->get();
 
         Cache::forever(self::CACHE_KEY_JAPAN_MOST_REVIEWED, $hmallProducts);
@@ -445,6 +450,7 @@ class HmallProductRepository extends Repository
             ->orderBy('evaluation_count', 'desc')
             ->orderBy('score', 'desc')
             ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         $ranks = $hmallProducts->pluck('id')->mapWithKeys(function ($id, $index) {
@@ -467,6 +473,7 @@ class HmallProductRepository extends Repository
             ->orderBy('evaluation_count', 'desc')
             ->orderBy('score', 'desc')
             ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         Cache::forever(self::CACHE_KEY_NEW, $hmallProducts);
@@ -484,6 +491,7 @@ class HmallProductRepository extends Repository
             ->orderBy('evaluation_count', 'desc')
             ->orderBy('score', 'desc')
             ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         Cache::forever(self::CACHE_KEY_COMING_SOON, $hmallProducts);
@@ -500,6 +508,7 @@ class HmallProductRepository extends Repository
             ->orderBy('evaluation_count', 'desc')
             ->orderBy('score', 'desc')
             ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         Cache::forever(self::CACHE_KEY_MULTI_BUY, $hmallProducts);
@@ -517,6 +526,7 @@ class HmallProductRepository extends Repository
             ->orderBy('evaluation_count', 'desc')
             ->orderBy('score', 'desc')
             ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         Cache::forever(self::CACHE_KEY_ONLINE_SPECIAL, $hmallProducts);
@@ -608,6 +618,8 @@ class HmallProductRepository extends Repository
         return $query
             ->orderBy('category_pivot.sort')
             ->orderBy('hmall_products.code')
+            // sort 與 code 都常重複，少了唯一鍵翻頁會重複或漏掉商品
+            ->orderBy('hmall_products.id')
             ->paginate($perPage)
             ->withQueryString();
     }
@@ -653,6 +665,7 @@ class HmallProductRepository extends Repository
             })
             ->orderByRaw('code = ? DESC', [$query])
             ->orderBy('min_price')
+            ->orderBy('id')
             ->get();
     }
 
@@ -702,6 +715,7 @@ class HmallProductRepository extends Repository
             ->orderBy('evaluation_count', 'desc')
             ->orderBy('score', 'desc')
             ->orderBy('code')
+            ->orderBy('hmall_products.id')
             ->paginate($perPage)
             ->withQueryString();
     }

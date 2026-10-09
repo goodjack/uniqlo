@@ -90,6 +90,23 @@ class CategoryServiceTest extends TestCase
     }
 
     /**
+     * 同層 sort 同分時用 code 決定，不看關聯載入的順序，麵包屑才不會換來換去。
+     */
+    public function test_it_breaks_a_sort_tie_by_code(): void
+    {
+        // 比 all_women-tops-tshirt 晚建立（id 較大），但 code 排在前面
+        $this->createCategory('all_women-tops-shirt', '襯衫', 'all_women-tops', CategoryLevel::Two);
+
+        $product = $this->createProduct(['gender' => '女裝']);
+        $this->attach($product, 'all_women', '014001999');
+        $this->attach($product, 'all_women-tops', '014001999');
+        $this->attach($product, 'all_women-tops-tshirt', '014001999');
+        $this->attach($product, 'all_women-tops-shirt', '014001999');
+
+        $this->assertSame('all_women-tops-shirt', $this->service->getPrimaryCategory($product)->code);
+    }
+
+    /**
      * 性別欄位是空的（真實資料有）就不套性別條件。
      */
     public function test_a_product_without_a_gender_still_gets_a_primary_category(): void

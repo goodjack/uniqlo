@@ -40,6 +40,7 @@ class HmallCategoryRepository extends Repository
             ->groupBy('hmall_categories.id')
             ->orderByDesc('hmall_products_count')
             ->orderBy('hmall_categories.code')
+            ->orderBy('hmall_categories.id')
             ->get();
     }
 
