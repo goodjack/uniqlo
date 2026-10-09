@@ -2,10 +2,12 @@
 
 namespace Tests\Unit\Services;
 
+use App\Enums\Brand;
 use App\Enums\CategoryLevel;
 use App\Models\HmallCategory;
 use App\Models\HmallProduct;
 use App\Services\SitemapService;
+use App\Support\Url as SiteUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -39,7 +41,7 @@ class SitemapServiceTest extends TestCase
     {
         $category = HmallCategory::create([
             'brand' => 'GU',
-            'code' => "kids-trend\u{200B}",
+            'code' => "kids/trend#?\u{200B}",
             'name' => '兒童趨勢',
             'parent_code' => null,
             'level' => CategoryLevel::One->value,
@@ -59,10 +61,10 @@ class SitemapServiceTest extends TestCase
 
         $xml = $this->renderSitemap();
 
-        $expectedUrl = route('categories.show', ['brand' => 'gu', 'code' => $category->code]);
+        $expectedUrl = SiteUrl::category(Brand::Gu, $category->code);
 
         $this->assertStringContainsString("<loc>{$expectedUrl}</loc>", $xml);
-        $this->assertStringNotContainsString("kids-trend\u{200B}<", $xml);
+        $this->assertStringContainsString('kids%2Ftrend%23%3F%E2%80%8B', $expectedUrl);
     }
 
     private function renderSitemap(): string

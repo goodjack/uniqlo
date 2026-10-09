@@ -6,6 +6,7 @@ use App\Enums\CategoryLevel;
 use App\Repositories\HmallCategoryRepository;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
+use App\Support\Url as SiteUrl;
 use Illuminate\Support\Facades\Route;
 use Spatie\Sitemap\Sitemap;
 use Spatie\Sitemap\Tags\Url;
@@ -49,11 +50,8 @@ class SitemapService extends Service
         ]);
 
         foreach ($categories as $category) {
-            // 用 route() 才會跟站內連結同一套網址編碼（有 code 帶零寬空白）
-            $sitemap->add(Url::create(route('categories.show', [
-                'brand' => $category->brand->slug(),
-                'code' => $category->code,
-            ])));
+            // 跟站內連結同一套網址編碼，搜尋引擎才不會看到兩個網址
+            $sitemap->add(Url::create(SiteUrl::category($category->brand, $category->code)));
         }
 
         $hmallProducts = $this->hmallProductRepository->getAllProductsForSitemap();
