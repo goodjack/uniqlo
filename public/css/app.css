@@ -234,6 +234,12 @@ i.sale.icon {
     color: var(--uq-text);
 }
 
+.uq-instant-hint {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: var(--uq-text);
+}
+
 /* ------------------------------------------------------------------
  * 篩選面板。純 CSS 開合，沒有 JavaScript 也能用：勾選框藏起來，工具列裡的
  * label 當按鈕。不用 <details>：設成 display: contents 後內容進不了外層 flex。

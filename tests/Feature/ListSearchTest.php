@@ -41,6 +41,25 @@ class ListSearchTest extends TestCase
         $this->assertStringContainsString('data-instant-filter', $content);
     }
 
+    /**
+     * 即時篩靠輸入框的初始值認得「伺服器篩過哪些詞」，放寬時才知道要改成提示。
+     */
+    public function test_the_instant_filter_knows_the_server_query_and_has_a_hint_slot(): void
+    {
+        $this->seedSaleProduct(['name' => '短袖 圓領T恤', 'code' => '474238', 'sex' => '男裝']);
+
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$this->get(route('lists.sale').'?q='.urlencode('短袖 T恤'))->getContent());
+        $xpath = new \DOMXPath($dom);
+
+        $this->assertSame('短袖 T恤', $xpath->query('//input[@data-instant-filter]/@value')->item(0)->nodeValue);
+
+        $hint = $xpath->query('//*[@data-instant-hint]')->item(0);
+
+        $this->assertNotNull($hint);
+        $this->assertTrue($hint->hasAttribute('hidden'));
+    }
+
     public function test_q_and_brand_and_sort_and_tags_all_apply_together(): void
     {
         $this->seedSaleProduct([

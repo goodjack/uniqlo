@@ -111,6 +111,9 @@
             </x-slot:end>
         </x-toolbar>
 
+        {{-- 改的字比網址上的 q 更寬時，頁面上的卡片不夠篩，list-search.js 改在這裡提示按 Enter --}}
+        <p class="uq-instant-hint" data-instant-hint aria-live="polite" hidden></p>
+
         @include('partials.tag-filter')
     </div>
 

@@ -7,6 +7,10 @@
  *
  * 比對規則要跟後端 ListService::hmallProductMatchesKeyword() 一致（每個詞都要
  * 命中；比品名、code、完整料號、短編號），不然按 Enter 前後結果會不一樣。
+ *
+ * 帶 q 載入時，頁面上只有伺服器篩過的卡片，前端只能再縮小、不能放寬：新的詞組
+ * 讓原本每個詞都還在（或被打得更長）才在這些卡片裡篩；放寬時維持伺服器的結果，
+ * 提示按 Enter 在整個清單裡找。
  */
 (function () {
     const instantFilterInputs = document.querySelectorAll('[data-instant-filter]');
@@ -209,8 +213,46 @@
     }
 
     instantFilterInputs.forEach(function (input) {
+        const serverQuery = input.defaultValue;
+        const serverTokens = tokensOf(serverQuery);
+        const hint = document.querySelector('[data-instant-hint]');
+
+        // 每個伺服器的詞都被某個新詞包含，新的結果才一定是現有卡片的子集合
+        function narrowsServerQuery(value) {
+            const tokens = tokensOf(value);
+
+            return serverTokens.every(function (serverToken) {
+                return tokens.some(function (token) {
+                    return token.indexOf(serverToken) !== -1;
+                });
+            });
+        }
+
+        function showWiderSearchHint(value) {
+            if (!hint) {
+                return;
+            }
+
+            const trimmed = value.trim();
+
+            hint.hidden = false;
+            hint.textContent = trimmed === ''
+                ? '按 Enter 顯示整個清單'
+                : ('按 Enter 在整個清單裡找「' + trimmed + '」');
+        }
+
         function apply() {
-            filterCards(input.value);
+            if (narrowsServerQuery(input.value)) {
+                filterCards(input.value);
+
+                if (hint) {
+                    hint.hidden = true;
+                }
+            } else {
+                filterCards(serverQuery);
+                showWiderSearchHint(input.value);
+            }
+
             keepQuery(input.value);
         }
 
