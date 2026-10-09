@@ -28,7 +28,7 @@ class JapanProductService
      * 否則沒看到的那一段會被整批標成下架。寫不進去的商品也比照台灣：知道 l1Id 的
      * 排除，拿不到的整輪不做。在售件數比例與逾期升級同樣走 StockoutGate。
      */
-    public function fetchAllProducts($brand = 'UNIQLO', bool $fresh = false): CrawlResult
+    public function fetchAllProducts($brand = 'UNIQLO', bool $fresh = false, bool $acceptShrink = false): CrawlResult
     {
         $japanProductListApiUrl = $this->getJapanProductListApiUrl($brand);
         $cacheKey = sprintf(self::CACHE_KEY_JAPAN_PRODUCTS_OFFSET, $brand);
@@ -214,14 +214,14 @@ class JapanProductService
 
         $inStockCount = $this->repository->countInStockProducts($brand);
 
-        if ($gate->seenTooFew($scan->itemsSeen(), $inStockCount)) {
+        if (! $acceptShrink && $gate->seenTooFew($scan->itemsSeen(), $inStockCount)) {
             logger()->error('Saw far fewer Japan products than are in stock - skipping stockout', [
                 'brand' => $brand,
                 'items_seen' => $scan->itemsSeen(),
                 'in_stock' => $inStockCount,
             ]);
 
-            return $gate->skip("未執行缺貨判定，這一輪只看到 {$scan->itemsSeen()} 件，目前在售 {$inStockCount} 件");
+            return $gate->skip(StockoutGate::seenTooFewNote($scan->itemsSeen(), $inStockCount));
         }
 
         $failedIds = array_values(array_unique($failedIds));

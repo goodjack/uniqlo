@@ -975,7 +975,51 @@ class HmallProductServiceTest extends TestCase
         $result = (new HmallProductService($repository, $this->mockProductRepository))->fetchAllHmallProducts('UNIQLO');
 
         $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
-        $this->assertSame('未執行缺貨判定，這一輪只看到 24 件，目前在售 1672 件', $result->note);
+        $this->assertSame(
+            '未執行缺貨判定，這一輪只看到 24 件，目前在售 1672 件（確認官網真的大量下架後，可加 --accept-shrink 重跑放行）',
+            $result->note
+        );
+    }
+
+    /**
+     * 官網真的一次下架超過一半時，維運者確認後用 --accept-shrink 放行；只放行這一道。
+     */
+    public function test_accepting_a_shrink_runs_stockout_despite_seeing_few_products()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+        Http::fake(['https://api.example.com/search' => Http::response($this->searchResponse(24, 24))]);
+
+        $repository = $this->createMock(HmallProductRepository::class);
+        $repository->method('saveProductsFromV3')->willReturn(new ProductSaveResult);
+        $repository->method('countInStockHmallProducts')->willReturn(1672);
+        $repository->expects($this->once())->method('setStockoutHmallProducts');
+
+        $result = (new HmallProductService($repository, $this->mockProductRepository))
+            ->fetchAllHmallProducts('UNIQLO', acceptShrink: true);
+
+        $this->assertSame(CrawlOutcome::Succeeded, $result->outcome);
+    }
+
+    /**
+     * 放行只管「看到的太少」，缺頁照樣不做缺貨判定。
+     */
+    public function test_accepting_a_shrink_does_not_bypass_a_gap()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
+        Http::fake(['https://api.example.com/search' => fn ($request) => $request->data()['pageInfo']['page'] === 1
+            ? Http::response($this->searchResponse(24, 48))
+            : Http::response($this->searchResponse(0, 48))]);
+
+        $this->mockHmallRepository->expects($this->never())->method('setStockoutHmallProducts');
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $result = $this->service->fetchAllHmallProducts('UNIQLO', acceptShrink: true);
+
+        $this->assertSame('未執行缺貨判定，目錄有缺頁（最早在第 2 頁）', $result->note);
     }
 
     /**

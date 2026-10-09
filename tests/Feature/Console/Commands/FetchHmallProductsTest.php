@@ -146,6 +146,19 @@ class FetchHmallProductsTest extends TestCase
         Event::assertNotDispatched(AppTaskFinished::class);
     }
 
+    public function test_the_accept_shrink_option_is_passed_to_the_service()
+    {
+        $mockService = $this->createMock(HmallProductService::class);
+        $mockService->expects($this->once())
+            ->method('fetchAllHmallProducts')
+            ->with('GU', false, true)
+            ->willReturn(new CrawlResult(CrawlOutcome::Succeeded));
+
+        $this->app->instance(HmallProductService::class, $mockService);
+
+        $this->artisan('hmall-product:fetch GU --accept-shrink')->assertExitCode(0);
+    }
+
     /**
      * 缺貨判定逾期跟完全失敗一樣不送一般的結束通知，交給排程發紅色的失敗通知。
      */

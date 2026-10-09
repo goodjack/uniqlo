@@ -36,6 +36,15 @@ final class StockoutGate
         return $itemsSeen < $inStockCount * self::MIN_SEEN_RATIO;
     }
 
+    /**
+     * 官網真的一次下架超過一半（例如換季）時這道會天天擋，維運者確認後要有不改程式的出口。
+     */
+    public static function seenTooFewNote(int $itemsSeen, int $inStockCount): string
+    {
+        return "未執行缺貨判定，這一輪只看到 {$itemsSeen} 件，目前在售 {$inStockCount} 件"
+            .'（確認官網真的大量下架後，可加 --accept-shrink 重跑放行）';
+    }
+
     /** 缺貨判定做完後呼叫 */
     public function recordRun(): void
     {

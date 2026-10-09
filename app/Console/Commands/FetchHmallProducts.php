@@ -16,7 +16,7 @@ class FetchHmallProducts extends Command
      *
      * @var string
      */
-    protected $signature = 'hmall-product:fetch {brand=UNIQLO : The brand of the products} {--fresh : Ignore checkpoint and start fresh}';
+    protected $signature = 'hmall-product:fetch {brand=UNIQLO : The brand of the products} {--fresh : Ignore checkpoint and start fresh} {--accept-shrink : Run stockout even if far fewer products than in stock were seen}';
 
     /**
      * The console command description.
@@ -42,7 +42,7 @@ class FetchHmallProducts extends Command
         $this->info("Fetching Hmall products for {$brand}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $result = $hmallProductService->fetchAllHmallProducts($brand, $fresh);
+        $result = $hmallProductService->fetchAllHmallProducts($brand, $fresh, $this->option('accept-shrink'));
 
         if ($result->note !== null) {
             $taskNotes->put($this->getName(), $brand, $result->note);

@@ -284,7 +284,26 @@ class JapanProductServiceTest extends TestCase
 
         $result = (new JapanProductService($repository))->fetchAllProducts('UNIQLO');
 
-        $this->assertSame('未執行缺貨判定，這一輪只看到 4 件，目前在售 900 件', $result->note);
+        $this->assertSame(
+            '未執行缺貨判定，這一輪只看到 4 件，目前在售 900 件（確認官網真的大量下架後，可加 --accept-shrink 重跑放行）',
+            $result->note
+        );
+    }
+
+    public function test_accepting_a_shrink_runs_stockout_despite_seeing_few_products()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
+        Http::fake(['https://api.example.com/products*' => Http::response($this->listResponse(4, 4))]);
+
+        $repository = $this->createMock(JapanProductRepository::class);
+        $repository->method('saveProducts')->willReturn(new ProductSaveResult);
+        $repository->method('countInStockProducts')->willReturn(900);
+        $repository->expects($this->once())->method('setStockoutProducts');
+
+        $result = (new JapanProductService($repository))->fetchAllProducts('UNIQLO', acceptShrink: true);
+
+        $this->assertSame(CrawlOutcome::Succeeded, $result->outcome);
     }
 
     public function test_skipping_stockout_for_too_many_days_needs_attention()

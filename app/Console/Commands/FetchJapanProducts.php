@@ -15,7 +15,7 @@ class FetchJapanProducts extends Command
      *
      * @var string
      */
-    protected $signature = 'japan-product:fetch {brand=UNIQLO : The brand of the products} {--fresh : Ignore checkpoint and start fresh}';
+    protected $signature = 'japan-product:fetch {brand=UNIQLO : The brand of the products} {--fresh : Ignore checkpoint and start fresh} {--accept-shrink : Run stockout even if far fewer products than in stock were seen}';
 
     /**
      * The console command description.
@@ -39,7 +39,7 @@ class FetchJapanProducts extends Command
         $this->info("Fetching Japan products for {$brand}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $result = $japanProductService->fetchAllProducts($brand, $fresh);
+        $result = $japanProductService->fetchAllProducts($brand, $fresh, $this->option('accept-shrink'));
 
         if ($result->note !== null) {
             $taskNotes->put($this->getName(), $brand, $result->note);

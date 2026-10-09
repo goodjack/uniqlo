@@ -77,7 +77,7 @@ class HmallProductService extends Service
      *
      * 回傳的說明文字是給通知看的：同樣是「部分成功」，有沒有做缺貨判定處理方式不同。
      */
-    public function fetchAllHmallProducts($brand = 'UNIQLO', bool $fresh = false): CrawlResult
+    public function fetchAllHmallProducts($brand = 'UNIQLO', bool $fresh = false, bool $acceptShrink = false): CrawlResult
     {
         $searchApiUrl = $this->getV3SearchApiUrl($brand);
 
@@ -296,14 +296,14 @@ class HmallProductService extends Service
 
         $inStockCount = $this->repository->countInStockHmallProducts($brand);
 
-        if ($gate->seenTooFew($scan->itemsSeen(), $inStockCount)) {
+        if (! $acceptShrink && $gate->seenTooFew($scan->itemsSeen(), $inStockCount)) {
             logger()->error('Saw far fewer products than are in stock - skipping stockout', [
                 'brand' => $brand,
                 'items_seen' => $scan->itemsSeen(),
                 'in_stock' => $inStockCount,
             ]);
 
-            return $gate->skip("未執行缺貨判定，這一輪只看到 {$scan->itemsSeen()} 件，目前在售 {$inStockCount} 件");
+            return $gate->skip(StockoutGate::seenTooFewNote($scan->itemsSeen(), $inStockCount));
         }
 
         $this->repository->setStockoutHmallProducts($brand, null, $failedProductCodes);
