@@ -243,6 +243,7 @@ window.UqFavorites = (function () {
 
             if (el) {
                 el.classList.remove('active');
+                document.documentElement.style.removeProperty('--uq-bottom-overlay');
             }
         }
 
@@ -269,6 +270,8 @@ window.UqFavorites = (function () {
 
             // 即時區域在 display:none 時內容變動不會被唸，先顯示、下一格再寫字
             el.classList.add('active');
+            // 回到頁首鈕固定在右下角，會蓋住提示條，讓它照這個高度往上讓開
+            document.documentElement.style.setProperty('--uq-bottom-overlay', el.offsetHeight + 'px');
             contentEl.textContent = '';
             requestAnimationFrame(function () {
                 contentEl.textContent = content;

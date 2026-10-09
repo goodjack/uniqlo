@@ -50,17 +50,20 @@
             flex-grow: 1;
         }
 
+        /* --uq-bottom-overlay 是底部提示條（收藏頁的復原）的高度，出現時往上讓開 */
         .back-to-top {
             position: fixed;
             right: 2rem;
-            bottom: 2rem;
+            bottom: calc(2rem + var(--uq-bottom-overlay, 0px));
             z-index: 20;
             opacity: 100%;
-            transition: opacity 0.2s;
+            transition: opacity 0.2s, visibility 0.2s, bottom 0.2s;
         }
 
+        /* 只調透明度的話，看不見的按鈕仍然擋住底下的卡片、也還能被 Tab 到 */
         .back-to-top.hidden {
             opacity: 0%;
+            visibility: hidden;
         }
     </style>
     @yield('css')
@@ -76,8 +79,8 @@
     @include('layouts.footer')
 
     <span class="back-to-top hidden">
-        <button class="ts circular secondary opinion icon button">
-            <i class="arrow up icon"></i>
+        <button type="button" class="ts circular secondary opinion icon button" aria-label="回到頁首">
+            <i class="arrow up icon" aria-hidden="true"></i>
         </button>
     </span>
 
