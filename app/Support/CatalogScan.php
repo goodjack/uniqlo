@@ -76,4 +76,10 @@ final class CatalogScan
     {
         return $this->itemsSeen;
     }
+
+    /** 第幾件落在第幾頁（從 1 起算），給續跑點與通知用 */
+    public function pageOf(int $offset): int
+    {
+        return intdiv($offset, $this->batchSize) + 1;
+    }
 }

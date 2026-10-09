@@ -185,9 +185,9 @@ class HmallProductService extends Service
                     ]);
                     report($e);
 
-                    $earlierGapPage = $scan->hasGap() ? $this->pageOf($scan->firstGap(), $pageSize) : null;
+                    $earlierGapPage = $scan->hasGap() ? $scan->pageOf($scan->firstGap()) : null;
                     $scan->recordGap(($page - 1) * $pageSize);
-                    $this->saveCheckpoint($cacheKey, $this->pageOf($scan->firstGap(), $pageSize));
+                    $this->saveCheckpoint($cacheKey, $scan->pageOf($scan->firstGap()));
 
                     if (! $hasSucceeded) {
                         return new CrawlResult(CrawlOutcome::Failed);
@@ -226,7 +226,7 @@ class HmallProductService extends Service
         }
 
         if ($scan->hasGap()) {
-            $firstGapPage = $this->pageOf($scan->firstGap(), $pageSize);
+            $firstGapPage = $scan->pageOf($scan->firstGap());
 
             logger()->error('The catalog has gaps - rewinding checkpoint, skipping stockout', [
                 'brand' => $brand,
@@ -446,11 +446,6 @@ class HmallProductService extends Service
     private function saveCheckpoint(string $cacheKey, int $page): void
     {
         Cache::put($cacheKey, $page, now()->endOfDay());
-    }
-
-    private function pageOf(int $offset, int $pageSize): int
-    {
-        return intdiv($offset, $pageSize) + 1;
     }
 
     private function getV3SearchApiUrl($brand = 'UNIQLO'): string

@@ -2,12 +2,14 @@
 
 namespace Tests\Unit\Services;
 
+use App\Enums\CrawlOutcome;
 use App\Repositories\JapanProductRepository;
 use App\Services\JapanProductService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class JapanProductServiceTest extends TestCase
@@ -176,5 +178,85 @@ class JapanProductServiceTest extends TestCase
             Cache::get('japan_products:offset:UNIQLO'),
             'Checkpoint must not be cleared when no batches succeeded'
         );
+    }
+
+    /**
+     * 從頭開始、每一批件數都對得上總數，才是完整掃描，這時才做缺貨判定。
+     */
+    public function test_a_full_clean_crawl_marks_products_as_stocked_out()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
+
+        Http::fake(['https://api.example.com/products*' => fn ($request) => Http::response(
+            $this->listResponse($request->data()['offset'] === 0 ? 36 : 4, 40)
+        )]);
+
+        $service = $this->serviceExpectingStockout($this->once());
+
+        $this->assertSame(CrawlOutcome::Succeeded, $service->fetchAllProducts('UNIQLO')->outcome);
+    }
+
+    /**
+     * 看到的目錄可能不完整時一律不做缺貨判定，否則沒看到的那一段會被整批標成下架。
+     */
+    #[DataProvider('incompleteCatalogs')]
+    public function test_an_incomplete_catalog_never_marks_products_as_stocked_out(
+        ?int $checkpoint,
+        array $batchesByOffset,
+        string $expectedNote
+    ) {
+        Cache::flush();
+        if ($checkpoint !== null) {
+            Cache::put('japan_products:offset:UNIQLO', $checkpoint);
+        }
+
+        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
+
+        Http::fake(['https://api.example.com/products*' => function ($request) use ($batchesByOffset) {
+            [$count, $total] = $batchesByOffset[$request->data()['offset']] ?? [0, 0];
+
+            return Http::response($this->listResponse($count, $total));
+        }]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $result = $this->serviceExpectingStockout($this->never())->fetchAllProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        $this->assertSame($expectedNote, $result->note);
+    }
+
+    public static function incompleteCatalogs(): array
+    {
+        $gap = '未執行缺貨判定，目錄有缺頁（最早在第 2 頁）';
+
+        return [
+            'an empty catalog' => [null, [0 => [0, 0]], '未執行缺貨判定，這一輪一件商品都沒看到'],
+            'later batches soft blocked with the same total' => [null, [0 => [36, 100], 36 => [0, 100], 72 => [0, 100]], $gap],
+            'the total dropping to zero partway' => [null, [0 => [36, 100], 36 => [0, 0]], $gap],
+            'a resumed crawl' => [36, [36 => [4, 40]], '未執行缺貨判定，這一輪是從上次中斷的地方接著跑'],
+            // 續跑點停在目錄尾端：只會抓到一批空的，舊版會把整個品牌標成下架
+            'a checkpoint left at the end of the catalog' => [72, [72 => [0, 40]], '未執行缺貨判定，這一輪是從上次中斷的地方接著跑'],
+        ];
+    }
+
+    private function serviceExpectingStockout($invocationRule): JapanProductService
+    {
+        $repository = $this->createMock(JapanProductRepository::class);
+        $repository->expects($invocationRule)->method('setStockoutProducts');
+
+        return new JapanProductService($repository);
+    }
+
+    private function listResponse(int $itemCount, int $total): array
+    {
+        return [
+            'result' => [
+                'items' => array_fill(0, $itemCount, ['l1Id' => 'x']),
+                'pagination' => ['total' => $total],
+            ],
+        ];
     }
 }

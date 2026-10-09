@@ -69,6 +69,7 @@ class AppSchedule extends Command
      */
     private const PARTIAL_SUCCESS_COMMANDS = [
         'hmall-product:fetch',
+        'japan-product:fetch',
     ];
 
     /**

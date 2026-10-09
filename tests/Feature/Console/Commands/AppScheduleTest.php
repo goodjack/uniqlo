@@ -129,6 +129,21 @@ class AppScheduleTest extends TestCase
     }
 
     /**
+     * 日本官網那支也會回部分成功（沒做缺貨判定），不能被當成整步失敗。
+     */
+    public function test_the_japan_crawler_can_also_partially_succeed(): void
+    {
+        $this->fakeAllSteps(partiallySucceeding: ['japan-product:fetch']);
+
+        $this->assertSame(Command::SUCCESS, $this->artisan('app:schedule')->run());
+        Event::assertNotDispatched(AppTaskFailed::class);
+        Event::assertDispatched(AppTaskFinished::class, fn (AppTaskFinished $event) => $event->data['partial_steps'] === [
+            'japan-product:fetch UNIQLO（部分成功）',
+            'japan-product:fetch GU（部分成功）',
+        ]);
+    }
+
+    /**
      * 兩種部分成功在通知裡要分得出來（有沒有做缺貨判定），靠指令留的說明。
      */
     public function test_the_notification_tells_the_two_kinds_of_partial_success_apart(): void
