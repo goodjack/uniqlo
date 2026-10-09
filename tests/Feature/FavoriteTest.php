@@ -7,6 +7,7 @@ use App\Models\HmallProduct;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class FavoriteTest extends TestCase
@@ -187,13 +188,6 @@ class FavoriteTest extends TestCase
         $this->postJson(route('favorites.cards'), ['items' => []])->assertUnprocessable();
     }
 
-    public function test_an_unknown_brand_is_rejected(): void
-    {
-        $this->postJson(route('favorites.cards'), [
-            'items' => [['brand' => 'MUJI', 'code' => 'u001']],
-        ])->assertUnprocessable();
-    }
-
     public function test_too_many_items_are_rejected(): void
     {
         $items = array_map(fn (int $i) => ['brand' => 'UNIQLO', 'code' => "u{$i}"], range(1, 101));
@@ -208,25 +202,34 @@ class FavoriteTest extends TestCase
         $this->postJson(route('favorites.cards'), ['items' => $items])->assertOk();
     }
 
-    public function test_a_numeric_code_is_rejected(): void
+    /**
+     * 收藏存在使用者的瀏覽器，壞掉的那筆略過，其他照常回卡片，不讓整份收藏載入不到。
+     */
+    #[DataProvider('malformedItems')]
+    public function test_a_malformed_item_is_skipped_while_the_rest_still_render(mixed $badItem): void
     {
+        $this->createProduct(['product_code' => 'u001', 'name' => '羽絨外套']);
+
         $this->postJson(route('favorites.cards'), [
-            'items' => [['brand' => 'UNIQLO', 'code' => 123]],
-        ])->assertUnprocessable();
+            'items' => [$badItem, ['brand' => 'UNIQLO', 'code' => 'u001']],
+        ])
+            ->assertOk()
+            ->assertSee('羽絨外套');
     }
 
-    public function test_an_array_code_is_rejected(): void
+    public static function malformedItems(): array
     {
-        $this->postJson(route('favorites.cards'), [
-            'items' => [['brand' => 'UNIQLO', 'code' => ['u001']]],
-        ])->assertUnprocessable();
-    }
-
-    public function test_a_code_over_the_max_length_is_rejected(): void
-    {
-        $this->postJson(route('favorites.cards'), [
-            'items' => [['brand' => 'UNIQLO', 'code' => str_repeat('a', 192)]],
-        ])->assertUnprocessable();
+        return [
+            'unknown brand' => [['brand' => 'MUJI', 'code' => 'u001']],
+            'lowercase brand' => [['brand' => 'uniqlo', 'code' => 'u001']],
+            'numeric code' => [['brand' => 'UNIQLO', 'code' => 123]],
+            'array code' => [['brand' => 'UNIQLO', 'code' => ['u001']]],
+            'code over the max length' => [['brand' => 'UNIQLO', 'code' => str_repeat('a', 192)]],
+            'empty code' => [['brand' => 'UNIQLO', 'code' => '']],
+            'missing brand' => [['code' => 'u001']],
+            'not an object' => ['UNIQLO:u001'],
+            'null' => [null],
+        ];
     }
 
     /**
