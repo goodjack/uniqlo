@@ -12,7 +12,7 @@
                 <div class="inline sub header">共 {{ count($products['men']) }} 件</div>
             </h2>
             @if (count($products['men']) > 0)
-            <div class="ts doubling link cards four">
+            <div class="ts doubling cards four uq-product-cards">
                 @each('products.card', $products['men'], 'product')
             </div>
             @else
@@ -25,7 +25,7 @@
                 <div class="inline sub header">共 {{ count($products['women']) }} 件</div>
             </h2>
             @if (count($products['women']) > 0)
-            <div class="ts doubling link cards four">
+            <div class="ts doubling cards four uq-product-cards">
                 @each('products.card', $products['women'], 'product')
             </div>
             @else
@@ -38,7 +38,7 @@
                 <div class="inline sub header">共 {{ count($products['kids']) }} 件</div>
             </h2>
             @if (count($products['kids']) > 0)
-            <div class="ts doubling link cards four">
+            <div class="ts doubling cards four uq-product-cards">
                 @each('products.card', $products['kids'], 'product')
             </div>
             @else
@@ -51,7 +51,7 @@
                 <div class="inline sub header">共 {{ count($products['baby']) }} 件</div>
             </h2>
             @if (count($products['baby']) > 0)
-            <div class="ts doubling link cards four">
+            <div class="ts doubling cards four uq-product-cards">
                 @each('products.card', $products['baby'], 'product')
             </div>
             @else

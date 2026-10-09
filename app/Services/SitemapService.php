@@ -2,8 +2,12 @@
 
 namespace App\Services;
 
+use App\Enums\CategoryLevel;
+use App\Repositories\HmallCategoryRepository;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
+use App\Support\Url as SiteUrl;
+use Illuminate\Support\Facades\Route;
 use Spatie\Sitemap\Sitemap;
 use Spatie\Sitemap\Tags\Url;
 
@@ -13,38 +17,41 @@ class SitemapService extends Service
 
     protected $hmallProductRepository;
 
-    public function __construct(ProductRepository $productRepository, HmallProductRepository $hmallProductRepository)
-    {
+    protected $hmallCategoryRepository;
+
+    public function __construct(
+        ProductRepository $productRepository,
+        HmallProductRepository $hmallProductRepository,
+        HmallCategoryRepository $hmallCategoryRepository
+    ) {
         $this->productRepository = $productRepository;
         $this->hmallProductRepository = $hmallProductRepository;
+        $this->hmallCategoryRepository = $hmallCategoryRepository;
     }
 
     public function make()
     {
         $sitemap = Sitemap::create();
 
-        $pages = [
-            'lists/limited-offers',
-            'lists/sale',
-            'lists/most-reviewed',
-            'lists/japan-most-reviewed',
-            'lists/top-wearing',
-            'lists/new',
-            'lists/coming-soon',
-            'lists/multi-buy',
-            'lists/online-special',
-            'products/limited-offers',
-            'products/sales',
-            'products/multi-buys',
-            'products/news',
-            'products/stockouts',
-            'products/most-reviewed',
-            'pages/changelog',
-            'pages/privacy',
-        ];
+        // 清單頁直接從路由表長出來，新增清單頁不用回來改這裡
+        $listRoutes = collect(Route::getRoutes()->getRoutesByName())
+            ->keys()
+            ->filter(fn (string $name) => str_starts_with($name, 'lists.'));
 
-        foreach ($pages as $page) {
-            $sitemap->add($page);
+        // products/ 底下的舊清單網址都是 301，不放進 sitemap
+        foreach (['categories.index', ...$listRoutes, 'products.stockouts', 'pages.changelog', 'pages.privacy-policy'] as $name) {
+            $sitemap->add(route($name));
+        }
+
+        // 只收還有商品的分類，沒商品的分類頁是 404
+        $categories = $this->hmallCategoryRepository->getCategoriesWithProducts([
+            CategoryLevel::One,
+            CategoryLevel::Two,
+        ]);
+
+        foreach ($categories as $category) {
+            // 跟站內連結同一套網址編碼，搜尋引擎才不會看到兩個網址
+            $sitemap->add(Url::create(SiteUrl::category($category->brand, $category->code)));
         }
 
         $hmallProducts = $this->hmallProductRepository->getAllProductsForSitemap();
@@ -67,7 +74,7 @@ class SitemapService extends Service
             );
         }
 
-        $sitemapFileName = 'sitemap' . config('app.sitemap_name') . '.xml';
+        $sitemapFileName = 'sitemap'.config('app.sitemap_name').'.xml';
         $sitemap->writeToFile(public_path($sitemapFileName));
     }
 }

@@ -1,42 +1,50 @@
-<div class="ts attached padded horizontally fitted fluid segment">
-    <div class="ts container">
-        <div class="ts small horizontally scrollable evenly divided flatted menu" id="gender_menu">
-            @foreach (['men' => '男裝', 'women' => '女裝', 'kids' => '童裝', 'baby' => '嬰幼兒'] as $key => $label)
-                <a class="horizontally fitted item" href="#{{ $key }}">
-                    {{ $label }}
-                    <div class="ts mini circular label" style="margin-left: 4px;">{{ count($hmallProductList[$key]) }}
-                    </div>
-                </a>
-            @endforeach
-        </div>
-        <div class="ts active basic horizontally fitted tab segment">
-            @foreach (['men' => '男裝', 'women' => '女裝', 'kids' => '童裝', 'baby' => '嬰幼兒'] as $key => $label)
-                <h2 class="ts large header" id="{{ $key }}">
-                    {{ $label }}
-                    <div class="inline sub header">共 {{ count($hmallProductList[$key]) }} 件</div>
-                </h2>
-                @if (count($hmallProductList[$key]) > 0)
-                    <div class="ts doubling link cards four">
-                        @foreach ($hmallProductList[$key] as $hmallProduct)
-                            @include('hmall-products.card', ['hmallProduct' => $hmallProduct])
-                        @endforeach
-                    </div>
-                @else
-                    沒有商品
-                @endif
+{{--
+    genders  四個性別，跟章節選單共用 lists/list.blade.php 算好的同一份
+    count    篩選後的總件數；0 件時整頁換成空狀態，不列四段「沒有商品」
+--}}
+@php
+    $currentQ = (string) request('q');
+@endphp
 
-                <div class="ts hidden divider"></div>
-
-                <a class="ts mini compact right floated labeled icon button" href="#gender_menu">
-                    <i class="arrow up icon"></i>回到頂部
-                </a>
-
-                @if (!$loop->last)
-                    <div class="ts hidden section divider"></div>
-                @endif
-            @endforeach
-
-            <div class="ts hidden divider"></div>
+@if ($count === 0)
+    @include('partials.empty-state', [
+        'icon' => 'search faded',
+        'title' => $currentQ !== '' ? "沒有符合「{$currentQ}」的商品" : '沒有符合的商品',
+        'hint' => $currentQ !== '' ? '試試看換個關鍵字，或少選幾個條件' : '試試看少選幾個條件',
+    ])
+@else
+    {{-- list-search.js 即時篩到一張都不剩時才顯示，同時藏起下面四段與章節選單 --}}
+    <div class="ts center aligned basic segment" id="list-instant-empty-state" hidden>
+        <div class="ts icon header">
+            <i class="search faded icon"></i>
+            <div class="content">
+                <span id="list-instant-empty-title"></span>
+                <div class="sub header">試試看換個關鍵字，或少選幾個條件</div>
+            </div>
         </div>
     </div>
-</div>
+
+    @foreach ($genders as $key => $label)
+        @include('partials.section-anchor', ['anchor' => $key, 'menu' => 'gender_menu'])
+        {{-- data-gender-* 給 list-search.js：一段篩光時連標題一起藏，件數要重算 --}}
+        <h2 class="ts large header" data-gender-heading="{{ $key }}">
+            {{ $label }}
+            <div class="inline sub header">共 <span data-gender-count>{{ count($hmallProductList[$key]) }}</span> 件</div>
+        </h2>
+        @if (count($hmallProductList[$key]) > 0)
+            <div class="ts doubling cards four uq-product-cards" data-gender-body="{{ $key }}">
+                @foreach ($hmallProductList[$key] as $hmallProduct)
+                    @include('hmall-products.card', ['hmallProduct' => $hmallProduct])
+                @endforeach
+            </div>
+        @else
+            <p>沒有商品</p>
+        @endif
+
+        @if (!$loop->last)
+            <div class="ts hidden section divider"></div>
+        @endif
+    @endforeach
+
+    <div class="ts hidden divider"></div>
+@endif

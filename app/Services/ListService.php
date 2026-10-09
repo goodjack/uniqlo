@@ -2,14 +2,18 @@
 
 namespace App\Services;
 
+use App\Enums\ProductTag;
 use App\Http\Requests\ListRequest;
 use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
+use App\Support\Keywords;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class ListService extends Service
 {
+    public const SORT_PRICE_ASC = 'price-asc';
+
     /** @var HmallProductRepository */
     protected $repository;
 
@@ -63,7 +67,7 @@ class ListService extends Service
         return $this->repository->getOnlineSpecialHmallProducts();
     }
 
-    public function getMostVisitedHmallProducts(int $limit = null)
+    public function getMostVisitedHmallProducts(?int $limit = null)
     {
         return $this->repository->getMostVisitedHmallProducts()->take($limit);
     }
@@ -72,50 +76,73 @@ class ListService extends Service
     {
         $brand = $listRequest->input('brand');
         $tags = $listRequest->input('tags') ?? [];
+        $q = $listRequest->input('q');
 
-        if ($brand === 'UNIQLO' || $brand === 'GU') {
+        if ($brand !== null) {
             $hmallProducts = $hmallProducts->where('brand', $brand);
         }
 
-        if (empty($tags)) {
+        $selectedTags = ProductTag::fromValues($tags);
+
+        if (! empty($selectedTags)) {
+            // 多選是聯集：符合任一標籤即顯示
+            $hmallProducts = $hmallProducts->filter(
+                fn (HmallProduct $hmallProduct) => collect($selectedTags)
+                    ->contains(fn (ProductTag $tag) => $tag->matches($hmallProduct))
+            );
+        }
+
+        if (filled($q)) {
+            $hmallProducts = $this->filterHmallProductsByKeyword($hmallProducts, $q);
+        }
+
+        return $hmallProducts;
+    }
+
+    /**
+     * 清單內搜尋。比對欄位要跟 public/js/list-search.js 的即時篩選一致。
+     */
+    private function filterHmallProductsByKeyword(Collection $hmallProducts, string $q): Collection
+    {
+        foreach (Keywords::split($q) as $keyword) {
+            $hmallProducts = $hmallProducts->filter(
+                fn (HmallProduct $hmallProduct) => $this->hmallProductMatchesKeyword($hmallProduct, $keyword)
+            );
+        }
+
+        return $hmallProducts;
+    }
+
+    private function hmallProductMatchesKeyword(HmallProduct $hmallProduct, string $keyword): bool
+    {
+        // short_product_code 是卡片上顯示的編號，使用者照畫面抄的多半是它
+        $fields = [
+            $hmallProduct->name,
+            $hmallProduct->code,
+            $hmallProduct->product_code,
+            $hmallProduct->short_product_code,
+        ];
+
+        foreach ($fields as $field) {
+            if ($field !== null && mb_stripos((string) $field, $keyword) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 要在分組之前排：groupBy 保留輸入順序，群組內才會跟著有序。
+     */
+    public function sortHmallProducts(Collection $hmallProducts, ListRequest $listRequest): Collection
+    {
+        if ($listRequest->input('sort') !== self::SORT_PRICE_ASC) {
             return $hmallProducts;
         }
 
-        $tagMappings = [
-            'limited-offer' => ['is_limited_offer', 'is_app_offer', 'is_ec_only'],
-            'app-offer' => ['is_app_offer'],
-            'ec-only' => ['is_ec_only'],
-            'sale' => ['is_sale'],
-            'new' => ['is_new'],
-            'coming-soon' => ['is_coming_soon'],
-            'multi-buy' => ['is_multi_buy'],
-            'online-special' => ['is_online_special'],
-            'stockout' => ['is_stockout'],
-        ];
-
-        $hmallProducts = $hmallProducts->filter(function ($hmallProduct) use ($tags, $tagMappings) {
-            foreach ($tags as $tag) {
-                if (isset($tagMappings[$tag])) {
-                    $conditions = $tagMappings[$tag];
-                    $match = true;
-
-                    foreach ($conditions as $condition) {
-                        if (! $hmallProduct->$condition) {
-                            $match = false;
-                            break;
-                        }
-                    }
-
-                    if ($match) {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        });
-
-        return $hmallProducts;
+        // min_price 是 decimal，PDO 取回字串，直接排會變字典順序
+        return $hmallProducts->sortBy('price')->values();
     }
 
     public function groupHmallProducts(Collection $hmallProducts): Collection

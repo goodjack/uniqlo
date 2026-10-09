@@ -2,6 +2,7 @@
 
 namespace App\Presenters;
 
+use App\Enums\ProductTag;
 use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
 
@@ -92,150 +93,130 @@ class HmallProductPresenter
         return route('uniqlo-style-hints.show', ['uniqlo_product_code' => $hmallProduct->product_code]);
     }
 
-    public function getHmallProductTag($hmallProduct)
+    /*
+     * 標籤文字色，一色一義：同色代表同一件事，改色等於改語意。
+     * 文字用 app.css 裡加深過的 --uq-*-text（白底要達 4.5:1），icon 與實心底
+     * 角標維持原色。
+     */
+    private const COLOR_OFFER = 'var(--uq-offer-text)';
+
+    private const COLOR_PRICE = 'var(--uq-info-text)';
+
+    private const COLOR_NEW = 'var(--uq-new-text)';
+
+    private const COLOR_COMING_SOON = '#50723C';
+
+    private const COLOR_MULTI_BUY = 'var(--uq-multi-buy-text)';
+
+    private const COLOR_ONLINE_SPECIAL = 'var(--uq-online-special-text)';
+
+    private const COLOR_NEUTRAL = '#5A5A5A';
+
+    private const COLOR_TOP_WEARING = 'var(--uq-top-wearing-text)';
+
+    private const COLOR_MOST_VISITED = 'var(--uq-most-visited-text)';
+
+    /**
+     * 商品的狀態標籤，依使用者在意的程度排序：省多少錢 › 買不買得到 › 其他屬性。
+     * 卡片與商品頁共用同一份順序與文案；尺碼、通路這類屬性只在商品頁給。
+     *
+     * @return array<int, array{text: string, color: string, icon: string, url: string|null}>
+     */
+    public function getProductTags($hmallProduct, bool $forProductPage = false): array
     {
-        $html = '';
+        $tags = [];
 
-        if ($hmallProduct->is_limited_offer || $hmallProduct->is_app_offer || $hmallProduct->is_ec_only) {
-            $message = $this->getLimitedOfferMessage($hmallProduct);
-            $route = route('lists.limited-offers');
-
-            $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #CE5F58;"><i class="certificate icon"></i>';
-            $html .= $message;
-            $html .= '</span></a>';
-        }
-
-        if ($hmallProduct->is_app_offer) {
-            $route = route('lists.limited-offers');
-
-            $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #CE5F58;"><i class="certificate icon"></i>';
-            $html .= 'APP 限定特價';
-            $html .= '</span></a>';
-        }
-
-        if ($hmallProduct->is_ec_only) {
-            $route = route('lists.limited-offers');
-
-            $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #CE5F58;"><i class="certificate icon"></i>';
-            $html .= '網路限定特價';
-            $html .= '</span></a>';
-        }
-
-        if ($hmallProduct->is_sale) {
-            $route = route('lists.sale');
-
-            $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #00ADEA;"><i class="shopping basket icon"></i>';
-            $html .= '特價商品';
-            $html .= '</span></a>';
-        }
+        $add = function (string $text, string $color, string $icon, ?string $url = null) use (&$tags) {
+            $tags[] = ['text' => $text, 'color' => $color, 'icon' => $icon, 'url' => $url];
+        };
 
         if ($hmallProduct->is_new_historical_low) {
-            $html .= '<a class="ts horizontal basic circular label"><span style="color: #00ADEA;"><i class="arrow down icon"></i>';
-            $html .= '歷史新低價';
-            $html .= '</span></a>';
+            $add('歷史新低價', self::COLOR_PRICE, 'arrow down');
+        }
+
+        if ($hmallProduct->is_limited_offer) {
+            $add($this->getLimitedOfferMessage($hmallProduct), self::COLOR_OFFER, 'certificate', route('lists.limited-offers'));
+        }
+
+        // 文案刻意跟 ProductTag::label()（篩選用的短名）不同，卡片要的是完整說法
+        if ($hmallProduct->is_sale) {
+            $add('特價商品', self::COLOR_PRICE, 'shopping basket', route('lists.sale'));
         }
 
         if ($hmallProduct->is_new) {
-            $route = route('lists.new');
-
-            $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #8BB96E;"><i class="leaf icon"></i>';
-            $html .= '新款商品';
-            $html .= '</span></a>';
+            $add('新款商品', self::COLOR_NEW, 'leaf', route('lists.new'));
         }
 
         if ($hmallProduct->is_coming_soon) {
-            $route = route('lists.coming-soon');
-
-            $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #50723C;"><i class="checked calendar icon"></i>';
-            $html .= '即將上市';
-            $html .= '</span></a>';
+            $add(ProductTag::ComingSoon->label(), self::COLOR_COMING_SOON, 'checked calendar', route('lists.coming-soon'));
         }
 
         if ($hmallProduct->is_multi_buy) {
-            $route = route('lists.multi-buy');
-
-            $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #79A8B9;"><i class="cubes icon"></i>';
-            $html .= '合購商品';
-            $html .= '</span></a>';
+            $add('合購商品', self::COLOR_MULTI_BUY, 'cubes', route('lists.multi-buy'));
         }
 
         if ($hmallProduct->is_online_special) {
-            $route = route('lists.online-special');
+            $add('網路獨家販售', self::COLOR_ONLINE_SPECIAL, 'tv', route('lists.online-special'));
+        }
 
-            $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #79A8B9;"><i class="tv icon"></i>';
-            $html .= '網路獨家販售';
-            $html .= '</span></a>';
+        if ($hmallProduct->is_app_offer) {
+            $add('APP 限定特價', self::COLOR_OFFER, 'certificate', route('lists.limited-offers'));
+        }
+
+        if ($hmallProduct->is_ec_only) {
+            $add('網路限定特價', self::COLOR_OFFER, 'certificate', route('lists.limited-offers'));
         }
 
         if ($hmallProduct->is_stockout) {
-            $html .= '<a class="ts horizontal basic circular label"><span style="color: #5A5A5A;"><i class="archive icon"></i>';
-            $html .= '已售罄';
-            $html .= '</span></a>';
+            $add('已售罄', self::COLOR_NEUTRAL, 'archive');
         }
 
         if ($hmallProduct->top_wearing_rank) {
-            $route = route('lists.top-wearing');
-
-            $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #CC7F49;"><i class="camera retro icon"></i>';
-            $html .= "穿搭 TOP {$hmallProduct->top_wearing_rank}";
-            $html .= '</span></a>';
+            $add("穿搭 TOP {$hmallProduct->top_wearing_rank}", self::COLOR_TOP_WEARING, 'camera retro', route('lists.top-wearing'));
         }
 
         if ($hmallProduct->most_visited_rank) {
-            $route = route('lists.most-visited');
-
-            $html .= "<a href={$route} ";
-            $html .= 'class="ts horizontal basic circular label"><span style="color: #B58105;"><i class="chart line icon"></i>';
-            $html .= "瀏覽 TOP {$hmallProduct->most_visited_rank}";
-            $html .= '</span></a>';
+            $add("瀏覽 TOP {$hmallProduct->most_visited_rank}", self::COLOR_MOST_VISITED, 'chart line', route('lists.most-visited'));
         }
 
-        if ($hmallProduct->is_extended_size) {
-            $html .= '<a class="ts horizontal basic circular label"><span style="color: #5A5A5A;"><i class="external square icon"></i>';
-            $html .= '豐富尺碼';
-            $html .= '</span></a>';
+        if (! $forProductPage) {
+            return $tags;
         }
 
-        if ($hmallProduct->is_unisex) {
-            $html .= '<a class="ts horizontal basic circular label"><span style="color: #5A5A5A;"><i class="venus mars icon"></i>';
-            $html .= '男女適穿';
-            $html .= '</span></a>';
+        $attributes = [
+            'is_extended_size' => ['豐富尺碼', 'external square'],
+            'is_unisex' => ['男女適穿', 'venus mars'],
+            'is_super_large' => ['旗艦店款', 'diamond'],
+            'is_ec_big' => ['大型店商品', 'diamond'],
+            'is_ec_selected' => ['特定店商品', 'diamond'],
+            'is_revision' => ['修改褲長', 'cut'],
+        ];
+
+        foreach ($attributes as $attribute => [$text, $icon]) {
+            if ($hmallProduct->{$attribute}) {
+                $add($text, self::COLOR_NEUTRAL, $icon);
+            }
         }
 
-        if ($hmallProduct->is_super_large) {
-            $html .= '<a class="ts horizontal basic circular label"><span style="color: #5A5A5A;"><i class="diamond icon"></i>';
-            $html .= '旗艦店款';
-            $html .= '</span></a>';
+        return $tags;
+    }
+
+    /**
+     * 「優惠中」＝現在買比較划算，而且買得到（收藏頁的「只看優惠中」）。
+     * 新品、排行、網路獨家講的不是划不划算，不算。
+     */
+    public function isOnOffer($hmallProduct): bool
+    {
+        if ($hmallProduct->is_stockout) {
+            return false;
         }
 
-        if ($hmallProduct->is_ec_big) {
-            $html .= '<a class="ts horizontal basic circular label"><span style="color: #5A5A5A;"><i class="diamond icon"></i>';
-            $html .= '大型店商品';
-            $html .= '</span></a>';
-        }
-
-        if ($hmallProduct->is_ec_selected) {
-            $html .= '<a class="ts horizontal basic circular label"><span style="color: #5A5A5A;"><i class="diamond icon"></i>';
-            $html .= '特定店商品';
-            $html .= '</span></a>';
-        }
-
-        if ($hmallProduct->is_revision) {
-            $html .= '<a class="ts horizontal basic circular label"><span style="color: #5A5A5A;"><i class="cut icon"></i>';
-            $html .= '修改褲長';
-            $html .= '</span></a>';
-        }
-
-        return $html;
+        return $hmallProduct->is_limited_offer
+            || $hmallProduct->is_ec_only
+            || $hmallProduct->is_new_historical_low
+            || $hmallProduct->is_multi_buy
+            || $hmallProduct->is_sale
+            || $hmallProduct->is_app_offer;
     }
 
     public function getLimitedOfferMessage($hmallProduct)
@@ -368,6 +349,10 @@ class HmallProductPresenter
     private function getLastPriceChartData($hmallPriceHistories)
     {
         $lastHmallPriceHistories = $hmallPriceHistories->last();
+
+        if ($lastHmallPriceHistories === null) {
+            return null;
+        }
 
         /** @var \Carbon\Carbon $lastHistoryAt */
         $lastHistoryAt = $lastHmallPriceHistories->created_at;

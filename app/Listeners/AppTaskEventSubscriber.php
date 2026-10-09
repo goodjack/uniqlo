@@ -2,6 +2,7 @@
 
 namespace App\Listeners;
 
+use App\Events\AppTaskFailed;
 use App\Events\AppTaskFinished;
 use App\Events\AppTaskStarting;
 use Illuminate\Events\Dispatcher;
@@ -27,6 +28,11 @@ class AppTaskEventSubscriber
         $this->handleEvent($event, 'end');
     }
 
+    public function handleAppTaskFailed(AppTaskFailed $event): void
+    {
+        $this->handleEvent($event, 'failed');
+    }
+
     /**
      * Register the listeners for the subscriber.
      *
@@ -37,6 +43,7 @@ class AppTaskEventSubscriber
         return [
             AppTaskStarting::class => 'handleAppTaskStarting',
             AppTaskFinished::class => 'handleAppTaskFinished',
+            AppTaskFailed::class => 'handleAppTaskFailed',
         ];
     }
 
@@ -48,10 +55,19 @@ class AppTaskEventSubscriber
             $event->brand ? " {$event->brand}" : '',
             $event->country ? " {$event->country}" : '',
             $status,
-            $event->data ? ', ' . json_encode($event->data) : '',
+            $event->data ? ', '.json_encode($event->data, JSON_UNESCAPED_UNICODE) : '',
         );
 
-        logger()->debug($message);
+        if ($status === 'failed') {
+            logger()->error('App task failed', [
+                'task' => $event->task,
+                'brand' => $event->brand,
+                'country' => $event->country,
+                'data' => $event->data,
+            ]);
+        } else {
+            logger()->debug($message);
+        }
 
         $this->sendDiscordNotification($event, $status);
     }
@@ -82,6 +98,7 @@ class AppTaskEventSubscriber
         $color = match ($status) {
             'start' => 0x5865F2,
             'end' => 0x56F287,
+            'failed' => 0xED4245,
             default => 0xFFFFFF,
         };
 
@@ -109,7 +126,7 @@ class AppTaskEventSubscriber
             if ($event->$field) {
                 $json['embeds'][0]['fields'][] = [
                     'name' => ucfirst($field),
-                    'value' => ($field === 'data') ? json_encode($event->data) : $event->$field,
+                    'value' => ($field === 'data') ? json_encode($event->data, JSON_UNESCAPED_UNICODE) : $event->$field,
                     'inline' => ($field !== 'data'),
                 ];
             }

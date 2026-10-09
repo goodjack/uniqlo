@@ -2,9 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\CrawlOutcome;
 use App\Events\AppTaskFinished;
 use App\Events\AppTaskStarting;
 use App\Services\HmallProductService;
+use App\Support\TaskNotes;
 use Illuminate\Console\Command;
 
 class FetchHmallProducts extends Command
@@ -14,7 +16,7 @@ class FetchHmallProducts extends Command
      *
      * @var string
      */
-    protected $signature = 'hmall-product:fetch {brand=UNIQLO : The brand of the products} {--fresh : Ignore checkpoint and start fresh}';
+    protected $signature = 'hmall-product:fetch {brand=UNIQLO : The brand of the products} {--fresh : Ignore checkpoint and start fresh} {--accept-shrink : Run stockout even if far fewer products than in stock were seen}';
 
     /**
      * The console command description.
@@ -26,9 +28,9 @@ class FetchHmallProducts extends Command
     /**
      * Execute the console command.
      *
-     * @return int
+     * exit code 就是 CrawlOutcome 的值；這一輪的說明另外留給排程的彙整通知。
      */
-    public function handle(HmallProductService $hmallProductService)
+    public function handle(HmallProductService $hmallProductService, TaskNotes $taskNotes): int
     {
         $brand = $this->argument('brand');
         $fresh = $this->option('fresh');
@@ -40,14 +42,25 @@ class FetchHmallProducts extends Command
         $this->info("Fetching Hmall products for {$brand}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $succeeded = $hmallProductService->fetchAllHmallProducts($brand, $fresh);
+        $result = $hmallProductService->fetchAllHmallProducts($brand, $fresh, $this->option('accept-shrink'));
 
-        if ($succeeded) {
-            AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);
+        if ($result->note !== null) {
+            $taskNotes->put($this->getName(), $brand, $result->note);
         }
 
-        $this->info("Fetched Hmall products for {$brand}");
+        // 部分成功也要送結束通知並附說明：手動執行時沒有排程彙整，
+        // 不送的話 Discord 上 start 之後就沒有下文
+        if (! $result->outcome->needsAttention()) {
+            AppTaskFinished::dispatch(
+                class_basename(__CLASS__),
+                $brand,
+                null,
+                $result->note === null ? null : ['result' => $result->describe()],
+            );
+        }
 
-        return $succeeded ? 0 : 1;
+        $this->info("Fetched Hmall products for {$brand}（{$result->describe()}）");
+
+        return $result->outcome->value;
     }
 }

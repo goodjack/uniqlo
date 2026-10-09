@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\HmallProduct;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\UrlWindow;
 
 class StyleHintController extends Controller
 {
@@ -42,27 +41,15 @@ class StyleHintController extends Controller
      * Display the specified resource.
      *
      * @param  int  $id
-     *
      * @return \Illuminate\Http\Response
      */
     public function show(HmallProduct $hmallProduct)
     {
         $styleHints = $hmallProduct->styleHints()->orderBy('id', 'desc')->paginate(32)->onEachSide(1);
 
-        $window = UrlWindow::make($styleHints);
-
-        $elements = array_filter([
-            $window['first'],
-            is_array($window['slider']) ? '...' : null,
-            $window['slider'],
-            is_array($window['last']) ? '...' : null,
-            $window['last'],
-        ]);
-
         return view('style-hints.show', [
             'hmallProduct' => $hmallProduct,
             'styleHints' => $styleHints,
-            'elements' => $elements,
         ]);
     }
 
@@ -70,7 +57,6 @@ class StyleHintController extends Controller
      * Show the form for editing the specified resource.
      *
      * @param  int  $id
-     *
      * @return \Illuminate\Http\Response
      */
     public function edit($id)
@@ -82,7 +68,6 @@ class StyleHintController extends Controller
      * Update the specified resource in storage.
      *
      * @param  int  $id
-     *
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id)
@@ -94,7 +79,6 @@ class StyleHintController extends Controller
      * Remove the specified resource from storage.
      *
      * @param  int  $id
-     *
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)

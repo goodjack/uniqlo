@@ -249,7 +249,7 @@ $shareUrl = [
             <div class="ts container">
                 <h2 class="ts large dividing header">延伸商品</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling link cards six">
+                <div class="ts doubling cards six uq-product-cards">
                     @each('products.card', $relatedProducts, 'product')
                 </div>
             </div>

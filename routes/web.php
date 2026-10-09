@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HmallProductController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ListController;
@@ -49,14 +51,35 @@ Route::group(['prefix' => 'gu-products'], function () {
 });
 
 Route::group(['prefix' => 'search'], function () {
-    Route::get('/', [SearchController::class, 'index'])->name('search.index');
+    Route::get('/', [SearchController::class, 'index'])
+        ->middleware('throttle:search')
+        ->name('search.index');
     Route::get('/keywords', [SearchController::class, 'searchByGoogleCse'])->name('search.google-cse');
-    Route::get('/{query}', [SearchController::class, 'show'])->name('search.show');
+    // 關鍵字可能含 /（商品名「469930 / 475382」、分類名「男裝/男女適穿」）
+    Route::get('/{query}', [SearchController::class, 'show'])
+        ->where('query', '.+')
+        ->middleware('throttle:search')
+        ->name('search.show');
 });
 
 Route::group(['prefix' => 'pages'], function () {
     Route::get('/changelog', [PageController::class, 'getChangelog'])->name('pages.changelog');
     Route::get('/privacy', [PageController::class, 'getPrivacyPolicy'])->name('pages.privacy-policy');
+});
+
+Route::group(['prefix' => 'favorites'], function () {
+    Route::get('/', [FavoriteController::class, 'index'])->name('favorites.index');
+    Route::post('/cards', [FavoriteController::class, 'cards'])
+        ->middleware('throttle:favorites-cards')
+        ->name('favorites.cards');
+});
+
+Route::group(['prefix' => 'categories', 'middleware' => 'throttle:category-search'], function () {
+    Route::get('/', [CategoryController::class, 'index'])->name('categories.index');
+    // code 來自官網，可能含 / 等字元；連結一律用 App\Support\Url::category() 產生
+    Route::get('/{brand}/{code}', [CategoryController::class, 'show'])
+        ->where(['brand' => 'uniqlo|gu', 'code' => '.+'])
+        ->name('categories.show');
 });
 
 Route::group(['prefix' => 'lists'], function () {

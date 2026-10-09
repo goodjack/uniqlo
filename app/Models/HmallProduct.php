@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ProductTag;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -34,6 +35,16 @@ class HmallProduct extends Model
     public function hmallPriceHistories()
     {
         return $this->hasMany(HmallPriceHistory::class);
+    }
+
+    public function categories()
+    {
+        return $this->belongsToMany(
+            HmallCategory::class,
+            'hmall_category_hmall_product',
+            'hmall_product_id',
+            'hmall_category_id'
+        )->withPivot('sort');
     }
 
     public function styles()
@@ -74,12 +85,7 @@ class HmallProduct extends Model
      */
     public function getIsOnlineSpecialAttribute()
     {
-        // UNIQLO: ONLINE SPECIAL
-        // GU: ECONLY
-
-        $identity = json_decode($this->identity);
-
-        return in_array('ONLINE SPECIAL', $identity) || in_array('ECONLY', $identity);
+        return ProductTag::OnlineSpecial->matches($this);
     }
 
     /**
@@ -89,13 +95,13 @@ class HmallProduct extends Model
      */
     public function getIsMultiBuyAttribute()
     {
-        $identity = json_decode($this->identity);
-
-        return in_array('multi_buy', $identity) || in_array('SET', $identity);
+        return ProductTag::MultiBuy->matches($this);
     }
 
     /**
      * Get whether the product is ec only or not.
+     *
+     * 不走 ProductTag：ECONLY 在那邊只是「網路獨家」的其中一個代碼。
      *
      * @return bool
      */
@@ -125,12 +131,7 @@ class HmallProduct extends Model
      */
     public function getIsComingSoonAttribute()
     {
-        // UNIQLO: COMING SOON
-        // GU: COMING
-
-        $identity = json_decode($this->identity);
-
-        return in_array('COMING SOON', $identity) || in_array('COMING', $identity);
+        return ProductTag::ComingSoon->matches($this);
     }
 
     /**
@@ -194,13 +195,13 @@ class HmallProduct extends Model
      */
     public function getIsLimitedOfferAttribute()
     {
-        $identity = json_decode($this->identity);
-
-        return in_array('time_doptimal', $identity);
+        return ProductTag::LimitedOffer->matches($this);
     }
 
     /**
      * Get whether the product is app offer or not.
+     *
+     * 不走 ProductTag：APP 講的是通路不是檔期，不屬於期間限定。
      *
      * @return bool
      */
@@ -236,9 +237,7 @@ class HmallProduct extends Model
      */
     public function getIsNewAttribute()
     {
-        $identity = json_decode($this->identity);
-
-        return in_array('new_product', $identity);
+        return ProductTag::NewArrival->matches($this);
     }
 
     /**
@@ -248,9 +247,7 @@ class HmallProduct extends Model
      */
     public function getIsSaleAttribute()
     {
-        $identity = json_decode($this->identity);
-
-        return in_array('concessional_rate', $identity);
+        return ProductTag::Sale->matches($this);
     }
 
     /**
@@ -303,6 +300,20 @@ class HmallProduct extends Model
         $shortCodeNumber = substr($this->product_code, -7);
 
         return "u{$shortCodeNumber}";
+    }
+
+    /**
+     * 目前的價格就是有記錄以來的最低，給篩選用（ProductTag::LowestPrice 讀它）。
+     *
+     * 跟卡片上的「歷史新低價」標籤不同：那個標籤排除了官方特價中的商品，
+     * 而使用者在特價清單裡找「這波是史上最低」時要的正是那些。
+     */
+    public function getIsAtLowestPriceAttribute(): bool
+    {
+        return $this->min_price !== null
+            && $this->lowest_record_price !== null
+            && $this->min_price === $this->lowest_record_price
+            && $this->lowest_record_price < $this->highest_record_price;
     }
 
     public function getIsNewHistoricalLowAttribute(): bool

@@ -1,0 +1,385 @@
+<?php
+
+namespace Tests\Unit\Repositories;
+
+use App\Enums\CategoryLevel;
+use App\Models\HmallCategory;
+use App\Models\HmallPriceHistory;
+use App\Models\HmallProduct;
+use App\Repositories\HmallProductRepository;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use stdClass;
+use Tests\TestCase;
+
+class HmallProductCategoryTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private HmallProductRepository $repository;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->repository = app(HmallProductRepository::class);
+    }
+
+    public function test_saves_category_master_data_from_product_response(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        // 樣本裡兩件商品合計掛到的不重複分類
+        $this->assertSame(32, HmallCategory::count());
+
+        $top = $this->findCategory('ALL');
+        $this->assertSame('全商品', $top->name);
+        $this->assertSame(CategoryLevel::Top, $top->level);
+        $this->assertNull($top->parent_code);
+    }
+
+    public function test_category_level_matches_the_array_it_came_from(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        $this->assertSame(CategoryLevel::Top, $this->findCategory('all_women')->level);
+        $this->assertSame(CategoryLevel::One, $this->findCategory('all_women-bottoms')->level);
+        $this->assertSame(CategoryLevel::Two, $this->findCategory('all_women-bottoms-widepants')->level);
+        $this->assertSame(CategoryLevel::Three, $this->findCategory('all_women-bottoms-widepants-anchor09')->level);
+    }
+
+    public function test_every_category_can_be_traced_back_to_a_root(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        foreach (HmallCategory::all() as $category) {
+            $this->assertNotNull(
+                $this->traceToRoot($category),
+                "分類 {$category->code} 無法回溯到根節點"
+            );
+        }
+    }
+
+    /**
+     * 分類的身分是品牌加 code。兩家目前只有頂層的 ALL 同名，但沒有保證未來不會撞，
+     * 撞到時不能讓後爬到的那家覆蓋先爬到的。
+     */
+    public function test_the_same_category_code_in_both_brands_are_separate_rows(): void
+    {
+        $this->repository->saveProductsFromV3($this->products(), 'UNIQLO');
+        $this->repository->saveProductsFromV3($this->products(), 'GU');
+
+        $this->assertSame(2, HmallCategory::where('code', 'ALL')->count());
+        $this->assertSame(
+            ['GU', 'UNIQLO'],
+            HmallCategory::where('code', 'ALL')->pluck('brand')->map->value->sort()->values()->all()
+        );
+    }
+
+    /**
+     * 官方真的有尾巴帶零寬空白（U+200B）的 code。預設的比對規則會把它跟乾淨的
+     * 同名 code、或只差大小寫的 code 當成同一筆，唯一鍵就把兩個分類合併掉。
+     */
+    public function test_codes_differing_only_by_invisible_characters_or_case_are_separate_rows(): void
+    {
+        $products = $this->products();
+        $variants = ['kids-trend', "kids-trend\u{200B}", 'Kids-Trend'];
+
+        foreach ($variants as $code) {
+            $category = new stdClass;
+            $category->code = $code;
+            $category->name = $code;
+            $category->parentCode = 'ALL';
+            $products[0]->levelOne[] = $category;
+        }
+
+        $this->repository->saveProductsFromV3($products);
+
+        foreach ($variants as $code) {
+            $this->assertNotNull($this->findCategory($code), "分類 {$code} 沒有獨立成一筆");
+        }
+        $this->assertSame(3, HmallCategory::where('name', 'like', 'kids-trend%')->count());
+
+        $product = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail();
+        $this->assertSame(3, $product->categories->filter(
+            fn (HmallCategory $category) => in_array($category->code, $variants, true)
+        )->count());
+    }
+
+    public function test_links_product_to_its_categories_with_official_sort(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        $product = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail();
+
+        $this->assertCount(24, $product->categories);
+
+        $anchor = $product->categories->firstWhere('code', 'all_women-bottoms-widepants-anchor09');
+        $this->assertSame('006002009', $anchor->pivot->sort);
+    }
+
+    public function test_resync_drops_categories_the_product_no_longer_belongs_to(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        $product = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail();
+        $this->assertCount(24, $product->categories);
+
+        // 第二次回傳只剩兩個分類，模擬官方把商品移出其他分類
+        $shrunk = $this->products();
+        $shrunk[0]->topCategories = [$shrunk[0]->topCategories[0]];
+        $shrunk[0]->levelOne = [];
+        $shrunk[0]->levelTwo = [];
+        $shrunk[0]->levelThree = [];
+
+        $this->repository->saveProductsFromV3($shrunk);
+
+        $this->assertCount(1, $product->fresh()->categories);
+    }
+
+    public function test_resaving_unchanged_categories_writes_nothing_to_the_links(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        $writes = $this->captureLinkWrites(fn () => $this->repository->saveProductsFromV3($this->products()));
+
+        $this->assertSame([], $writes);
+    }
+
+    public function test_only_a_changed_sort_is_written(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        $changed = $this->products();
+        foreach ($changed[0]->categorySortList as $item) {
+            if ($item->code === 'all_women-bottoms-widepants-anchor09') {
+                $item->sort = '000000001';
+            }
+        }
+
+        $writes = $this->captureLinkWrites(fn () => $this->repository->saveProductsFromV3($changed));
+
+        $this->assertCount(1, $writes);
+        $this->assertStringStartsWith('update', $writes[0]);
+
+        $anchor = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail()
+            ->categories->firstWhere('code', 'all_women-bottoms-widepants-anchor09');
+        $this->assertSame('000000001', $anchor->pivot->sort);
+    }
+
+    /**
+     * 分類回傳缺漏時不要把商品的既有分類全部清掉。
+     */
+    public function test_empty_category_response_leaves_existing_links_untouched(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        $stripped = $this->products();
+        foreach (['topCategories', 'levelOne', 'levelTwo', 'levelThree'] as $level) {
+            $stripped[0]->$level = [];
+        }
+
+        $this->repository->saveProductsFromV3($stripped);
+
+        $product = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail();
+        $this->assertCount(24, $product->categories);
+    }
+
+    private function findCategory(string $code): ?HmallCategory
+    {
+        // 分類的身分是品牌加 code，樣本全部是 UNIQLO 的
+        return HmallCategory::where('brand', 'UNIQLO')->where('code', $code)->first();
+    }
+
+    private function traceToRoot(HmallCategory $category): ?HmallCategory
+    {
+        $current = $category;
+        $depth = 0;
+
+        while ($current->parent_code !== null) {
+            $current = $this->findCategory($current->parent_code);
+
+            if ($current === null || ++$depth > 10) {
+                return null;
+            }
+        }
+
+        return $current;
+    }
+
+    /**
+     * 寫不進去的商品要回報是「哪幾件」：缺貨判定要靠這份清單排除它們。
+     */
+    public function test_reports_which_products_failed_to_save(): void
+    {
+        $products = $this->products();
+
+        // 價格欄位是 decimal，塞進不是數字的值會被 MySQL 擋下來（strict mode）
+        $products[0]->minPrice = '這不是價格';
+
+        $result = $this->repository->saveProductsFromV3($products);
+
+        $this->assertSame(['u0000000053204'], $result->failedProductCodes);
+        $this->assertSame(0, $result->unidentifiedFailureCount);
+        // 同一頁其他商品照樣要寫進去，一筆壞資料不該拖垮整頁
+        $this->assertSame(count($products) - 1, HmallProduct::count());
+    }
+
+    public function test_reports_an_empty_list_when_every_product_saves(): void
+    {
+        $result = $this->repository->saveProductsFromV3($this->products());
+
+        $this->assertSame([], $result->failedProductCodes);
+        $this->assertSame(0, $result->unidentifiedFailureCount);
+        $this->assertFalse($result->hasFailures());
+    }
+
+    /**
+     * 拿不到商品編號的失敗要單獨計數：排除不了，呼叫端要知道這一輪不能做缺貨判定。
+     */
+    public function test_a_failure_without_a_product_code_is_counted_separately(): void
+    {
+        $products = $this->products();
+
+        $products[0]->productCode = '';
+        $products[0]->minPrice = '這不是價格';
+
+        $result = $this->repository->saveProductsFromV3($products);
+
+        $this->assertSame([], $result->failedProductCodes);
+        $this->assertSame(1, $result->unidentifiedFailureCount);
+        $this->assertTrue($result->hasFailures());
+    }
+
+    /**
+     * 分類同步丟例外時，價格與價格歷史照寫，既有分類關聯不動。
+     *
+     * categorySortList 裡 code 是陣列的項目會讓 mapWithKeys 丟 TypeError，
+     * 官方回傳格式跑掉時真的會發生。
+     */
+    public function test_a_failed_category_sync_still_saves_the_price_and_history(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        $product = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail();
+        $originalMinPrice = $product->min_price;
+        $historyCountBeforeRetry = HmallPriceHistory::count();
+        $linkedCategoryIds = $product->categories()->pluck('hmall_categories.id')->sort()->values()->all();
+
+        $products = $this->products();
+        // 換一個不同的價格，確保這次會被判「價格有變」而嘗試寫歷史
+        $products[0]->minPrice = $originalMinPrice + 100;
+
+        $badSort = new stdClass;
+        $badSort->code = ['this-is-not-a-string'];
+        $badSort->sort = '000000001';
+        $products[0]->categorySortList[] = $badSort;
+
+        $result = $this->repository->saveProductsFromV3($products);
+
+        $this->assertSame([], $result->failedProductCodes);
+        $this->assertEquals($originalMinPrice + 100, $product->fresh()->min_price);
+        $this->assertSame($historyCountBeforeRetry + 1, HmallPriceHistory::count());
+        $this->assertSame(
+            $linkedCategoryIds,
+            $product->categories()->pluck('hmall_categories.id')->sort()->values()->all()
+        );
+        $this->assertNotEmpty($linkedCategoryIds);
+    }
+
+    /**
+     * 刪掉商品時，它的分類關聯要跟著消失（讀取路徑都是 inner join，孤兒列不會
+     * 讓畫面出錯，只會無聲累積）。
+     */
+    public function test_deleting_a_product_takes_its_category_links_with_it(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        // 另外建一件沒有價格歷史的商品：hmall_price_histories 對 hmall_products
+        // 另有自己的外鍵而且沒有 cascade，有歷史的商品本來就刪不掉，那樣測不到
+        // pivot 這一條
+        $product = HmallProduct::unguarded(fn () => HmallProduct::create([
+            'brand' => 'UNIQLO',
+            'product_code' => 'u0000000099999',
+        ]));
+        $product->categories()->attach($this->findCategory('all_women-bottoms')->id, ['sort' => '001']);
+
+        $this->assertGreaterThan(0, $this->pivotCountFor('hmall_product_id', $product->id));
+
+        $product->delete();
+
+        $this->assertSame(0, $this->pivotCountFor('hmall_product_id', $product->id));
+    }
+
+    /**
+     * 刪掉分類時同理，關聯不可以留下來。
+     */
+    public function test_deleting_a_category_takes_its_product_links_with_it(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        $category = $this->findCategory('all_women-bottoms');
+        $this->assertGreaterThan(0, $this->pivotCountFor('hmall_category_id', $category->id));
+
+        $category->delete();
+
+        $this->assertSame(0, $this->pivotCountFor('hmall_category_id', $category->id));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function captureLinkWrites(callable $callback): array
+    {
+        $writes = [];
+        DB::listen(function ($query) use (&$writes) {
+            $sql = strtolower($query->sql);
+
+            if (str_contains($sql, 'hmall_category_hmall_product') && ! str_starts_with($sql, 'select')) {
+                $writes[] = $sql;
+            }
+        });
+
+        $callback();
+
+        return $writes;
+    }
+
+    private function pivotCountFor(string $column, int $id): int
+    {
+        return DB::table('hmall_category_hmall_product')->where($column, $id)->count();
+    }
+
+    /**
+     * 分類主檔整批寫不進去時，例外不能往外丟（會穿出呼叫端的 retry、重打官網），
+     * 商品也要照寫：分類寫不進去不該讓整頁價格停住。既有的分類關聯不動。
+     */
+    public function test_a_category_master_failure_still_saves_prices_and_keeps_existing_links(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        $product = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail();
+        $newMinPrice = $product->min_price + 100;
+
+        $products = $this->products();
+        $products[0]->minPrice = $newMinPrice;
+        // code 欄位是 string(255)，超長值會讓整批 upsert 在 strict mode 下丟例外
+        $products[0]->topCategories[0]->code = str_repeat('x', 300);
+
+        $result = $this->repository->saveProductsFromV3($products);
+
+        $this->assertFalse($result->hasFailures());
+        $this->assertEquals($newMinPrice, $product->fresh()->min_price);
+        $this->assertCount(24, $product->fresh()->categories);
+    }
+
+    /**
+     * 真實的官方回傳樣本（by-description 的兩筆商品）。
+     */
+    private function products(): array
+    {
+        $json = file_get_contents(base_path('tests/stubs/hmall-search-v3-response.json'));
+
+        return json_decode($json)->resp[0]->productList;
+    }
+}

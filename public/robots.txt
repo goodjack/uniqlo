@@ -22,6 +22,8 @@ Allow: /gu-products/
 Allow: /search/
 Allow: /pages/
 Allow: /lists/
+Allow: /categories$
+Allow: /categories/
 Allow: /sitemap
 Allow: /favicon.ico
 

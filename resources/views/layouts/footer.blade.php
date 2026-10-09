@@ -1,3 +1,7 @@
+@php
+    // 頁尾在每一頁，多數頁面不經過 ListRequest，品牌要用同一套規則讀
+    $brandQuery = array_filter(['brand' => \App\Http\Requests\ListRequest::brandFrom(request())]);
+@endphp
 <div class="ts attached very padded horizontally fitted fluid inverted segment">
     <div class="ts container stackable grid">
         <div class="eleven wide column">
@@ -27,50 +31,50 @@
 
                 <a class="ts inverted basic circular very compact button" href="{{ route('pages.changelog') }}"
                     aria-label="changelog">
-                    v4.1.0 更新日誌
+                    {{ config('nav.links.changelog.label') }}
                 </a>
             </div>
         </div>
         <div class="five wide column">
             <div class="ts link secondary vertical inverted borderless big menu">
-                <a href="{{ route('home', request()->only('brand')) }}" class="fitted item" aria-label="home">
+                <a href="{{ route('home', $brandQuery) }}" class="fitted item" aria-label="home">
                     <p><i class="home icon"></i> 首頁</p>
                 </a>
-                <a href="{{ route('lists.limited-offers', request()->only('brand')) }}" class="fitted item"
+                <a href="{{ route('lists.limited-offers', $brandQuery) }}" class="fitted item"
                     aria-label="limited-offers">
                     <p><i class="certificate icon"></i> 期間限定特價商品</p>
                 </a>
-                <a href="{{ route('lists.sale', request()->only('brand')) }}" class="fitted item" aria-label="sale">
+                <a href="{{ route('lists.sale', $brandQuery) }}" class="fitted item" aria-label="sale">
                     <p><i class="shopping basket icon"></i> 特價商品</p>
                 </a>
-                <a href="{{ route('lists.most-reviewed', request()->only('brand')) }}" class="fitted item"
+                <a href="{{ route('lists.most-reviewed', $brandQuery) }}" class="fitted item"
                     aria-label="most-reviewed">
                     <p><i class="comments outline icon"></i> 熱門評論商品</p>
                 </a>
-                <a href="{{ route('lists.japan-most-reviewed', request()->only('brand')) }}" class="fitted item"
+                <a href="{{ route('lists.japan-most-reviewed', $brandQuery) }}" class="fitted item"
                     aria-label="japan-most-reviewed">
                     <p><i class="comments outline icon"></i> 日本熱門評論商品</p>
                 </a>
-                <a href="{{ route('lists.top-wearing', request()->only('brand')) }}" class="fitted item"
+                <a href="{{ route('lists.top-wearing', $brandQuery) }}" class="fitted item"
                     aria-label="top-wearing">
                     <p><i class="camera retro icon"></i> 熱門穿搭商品</p>
                 </a>
-                <a href="{{ route('lists.most-visited', request()->only('brand')) }}" class="fitted item"
+                <a href="{{ route('lists.most-visited', $brandQuery) }}" class="fitted item"
                     aria-label="most-visited">
                     <p><i class="chart line icon"></i> 熱門瀏覽商品</p>
                 </a>
-                <a href="{{ route('lists.new', request()->only('brand')) }}" class="fitted item" aria-label="new">
+                <a href="{{ route('lists.new', $brandQuery) }}" class="fitted item" aria-label="new">
                     <p><i class="leaf icon"></i> 新款商品</p>
                 </a>
-                <a href="{{ route('lists.coming-soon', request()->only('brand')) }}" class="fitted item"
+                <a href="{{ route('lists.coming-soon', $brandQuery) }}" class="fitted item"
                     aria-label="coming-soon">
                     <p><i class="checked calendar icon"></i> 即將上市商品</p>
                 </a>
-                <a href="{{ route('lists.multi-buy', request()->only('brand')) }}" class="fitted item"
+                <a href="{{ route('lists.multi-buy', $brandQuery) }}" class="fitted item"
                     aria-label="multi-buy">
                     <p><i class="cubes icon"></i> 合購優惠商品</p>
                 </a>
-                <a href="{{ route('lists.online-special', request()->only('brand')) }}" class="fitted item"
+                <a href="{{ route('lists.online-special', $brandQuery) }}" class="fitted item"
                     aria-label="online-special">
                     <p><i class="tv icon"></i> 網路獨家販售商品</p>
                 </a>
