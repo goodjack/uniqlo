@@ -1032,6 +1032,9 @@ class HmallProductRepository extends Repository
      * 分類歸屬以四層陣列為準，categorySortList 只提供該分類內的排序權重。
      * 這次回傳沒有分類、或分類主檔沒寫進去時不動既有關聯：比較可能是缺漏，
      * 不是商品真的被移出所有分類。
+     *
+     * 不用 sync()：帶 sort 時它對每筆既有關聯都送一句 UPDATE，就算值沒變，
+     * 每天完整爬一輪會多出三萬多句空轉。這裡只寫真的有變的。
      */
     private function syncCategories(HmallProduct $model, $product, Collection $categoryIds): void
     {
@@ -1046,13 +1049,27 @@ class HmallProductRepository extends Repository
 
         $sorts = collect($product->categorySortList ?? [])
             ->filter(fn ($item) => ! empty($item->code))
-            ->mapWithKeys(fn ($item) => [$item->code => $item->sort ?? null]);
+            ->mapWithKeys(fn ($item) => [$item->code => isset($item->sort) ? (string) $item->sort : null]);
 
-        $model->categories()->sync(
-            $codes->mapWithKeys(fn (string $code) => [
-                $categoryIds->get($code) => ['sort' => $sorts->get($code)],
-            ])->all()
-        );
+        $wanted = $codes->mapWithKeys(fn (string $code) => [$categoryIds->get($code) => $sorts->get($code)]);
+
+        $existing = $model->wasRecentlyCreated
+            ? collect()
+            : $model->categories()->newPivotQuery()->pluck('sort', 'hmall_category_id');
+
+        $removedIds = $existing->keys()->diff($wanted->keys());
+        if ($removedIds->isNotEmpty()) {
+            $model->categories()->detach($removedIds->all());
+        }
+
+        $added = $wanted->diffKeys($existing);
+        if ($added->isNotEmpty()) {
+            $model->categories()->attach($added->map(fn (?string $sort) => ['sort' => $sort])->all());
+        }
+
+        $wanted->intersectByKeys($existing)
+            ->filter(fn (?string $sort, int $categoryId) => $existing->get($categoryId) !== $sort)
+            ->each(fn (?string $sort, int $categoryId) => $model->categories()->updateExistingPivot($categoryId, ['sort' => $sort]));
     }
 
     private function getCarbonOrNull($unixTimestampInMilliseconds)

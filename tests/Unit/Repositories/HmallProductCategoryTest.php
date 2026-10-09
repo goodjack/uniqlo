@@ -137,6 +137,36 @@ class HmallProductCategoryTest extends TestCase
         $this->assertCount(1, $product->fresh()->categories);
     }
 
+    public function test_resaving_unchanged_categories_writes_nothing_to_the_links(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        $writes = $this->captureLinkWrites(fn () => $this->repository->saveProductsFromV3($this->products()));
+
+        $this->assertSame([], $writes);
+    }
+
+    public function test_only_a_changed_sort_is_written(): void
+    {
+        $this->repository->saveProductsFromV3($this->products());
+
+        $changed = $this->products();
+        foreach ($changed[0]->categorySortList as $item) {
+            if ($item->code === 'all_women-bottoms-widepants-anchor09') {
+                $item->sort = '000000001';
+            }
+        }
+
+        $writes = $this->captureLinkWrites(fn () => $this->repository->saveProductsFromV3($changed));
+
+        $this->assertCount(1, $writes);
+        $this->assertStringStartsWith('update', $writes[0]);
+
+        $anchor = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail()
+            ->categories->firstWhere('code', 'all_women-bottoms-widepants-anchor09');
+        $this->assertSame('000000001', $anchor->pivot->sort);
+    }
+
     /**
      * 分類回傳缺漏時不要把商品的既有分類全部清掉。
      */
@@ -294,6 +324,25 @@ class HmallProductCategoryTest extends TestCase
         $category->delete();
 
         $this->assertSame(0, $this->pivotCountFor('hmall_category_id', $category->id));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function captureLinkWrites(callable $callback): array
+    {
+        $writes = [];
+        DB::listen(function ($query) use (&$writes) {
+            $sql = strtolower($query->sql);
+
+            if (str_contains($sql, 'hmall_category_hmall_product') && ! str_starts_with($sql, 'select')) {
+                $writes[] = $sql;
+            }
+        });
+
+        $callback();
+
+        return $writes;
     }
 
     private function pivotCountFor(string $column, int $id): int
