@@ -288,9 +288,50 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
     gap: 8px;
     margin-top: 12px;
     margin-bottom: 24px;
-    padding: 12px 16px;
-    border-radius: 8px;
-    background: var(--uq-panel);
+}
+
+.uq-chip-row>p {
+    margin: 0;
+    color: var(--uq-muted);
+    font-size: 13px;
+}
+
+.uq-chip-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-left: auto;
+}
+
+.uq-text-action {
+    color: var(--uq-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.uq-applied-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    margin-bottom: 24px;
+}
+
+.uq-applied-tags>.uq-chip {
+    gap: 4px;
+    background: var(--uq-brand-soft);
+    border-color: var(--uq-brand);
+    color: var(--uq-ink);
+}
+
+.uq-applied-tags>.uq-chip>.icon {
+    margin: 0;
+    opacity: .6;
+}
+
+.uq-filter-switch:checked~.uq-applied-tags {
+    display: none;
 }
 
 /*
@@ -329,23 +370,6 @@ body.uq-busy [aria-busy="true"] {
     gap: 8px;
     flex: 1 1 100%;
     min-width: 0;
-}
-
-@media (max-width: 767px) {
-    .uq-chips {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
-
-    .uq-chips::-webkit-scrollbar {
-        display: none;
-    }
-
-    .uq-chips>.uq-chip {
-        flex: 0 0 auto;
-    }
 }
 
 .uq-chip {
