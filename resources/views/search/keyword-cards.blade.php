@@ -14,8 +14,8 @@
 @endif
 
 <div class="ts center aligned basic segment">
-    {{-- q 是 Google Programmable Search 會自己讀進搜尋框的參數 --}}
-    <a class="ts basic button" href="{{ route('search.google-cse', ['q' => $query]) }}">
+    {{-- 參數名要跟 Google 搜尋引擎後台設定的一致（query），不是官方文件說的預設 q --}}
+    <a class="ts basic button" href="{{ route('search.google-cse', ['query' => $query]) }}">
         <i class="google icon"></i>改用 Google 搜尋「{{ $query }}」
     </a>
 </div>

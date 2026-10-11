@@ -319,6 +319,16 @@ class SearchTest extends TestCase
             ->assertDontSee('gcse-searchbox', false);
     }
 
+    /**
+     * 「改用 Google 搜尋」要帶 query：Google 搜尋引擎後台設定讀的是 query，帶 q 不會自動搜尋。
+     */
+    public function test_the_google_search_fallback_passes_the_query_parameter_google_reads(): void
+    {
+        $this->get(route('search.index', ['query' => '找不到的東西']))
+            ->assertOk()
+            ->assertSee(e(route('search.google-cse', ['query' => '找不到的東西'])), false);
+    }
+
     public function test_pagination_from_the_search_form_keeps_the_query(): void
     {
         for ($i = 1; $i <= 25; $i++) {
