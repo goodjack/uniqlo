@@ -57,7 +57,7 @@
         <x-toolbar>
             <x-slot:start>
                 {{-- 不加 basic：Tocas 的 basic 按鈕群選中狀態對比只有 1.3:1，看不出選了哪一顆 --}}
-                <div class="ts compact buttons" data-keeps-q>
+                <div class="ts compact buttons" data-keeps-q data-shows-busy>
                     <a class="ts button {{ $currentBrand === null ? 'active' : '' }}"
                         href="{{ $currentUrl }}?{{ $queryFor(['brand' => null]) }}">全部</a>
                     <a class="ts button {{ $currentBrand === 'UNIQLO' ? 'active' : '' }}"
@@ -68,7 +68,7 @@
             </x-slot:start>
 
             <x-slot:end>
-                <form method="GET" action="{{ $currentUrl }}" class="ts input uq-search-form">
+                <form method="GET" action="{{ $currentUrl }}" class="ts input uq-search-form" data-shows-busy>
                     @if ($currentBrand)
                         <input type="hidden" name="brand" value="{{ $currentBrand }}">
                     @endif
@@ -89,7 +89,7 @@
                 </form>
 
                 {{-- 原生 <select> 套 Tocas 的 .ts.basic.dropdown，沒有 JavaScript 也能用 --}}
-                <form method="GET" action="{{ $currentUrl }}" class="uq-sort-form" data-keeps-q>
+                <form method="GET" action="{{ $currentUrl }}" class="uq-sort-form" data-keeps-q data-shows-busy>
                     @if ($currentBrand)
                         <input type="hidden" name="brand" value="{{ $currentBrand }}">
                     @endif

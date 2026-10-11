@@ -309,6 +309,20 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
     margin-bottom: 0;
 }
 
+/* 篩選、排序、品牌按下後等伺服器的這段時間，讓人知道有在動（master.blade.php 的 markBusy） */
+.uq-product-cards {
+    transition: opacity .2s;
+}
+
+body.uq-busy .uq-product-cards {
+    opacity: .4;
+}
+
+body.uq-busy [aria-busy="true"] {
+    cursor: progress;
+    opacity: .6;
+}
+
 .uq-chips {
     display: flex;
     flex-wrap: wrap;

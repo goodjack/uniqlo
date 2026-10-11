@@ -190,12 +190,60 @@
         (function () {
             // 選了就送出；送出鈕留給沒有 JavaScript 的情況，有 JavaScript 才藏起來
             document.querySelectorAll('select[data-auto-submit]').forEach(function(select) {
+                // requestSubmit 才會觸發 submit 事件，下面的載入中狀態才接得到
                 select.addEventListener('change', function() {
-                    select.form.submit();
+                    select.form.requestSubmit ? select.form.requestSubmit() : select.form.submit();
                 });
 
                 select.form.querySelectorAll('[data-auto-submit-fallback]').forEach(function(button) {
                     button.hidden = true;
+                });
+            });
+        })();
+    </script>
+    <script>
+        (function () {
+            // 篩選、排序、品牌都是整頁重新載入，伺服器要一兩秒；按下就讓人看到有在動，也擋掉連點
+            function markBusy(event, control) {
+                if (document.body.classList.contains('uq-busy')) {
+                    event.preventDefault();
+                    return;
+                }
+
+                document.body.classList.add('uq-busy');
+
+                if (control && control.matches('.ts.button')) {
+                    control.classList.add('loading');
+                } else if (control) {
+                    control.setAttribute('aria-busy', 'true');
+                }
+            }
+
+            document.addEventListener('submit', function (event) {
+                const form = event.target.closest('[data-shows-busy]');
+
+                if (form && !event.defaultPrevented) {
+                    markBusy(event, event.submitter || form.querySelector('select[data-auto-submit]'));
+                }
+            });
+
+            document.addEventListener('click', function (event) {
+                const link = event.target.closest('[data-shows-busy] a[href]');
+                const opensElsewhere = event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+
+                if (link && !event.defaultPrevented && !opensElsewhere) {
+                    markBusy(event, link);
+                }
+            });
+
+            // 按上一頁回來時，瀏覽器可能直接還原離開前的畫面，要把載入中拿掉
+            window.addEventListener('pageshow', function () {
+                document.body.classList.remove('uq-busy');
+                document.querySelectorAll('[data-shows-busy] .loading').forEach(function (control) {
+                    control.classList.remove('loading');
+                });
+                document.querySelectorAll('[data-shows-busy] [aria-busy]').forEach(function (control) {
+                    control.removeAttribute('aria-busy');
                 });
             });
         })();
