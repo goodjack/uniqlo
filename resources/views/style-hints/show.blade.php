@@ -2,14 +2,14 @@
 @extends('layouts.master')
 
 @php
-    $shareText = $hmallProductPresenter->getFullName($hmallProduct) . ' | UNIQLO 比價 | UQ 搜尋';
+    $shareText = $hmallProductPresenter->getFullNameWithCode($hmallProduct) . ' | UNIQLO 比價 | UQ 搜尋';
     // 每一頁的 canonical 指向自己（第 1 頁不帶 page）
     $currentUrl = $styleHints->currentPage() > 1
         ? url()->current().'?page='.$styleHints->currentPage()
         : url()->current();
 @endphp
 
-@section('title', "{$hmallProductPresenter->getFullName($hmallProduct)} 的 StyleHint 網友穿搭靈感")
+@section('title', "{$hmallProductPresenter->getFullNameWithCode($hmallProduct)} 的 StyleHint 網友穿搭靈感")
 
 @section('og-type', 'product')
 
@@ -20,14 +20,14 @@
     @endif
     <link rel="canonical" href="{{ $currentUrl }}" />
     <meta name="description" content="共 {{ $styleHints->total() }} 張 StyleHint 網友穿搭靈感" />
-    <meta property="og:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的 StyleHint 網友穿搭靈感 | UQ 搜尋" />
+    <meta property="og:title" content="{{ $hmallProductPresenter->getFullNameWithCode($hmallProduct) }} 的 StyleHint 網友穿搭靈感 | UQ 搜尋" />
     <meta property="og:url" content="{{ $currentUrl }}" />
     <meta property="og:description" content="共 {{ $styleHints->total() }} 張 StyleHint 網友穿搭靈感" />
     <meta property="og:image" content="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@littlegoodjack" />
     <meta name="twitter:title"
-        content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的 StyleHint 網友穿搭靈感 | UQ 搜尋" />
+        content="{{ $hmallProductPresenter->getFullNameWithCode($hmallProduct) }} 的 StyleHint 網友穿搭靈感 | UQ 搜尋" />
     <meta name="twitter:description" content="共 {{ $styleHints->total() }} 張 StyleHint 網友穿搭靈感" />
     <meta name="twitter:image" content="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" />
 @endsection

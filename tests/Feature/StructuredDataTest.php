@@ -140,6 +140,40 @@ class StructuredDataTest extends TestCase
         ];
     }
 
+    /**
+     * 官方會把共用的其他編號串在名稱裡，對外標題要另外接上自己的編號，搜尋結果與分享
+     * 才看得出是哪一件；頁面上的 h1 與麵包屑不接，編號已經寫在 h1 下一行。
+     */
+    public function test_outward_product_titles_end_with_the_products_own_code(): void
+    {
+        $this->seedProduct(['name' => '繭型牛仔褲482280 / 490633', 'code' => '487973']);
+
+        $content = $this->productPage();
+        $expected = '女裝 繭型牛仔褲482280 / 490633 487973';
+
+        $this->assertSame("{$expected} | UQ 搜尋", $this->title($content));
+        $this->assertSame("{$expected} | UQ 搜尋", $this->meta($content, 'og:title'));
+        $this->assertSame("{$expected} | UQ 搜尋", $this->meta($content, 'twitter:title'));
+        $this->assertSame("{$expected} | UNIQLO 比價 | UQ 搜尋", $this->meta($content, 'share:text'));
+        // h1 的第一段文字是商品名，編號在後面的副標
+        $this->assertSame('女裝 繭型牛仔褲482280 / 490633', trim($this->xpath($content)->query('//h1')->item(0)->firstChild->textContent));
+    }
+
+    public function test_style_hint_page_titles_end_with_the_products_own_code(): void
+    {
+        $this->seedProduct(['name' => '方形太陽眼鏡', 'code' => '481637']);
+
+        $content = $this->get(route('uniqlo-style-hints.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+        $expected = '女裝 方形太陽眼鏡 481637 的 StyleHint 網友穿搭靈感';
+
+        $this->assertSame("{$expected} | UQ 搜尋", $this->title($content));
+        $this->assertSame("{$expected} | UQ 搜尋", $this->meta($content, 'og:title'));
+        $this->assertSame("{$expected} | UQ 搜尋", $this->meta($content, 'twitter:title'));
+        $this->assertStringNotContainsString('481637', $this->xpath($content)->query('//h1')->item(0)->textContent);
+    }
+
     public function test_the_not_found_page_has_a_chinese_title_and_one_h1(): void
     {
         $content = $this->get('/this-page-does-not-exist')->assertNotFound()->getContent();

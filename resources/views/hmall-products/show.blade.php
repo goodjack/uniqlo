@@ -2,7 +2,7 @@
 @extends('layouts.master')
 
 @php
-    $shareText = $hmallProductPresenter->getFullName($hmallProduct) . ' | UNIQLO 比價 | UQ 搜尋';
+    $shareText = $hmallProductPresenter->getFullNameWithCode($hmallProduct) . ' | UNIQLO 比價 | UQ 搜尋';
     $shareTextEncode = urlencode($shareText);
 
     $currentUrl = url()->current();
@@ -90,7 +90,7 @@
         ->all();
 @endphp
 
-@section('title', $hmallProductPresenter->getFullName($hmallProduct))
+@section('title', $hmallProductPresenter->getFullNameWithCode($hmallProduct))
 
 @section('og-type', 'product')
 
@@ -134,13 +134,13 @@
 @section('metadata')
     <link rel="canonical" href="{{ $currentUrl }}" />
     <meta name="description" content="{{ $hmallProductPresenter->getSocialMediaDescription($hmallProduct) }}" />
-    <meta property="og:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} | UQ 搜尋" />
+    <meta property="og:title" content="{{ $hmallProductPresenter->getFullNameWithCode($hmallProduct) }} | UQ 搜尋" />
     <meta property="og:url" content="{{ $currentUrl }}" />
     <meta property="og:description" content="{{ $hmallProductPresenter->getSocialMediaDescription($hmallProduct) }}" />
     <meta property="og:image" content="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@littlegoodjack" />
-    <meta name="twitter:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} | UQ 搜尋" />
+    <meta name="twitter:title" content="{{ $hmallProductPresenter->getFullNameWithCode($hmallProduct) }} | UQ 搜尋" />
     <meta name="twitter:description" content="{{ $hmallProductPresenter->getSocialMediaDescription($hmallProduct) }}" />
     <meta name="twitter:image" content="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" />
     <meta name="share:text" content="{{ $shareText }}" />
