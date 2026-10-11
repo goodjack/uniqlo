@@ -46,15 +46,8 @@
         '網路商店編號' => $hmallProduct->product_code,
     ], fn($value) => filled($value));
 
-    /*
-     * 說明文末的網路商店編號跟商品資訊重複，只在畫面上拿掉；getDescription() 不動，
-     * 社群分享描述與爬蟲判斷說明長短都讀它。
-     */
-    $descriptionHtml = preg_replace(
-        '/(<br>)*網路商店編號：' . preg_quote($hmallProduct->product_code, '/') . '\s*$/u',
-        '',
-        $hmallProductPresenter->getDescription($hmallProduct),
-    );
+    // 不用 getDescription()：它文末接的網路商店編號，上面的商品資訊已經有了
+    $descriptionHtml = $hmallProductPresenter->getDescriptionBody($hmallProduct->instruction);
 
 
     // 每一段有沒有內容。章節選單與下面各段的 @if 共用這一份，選單才不會指到不存在的段落

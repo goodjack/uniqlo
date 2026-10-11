@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\CrawlOutcome;
 use App\Models\HmallProduct;
+use App\Presenters\HmallProductPresenter;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use App\Services\Traits\AntiBlockingCrawler;
@@ -28,6 +29,8 @@ class HmallProductService extends Service
     private const CACHE_KEY_HMALL_PRODUCTS_PAGE = 'hmall_products:page:%s';
 
     private const CACHE_KEY_HMALL_DESCRIPTIONS = 'hmall_descriptions:last_id:%s';
+
+    private const CACHE_KEY_HMALL_DESCRIPTION_REFETCH = 'hmall_descriptions:refetch_below_id:%s';
 
     public function __construct(HmallProductRepository $repository, ProductRepository $productRepository)
     {
@@ -248,13 +251,13 @@ class HmallProductService extends Service
         Cache::forget($cacheKey);
 
         $result = $gate->decide(
-            $scan,
-            ! $startedFromFirstPage,
-            $failedProductCodes,
-            $unidentifiedFailures,
-            fn () => $this->repository->countInStockHmallProducts($brand),
-            $acceptShrink,
-            fn (array $excluded) => $this->repository->setStockoutHmallProducts($brand, null, $excluded),
+            scan: $scan,
+            resumed: ! $startedFromFirstPage,
+            failedIds: $failedProductCodes,
+            unidentifiedFailures: $unidentifiedFailures,
+            countInStock: fn () => $this->repository->countInStockHmallProducts($brand),
+            acceptShrink: $acceptShrink,
+            markStockout: fn (array $excluded) => $this->repository->setStockoutHmallProducts($brand, null, $excluded),
         );
 
         if ($result->outcome === CrawlOutcome::Succeeded) {
@@ -312,7 +315,7 @@ class HmallProductService extends Service
                 if ($this->is403Error($e)) {
                     return false;
                 }
-                // Other errors: skip item (already logged in fetchHmallProductDescriptions)
+                // Other errors: skip item (already logged in downloadHmallProductDescriptions / saveHmallProductDescriptions)
             }
         }
 
@@ -331,66 +334,128 @@ class HmallProductService extends Service
         string $brand = 'UNIQLO',
         bool $updateTimestamps = false
     ): void {
-        $productCode = $hmallProduct->product_code;
-        $instructionApiUrl = $this->getV3DescriptionApiUrl($brand)."{$productCode}/zh_TW/instructionH5.html";
-        $sizeChartApiUrl = $this->getV3DescriptionApiUrl($brand)."{$productCode}/zh_TW/sizeAndTryOnH5.html";
+        [$instruction, $sizeChart] = $this->downloadHmallProductDescriptions($hmallProduct, $brand);
 
-        try {
-            $instruction = retry(
-                config('app.crawler.retry.times'),
-                function ($attempts) use ($instructionApiUrl) {
-                    $response = Http::withHeaders($this->buildHeaders())
-                        ->throw()
-                        ->get($instructionApiUrl);
+        $this->saveHmallProductDescriptions($hmallProduct, $brand, $instruction, $sizeChart, $updateTimestamps);
 
-                    return $response->body();
-                },
-                fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
-                fn ($e) => $this->shouldRetry($e),
-            );
+        $this->randomDelay();
+    }
 
-            $sizeChart = retry(
-                config('app.crawler.retry.times'),
-                function ($attempts) use ($sizeChartApiUrl) {
-                    $response = Http::withHeaders($this->buildHeaders())
-                        ->throw()
-                        ->get($sizeChartApiUrl);
+    /**
+     * 上架初期官網的說明常是空殼，存下來之後 instruction 不再是 null，每天的抓取不會再碰它，
+     * 所以另外挑在售、說明實質空白的重抓，抓到有內容才寫回。被擋（403）回傳 false。
+     */
+    public function refetchEmptyHmallProductDescriptions(string $brand, int $limit = 100): bool
+    {
+        $presenter = app(HmallProductPresenter::class);
+        $cacheKey = sprintf(self::CACHE_KEY_HMALL_DESCRIPTION_REFETCH, $brand);
+        $startBelowId = Cache::get($cacheKey);
 
-                    return $response->body();
-                },
-                fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
-                fn ($e) => $this->shouldRetry($e),
-            );
+        $candidates = HmallProduct::where('brand', $brand)
+            ->whereNull('stockout_at')
+            ->whereNotNull('instruction')
+            ->when($startBelowId, fn ($query) => $query->where('id', '<', $startBelowId))
+            ->select(['id', 'product_code', 'instruction', 'size_chart'])
+            ->lazyByIdDesc()
+            ->filter(fn (HmallProduct $hmallProduct) => $presenter->getDescriptionBody($hmallProduct->instruction) === '')
+            ->take($limit);
 
-            $this->repository->updateProductDescriptionsFromV3(
-                $hmallProduct,
-                $instruction,
-                $sizeChart,
-                $updateTimestamps
-            );
+        $checked = 0;
+        $filled = 0;
+
+        foreach ($candidates as $hmallProduct) {
+            try {
+                [$instruction, $sizeChart] = $this->downloadHmallProductDescriptions($hmallProduct, $brand);
+            } catch (Throwable $e) {
+                if ($this->is403Error($e)) {
+                    return false;
+                }
+
+                $instruction = null;
+            }
+
+            $checked++;
+            Cache::put($cacheKey, $hmallProduct->id, now()->addDays(30));
+
+            if ($instruction !== null && $presenter->getDescriptionBody($instruction) !== '') {
+                $keptSizeChart = trim(strip_tags($sizeChart)) === '' ? (string) $hmallProduct->size_chart : $sizeChart;
+
+                try {
+                    $this->saveHmallProductDescriptions($hmallProduct, $brand, $instruction, $keptSizeChart);
+                    $filled++;
+                } catch (Throwable) {
+                    // 已在 saveHmallProductDescriptions 記錄，換下一件
+                }
+            }
 
             $this->randomDelay();
+        }
+
+        if ($checked < $limit) {
+            Cache::forget($cacheKey);
+        }
+
+        logger()->info('Refetched empty Hmall product descriptions', compact('brand', 'checked', 'filled'));
+
+        return true;
+    }
+
+    private function saveHmallProductDescriptions(
+        $hmallProduct,
+        string $brand,
+        string $instruction,
+        string $sizeChart,
+        bool $updateTimestamps = false
+    ): void {
+        try {
+            $this->repository->updateProductDescriptionsFromV3($hmallProduct, $instruction, $sizeChart, $updateTimestamps);
         } catch (Throwable $e) {
-            // 403 is a permanent block - propagate to caller
+            logger()->error('saveHmallProductDescriptions failed', [
+                'brand' => $brand,
+                'productCode' => $hmallProduct->product_code,
+                'hmallProductId' => $hmallProduct->id,
+                'error' => $e->getMessage(),
+            ]);
+            report($e);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * @return array{0: string, 1: string} 說明與尺寸表
+     */
+    private function downloadHmallProductDescriptions($hmallProduct, string $brand): array
+    {
+        $productCode = $hmallProduct->product_code;
+        $download = fn (string $url) => retry(
+            config('app.crawler.retry.times'),
+            fn () => Http::withHeaders($this->buildHeaders())->throw()->get($url)->body(),
+            fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
+            fn ($e) => $this->shouldRetry($e),
+        );
+
+        try {
+            return [
+                $download($this->getV3DescriptionApiUrl($brand)."{$productCode}/zh_TW/instructionH5.html"),
+                $download($this->getV3DescriptionApiUrl($brand)."{$productCode}/zh_TW/sizeAndTryOnH5.html"),
+            ];
+        } catch (Throwable $e) {
             if ($this->is403Error($e)) {
-                logger()->error('fetchHmallProductDescriptions blocked (403)', [
+                logger()->error('downloadHmallProductDescriptions blocked (403)', [
                     'brand' => $brand,
                     'productCode' => $productCode,
                     'hmallProductId' => $hmallProduct->id,
                 ]);
-                report($e);
-
-                throw $e;
+            } else {
+                logger()->error('downloadHmallProductDescriptions error - max retry exceeded', [
+                    'brand' => $brand,
+                    'productCode' => $productCode,
+                    'hmallProductId' => $hmallProduct->id,
+                    'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
+                    'error' => $e->getMessage(),
+                ]);
             }
-
-            // retry() exhausted - log and propagate so caller can skip and not count this item
-            logger()->error('fetchHmallProductDescriptions error - max retry exceeded', [
-                'brand' => $brand,
-                'productCode' => $productCode,
-                'hmallProductId' => $hmallProduct->id,
-                'status_code' => $e instanceof RequestException ? $e->response?->status() : 'unknown',
-                'error' => $e->getMessage(),
-            ]);
             report($e);
 
             throw $e;
