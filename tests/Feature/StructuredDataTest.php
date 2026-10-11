@@ -126,6 +126,30 @@ class StructuredDataTest extends TestCase
         $this->assertSame(1, $this->xpath($content)->query('//h1')->length, "{$name} 應該剛好有一個 h1");
     }
 
+    /**
+     * 社群標題由版型統一輸出，頁面自己再寫一份就會重複
+     *
+     * @dataProvider pagesWithATitle
+     */
+    public function test_every_page_has_one_social_title(string $name, array $parameters): void
+    {
+        $this->seedProduct();
+
+        $content = $this->get(route($name, $parameters))->assertOk()->getContent();
+
+        $this->assertSame(1, $this->xpath($content)->query('//meta[@property="og:title"]')->length, "{$name} 的 og:title");
+        $this->assertSame(1, $this->xpath($content)->query('//meta[@name="twitter:title"]')->length, "{$name} 的 twitter:title");
+    }
+
+    public function test_a_list_page_shares_under_the_list_name(): void
+    {
+        $content = $this->get(route('lists.sale'))->assertOk()->getContent();
+
+        $this->assertSame($this->meta($content, 'og:title'), $this->meta($content, 'twitter:title'));
+        $this->assertStringEndsWith(' | UQ 搜尋', $this->meta($content, 'og:title'));
+        $this->assertNotSame($this->title($content), $this->meta($content, 'og:title'));
+    }
+
     public static function pagesWithATitle(): array
     {
         return [

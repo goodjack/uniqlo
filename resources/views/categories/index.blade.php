@@ -28,8 +28,7 @@
 
 @section('metadata')
     <link rel="canonical" href="{{ $currentUrl }}" />
-    <meta name="description" content="依商品分類瀏覽 UNIQLO 與 GU 的商品與價格 | UQ 搜尋" />
-    <meta property="og:title" content="商品分類 | UQ 搜尋" />
+    <meta name="description" content="{{ \App\Support\SiteTitle::append('依商品分類瀏覽 UNIQLO 與 GU 的商品與價格') }}" />
     <meta property="og:url" content="{{ $currentUrl }}" />
 @endsection
 

@@ -42,10 +42,9 @@
     @if ($currentQ !== '')
         <meta name="robots" content="noindex, follow" />
     @endif
-    <meta name="description" content="{{ $category->name }} 的 UNIQLO 與 GU 商品比價 | UQ 搜尋" />
-    <meta property="og:title" content="{{ $category->name }} | UQ 搜尋" />
+    <meta name="description" content="{{ \App\Support\SiteTitle::append($category->name.' 的 UNIQLO 與 GU 商品比價') }}" />
     <meta property="og:url" content="{{ $canonicalUrl }}" />
-    <meta property="og:description" content="{{ $title }} | UNIQLO 比價 | UQ 搜尋" />
+    <meta property="og:description" content="{{ \App\Support\SiteTitle::appendWithTagline($title) }}" />
 @endsection
 
 @section('content')

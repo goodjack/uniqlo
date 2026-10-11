@@ -9,16 +9,27 @@
     <meta name="theme-color" content="#ce5f58">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
     <link rel="manifest" href="{{ asset('app.webmanifest') }}">
-    <meta name="apple-mobile-web-app-title" content="UQ 搜尋">
+    <meta name="apple-mobile-web-app-title" content="{{ \App\Support\SiteTitle::NAME }}">
     <link rel="apple-touch-icon" href="{{ asset('icons/icon-192x192.png') }}">
 
-    {{-- 首頁用 full-title 給完整標題，其他頁只給頁名、後面接站名。section 內容在設定時已跳脫，這裡原樣輸出 --}}
-    <title>{!! $__env->hasSection('full-title') ? $__env->yieldContent('full-title') : $__env->yieldContent('title').' | UQ 搜尋' !!}</title>
+    @php
+        // 首頁用 full-title 給完整標題，其他頁只給頁名、後面接站名；社群標題預設跟頁面標題相同，
+        // 要不同時給 og-title。section 內容在設定時已跳脫，這裡原樣輸出
+        $pageTitle = $__env->hasSection('full-title')
+            ? $__env->yieldContent('full-title')
+            : \App\Support\SiteTitle::append($__env->yieldContent('title'));
+        $socialTitle = $__env->hasSection('og-title')
+            ? \App\Support\SiteTitle::append($__env->yieldContent('og-title'))
+            : $pageTitle;
+    @endphp
+    <title>{!! $pageTitle !!}</title>
 
     @yield('json-ld')
 
     <meta property="og:type" content="@yield('og-type', 'website')" />
-    <meta property="og:site_name" content="UQ 搜尋" />
+    <meta property="og:title" content="{!! $socialTitle !!}" />
+    <meta name="twitter:title" content="{!! $socialTitle !!}" />
+    <meta property="og:site_name" content="{{ \App\Support\SiteTitle::NAME }}" />
     <meta property="og:locale" content="zh_TW" />
     @yield('metadata')
 

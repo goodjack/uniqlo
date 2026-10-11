@@ -23,7 +23,6 @@
 @section('metadata')
     <link rel="canonical" href="{{ route('home') }}" />
     <meta name="description" content="{{ $homeDescription }}" />
-    <meta property="og:title" content="{{ $homeTitle }}" />
     <meta property="og:url" content="{{ route('home') }}" />
     <meta property="og:description" content="{{ $homeDescription }}" />
     <meta property="og:image" content="{{ asset('icons/icon-512x512.png') }}" />

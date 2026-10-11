@@ -2,7 +2,7 @@
 @extends('layouts.master')
 
 @php
-$shareText = $product->name . ' | UNIQLO 比價 | UQ 搜尋';
+$shareText = \App\Support\SiteTitle::appendWithTagline($product->name);
 $shareTextEncode = urlencode($shareText);
 
 $url = url()->current();
@@ -55,13 +55,11 @@ $shareUrl = [
 @section('metadata')
     <link rel="canonical" href="{{ route('products.show', ['product' => $product->id]) }}" />
     <meta name="description" content="{{ $productPresenter->getSocialMediaDescription($product) }}" />
-    <meta property="og:title" content="{{ $product->name }} | UQ 搜尋" />
     <meta property="og:url" content="{{ route('products.show', ['product' => $product->id]) }}" />
     <meta property="og:description" content="{{ $productPresenter->getSocialMediaDescription($product) }}" />
     <meta property="og:image" content="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@littlegoodjack" />
-    <meta name="twitter:title" content="{{ $product->name }} | UQ 搜尋" />
     <meta name="twitter:description" content="{{ $productPresenter->getSocialMediaDescription($product) }}" />
     <meta name="twitter:image"
         content="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}" />

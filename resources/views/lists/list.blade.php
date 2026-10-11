@@ -23,20 +23,20 @@
 
 @section('title', $title)
 
+@section('og-title', $typeName)
+
 @section('metadata')
     <link rel="canonical" href="{{ $currentUrl }}" />
     @if ($currentQ !== '')
         {{-- 帶關鍵字的結果是既有清單的重組，不需要另外被索引 --}}
         <meta name="robots" content="noindex, follow" />
     @endif
-    <meta name="description" content="{{ $title }} | UNIQLO 比價 | UQ 搜尋" />
-    <meta property="og:title" content="{{ $typeName }} | UQ 搜尋" />
+    <meta name="description" content="{{ \App\Support\SiteTitle::appendWithTagline($title) }}" />
     <meta property="og:url" content="{{ $currentUrl }}" />
-    <meta property="og:description" content="{{ $title }} | UNIQLO 比價 | UQ 搜尋" />
+    <meta property="og:description" content="{{ \App\Support\SiteTitle::appendWithTagline($title) }}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@littlegoodjack" />
-    <meta name="twitter:title" content="{{ $typeName }} | UQ 搜尋" />
-    <meta name="twitter:description" content="{{ $title }} | UNIQLO 比價 | UQ 搜尋" />
+    <meta name="twitter:description" content="{{ \App\Support\SiteTitle::appendWithTagline($title) }}" />
 @endsection
 
 @section('content')

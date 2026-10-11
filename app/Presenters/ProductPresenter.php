@@ -3,6 +3,7 @@
 namespace App\Presenters;
 
 use App\Models\Product;
+use App\Support\SiteTitle;
 use Illuminate\Support\Collection;
 
 class ProductPresenter
@@ -56,7 +57,7 @@ class ProductPresenter
         }
 
         if ($html) {
-            $html = '<div class="ts separated buttons">' . $html;
+            $html = '<div class="ts separated buttons">'.$html;
             $html .= '</div>';
         }
 
@@ -96,7 +97,7 @@ class ProductPresenter
         $html = '';
         $subImages = json_decode($product->sub_images);
         foreach ($subImages as $key => $subImage) {
-            $alt = '商品實照 ' . ($key + 1);
+            $alt = '商品實照 '.($key + 1);
 
             $html .= $this->getSubImageTag($product->id, $subImage, $alt);
         }
@@ -118,7 +119,7 @@ class ProductPresenter
         $html = '';
         foreach ($styleDictionaries as $key => $styleDictionary) {
             $largeImgUrl = "https://www.uniqlo.com//tw/styledictionary/api/data/0/{$styleDictionary->fnm}-xxl.jpg";
-            $alt = '精選穿搭 Style Dictionary ' . ($key + 1);
+            $alt = '精選穿搭 Style Dictionary '.($key + 1);
 
             $html .= $this->getImageTag($largeImgUrl, $styleDictionary->image_url, $largeImgUrl, $alt);
         }
@@ -131,7 +132,7 @@ class ProductPresenter
         $html = '';
         foreach ($styles as $key => $style) {
             $largeImgUrl = "https://im.uniqlo.com/style/{$style->image_path}-xxxl.jpg";
-            $alt = '精選穿搭 Style ' . ($key + 1);
+            $alt = '精選穿搭 Style '.($key + 1);
 
             $html .= $this->getImageTag($style->detail_url, $style->image_url, $largeImgUrl, $alt);
         }
@@ -170,8 +171,7 @@ class ProductPresenter
     /**
      * Get the URL of the specified product.
      *
-     * @param Product $product
-     *
+     * @param  Product  $product
      * @return void
      */
     public function getProductUrl($product)
@@ -215,7 +215,7 @@ class ProductPresenter
         $description = strip_tags($product->comment);
         $description = trim(preg_replace('/\s+/', ' ', $description));
 
-        $description = "{$description} | UNIQLO 比價 | UQ 搜尋";
+        $description = SiteTitle::appendWithTagline($description);
 
         $rating = $this->getRating($product, true);
 
