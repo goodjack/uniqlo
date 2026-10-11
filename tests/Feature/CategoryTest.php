@@ -412,7 +412,7 @@ class CategoryTest extends TestCase
         $response->assertOk();
         $response->assertDontSee('短袖上衣');
         $response->assertSee('沒有符合的商品');
-        $response->assertSee('試試看少選幾個條件');
+        $response->assertSee('試試看多勾幾個條件，或清除篩選');
     }
 
     public function test_q_filters_the_category_by_name(): void

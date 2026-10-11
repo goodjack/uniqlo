@@ -125,6 +125,19 @@ enum ProductTag: string
     }
 
     /**
+     * 標籤是符合任一個就顯示，多勾才會變多，所以篩到沒東西時要建議多勾，不是少選。
+     */
+    public static function emptyResultHint(bool $hasQuery, bool $hasTags): string
+    {
+        return match (true) {
+            $hasQuery && $hasTags => '試試看換個關鍵字，或多勾幾個條件',
+            $hasQuery => '試試看換個關鍵字',
+            $hasTags => '試試看多勾幾個條件，或清除篩選',
+            default => '之後再回來看看',
+        };
+    }
+
+    /**
      * @return array<int, self>
      */
     public static function fromValues(array $values): array

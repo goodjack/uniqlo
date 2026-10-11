@@ -78,7 +78,7 @@
         <x-toolbar>
             <x-slot:end>
                 {{-- 不掛即時篩（data-instant-filter）：分類頁有分頁，前端只篩得到這一頁，會誤以為篩了整個分類 --}}
-                <form method="GET" action="{{ $currentUrl }}" class="ts input uq-search-form">
+                <form method="GET" action="{{ $currentUrl }}" class="ts input uq-search-form" data-shows-busy>
                     @foreach ($selectedTagValues as $tagValue)
                         <input type="hidden" name="tags[]" value="{{ $tagValue }}">
                     @endforeach
@@ -102,7 +102,7 @@
             @include('partials.empty-state', [
                 'icon' => 'search faded',
                 'title' => $currentQ !== '' ? "沒有符合「{$currentQ}」的商品" : '沒有符合的商品',
-                'hint' => $currentQ !== '' ? '試試看換個關鍵字，或少選幾個條件' : '試試看少選幾個條件',
+                'hint' => \App\Enums\ProductTag::emptyResultHint($currentQ !== '', ! empty($selectedTagValues)),
             ])
         @else
             <div class="ts doubling cards four uq-product-cards">
