@@ -335,7 +335,7 @@
                                     data-brand="{{ $hmallProduct->brand }}"
                                     data-product-code="{{ $hmallProduct->product_code }}" aria-pressed="false"><i
                                         class="heart outline icon"></i><span class="label">收藏</span></button>
-                                <button type="button" class="ts basic button" id="share" style="display: none;"><i
+                                <button type="button" class="ts basic button" id="share" hidden><i
                                         class="share icon" aria-hidden="true"></i>分享</button>
                             </div>
                         </div>
@@ -872,7 +872,7 @@
 
         function onLoad() {
             if (navigator.share !== undefined) {
-                document.getElementById('share').style.display = 'inline-flex';
+                document.getElementById('share').hidden = false;
             }
 
             document.querySelector('#share').addEventListener('click', webShare);
