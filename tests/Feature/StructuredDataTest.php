@@ -96,6 +96,24 @@ class StructuredDataTest extends TestCase
         $this->assertStringEndsWith(' | UQ 搜尋', trim($this->xpath($content)->query('//title')->item(0)->textContent));
     }
 
+    public function test_the_google_search_page_is_not_indexed(): void
+    {
+        $content = $this->get(route('search.google-cse', ['query' => '外套']))->assertOk()->getContent();
+
+        $this->assertSame('noindex, follow', $this->meta($content, 'robots'));
+    }
+
+    public function test_a_style_hint_page_without_photos_is_not_indexed(): void
+    {
+        $this->seedProduct();
+
+        $content = $this->get(route('uniqlo-style-hints.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame('noindex, follow', $this->meta($content, 'robots'));
+    }
+
     private function productPage(): string
     {
         return $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))

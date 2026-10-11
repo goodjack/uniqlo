@@ -14,6 +14,10 @@
 @section('og-type', 'product')
 
 @section('metadata')
+    @if ($styleHints->isEmpty())
+        {{-- 沒有任何照片的穿搭頁是空頁，不收錄 --}}
+        <meta name="robots" content="noindex, follow" />
+    @endif
     <link rel="canonical" href="{{ $currentUrl }}" />
     <meta name="description" content="共 {{ $styleHints->total() }} 張 StyleHint 網友穿搭靈感" />
     <meta property="og:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的 StyleHint 網友穿搭靈感 | UQ 搜尋" />
