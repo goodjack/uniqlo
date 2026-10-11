@@ -12,7 +12,8 @@
     <meta name="apple-mobile-web-app-title" content="UQ 搜尋">
     <link rel="apple-touch-icon" href="{{ asset('icons/icon-192x192.png') }}">
 
-    <title>@yield('title') | UQ 搜尋</title>
+    {{-- 首頁用 full-title 給完整標題，其他頁只給頁名、後面接站名 --}}
+    <title>@hasSection('full-title')@yield('full-title')@else@yield('title') | UQ 搜尋@endif</title>
 
     @yield('json-ld')
 

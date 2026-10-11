@@ -76,6 +76,26 @@ class StructuredDataTest extends TestCase
         }
     }
 
+    public function test_the_home_page_describes_the_site(): void
+    {
+        $content = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertSame('UQ 搜尋｜UNIQLO 與 GU 價格查詢比價', trim($this->xpath($content)->query('//title')->item(0)->textContent));
+        $this->assertNotEmpty($this->meta($content, 'description'));
+        $this->assertSame(route('home'), $this->xpath($content)->query('//link[@rel="canonical"]')->item(0)?->getAttribute('href'));
+
+        $website = $this->jsonLdOfType($content, 'WebSite');
+        $this->assertSame('UQ 搜尋', $website['name']);
+        $this->assertSame(route('home'), $website['url']);
+    }
+
+    public function test_other_pages_keep_the_site_name_after_the_page_title(): void
+    {
+        $content = $this->get(route('lists.sale'))->assertOk()->getContent();
+
+        $this->assertStringEndsWith(' | UQ 搜尋', trim($this->xpath($content)->query('//title')->item(0)->textContent));
+    }
+
     private function productPage(): string
     {
         return $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
