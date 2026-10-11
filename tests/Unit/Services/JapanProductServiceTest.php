@@ -180,9 +180,6 @@ class JapanProductServiceTest extends TestCase
         );
     }
 
-    /**
-     * 從頭開始、每一批件數都對得上總數，才是完整掃描，這時才做缺貨判定。
-     */
     public function test_a_full_clean_crawl_marks_products_as_stocked_out()
     {
         Cache::flush();
@@ -197,9 +194,6 @@ class JapanProductServiceTest extends TestCase
         $this->assertSame(CrawlOutcome::Succeeded, $service->fetchAllProducts('UNIQLO')->outcome);
     }
 
-    /**
-     * 看到的目錄可能不完整時一律不做缺貨判定，否則沒看到的那一段會被整批標成下架。
-     */
     #[DataProvider('incompleteCatalogs')]
     public function test_an_incomplete_catalog_never_marks_products_as_stocked_out(
         ?int $checkpoint,
@@ -251,9 +245,6 @@ class JapanProductServiceTest extends TestCase
         return new JapanProductService($repository);
     }
 
-    /**
-     * 一批回 200 加空清單常是一時的軟擋：先重打，重打後件數對得上就照常做缺貨判定。
-     */
     public function test_a_batch_that_comes_back_short_once_is_retried()
     {
         Cache::flush();
@@ -319,10 +310,6 @@ class JapanProductServiceTest extends TestCase
         $this->assertStringContainsString('已經 3 天沒有執行缺貨判定', $result->note);
     }
 
-    /**
-     * 有幾件寫不進去時目錄其實看完了：缺貨判定照做，但要排除那幾件，
-     * 否則它們會因為 updated_at 沒更新而被冤枉下架。
-     */
     public function test_products_that_failed_to_save_are_excluded_from_stockout()
     {
         Cache::flush();
@@ -341,9 +328,6 @@ class JapanProductServiceTest extends TestCase
         $this->assertSame('已執行缺貨判定，排除 1 件寫入失敗商品', $result->note);
     }
 
-    /**
-     * 寫不進去、連 l1Id 都拿不到的那一筆排除不了，只能整輪不做缺貨判定。
-     */
     public function test_a_failure_without_an_l1_id_skips_stockout()
     {
         Cache::flush();

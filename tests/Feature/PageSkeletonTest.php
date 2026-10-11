@@ -284,9 +284,6 @@ class PageSkeletonTest extends TestCase
     /**
      * 右欄不用小標題分段，標題會比它標的內容還長。
      */
-    /**
-     * 章節選單會直接跳到「歷史價格」，廣告放在那一段之前就會被跳過。
-     */
     public function test_the_product_page_ad_comes_after_the_price_chart(): void
     {
         config(['app.adsense.client_id' => 'ca-pub-0000000000000000', 'app.adsense.slot_id' => '0000000000']);
@@ -324,9 +321,6 @@ class PageSkeletonTest extends TestCase
 
     /**
      * 商品資訊與分類是屬性資料，不擠在價格與按鈕旁邊，是章節選單的第一段。
-     */
-    /**
-     * 商品頁的章節選單捲過商品主區才出現，清單頁維持一路黏在導覽列下方。
      */
     public function test_only_the_product_page_section_menu_waits_for_the_hero_to_scroll_away(): void
     {
@@ -589,10 +583,6 @@ class PageSkeletonTest extends TestCase
         $this->assertSame("{$base}?page=2", $canonical("{$base}?page=2&q=%E4%B8%8A%E8%A1%A3"));
     }
 
-    /**
-     * 導覽列的下拉（桌機的分組與手機的「選單」）要能用鍵盤打開：tocas.js 只綁
-     * click，觸發字是 <div> 的話根本進不了 Tab 順序。
-     */
     public function test_every_nav_dropdown_opens_from_a_keyboard_reachable_button(): void
     {
         $xpath = $this->xpath($this->get(route('home'))->assertOk()->getContent());
@@ -650,9 +640,6 @@ class PageSkeletonTest extends TestCase
 
     /**
      * @param  array<string, mixed>  $overrides  這一個案例才需要的欄位（標籤用的 identity、說明用的 instruction）
-     */
-    /**
-     * cdnjs 的 CSS 與字型都是 crossorigin 載入，預連要同模式才共用連線。
      */
     public function test_the_cdnjs_preconnect_matches_the_cors_requests(): void
     {

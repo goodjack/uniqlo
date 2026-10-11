@@ -41,9 +41,6 @@ class ListSearchTest extends TestCase
         $this->assertStringContainsString('data-instant-filter', $content);
     }
 
-    /**
-     * 即時篩靠輸入框的初始值認得「伺服器篩過哪些詞」，放寬時才知道要改成提示。
-     */
     public function test_the_instant_filter_knows_the_server_query_and_has_a_hint_slot(): void
     {
         $this->seedSaleProduct(['name' => '短袖 圓領T恤', 'code' => '474238', 'sex' => '男裝']);

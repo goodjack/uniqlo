@@ -23,9 +23,7 @@ class StructuredDataTest extends TestCase
         $this->assertSame('女裝 ZO&FRIENDS 短袖上衣', $product['name']);
     }
 
-    /**
-     * 每天都會重抓，priceValidUntil 填抓取當天，Google 存下的版本很快就變成過去的日期。
-     */
+    // 每天都會重抓，填抓取當天的話，Google 存下的版本很快就變成過去的日期
     public function test_the_product_offer_has_a_currency_and_no_validity_date(): void
     {
         $this->seedProduct(['lowest_record_price' => 590, 'highest_record_price' => 1290]);
@@ -58,9 +56,6 @@ class StructuredDataTest extends TestCase
         $this->assertSame('zh_TW', $this->meta($this->productPage(), 'og:locale'));
     }
 
-    /**
-     * 只是文字的中間層（品牌頂層）沒有網址，Google 不接受，要跳過；最後一層是當頁，可以沒有網址。
-     */
     public function test_the_breadcrumb_list_skips_crumbs_without_a_link(): void
     {
         $product = $this->seedProduct();
@@ -127,8 +122,6 @@ class StructuredDataTest extends TestCase
     }
 
     /**
-     * 社群標題由版型統一輸出，頁面自己再寫一份就會重複
-     *
      * @dataProvider pagesWithATitle
      */
     public function test_every_page_has_one_social_title(string $name, array $parameters): void
@@ -164,10 +157,6 @@ class StructuredDataTest extends TestCase
         ];
     }
 
-    /**
-     * 官方會把共用的其他編號串在名稱裡，對外標題要另外接上自己的編號，搜尋結果與分享
-     * 才看得出是哪一件；頁面上的 h1 與麵包屑不接，編號已經寫在 h1 下一行。
-     */
     public function test_outward_product_titles_end_with_the_products_own_code(): void
     {
         $this->seedProduct(['name' => '繭型牛仔褲482280 / 490633', 'code' => '487973']);

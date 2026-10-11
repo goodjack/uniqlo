@@ -794,10 +794,6 @@ class HmallProductServiceTest extends TestCase
         $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
     }
 
-    /**
-     * 第 1 頁有貨、後面幾頁被軟擋（200 加空清單，或連總數都改小讓翻頁提早結束），
-     * 請求全都「成功」，但後面那一段根本沒看到，不可以做缺貨判定。
-     */
     #[DataProvider('softBlockedLaterPages')]
     public function test_later_pages_coming_back_empty_skip_stockout(int $softBlockedProductSum)
     {
@@ -829,9 +825,6 @@ class HmallProductServiceTest extends TestCase
         ];
     }
 
-    /**
-     * 最後一頁回空清單、總數照舊，同樣是沒看到那幾件。
-     */
     public function test_a_short_last_page_skips_stockout()
     {
         Cache::flush();
@@ -853,9 +846,6 @@ class HmallProductServiceTest extends TestCase
         );
     }
 
-    /**
-     * 一頁回 200 加空清單常是一時的軟擋：先重打，重打後件數對得上就照常做缺貨判定。
-     */
     public function test_a_page_that_comes_back_short_once_is_retried()
     {
         Cache::flush();
@@ -878,9 +868,6 @@ class HmallProductServiceTest extends TestCase
         $this->assertSame(2, $page2Requests);
     }
 
-    /**
-     * 重打到最後一次仍然不足，才照實記成缺口；不足的那頁有幾件就寫幾件。
-     */
     public function test_a_page_that_stays_short_after_every_retry_is_a_gap()
     {
         Cache::flush();
@@ -910,9 +897,6 @@ class HmallProductServiceTest extends TestCase
         Http::assertSentCount(4);
     }
 
-    /**
-     * 抓取途中有商品下架、總數少了一件，最後一頁跟著變短是正常的，照做缺貨判定。
-     */
     public function test_the_total_shrinking_slightly_on_the_last_page_still_runs_stockout()
     {
         Cache::flush();
@@ -930,9 +914,6 @@ class HmallProductServiceTest extends TestCase
         $this->assertSame(CrawlOutcome::Succeeded, $this->service->fetchAllHmallProducts('UNIQLO')->outcome);
     }
 
-    /**
-     * 403 的頁碼要寫被擋的那一頁；更早已經有缺頁時另外講，續跑點退回最早的缺口。
-     */
     public function test_a_block_after_an_earlier_gap_names_both_pages()
     {
         Cache::flush();
@@ -957,10 +938,6 @@ class HmallProductServiceTest extends TestCase
         $this->assertSame(2, Cache::get('hmall_products:page:UNIQLO'));
     }
 
-    /**
-     * 第 1 頁就回一個很小、但前後一致的總數時看不出缺口；看到的件數不到在售的
-     * 一半，一定是看漏了，照做會把整個品牌標成缺貨。
-     */
     public function test_seeing_far_fewer_products_than_are_in_stock_skips_stockout()
     {
         Cache::flush();
@@ -981,9 +958,6 @@ class HmallProductServiceTest extends TestCase
         );
     }
 
-    /**
-     * 官網真的一次下架超過一半時，維運者確認後用 --accept-shrink 放行；只放行這一道。
-     */
     public function test_accepting_a_shrink_runs_stockout_despite_seeing_few_products()
     {
         Cache::flush();
@@ -1001,9 +975,6 @@ class HmallProductServiceTest extends TestCase
         $this->assertSame(CrawlOutcome::Succeeded, $result->outcome);
     }
 
-    /**
-     * 放行只管「看到的太少」，缺頁照樣不做缺貨判定。
-     */
     public function test_accepting_a_shrink_does_not_bypass_a_gap()
     {
         Cache::flush();
@@ -1022,9 +993,6 @@ class HmallProductServiceTest extends TestCase
         $this->assertSame('未執行缺貨判定，目錄有缺頁（最早在第 2 頁）', $result->note);
     }
 
-    /**
-     * 缺貨判定連續超過兩天沒做，改成要人處理的結果，說明裡寫出幾天沒做。
-     */
     public function test_skipping_stockout_for_too_many_days_needs_attention()
     {
         Cache::flush();

@@ -203,9 +203,6 @@ class FavoriteTest extends TestCase
         $this->postJson(route('favorites.cards'), ['items' => $items])->assertOk();
     }
 
-    /**
-     * 收藏存在使用者的瀏覽器，壞掉的那筆略過，其他照常回卡片，不讓整份收藏載入不到。
-     */
     #[DataProvider('malformedItems')]
     public function test_a_malformed_item_is_skipped_while_the_rest_still_render(mixed $badItem): void
     {

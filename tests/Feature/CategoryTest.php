@@ -230,10 +230,6 @@ class CategoryTest extends TestCase
         $this->get($url)->assertStatus(429);
     }
 
-    /**
-     * 限流判斷「有沒有關鍵字」要跟實際篩選讀同一份：篩選只認網址參數，內文帶
-     * 空的 q 不能讓網址上的 q 逃過限流。
-     */
     public function test_an_empty_q_in_a_json_body_does_not_bypass_the_category_search_limit(): void
     {
         $this->attachProduct($this->createProduct(), 'all_women-tops');
@@ -247,9 +243,6 @@ class CategoryTest extends TestCase
         $jsonWithEmptyQ()->assertStatus(429);
     }
 
-    /**
-     * 只有內文帶 q 時，篩選不會套用，限流也不該算它。
-     */
     public function test_a_q_only_in_a_json_body_neither_filters_nor_counts_against_the_limit(): void
     {
         $this->attachProduct($this->createProduct(['name' => '寬版上衣']), 'all_women-tops');
@@ -264,9 +257,6 @@ class CategoryTest extends TestCase
         $response->assertSee('直筒長褲');
     }
 
-    /**
-     * 頁碼跟分頁連結、canonical 一樣只認網址參數，內文帶 page 不能換頁。
-     */
     public function test_a_page_number_in_a_json_body_is_ignored(): void
     {
         for ($i = 1; $i <= 25; $i++) {
@@ -295,9 +285,6 @@ class CategoryTest extends TestCase
         $this->get(route('search.index', ['query' => '上衣']))->assertOk();
     }
 
-    /**
-     * code 來自官網：站內產生的連結打回去，要拿到同一個分類。
-     */
     #[DataProvider('unusualCodes')]
     public function test_links_to_a_category_with_unusual_characters_lead_back_to_it(string $code): void
     {

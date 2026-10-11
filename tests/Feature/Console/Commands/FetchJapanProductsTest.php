@@ -84,9 +84,6 @@ class FetchJapanProductsTest extends TestCase
             ->assertExitCode(0);
     }
 
-    /**
-     * 部分成功（例如目錄有缺頁、今天沒做缺貨判定）要讓排程看得出來，並送出附說明的結束通知。
-     */
     public function test_the_accept_shrink_option_is_passed_to_the_service()
     {
         $mockService = $this->createMock(JapanProductService::class);
