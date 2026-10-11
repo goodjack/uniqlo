@@ -247,7 +247,7 @@
         @include('partials.breadcrumb', ['crumbs' => $crumbs])
     </div>
 
-    <div class="ts very padded horizontally fitted attached fluid segment">
+    <div class="ts very padded horizontally fitted attached fluid segment" id="product_hero">
         <div class="ts container relaxed grid">
             <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
                 <div class="ts fluid container">
@@ -347,7 +347,7 @@
         </div>
     </div>
 
-    @include('partials.section-menu', ['id' => 'product_menu', 'items' => $sections])
+    @include('partials.section-menu', ['id' => 'product_menu', 'items' => $sections, 'revealAfter' => 'product_hero'])
 
     @if ($shown['facts'])
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">

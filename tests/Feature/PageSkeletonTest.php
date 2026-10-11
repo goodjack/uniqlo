@@ -325,6 +325,26 @@ class PageSkeletonTest extends TestCase
     /**
      * 商品資訊與分類是屬性資料，不擠在價格與按鈕旁邊，是章節選單的第一段。
      */
+    /**
+     * 商品頁的章節選單捲過商品主區才出現，清單頁維持一路黏在導覽列下方。
+     */
+    public function test_only_the_product_page_section_menu_waits_for_the_hero_to_scroll_away(): void
+    {
+        $this->seedProduct(['identity' => json_encode(['concessional_rate'])]);
+
+        $product = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, $this->countNodes($product, '//*[contains(@class, "uq-section-menu")][@data-reveal-after="product_hero"]'));
+        $this->assertSame(1, $this->countNodes($product, '//*[@id="product_hero"]'));
+
+        $list = $this->get(route('lists.sale'))->assertOk()->getContent();
+
+        $this->assertSame(1, $this->countNodes($list, '//*[contains(@class, "uq-section-menu")]'));
+        $this->assertSame(0, $this->countNodes($list, '//*[@data-reveal-after]'));
+    }
+
     public function test_the_facts_live_in_their_own_section(): void
     {
         $this->seedProduct();

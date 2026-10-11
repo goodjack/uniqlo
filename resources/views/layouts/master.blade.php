@@ -197,6 +197,41 @@
                         firstItem.classList.add('active');
                     }
                 }
+
+                const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+                // 選單可以橫向捲動，目前這一段要留在看得見的地方；只捲選單本身，不動整頁
+                new MutationObserver(function () {
+                    const active = sectionMenu.querySelector('.item.active');
+
+                    if (!active) {
+                        return;
+                    }
+
+                    const menuBox = sectionMenu.getBoundingClientRect();
+                    const itemBox = active.getBoundingClientRect();
+
+                    if (itemBox.left < menuBox.left || itemBox.right > menuBox.right) {
+                        sectionMenu.scrollBy({
+                            left: itemBox.left - menuBox.left - (menuBox.width - itemBox.width) / 2,
+                            behavior: reduceMotion ? 'auto' : 'smooth'
+                        });
+                    }
+                }).observe(sectionMenu, { subtree: true, attributes: true, attributeFilter: ['class'] });
+
+                const wrapper = sectionMenu.closest('.uq-section-menu');
+                const revealAfter = wrapper.dataset.revealAfter && document.getElementById(wrapper.dataset.revealAfter);
+
+                if (revealAfter && 'IntersectionObserver' in window) {
+                    const navHeight = getComputedStyle(document.documentElement).getPropertyValue('--uq-nav-height').trim();
+
+                    wrapper.classList.add('is-floating');
+
+                    // 主區整個捲到導覽列底下之後才滑出
+                    new IntersectionObserver(function (entries) {
+                        wrapper.classList.toggle('is-shown', !entries[0].isIntersecting);
+                    }, { rootMargin: '-' + navHeight + ' 0px 0px 0px' }).observe(revealAfter);
+                }
             }
         })();
     </script>

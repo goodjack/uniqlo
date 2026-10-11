@@ -39,8 +39,8 @@
 
     /* 固定導覽列高度；body 上方留白與錨點偏移都讀這個值 */
     --uq-nav-height: 64px;
-    /* .uq-section-menu 的高度：項目 48 + 軌道 2 + 分隔線 1 */
-    --uq-section-menu-height: 51px;
+    /* .uq-section-menu 的高度：項目 36 + 軌道 2 + 分隔線 1 */
+    --uq-section-menu-height: 39px;
 }
 
 /* Tocas 對 button、select、input、textarea 全域 outline: 0，鍵盤使用者看不到焦點 */
@@ -408,13 +408,13 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
 
 .uq-section-menu .ts.menu.pointing.secondary .item {
     flex: 0 0 auto;
-    margin: 0 24px 0 0;
-    padding: 12px 0;
+    margin: 0 20px 0 0;
+    padding: 8px 0;
     border-radius: 0;
     background: transparent;
     color: var(--uq-text);
     /* 明寫行高，--uq-section-menu-height 才算得出來 */
-    line-height: 24px;
+    line-height: 20px;
     white-space: nowrap;
 }
 
@@ -435,9 +435,35 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
 }
 
 .uq-section-menu .ts.menu.pointing.secondary .item.active {
-    box-shadow: inset 0 -2px 0 var(--uq-brand);
+    box-shadow: inset 0 -1.5px 0 var(--uq-brand);
     color: var(--uq-ink);
     font-weight: 600;
+}
+
+/*
+ * 商品頁的章節選單平常收在導覽列後面、不佔版面，捲過商品主區才滑出來；隱藏時用
+ * visibility 讓它點不到也 Tab 不到。is-floating 由 JS 加上，沒有 JS 時維持 sticky。
+ */
+.uq-section-menu.is-floating {
+    position: fixed;
+    left: 0;
+    right: 0;
+    transform: translateY(-100%);
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0s linear 0.2s;
+}
+
+.uq-section-menu.is-floating.is-shown {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.2s ease, visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .uq-section-menu.is-floating,
+    .uq-section-menu.is-floating.is-shown {
+        transition: none;
+    }
 }
 
 /*
