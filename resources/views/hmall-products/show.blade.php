@@ -146,6 +146,7 @@
 @endsection
 
 @section('css')
+    @include('partials.font-awesome')
     <style>
         .ts.card .overlapped.content.color-header {
             top: unset;

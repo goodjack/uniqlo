@@ -45,17 +45,6 @@
         integrity="sha512-D41DQHff3/kvdRtWlfJ69BltxL2ovJ2hRFiQopYGGiSFgJE4i5Un3qaqlKCAuo+00yaMzdcw7aVRl11taevIdw=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-    {{-- 分享相關的品牌圖示（LINE、X、新版 Facebook）Tocas 內建的圖示沒有，其他圖示仍用 Tocas --}}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/fontawesome.min.css"
-        integrity="sha512-v8QQ0YQ3H4K6Ic3PJkym91KoeNT5S3PnDKvqnwqFD1oiqIl653crGZplPdU5KKtHjO0QKcQ2aUlQZYjHczkmGw=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/brands.min.css"
-        integrity="sha512-58P9Hy7II0YeXLv+iFiLCv1rtLW47xmiRpC1oFafeKNShp8V5bKV/ciVtYqbk2YfxXQMt58DjNfkXFOn62xE+g=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/solid.min.css"
-        integrity="sha512-DzC7h7+bDlpXPDQsX/0fShhf1dLxXlHuhPBkBo/5wJWRoTU6YL7moeiNoej6q3wh5ti78C57Tu1JwTNlcgHSjg=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
-
     {{-- 跨頁共用的元件樣式。放在 Tocas 之後才蓋得掉它，放在 @yield('css') 之前才蓋得掉這裡 --}}
     <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ filemtime(public_path('css/app.css')) }}">
     <style>
@@ -203,6 +192,19 @@
     </script>
     <script>
         (function () {
+            let busyTimer;
+
+            function clearBusy() {
+                clearTimeout(busyTimer);
+                document.body.classList.remove('uq-busy');
+                document.querySelectorAll('[data-shows-busy] .loading').forEach(function (control) {
+                    control.classList.remove('loading');
+                });
+                document.querySelectorAll('[data-shows-busy] [aria-busy]').forEach(function (control) {
+                    control.removeAttribute('aria-busy');
+                });
+            }
+
             function markBusy(event, control) {
                 if (document.body.classList.contains('uq-busy')) {
                     event.preventDefault();
@@ -216,6 +218,9 @@
                 } else if (control) {
                     control.setAttribute('aria-busy', 'true');
                 }
+
+                // 按了停止或網路斷掉時頁面不會換，也不會有任何事件，只能靠時間放行
+                busyTimer = setTimeout(clearBusy, 10000);
             }
 
             document.addEventListener('submit', function (event) {
@@ -236,15 +241,7 @@
             });
 
             // 按上一頁回來時，瀏覽器可能直接還原離開前的畫面
-            window.addEventListener('pageshow', function () {
-                document.body.classList.remove('uq-busy');
-                document.querySelectorAll('[data-shows-busy] .loading').forEach(function (control) {
-                    control.classList.remove('loading');
-                });
-                document.querySelectorAll('[data-shows-busy] [aria-busy]').forEach(function (control) {
-                    control.removeAttribute('aria-busy');
-                });
-            });
+            window.addEventListener('pageshow', clearBusy);
         })();
     </script>
     <script>

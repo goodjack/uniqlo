@@ -195,6 +195,17 @@ class PageSkeletonTest extends TestCase
         );
     }
 
+    public function test_font_awesome_loads_only_on_product_pages(): void
+    {
+        $this->seedProduct();
+
+        $this->get(route('home'))->assertOk()->assertDontSee('font-awesome');
+        $this->get(route('lists.sale'))->assertOk()->assertDontSee('font-awesome');
+        $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->assertSee('font-awesome');
+    }
+
     public function test_the_product_page_main_image_loads_right_away(): void
     {
         $this->seedProduct();
