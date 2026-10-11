@@ -196,6 +196,23 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
+     * 主圖是商品頁第一眼要看到的圖，不能等頁尾的延後載入腳本才補上網址。
+     */
+    public function test_the_product_page_main_image_loads_right_away(): void
+    {
+        $this->seedProduct();
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(
+            1,
+            $this->countNodes($content, '//a[@data-lightbox]/img[@fetchpriority="high"][starts-with(@src, "http")][not(@loading)]')
+        );
+    }
+
+    /**
      * 屬性標籤（豐富尺碼、男女適穿等）只在商品頁，是決定要不要買時才看的細節。
      */
     public function test_the_attribute_labels_stay_off_the_cards(): void

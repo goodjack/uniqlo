@@ -252,7 +252,7 @@
                     <a class="ts centered image" href="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
                         rel="nofollow noopener" data-lightbox="image"
                         data-title="{{ $productName }}">
-                        <x-lazy-load-image class="ts centered image"
+                        <x-lazy-load-image class="ts centered image" :priority="true"
                             src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
                             alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
                     </a>
