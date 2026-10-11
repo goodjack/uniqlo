@@ -36,7 +36,7 @@
 @section('content')
     <div class="ts fluid slate">
         <i class="sitemap faded icon"></i>
-        <span class="header">商品分類</span>
+        <h1 class="unstyled header">商品分類</h1>
         <span class="description">只列出目前還買得到商品的分類</span>
     </div>
 

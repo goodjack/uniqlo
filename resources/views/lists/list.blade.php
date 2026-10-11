@@ -42,7 +42,7 @@
 @section('content')
     <div class="ts fluid slate">
         <i class="{{ $typeStyle }} {{ $typeIcon }} icon"></i>
-        <span class="header">{{ $typeName }}</span>
+        <h1 class="unstyled header">{{ $typeName }}</h1>
         {{-- list-search.js 即時篩之後會用 data-sort-text 重組這句話 --}}
         <span class="description" data-instant-subtitle data-sort-text="{{ $sortText }}">
             @if ($currentQ !== '')

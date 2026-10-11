@@ -51,7 +51,7 @@
 @section('content')
     <div class="ts fluid slate">
         <i class="tags faded icon"></i>
-        <span class="header">{{ $category->name }}</span>
+        <h1 class="unstyled header">{{ $category->name }}</h1>
         {{-- 分類不提供品牌篩選：兩家的分類 code 各成一套，一個分類只會有一家的商品 --}}
         <span class="description">
             <div class="ts mini @if ($brand === \App\Enums\Brand::Gu) info @else negative @endif label">

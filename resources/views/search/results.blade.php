@@ -19,7 +19,7 @@
 @section('content')
     <div class="ts fluid slate">
         <i class="search faded icon"></i>
-        <span class="header">搜尋結果</span>
+        <h1 class="unstyled header">搜尋結果</h1>
         <span class="description">{{ $subtitle }}</span>
     </div>
 

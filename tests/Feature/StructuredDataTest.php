@@ -80,7 +80,7 @@ class StructuredDataTest extends TestCase
     {
         $content = $this->get(route('home'))->assertOk()->getContent();
 
-        $this->assertSame('UQ 搜尋｜UNIQLO 與 GU 價格查詢比價', trim($this->xpath($content)->query('//title')->item(0)->textContent));
+        $this->assertSame('UQ 搜尋｜UNIQLO 與 GU 價格查詢比價', $this->title($content));
         $this->assertNotEmpty($this->meta($content, 'description'));
         $this->assertSame(route('home'), $this->xpath($content)->query('//link[@rel="canonical"]')->item(0)?->getAttribute('href'));
 
@@ -91,9 +91,9 @@ class StructuredDataTest extends TestCase
 
     public function test_other_pages_keep_the_site_name_after_the_page_title(): void
     {
-        $content = $this->get(route('lists.sale'))->assertOk()->getContent();
+        $content = $this->get(route('categories.index'))->assertOk()->getContent();
 
-        $this->assertStringEndsWith(' | UQ 搜尋', trim($this->xpath($content)->query('//title')->item(0)->textContent));
+        $this->assertSame('商品分類 | UQ 搜尋', $this->title($content));
     }
 
     public function test_the_google_search_page_is_not_indexed(): void
@@ -112,6 +112,40 @@ class StructuredDataTest extends TestCase
             ->getContent();
 
         $this->assertSame('noindex, follow', $this->meta($content, 'robots'));
+    }
+
+    /**
+     * @dataProvider pagesWithATitle
+     */
+    public function test_every_page_has_exactly_one_h1(string $name, array $parameters): void
+    {
+        $this->seedProduct();
+
+        $content = $this->get(route($name, $parameters))->assertOk()->getContent();
+
+        $this->assertSame(1, $this->xpath($content)->query('//h1')->length, "{$name} 應該剛好有一個 h1");
+    }
+
+    public static function pagesWithATitle(): array
+    {
+        return [
+            '首頁' => ['home', []],
+            '清單頁' => ['lists.sale', []],
+            '分類總覽' => ['categories.index', []],
+            '搜尋結果' => ['search.show', ['query' => '外套']],
+            '收藏' => ['favorites.index', []],
+            '商品頁' => ['uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']],
+            'Google 搜尋頁' => ['search.google-cse', []],
+            '更新日誌' => ['pages.changelog', []],
+        ];
+    }
+
+    public function test_the_not_found_page_has_a_chinese_title_and_one_h1(): void
+    {
+        $content = $this->get('/this-page-does-not-exist')->assertNotFound()->getContent();
+
+        $this->assertSame('找不到頁面 | UQ 搜尋', $this->title($content));
+        $this->assertSame(1, $this->xpath($content)->query('//h1')->length);
     }
 
     private function productPage(): string
@@ -186,6 +220,14 @@ class StructuredDataTest extends TestCase
         $node = $this->xpath($html)->query("//meta[@property='{$property}' or @name='{$property}']")->item(0);
 
         return $node?->getAttribute('content');
+    }
+
+    /**
+     * 跟瀏覽器的 document.title 一樣，頭尾去空白、中間連續空白併成一個
+     */
+    private function title(string $html): string
+    {
+        return trim(preg_replace('/\s+/u', ' ', $this->xpath($html)->query('//title')->item(0)->textContent));
     }
 
     private function xpath(string $html): DOMXPath
