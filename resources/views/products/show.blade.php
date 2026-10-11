@@ -16,50 +16,45 @@ $shareUrl = [
 
 @section('title', "{$product->name}")
 
+@section('og-type', 'product')
+
 @section('json-ld')
-    <script type="application/ld+json">
-        {
-            "@context": "https://schema.org/",
-            "@type": "Product",
-            "sku": "{{ $product->id }}",
-            "name": "{{ $product->name }} | UNIQLO 比價 | UQ 搜尋",
-            "description": {!! json_encode($product->comment) !!},
-            "image": [
-                "{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
+    @php
+        $productJsonLd = [
+            '@context' => 'https://schema.org/',
+            '@type' => 'Product',
+            'sku' => (string) $product->id,
+            'name' => $product->name,
+            'description' => $product->comment,
+            'image' => [$productPresenter->getProductMainImageUrl($product, $relatedHmallProducts)],
+            'itemCondition' => 'https://schema.org/NewCondition',
+            'brand' => ['@type' => 'Brand', 'name' => 'UNIQLO'],
+            'offers' => [
+                '@type' => 'AggregateOffer',
+                'lowPrice' => $product->min_price,
+                'highPrice' => $product->max_price,
+                'priceCurrency' => 'TWD',
+                'availability' => $productPresenter->getProductAvailabilityForJsonLd($product),
+                'itemCondition' => 'https://schema.org/NewCondition',
+                'url' => route('products.show', ['product' => $product->id]),
+                'seller' => ['@type' => 'Organization', 'name' => 'UNIQLO'],
             ],
-            "itemCondition": "http://schema.org/NewCondition",
-            "brand": {
-                "@type": "Brand",
-                "name": "UNIQLO"
-            },
-            "offers": {
-                "@type": "AggregateOffer",
-                "lowPrice": "{{ $product->min_price }}",
-                "highPrice": "{{ $product->max_price }}",
-                "priceCurrency": "TWD",
-                "priceValidUntil": "{{ $product->updated_at->toDateString() }}",
-                "availability": "{{ $productPresenter->getProductAvailabilityForJsonLd($product) }}",
-                "itemCondition": "http://schema.org/NewCondition",
-                "url": "{{ route('products.show', ['product' => $product->id]) }}",
-                "seller": {
-                    "@type": "Organization",
-                    "name": "UNIQLO"
-                }
-            }
-            @if ($product->review_count > 0 && !empty($product->review_rating))
-                , "aggregateRating": {
-                    "ratingValue": "{{ $product->review_rating }}",
-                    "ratingCount": "{{ $product->review_count }}"
-                }
-            @endif
+        ];
+
+        if ($product->review_count > 0 && ! empty($product->review_rating)) {
+            $productJsonLd['aggregateRating'] = [
+                '@type' => 'AggregateRating',
+                'ratingValue' => $product->review_rating,
+                'ratingCount' => $product->review_count,
+            ];
         }
-    </script>
+    @endphp
+    @include('partials.json-ld', ['data' => $productJsonLd])
 @endsection
 
 @section('metadata')
     <link rel="canonical" href="{{ route('products.show', ['product' => $product->id]) }}" />
     <meta name="description" content="{{ $productPresenter->getSocialMediaDescription($product) }}" />
-    <meta property="og:type" content="og:product" />
     <meta property="og:title" content="{{ $product->name }} | UQ 搜尋" />
     <meta property="og:url" content="{{ route('products.show', ['product' => $product->id]) }}" />
     <meta property="og:description" content="{{ $productPresenter->getSocialMediaDescription($product) }}" />

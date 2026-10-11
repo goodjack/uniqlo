@@ -250,13 +250,6 @@ class HmallProductPresenter
         return json_encode($data);
     }
 
-    public function getDescriptionForJsonLd($hmallProduct)
-    {
-        $description = $this->getSocialMediaDescription($hmallProduct);
-
-        return json_encode($description);
-    }
-
     public function getProductAvailabilityForJsonLd($hmallProduct)
     {
         if ($hmallProduct->is_stockout) {

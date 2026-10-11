@@ -92,52 +92,48 @@
 
 @section('title', $hmallProductPresenter->getFullName($hmallProduct))
 
+@section('og-type', 'product')
+
 @section('json-ld')
-    <script type="application/ld+json">
-        {
-            "@context": "https://schema.org/",
-            "@type": "Product",
-            "sku": "{{ $hmallProduct->product_code }}",
-            "productID": "{{ $hmallProduct->code }}",
-            "model": "{{ $hmallProduct->code }}",
-            "name": "{{ $hmallProductPresenter->getFullName($hmallProduct) }} | UNIQLO 比價 | UQ 搜尋",
-            "description": {!! $hmallProductPresenter->getDescriptionForJsonLd($hmallProduct) !!},
-            "image": [
-                "{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
+    @php
+        $productJsonLd = [
+            '@context' => 'https://schema.org/',
+            '@type' => 'Product',
+            'sku' => $hmallProduct->product_code,
+            'productID' => $hmallProduct->code,
+            'model' => $hmallProduct->code,
+            'name' => $productName,
+            'description' => $hmallProductPresenter->getSocialMediaDescription($hmallProduct),
+            'image' => [$hmallProductPresenter->getMainFirstPic($hmallProduct)],
+            'itemCondition' => 'https://schema.org/NewCondition',
+            'brand' => ['@type' => 'Brand', 'name' => $hmallProduct->brand],
+            // 價格區間刻意標歷史最低與最高價，跟頁面上顯示的一致
+            'offers' => [
+                '@type' => 'AggregateOffer',
+                'lowPrice' => $hmallProduct->lowest_record_price,
+                'highPrice' => $hmallProduct->highest_record_price,
+                'priceCurrency' => 'TWD',
+                'availability' => $hmallProductPresenter->getProductAvailabilityForJsonLd($hmallProduct),
+                'itemCondition' => 'https://schema.org/NewCondition',
+                'url' => $currentUrl,
+                'seller' => ['@type' => 'Organization', 'name' => $hmallProduct->brand],
             ],
-            "itemCondition": "http://schema.org/NewCondition",
-            "brand": {
-                "@type": "Brand",
-                "name": "{{ $hmallProduct->brand }}"
-            },
-            "offers": {
-                "@type": "AggregateOffer",
-                "lowPrice": "{{ $hmallProduct->lowest_record_price }}",
-                "highPrice": "{{ $hmallProduct->highest_record_price }}",
-                "priceCurrency": "TWD",
-                "priceValidUntil": "{{ $hmallProduct->updated_at->toDateString() }}",
-                "availability": "{{ $hmallProductPresenter->getProductAvailabilityForJsonLd($hmallProduct) }}",
-                "itemCondition": "http://schema.org/NewCondition",
-                "url": "{{ $currentUrl }}",
-                "seller": {
-                    "@type": "Organization",
-                    "name": "{{ $hmallProduct->brand }}"
-                }
-            }
-            @if ($hmallProduct->evaluation_count > 0 && !empty($hmallProduct->score))
-                , "aggregateRating": {
-                    "ratingValue": "{{ $hmallProduct->score }}",
-                    "ratingCount": "{{ $hmallProduct->evaluation_count }}"
-                }
-            @endif
+        ];
+
+        if ($hmallProduct->evaluation_count > 0 && ! empty($hmallProduct->score)) {
+            $productJsonLd['aggregateRating'] = [
+                '@type' => 'AggregateRating',
+                'ratingValue' => $hmallProduct->score,
+                'ratingCount' => $hmallProduct->evaluation_count,
+            ];
         }
-    </script>
+    @endphp
+    @include('partials.json-ld', ['data' => $productJsonLd])
 @endsection
 
 @section('metadata')
     <link rel="canonical" href="{{ $currentUrl }}" />
     <meta name="description" content="{{ $hmallProductPresenter->getSocialMediaDescription($hmallProduct) }}" />
-    <meta property="og:type" content="og:product" />
     <meta property="og:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} | UQ 搜尋" />
     <meta property="og:url" content="{{ $currentUrl }}" />
     <meta property="og:description" content="{{ $hmallProductPresenter->getSocialMediaDescription($hmallProduct) }}" />

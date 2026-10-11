@@ -11,10 +11,11 @@
 
 @section('title', "{$hmallProductPresenter->getFullName($hmallProduct)} 的 StyleHint 網友穿搭靈感")
 
+@section('og-type', 'product')
+
 @section('metadata')
     <link rel="canonical" href="{{ $currentUrl }}" />
     <meta name="description" content="共 {{ $styleHints->total() }} 張 StyleHint 網友穿搭靈感" />
-    <meta property="og:type" content="og:product" />
     <meta property="og:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} 的 StyleHint 網友穿搭靈感 | UQ 搜尋" />
     <meta property="og:url" content="{{ $currentUrl }}" />
     <meta property="og:description" content="共 {{ $styleHints->total() }} 張 StyleHint 網友穿搭靈感" />

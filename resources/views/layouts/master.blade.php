@@ -16,6 +16,9 @@
 
     @yield('json-ld')
 
+    <meta property="og:type" content="@yield('og-type', 'website')" />
+    <meta property="og:site_name" content="UQ 搜尋" />
+    <meta property="og:locale" content="zh_TW" />
     @yield('metadata')
 
     <link rel="preconnect" href="https://im.uniqlo.com">
