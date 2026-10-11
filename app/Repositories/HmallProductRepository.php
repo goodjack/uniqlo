@@ -822,7 +822,7 @@ class HmallProductRepository extends Repository
                 // 缺貨判定靠 updated_at；資料沒變時 save() 不會碰它，商品會被誤標缺貨
                 $model->updated_at = now();
 
-                // 價格與歷史要一起回滾：新價格先寫進去而歷史沒寫的話，下次抓到同價
+                // 價格與歷史要一起還原：新價格先寫進去而歷史沒寫的話，下次抓到同價
                 // 會被判「沒變」，價格走勢就永久缺一筆
                 DB::transaction(function () use ($model, $isChangedThePrice) {
                     $model->save();
@@ -1229,7 +1229,7 @@ class HmallProductRepository extends Repository
 
         // ORDER BY 的名次清單跟上面的 whereIn 一樣要走 binding。以前這裡是把
         // 商品編號加引號直接拼進字串，而編號來自 GA 的網址片段（外部值），
-        // 等於把 ORDER BY 開放給外部寫入。編號那端已經有白名單，這端用佔位符，
+        // 等於把 ORDER BY 開放給外部寫入。編號那端已經有白名單，這端用 ? 參數，
         // 兩層都守住。
         $orderByField = sprintf(
             'FIELD(CONCAT(brand, \'_\', product_code), %s)',

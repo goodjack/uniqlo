@@ -309,7 +309,6 @@ body:has(.uq-filter-switch:checked) .uq-filter-toggle {
     margin-bottom: 0;
 }
 
-/* 篩選、排序、品牌按下後等伺服器的這段時間，讓人知道有在動（master.blade.php 的 markBusy） */
 .uq-product-cards {
     transition: opacity .2s;
 }
@@ -393,7 +392,7 @@ body.uq-busy [aria-busy="true"] {
 /* ------------------------------------------------------------------
  * 章節選單。以 Tocas 的 pointing secondary menu 為底，補 sticky、橫向捲動與
  * 品牌紅的選中色。選擇器要疊到 .ts.menu.pointing.secondary 才贏得過 Tocas，
- * 否則高度會跟 --uq-section-menu-height 對不上、錨點跳轉會偏。
+ * 否則高度會跟 --uq-section-menu-height 對不上、點選單捲到的位置會偏。
  * ------------------------------------------------------------------ */
 
 /* z-index 要低於導覽列與它的下拉（Tocas 給 9），否則下拉會被蓋住 */
@@ -482,7 +481,7 @@ body.uq-busy [aria-busy="true"] {
 
 /*
  * 章節錨點。tocas.js 的 scrollspy 在錨點捲到視窗頂 10px 內才換 active；錨點往上
- * 偏移導覽列加章節選單的高度，跳轉落點與 active 換手才會在同一個位置。
+ * 偏移導覽列加章節選單的高度，捲到的位置與 active 換手才會在同一個位置。
  */
 .uq-section-anchor {
     display: block;
@@ -502,7 +501,7 @@ html:has(.uq-section-menu) {
 }
 
 /* ------------------------------------------------------------------
- * 商品卡片。版面是 Tocas .ts.card 預設，這裡只補整張卡片的點擊區與收藏鈕。
+ * 商品卡片。版面是 Tocas .ts.card 預設，這裡只補整張卡片的可點範圍與收藏鈕。
  * ------------------------------------------------------------------ */
 
 /*
@@ -521,7 +520,7 @@ html:has(.uq-section-menu) {
 }
 
 /*
- * 收藏愛心。點擊區 44×44px（WCAG 2.5.8），負 margin 抵掉多出來的空間；
+ * 收藏愛心。可點範圍 44×44px（WCAG 2.5.8），負 margin 抵掉多出來的空間；
  * z-index 要高過 .uq-card-link，否則點了會進商品頁。
  */
 .uq-card-heart {

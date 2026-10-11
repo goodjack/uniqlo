@@ -110,7 +110,7 @@
         </button>
     </span>
 
-    <!-- Tocas JS：模塊與 JavaScript 函式 -->
+    <!-- Tocas JS：模組與 JavaScript 函式 -->
     <script src="{{ asset('js/tocas.js') }}"></script>
     {{-- 每一頁的商品卡片都有收藏鈕；版號帶 mtime，避免舊快取的腳本配上新的 HTML --}}
     <script src="{{ asset('js/favorites.js') }}?v={{ filemtime(public_path('js/favorites.js')) }}"></script>
@@ -147,7 +147,7 @@
 
             document.querySelectorAll('.ts.dropdown:not(.basic)').forEach(function(dropdown) {
                 // tocas.js 的 dropdown 點第二次不會收合（它每次都先全部收合再展開自己），
-                // 在捕獲階段攔下「已經開著時的點擊」自己收合
+                // 在捕獲階段攔下「已經開著時的點按」自己收合
                 dropdown.addEventListener('click', function(event) {
                     if (!dropdown.classList.contains('visible')) {
                         return;
@@ -176,7 +176,7 @@
                     }
                 });
 
-                // Safari 點連結時 relatedTarget 是 null，交給 tocas.js 的點擊外部收合，
+                // Safari 點連結時 relatedTarget 是 null，交給 tocas.js 的「點外面就收合」，
                 // 否則選單會在 mousedown 時先消失、連結點不到
                 dropdown.addEventListener('focusout', function(event) {
                     if (event.relatedTarget && !dropdown.contains(event.relatedTarget)) {
@@ -203,7 +203,6 @@
     </script>
     <script>
         (function () {
-            // 篩選、排序、品牌都是整頁重新載入，伺服器要一兩秒；按下就讓人看到有在動，也擋掉連點
             function markBusy(event, control) {
                 if (document.body.classList.contains('uq-busy')) {
                     event.preventDefault();
@@ -236,7 +235,7 @@
                 }
             });
 
-            // 按上一頁回來時，瀏覽器可能直接還原離開前的畫面，要把載入中拿掉
+            // 按上一頁回來時，瀏覽器可能直接還原離開前的畫面
             window.addEventListener('pageshow', function () {
                 document.body.classList.remove('uq-busy');
                 document.querySelectorAll('[data-shows-busy] .loading').forEach(function (control) {

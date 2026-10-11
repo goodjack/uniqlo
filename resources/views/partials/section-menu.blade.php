@@ -8,7 +8,7 @@
      *              平常不佔版面（購物 App 商品頁的慣例）；沒有 JS 時退回 sticky
      *
      * 放在頁面 .ts.container 外面（自帶一層），白底與底線才會滿版。
-     * 只有一段時不渲染。
+     * 只有一段時不輸出。
      */
     $anchorCount = collect($items)->filter(fn($item) => isset($item['anchor']))->count();
     $revealAfter ??= null;

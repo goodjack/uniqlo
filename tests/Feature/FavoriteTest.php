@@ -231,7 +231,7 @@ class FavoriteTest extends TestCase
     }
 
     /**
-     * 重複的品牌加編號照筆數渲染、不去重：前端的收藏以 brand:code 為 key 不會
+     * 重複的品牌加編號照筆數輸出、不去重：前端的收藏以 brand:code 為 key 不會
      * 送出重複，whereIn 也只查一次，最壞就是這次請求收到 100 張一樣的卡片。
      */
     public function test_duplicate_items_render_a_card_for_each_occurrence(): void

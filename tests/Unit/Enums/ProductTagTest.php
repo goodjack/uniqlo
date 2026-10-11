@@ -61,7 +61,7 @@ class ProductTagTest extends TestCase
     }
 
     /**
-     * identity 的代碼要精準比對：真實資料有 ECONLYAD，不是網路獨家。
+     * identity 的代號要精準比對：真實資料有 ECONLYAD，不是網路獨家。
      */
     public function test_identity_codes_are_matched_exactly(): void
     {

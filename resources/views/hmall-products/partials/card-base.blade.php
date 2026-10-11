@@ -5,7 +5,7 @@
 @endphp
 
 {{--
-    外層不是 <a>：收藏鈕不能是連結的子孫，點擊交給蓋滿卡片的 .uq-card-link。
+    外層不是 <a>：收藏鈕不能是連結的子孫，點按交給蓋滿卡片的 .uq-card-link。
 
     data-card-search 給 list-search.js 的即時篩用，欄位要跟
     ListService::hmallProductMatchesKeyword() 比對的一致。

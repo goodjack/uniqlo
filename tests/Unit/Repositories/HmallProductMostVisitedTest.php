@@ -47,7 +47,7 @@ class HmallProductMostVisitedTest extends TestCase
         // setMostVisitedHmallProductsCache() 的 try/catch 吞掉）下面兩條也會過。
         $this->assertCount(1, $ranked);
 
-        // 名次清單只剩佔位符，SQL 本文不含任何商品編號、引號或注入片段
+        // 名次清單只剩 ? 參數，SQL 本文不含任何商品編號、引號或注入片段
         $this->assertStringContainsString(
             "FIELD(CONCAT(brand, '_', product_code), ?)",
             $ranked[0]->sql

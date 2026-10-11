@@ -195,9 +195,6 @@ class PageSkeletonTest extends TestCase
         );
     }
 
-    /**
-     * 主圖是商品頁第一眼要看到的圖，不能等頁尾的延後載入腳本才補上網址。
-     */
     public function test_the_product_page_main_image_loads_right_away(): void
     {
         $this->seedProduct();
@@ -444,7 +441,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 卡片整張的點擊區是那條覆蓋連結，不是包住整張卡片的 <a>。
+     * 卡片整張的可點範圍是那條覆蓋連結，不是包住整張卡片的 <a>。
      */
     public function test_the_card_is_clickable_through_an_overlay_link(): void
     {
@@ -546,7 +543,7 @@ class PageSkeletonTest extends TestCase
         // 區間那一行還在：現價 490、歷史 790 – 390，而且現價高於歷史最低要染綠
         $range = $this->xpath($html)->query('//div[contains(@class, "sub")][contains(@class, "header")]');
         $this->assertSame(1, $range->length);
-        $this->assertStringStartsWith('歷史', trim($range->item(0)->textContent), '區間要標明是過去的價格，不然像不同尺寸的售價範圍');
+        $this->assertStringStartsWith('歷史', trim($range->item(0)->textContent));
         $this->assertStringContainsString('790', $range->item(0)->textContent);
         $this->assertStringContainsString('390', $range->item(0)->textContent);
         $this->assertStringContainsString('var(--uq-new-text)', $html, '現價還高於歷史最低時，最低價染綠');
