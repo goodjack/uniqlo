@@ -24,6 +24,8 @@ class ProductRepository extends Repository
 
     private const CACHE_KEY_MOST_REVIEWED = 'product:most_reviewed';
 
+    private const CACHE_KEY_BY_NAME = 'product:by_name:v1';
+
     private const SELECT_COLUMNS_FOR_PRODUCT_LIST = [
         'id',
         'name',
@@ -328,12 +330,7 @@ class ProductRepository extends Repository
         $product = $this->product->where('id', $hmallProduct->code)->first();
 
         if (empty($product)) {
-            $relatedName = $hmallProduct->name;
-
-            $product = $this->product
-                ->where('name', 'like', "%{$relatedName}%")
-                ->orderByRaw('CASE WHEN `name` LIKE ? THEN 0 WHEN `name` LIKE ? THEN 1 ELSE 2 END', ["%{$hmallProduct->gender}%", "%{$hmallProduct->sex}%"])
-                ->first();
+            $product = $this->findProductByName($hmallProduct);
         }
 
         if (empty($product)) {
@@ -341,6 +338,21 @@ class ProductRepository extends Repository
         }
 
         return $this->getRelatedProducts($product, false);
+    }
+
+    /**
+     * 名稱模糊比對要整張表掃過；舊系統已經不再更新，找到哪一件（或找不到）就永遠記住。
+     */
+    private function findProductByName(HmallProduct $hmallProduct): ?Product
+    {
+        $cacheKey = self::CACHE_KEY_BY_NAME.':'.md5("{$hmallProduct->name}|{$hmallProduct->gender}|{$hmallProduct->sex}");
+
+        $productId = Cache::rememberForever($cacheKey, fn () => $this->product
+            ->where('name', 'like', "%{$hmallProduct->name}%")
+            ->orderByRaw('CASE WHEN `name` LIKE ? THEN 0 WHEN `name` LIKE ? THEN 1 ELSE 2 END', ["%{$hmallProduct->gender}%", "%{$hmallProduct->sex}%"])
+            ->value('id') ?? '');
+
+        return $productId === '' ? null : $this->product->find($productId);
     }
 
     public function getAllProductsForSitemap()

@@ -35,6 +35,8 @@ class HmallProductRepository extends Repository
 
     private const CACHE_KEY_LIMITED_OFFER = 'hmall_product:limited_offer';
 
+    private const CACHE_KEY_RELATED_IDS = 'hmall_product:related_candidate_ids';
+
     private const CACHE_KEY_SALE = 'hmall_product:sale';
 
     private const CACHE_KEY_JAPAN_MOST_REVIEWED = 'hmall_product:japan_most_reviewed';
@@ -97,32 +99,41 @@ class HmallProductRepository extends Repository
         $this->hmallPriceHistory = $hmallPriceHistory;
     }
 
+    /**
+     * 名稱模糊比對要整張表掃過，所以只快取比對到哪些商品；挑哪 6 件、誰排前面看庫存與價格，每次重算。
+     */
     public function getRelatedHmallProducts(HmallProduct $hmallProduct, $excludeItself = true)
     {
+        $candidateIds = Cache::remember(
+            self::CACHE_KEY_RELATED_IDS.":{$hmallProduct->id}",
+            now()->addDay(),
+            fn () => $this->model
+                ->where('code', $hmallProduct->code)
+                ->orWhere(function ($query) use ($hmallProduct) {
+                    $query->where('name', 'like', "%{$hmallProduct->name}%")
+                        ->where('gender', $hmallProduct->gender);
+                })
+                ->pluck('id')
+                ->all()
+        );
+
         $query = $this->model
             ->select(self::SELECT_COLUMNS_FOR_LIST)
             ->with('japanProduct')
-            ->where(function ($query) use ($hmallProduct) {
-                $query->where('code', $hmallProduct->code)
-                    ->orWhere(function ($query) use ($hmallProduct) {
-                        $query->where('name', 'like', "%{$hmallProduct->name}%")
-                            ->where('gender', $hmallProduct->gender);
-                    });
-            });
+            ->whereIn('id', $candidateIds);
 
         if ($excludeItself) {
             $query->where('id', '<>', $hmallProduct->id);
         }
 
-        $query->orderByRaw('CASE WHEN `id` = ? THEN 0 ELSE 1 END', [$hmallProduct->id])
+        return $query->orderByRaw('CASE WHEN `id` = ? THEN 0 ELSE 1 END', [$hmallProduct->id])
             ->orderByRaw('CASE WHEN `name` = ? THEN 0 ELSE 1 END', [$hmallProduct->name])
             ->orderBy(DB::raw('ISNULL(`stockout_at`)'), 'desc')
             ->orderByRaw('CHAR_LENGTH(`name`)')
             ->orderBy('min_price')
             ->orderBy('id', 'desc')
-            ->take(6);
-
-        return $query->get();
+            ->take(6)
+            ->get();
     }
 
     public function getStyles(HmallProduct $hmallProduct)
@@ -132,7 +143,7 @@ class HmallProductRepository extends Repository
 
     public function getStyleHints(HmallProduct $hmallProduct, int $limit)
     {
-        return $hmallProduct->styleHints()->orderBy('id', 'desc')->limit($limit)->get();
+        return $hmallProduct->styleHints()->limit($limit)->get();
     }
 
     public function getStyleHintCount(HmallProduct $hmallProduct)
