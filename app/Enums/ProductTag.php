@@ -36,7 +36,7 @@ enum ProductTag: string
     }
 
     /**
-     * identity 裡對應的官方代碼，任一命中就算。兩家命名不同，但代碼不是品牌
+     * identity 裡對應的官方代號，任一命中就算。兩家命名不同，但代號不是品牌
      * 獨佔的（ECONLY 兩家都在用），所以一律全部比對、不看品牌。
      *
      * @return array<int, string>
@@ -125,7 +125,7 @@ enum ProductTag: string
     }
 
     /**
-     * 標籤是符合任一個就顯示，多勾才會變多，所以篩到沒東西時要建議多勾，不是少選。
+     * 標籤是符合任一個就顯示，所以篩到沒東西時要建議多勾，不是少選。
      */
     public static function emptyResultHint(bool $hasQuery, bool $hasTags): string
     {

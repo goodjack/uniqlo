@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @php
-    $homeTitle = 'UQ 搜尋｜UNIQLO 與 GU 價格查詢比價';
+    $homeTitle = \App\Support\SiteTitle::NAME.'｜UNIQLO 與 GU 價格查詢比價';
     $homeDescription = '查 UNIQLO 與 GU 商品的歷史價格、限時特價與新品，比較台灣與日本售價，看網友穿搭。';
 @endphp
 
@@ -13,8 +13,8 @@
         'data' => [
             '@context' => 'https://schema.org',
             '@type' => 'WebSite',
-            'name' => 'UQ 搜尋',
-            'alternateName' => 'UNIQLO 比價',
+            'name' => \App\Support\SiteTitle::NAME,
+            'alternateName' => \App\Support\SiteTitle::TAGLINE,
             'url' => route('home'),
         ],
     ])

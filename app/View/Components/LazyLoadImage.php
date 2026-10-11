@@ -35,7 +35,7 @@ class LazyLoadImage extends Component
     public $height;
 
     /**
-     * 首屏主圖不延後：直接給 src 並提高下載優先順序，LCP 才不用等頁尾的腳本補 src。
+     * 商品頁最上方的主圖：直接載入，不延後。
      *
      * @var bool
      */

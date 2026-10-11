@@ -63,6 +63,13 @@ class ImageCard extends Component
     public $country;
 
     /**
+     * 放大檢視時串在一起左右切換的那一組。
+     *
+     * @var string
+     */
+    public $album;
+
+    /**
      * Create a new component instance.
      *
      * @return void
@@ -75,7 +82,8 @@ class ImageCard extends Component
         $width = 1,
         $height = 1,
         $colorHeader = null,
-        $country = null
+        $country = null,
+        $album = 'image'
     ) {
         $this->link = $link;
         $this->imageUrl = $imageUrl;
@@ -85,6 +93,7 @@ class ImageCard extends Component
         $this->height = $height;
         $this->colorHeader = $colorHeader;
         $this->country = $country;
+        $this->album = $album;
     }
 
     /**

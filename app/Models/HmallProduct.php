@@ -101,7 +101,7 @@ class HmallProduct extends Model
     /**
      * Get whether the product is ec only or not.
      *
-     * 不走 ProductTag：ECONLY 在那邊只是「網路獨家」的其中一個代碼。
+     * 不走 ProductTag：ECONLY 在那邊只是「網路獨家」的其中一個代號。
      *
      * @return bool
      */

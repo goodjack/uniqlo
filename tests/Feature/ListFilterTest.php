@@ -84,6 +84,30 @@ class ListFilterTest extends TestCase
         $this->assertStringNotContainsString('name="ref"', $content);
     }
 
+    public function test_each_applied_tag_link_removes_just_that_tag(): void
+    {
+        $content = $this->get(route('lists.sale').'?brand=GU&tags[]=sale&tags[]=new')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString(
+            'href="'.e(route('lists.sale').'?'.http_build_query(['brand' => 'GU', 'tags' => ['new']])).'"',
+            $content
+        );
+        $this->assertStringContainsString(
+            'href="'.e(route('lists.sale').'?'.http_build_query(['brand' => 'GU', 'tags' => ['sale']])).'"',
+            $content
+        );
+        $this->assertStringContainsString('href="'.e(route('lists.sale').'?brand=GU').'"', $content);
+    }
+
+    public function test_removing_a_tag_keeps_a_query_of_zero(): void
+    {
+        $content = $this->get(route('lists.sale').'?q=0&tags[]=sale')->assertOk()->getContent();
+
+        $this->assertStringContainsString('href="'.e(route('lists.sale').'?q=0').'"', $content);
+    }
+
     public function test_an_overlong_query_is_truncated_instead_of_failing(): void
     {
         $longQuery = str_repeat('a', 60);

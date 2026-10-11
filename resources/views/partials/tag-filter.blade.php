@@ -9,10 +9,27 @@
 
     // 切換篩選時保留品牌、排序與關鍵字
     $otherParams = request()->only(['brand', 'sort', 'q']);
+    $urlWithTags = function (array $tags) use ($otherParams) {
+        $query = http_build_query($otherParams + ($tags ? ['tags' => array_values($tags)] : []));
+
+        return url()->current().($query !== '' ? '?'.$query : '');
+    };
 @endphp
 
-{{-- 勾選框要跟 chip 列同一層而且排在前面，CSS 的 ~ 才選得到 --}}
-<input type="checkbox" id="uq-tag-filter" class="uq-filter-switch" @checked(! empty($selectedTags))>
+{{-- 勾選框要跟下面兩塊同一層而且排在前面，CSS 的 ~ 才選得到 --}}
+<input type="checkbox" id="uq-tag-filter" class="uq-filter-switch">
+
+@if (! empty($selectedTags))
+    <div class="uq-applied-tags" data-keeps-q data-shows-busy>
+        @foreach ($tagOptions as $tag)
+            @if (in_array($tag->value, $selectedTags, true))
+                <a class="uq-chip" href="{{ $urlWithTags(array_diff($selectedTags, [$tag->value])) }}"
+                    aria-label="拿掉「{{ $tag->label() }}」">{{ $tag->label() }}<i class="close icon" aria-hidden="true"></i></a>
+            @endif
+        @endforeach
+        <a class="uq-text-action" href="{{ $urlWithTags([]) }}">全部清除</a>
+    </div>
+@endif
 
 <form method="GET" action="{{ url()->current() }}" class="uq-chip-row" data-keeps-q data-shows-busy>
     @foreach ($otherParams as $key => $value)
@@ -31,11 +48,10 @@
 
     <p>符合任一條件即顯示</p>
 
-    <div class="ts compact buttons">
+    <div class="uq-chip-actions">
         @if (! empty($selectedTags))
-            <a class="ts basic button"
-                href="{{ url()->current() }}{{ $otherParams ? '?' . http_build_query($otherParams) : '' }}">清除</a>
+            <a class="uq-text-action" href="{{ $urlWithTags([]) }}">清除條件</a>
         @endif
-        <button class="ts button" type="submit">套用</button>
+        <button class="ts inverted button" type="submit">套用</button>
     </div>
 </form>

@@ -6,6 +6,7 @@ use App\Enums\CategoryLevel;
 use App\Models\HmallCategory;
 use App\Models\HmallProduct;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -195,9 +196,33 @@ class PageSkeletonTest extends TestCase
         );
     }
 
-    /**
-     * 主圖是商品頁第一眼要看到的圖，不能等頁尾的延後載入腳本才補上網址。
-     */
+    public function test_the_style_hint_strip_ends_with_a_link_to_all_of_them_only_when_some_are_hidden(): void
+    {
+        $this->seedProduct();
+        $url = route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']);
+
+        foreach (range(1, 12) as $id) {
+            DB::table('style_hints')->insert(['id' => $id, 'outfit_id' => "outfit-{$id}", 'country' => 'tw']);
+            DB::table('style_hint_items')->insert(['style_hint_id' => $id, 'code' => '990001', 'original_product_id' => "p{$id}"]);
+        }
+        $this->get($url)->assertOk()->assertDontSee('uq-strip-more');
+
+        DB::table('style_hints')->insert(['id' => 13, 'outfit_id' => 'outfit-13', 'country' => 'tw']);
+        DB::table('style_hint_items')->insert(['style_hint_id' => 13, 'code' => '990001', 'original_product_id' => 'p13']);
+        $this->get($url)->assertOk()->assertSee('看全部 13 張');
+    }
+
+    public function test_font_awesome_loads_only_on_product_pages(): void
+    {
+        $this->seedProduct();
+
+        $this->get(route('home'))->assertOk()->assertDontSee('font-awesome');
+        $this->get(route('lists.sale'))->assertOk()->assertDontSee('font-awesome');
+        $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->assertSee('font-awesome');
+    }
+
     public function test_the_product_page_main_image_loads_right_away(): void
     {
         $this->seedProduct();
@@ -444,7 +469,7 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 卡片整張的點擊區是那條覆蓋連結，不是包住整張卡片的 <a>。
+     * 卡片整張的可點範圍是那條覆蓋連結，不是包住整張卡片的 <a>。
      */
     public function test_the_card_is_clickable_through_an_overlay_link(): void
     {
@@ -546,7 +571,7 @@ class PageSkeletonTest extends TestCase
         // 區間那一行還在：現價 490、歷史 790 – 390，而且現價高於歷史最低要染綠
         $range = $this->xpath($html)->query('//div[contains(@class, "sub")][contains(@class, "header")]');
         $this->assertSame(1, $range->length);
-        $this->assertStringStartsWith('歷史', trim($range->item(0)->textContent), '區間要標明是過去的價格，不然像不同尺寸的售價範圍');
+        $this->assertStringStartsWith('歷史', trim($range->item(0)->textContent));
         $this->assertStringContainsString('790', $range->item(0)->textContent);
         $this->assertStringContainsString('390', $range->item(0)->textContent);
         $this->assertStringContainsString('var(--uq-new-text)', $html, '現價還高於歷史最低時，最低價染綠');

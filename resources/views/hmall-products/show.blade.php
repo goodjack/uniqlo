@@ -146,6 +146,7 @@
 @endsection
 
 @section('css')
+    @include('partials.font-awesome')
     <style>
         .ts.card .overlapped.content.color-header {
             top: unset;
@@ -408,7 +409,7 @@
                 @include('partials.section-anchor', ['anchor' => 'photos', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">商品實照</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling four flatted cards">
+                <div class="ts doubling four flatted cards uq-strip">
                     @if ($colorNums)
                         @foreach ($colorNums as $key => $colorNum)
                             <x-image-card imageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
@@ -441,11 +442,11 @@
                 @include('partials.section-anchor', ['anchor' => 'styles', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">Official Styling 官方精選穿搭</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling four flatted cards">
+                <div class="ts doubling four flatted cards uq-strip">
                     @foreach ($styles as $key => $style)
                         <x-image-card link="{{ $style->detail_url }}" imageUrl="{{ $style->image_url }}"
                             largeImageUrl="{{ $style->large_image_url }}"
-                            alt="Official Styling 官方精選穿搭 {{ $key + 1 }}" width="720" height="960" />
+                            alt="Official Styling 官方精選穿搭 {{ $key + 1 }}" width="720" height="960" album="styles" />
                     @endforeach
                 </div>
             </div>
@@ -465,13 +466,18 @@
                     </a>
                 </h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling four flatted cards">
+                <div class="ts doubling four flatted cards uq-strip">
                     @foreach ($styleHints as $key => $styleHint)
                         <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
                             largeImageUrl="{{ $styleHint->large_image_url }}" country="{{ $styleHint->country }}"
                             alt="StyleHint 網友穿搭靈感 {{ $key + 1 }} ({{ $styleHint->user_name }})" width="720"
-                            height="960" />
+                            height="960" album="style-hints" />
                     @endforeach
+                    @if ($styleHintCount > count($styleHints))
+                        <a class="ts card uq-strip-more" href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
+                            看全部 {{ $styleHintCount }} 張
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
