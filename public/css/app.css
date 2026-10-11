@@ -612,6 +612,11 @@ html:has(.uq-section-menu) {
  * 導覽列。
  * ------------------------------------------------------------------ */
 
+/* 導覽列內容自然高度約 63.3px，黏在 --uq-nav-height 的章節選單上方會露出不到 1px 的縫 */
+.ts.top.fixed.menu {
+    min-height: var(--uq-nav-height);
+}
+
 /* Tocas 的下拉分組小標只有約 10px，全站閱讀文字的下限是 14px */
 .ts.dropdown .menu .header {
     font-size: 14px;
