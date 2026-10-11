@@ -546,6 +546,7 @@ class PageSkeletonTest extends TestCase
         // 區間那一行還在：現價 490、歷史 790 – 390，而且現價高於歷史最低要染綠
         $range = $this->xpath($html)->query('//div[contains(@class, "sub")][contains(@class, "header")]');
         $this->assertSame(1, $range->length);
+        $this->assertStringStartsWith('歷史', trim($range->item(0)->textContent), '區間要標明是過去的價格，不然像不同尺寸的售價範圍');
         $this->assertStringContainsString('790', $range->item(0)->textContent);
         $this->assertStringContainsString('390', $range->item(0)->textContent);
         $this->assertStringContainsString('var(--uq-new-text)', $html, '現價還高於歷史最低時，最低價染綠');
