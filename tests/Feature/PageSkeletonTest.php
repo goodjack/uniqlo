@@ -284,6 +284,21 @@ class PageSkeletonTest extends TestCase
     /**
      * 右欄不用小標題分段，標題會比它標的內容還長。
      */
+    /**
+     * 章節選單會直接跳到「歷史價格」，廣告放在那一段之前就會被跳過。
+     */
+    public function test_the_product_page_ad_comes_after_the_price_chart(): void
+    {
+        config(['app.adsense.client_id' => 'ca-pub-0000000000000000', 'app.adsense.slot_id' => '0000000000']);
+        $this->seedProduct();
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertGreaterThan(strpos($content, 'id="priceChart"'), strpos($content, 'class="uq-ad"'));
+    }
+
     public function test_the_product_page_right_column_has_no_section_headings(): void
     {
         $this->seedProduct();
