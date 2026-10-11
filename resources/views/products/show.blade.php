@@ -92,11 +92,11 @@ $shareUrl = [
         }
 
         #twitter:hover {
-            color: #1d95e0 !important;
+            color: #0f1419 !important;
         }
 
         #twitter:active {
-            color: #0d7bbf !important;
+            color: #000 !important;
         }
 
         #line {
@@ -173,18 +173,18 @@ $shareUrl = [
                                 <div class="ts buttons">
                                     <a id="facebook" class="ts link button"
                                         href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="Facebook">
-                                        <i class="facebook icon"></i>
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Facebook">
+                                        <i class="fa-brands fa-facebook" aria-hidden="true"></i>
                                     </a>
                                     <a id="twitter" class="ts link button"
                                         href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="Twitter">
-                                        <i class="twitter icon"></i>
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 X">
+                                        <i class="fa-brands fa-x-twitter" aria-hidden="true"></i>
                                     </a>
                                     <a id="line" class="ts link button"
                                         href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="Line">
-                                        <i class="chat icon"></i>
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 LINE">
+                                        <i class="fa-brands fa-line" aria-hidden="true"></i>
                                     </a>
                                 </div>
                             </div>
@@ -216,7 +216,7 @@ $shareUrl = [
                                     rel="nofollow noopener" aria-label="UNIQLO">無法前往 UNIQLO 舊官網<i
                                         class="external icon"></i></a>
                                 <a class="ts basic button" id="share" target="_blank" rel="nofollow noopener"
-                                    aria-label="Share" style="display: none;"><i class="share icon"></i>分享</a>
+                                    aria-label="Share" style="display: none;"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i>分享</a>
                             </div>
                         </div>
                     </div>

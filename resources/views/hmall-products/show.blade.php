@@ -173,11 +173,11 @@
 
         #twitter:hover {
             background: #fff !important;
-            color: #1d95e0 !important;
+            color: #0f1419 !important;
         }
 
         #twitter:active {
-            color: #0d7bbf !important;
+            color: #000 !important;
         }
 
         #line {
@@ -271,17 +271,17 @@
                                     <a id="facebook" class="ts link button"
                                         href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
                                         target="_blank" rel="nofollow noopener" aria-label="分享到 Facebook">
-                                        <i class="facebook icon"></i>
+                                        <i class="fa-brands fa-facebook" aria-hidden="true"></i>
                                     </a>
                                     <a id="twitter" class="ts link button"
                                         href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Twitter">
-                                        <i class="twitter icon"></i>
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 X">
+                                        <i class="fa-brands fa-x-twitter" aria-hidden="true"></i>
                                     </a>
                                     <a id="line" class="ts link button"
                                         href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Line">
-                                        <i class="chat icon"></i>
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 LINE">
+                                        <i class="fa-brands fa-line" aria-hidden="true"></i>
                                     </a>
                                 </div>
                             </div>
@@ -336,7 +336,7 @@
                                     data-product-code="{{ $hmallProduct->product_code }}" aria-pressed="false"><i
                                         class="heart outline icon"></i><span class="label">收藏</span></button>
                                 <button type="button" class="ts basic button" id="share" hidden><i
-                                        class="share icon" aria-hidden="true"></i>分享</button>
+                                        class="fa-solid fa-share-nodes" aria-hidden="true"></i>分享</button>
                             </div>
                         </div>
                     </div>

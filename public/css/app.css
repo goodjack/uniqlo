@@ -751,3 +751,13 @@ html:has(.uq-section-menu) {
 .uq-ad ins.adsbygoogle[data-ad-status="unfilled"] {
     display: none !important;
 }
+
+/* Font Awesome 的圖示放進 Tocas 按鈕時，比照 Tocas 按鈕裡 i.icon 的寬度、間距與淡化 */
+.ts.button>.fa-brands,
+.ts.button>.fa-solid {
+    width: 1.18em;
+    margin: 0 .42857em 0 calc(-.42857em / 2);
+    opacity: .8;
+    text-align: center;
+    transition: opacity .1s ease;
+}
