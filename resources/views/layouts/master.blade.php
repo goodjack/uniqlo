@@ -13,8 +13,7 @@
     <link rel="apple-touch-icon" href="{{ asset('icons/icon-192x192.png') }}">
 
     @php
-        // 首頁用 full-title 給完整標題，其他頁只給頁名、後面接站名；社群標題預設跟頁面標題相同，
-        // 要不同時給 og-title。section 內容在設定時已跳脫，這裡原樣輸出
+        // section 內容在設定時已跳脫，這裡原樣輸出
         $pageTitle = $__env->hasSection('full-title')
             ? $__env->yieldContent('full-title')
             : \App\Support\SiteTitle::append($__env->yieldContent('title'));
@@ -177,9 +176,8 @@
                     }
                 });
 
-                // 只在焦點確定移到選單外的元素時收合。relatedTarget 是 null 的情況
-                // （Safari 點連結不給焦點）交給 tocas.js 的點擊外部收合，不然選單會在
-                // mousedown 時先消失，連結點不到
+                // Safari 點連結時 relatedTarget 是 null，交給 tocas.js 的點擊外部收合，
+                // 否則選單會在 mousedown 時先消失、連結點不到
                 dropdown.addEventListener('focusout', function(event) {
                     if (event.relatedTarget && !dropdown.contains(event.relatedTarget)) {
                         close(dropdown);
@@ -250,7 +248,6 @@
 
                     wrapper.classList.add('is-floating');
 
-                    // 主區整個捲到導覽列底下之後才滑出
                     new IntersectionObserver(function (entries) {
                         wrapper.classList.toggle('is-shown', !entries[0].isIntersecting);
                     }, { rootMargin: '-' + navHeight + ' 0px 0px 0px' }).observe(revealAfter);

@@ -739,7 +739,7 @@ html:has(.uq-section-menu) {
     }
 }
 
-/* 商品頁廣告。AdSense 會在 ins 上直接寫 z-index: 30，不自成一層就會在捲動時蓋過導覽列（9）與章節選單（5） */
+/* AdSense 會在 ins 上直接寫 z-index: 30，不自成一層就會蓋過導覽列與章節選單 */
 .uq-ad {
     position: relative;
     z-index: 0;

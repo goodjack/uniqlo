@@ -568,8 +568,7 @@
                     </div>
                 </div>
             </div>
-            {{-- 放在價格走勢下方：從章節選單跳到「歷史價格」的人看完圖表往下捲就會看到，
-                 也不會擋在他們要看的內容前面 --}}
+            {{-- 放在價格走勢下方：從章節選單跳過來的人看完圖表就會看到，也不擋在內容前面 --}}
             @if (!empty($adsenseClientId) && !empty($adsenseSlotId))
                 <div class="uq-ad">
                     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ $adsenseClientId }}"

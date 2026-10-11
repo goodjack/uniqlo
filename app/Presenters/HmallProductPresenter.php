@@ -26,7 +26,6 @@ class HmallProductPresenter
         return "{$fullName} {$hmallProduct->code}";
     }
 
-    /** 分享按鈕帶出去的文字 */
     public function getShareText($hmallProduct): string
     {
         return SiteTitle::appendWithTagline($this->getFullNameWithCode($hmallProduct));
