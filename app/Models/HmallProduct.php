@@ -60,7 +60,7 @@ class HmallProduct extends Model
             'code',
             'style_hint_id',
             'code'
-        )->orderByDesc('id');
+        )->orderByDesc('style_hint_items.style_hint_id');
     }
 
     public function japanProduct()

@@ -45,7 +45,7 @@ class StyleHintController extends Controller
      */
     public function show(HmallProduct $hmallProduct)
     {
-        $styleHints = $hmallProduct->styleHints()->orderBy('id', 'desc')->paginate(32)->onEachSide(1);
+        $styleHints = $hmallProduct->styleHints()->paginate(32)->onEachSide(1);
 
         return view('style-hints.show', [
             'hmallProduct' => $hmallProduct,
