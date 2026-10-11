@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CategoryLevel;
+use App\Models\HmallCategory;
 use App\Models\HmallProduct;
 use DOMDocument;
 use DOMXPath;
@@ -56,11 +58,49 @@ class StructuredDataTest extends TestCase
         $this->assertSame('zh_TW', $this->meta($this->productPage(), 'og:locale'));
     }
 
+    /**
+     * 只是文字的中間層（品牌頂層）沒有網址，Google 不接受，要跳過；最後一層是當頁，可以沒有網址。
+     */
+    public function test_the_breadcrumb_list_skips_crumbs_without_a_link(): void
+    {
+        $product = $this->seedProduct();
+        $this->attachCategoryTrail($product);
+
+        $items = $this->jsonLdOfType($this->productPage(), 'BreadcrumbList')['itemListElement'];
+
+        $this->assertSame(['首頁', '商品分類', '上衣類', 'T恤', '女裝 短袖上衣'], array_column($items, 'name'));
+        $this->assertSame([1, 2, 3, 4, 5], array_column($items, 'position'));
+
+        foreach (array_slice($items, 0, -1) as $item) {
+            $this->assertNotEmpty($item['item'], "{$item['name']} 缺網址");
+        }
+    }
+
     private function productPage(): string
     {
         return $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
             ->assertOk()
             ->getContent();
+    }
+
+    private function attachCategoryTrail(HmallProduct $product): void
+    {
+        $levels = [
+            ['all_women', '女裝', null, CategoryLevel::Top],
+            ['all_women-tops', '上衣類', 'all_women', CategoryLevel::One],
+            ['all_women-tops-tshirt', 'T恤', 'all_women-tops', CategoryLevel::Two],
+        ];
+
+        foreach ($levels as [$code, $name, $parent, $level]) {
+            $category = HmallCategory::create([
+                'brand' => 'UNIQLO',
+                'code' => $code,
+                'name' => $name,
+                'parent_code' => $parent,
+                'level' => $level->value,
+            ]);
+            $product->categories()->attach($category->id, ['sort' => '001']);
+        }
     }
 
     private function seedProduct(array $overrides = []): HmallProduct
