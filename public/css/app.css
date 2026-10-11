@@ -707,3 +707,16 @@ html:has(.uq-section-menu) {
         text-overflow: ellipsis;
     }
 }
+
+/* 商品頁廣告。AdSense 會在 ins 上直接寫 z-index: 30，不自成一層就會在捲動時蓋過導覽列（9）與章節選單（5） */
+.uq-ad {
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
+    margin-top: 2rem;
+}
+
+/* AdSense 官方建議：沒填到廣告時把預留的空白收掉 */
+.uq-ad ins.adsbygoogle[data-ad-status="unfilled"] {
+    display: none !important;
+}

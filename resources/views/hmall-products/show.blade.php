@@ -505,21 +505,6 @@
         </div>
     @endif
 
-    @if (!empty($adsenseClientId) && !empty($adsenseSlotId))
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-            <div class="ts container">
-                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ $adsenseClientId }}"
-                    crossorigin="anonymous"></script>
-                <ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-layout="in-article"
-                    data-ad-format="fluid" data-ad-client="{{ $adsenseClientId }}" data-ad-slot="{{ $adsenseSlotId }}">
-                </ins>
-                <script>
-                    (adsbygoogle = window.adsbygoogle || []).push({});
-                </script>
-            </div>
-        </div>
-    @endif
-
     <div class="ts very padded horizontally fitted attached fluid tertiary segment">
         <div class="ts container">
             @include('partials.section-anchor', ['anchor' => 'price-history', 'menu' => 'product_menu'])
@@ -585,6 +570,20 @@
                     </div>
                 </div>
             </div>
+            {{-- 放在價格走勢下方：從章節選單跳到「歷史價格」的人看完圖表往下捲就會看到，
+                 也不會擋在他們要看的內容前面 --}}
+            @if (!empty($adsenseClientId) && !empty($adsenseSlotId))
+                <div class="uq-ad">
+                    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ $adsenseClientId }}"
+                        crossorigin="anonymous"></script>
+                    <ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-layout="in-article"
+                        data-ad-format="fluid" data-ad-client="{{ $adsenseClientId }}" data-ad-slot="{{ $adsenseSlotId }}">
+                    </ins>
+                    <script>
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    </script>
+                </div>
+            @endif
         </div>
     </div>
 
