@@ -651,6 +651,16 @@ class PageSkeletonTest extends TestCase
     /**
      * @param  array<string, mixed>  $overrides  這一個案例才需要的欄位（標籤用的 identity、說明用的 instruction）
      */
+    /**
+     * cdnjs 的 CSS 與字型都是 crossorigin 載入，預連要同模式才共用連線。
+     */
+    public function test_the_cdnjs_preconnect_matches_the_cors_requests(): void
+    {
+        $this->get(route('pages.changelog'))
+            ->assertOk()
+            ->assertSee('<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>', false);
+    }
+
     private function seedProduct(array $overrides = []): void
     {
         $product = HmallProduct::unguarded(fn () => HmallProduct::create(array_merge([

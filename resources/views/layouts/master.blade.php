@@ -35,7 +35,8 @@
 
     <link rel="preconnect" href="https://im.uniqlo.com">
     <link rel="preconnect" href="https://www.uniqlo.com">
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    {{-- Tocas 與 Font Awesome 的 CSS、字型都以 crossorigin 載入，預連也要帶 crossorigin 才會用同一條連線 --}}
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="dns-prefetch" href="https://im.uniqlo.com">
     <link rel="dns-prefetch" href="https://www.uniqlo.com">
     <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
