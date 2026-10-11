@@ -24,13 +24,9 @@ class ListRequest extends FormRequest
     }
 
     /**
-     * 篩選參數來自網址，舊連結、爬蟲或手改網址都會帶進不合法的值。
-     * 一律丟掉不合法的部分、照常顯示頁面，不讓驗證失敗把人轉走。
-     *
-     * 同時改寫全域的 request()：Blade 讀的是那一份，FormRequest 只是它的副本。
-     *
-     * 只認網址參數，而 input() 與驗證讀的是「網址參數＋內文」：帶 JSON 內文的
-     * GET 會讓內文蓋過整理好的值，所以內文裡的同名欄位一併拿掉。
+     * 舊連結、爬蟲、手改網址都會帶進不合法的值：丟掉不合法的部分照常顯示，不讓驗證把人轉走。
+     * 同時改寫全域 request()（Blade 讀那一份），並拿掉 JSON 內文的同名欄位，
+     * 否則 input() 會讓內文蓋過整理好的網址參數。
      */
     protected function prepareForValidation()
     {
@@ -71,10 +67,7 @@ class ListRequest extends FormRequest
         ];
     }
 
-    /**
-     * 網址上的品牌篩選。不經過 ListRequest 的頁面（導覽列、頁尾）帶品牌連結時
-     * 也讀這裡，才不會把內文或不合法的值帶進連結。
-     */
+    /** 不經過 ListRequest 的頁面（導覽列、頁尾）帶品牌連結時也讀這裡 */
     public static function brandFrom(Request $request): ?string
     {
         $brand = $request->query('brand');
@@ -82,12 +75,7 @@ class ListRequest extends FormRequest
         return is_string($brand) ? Brand::tryFrom($brand)?->value : null;
     }
 
-    /**
-     * 網址上的清單內關鍵字。限流器在 ListRequest 之前就要判斷「有沒有關鍵字」，
-     * 兩邊必須讀同一份、用同一套清理，否則內文帶 q 就能繞過限流。
-     *
-     * 超長的關鍵字截斷而不是拒絕，使用者只會看到搜尋框內容被裁掉。
-     */
+    /** 限流器與 ListRequest 必須讀同一份、同一套清理，否則內文帶 q 就能繞過限流 */
     public static function keywordFrom(Request $request): ?string
     {
         $q = $request->query('q');

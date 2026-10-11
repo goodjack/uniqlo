@@ -128,8 +128,7 @@ class CategoryService extends Service
                     ->filter(fn (HmallCategory $category) => ! $matchGender
                         || $topCodes === null
                         || in_array($this->topCodeOf($category, $byCode), $topCodes, true))
-                    // sort 是長度不一的數字字串（008004001008004009），照數值比會挑錯；
-                    // 同分時用 code 決定，否則每次載入可能挑到不同分類
+                    // sort 是長度不一的數字字串，照數值比會挑錯；同分用 code 決定才穩定
                     ->sortBy([
                         fn (HmallCategory $a, HmallCategory $b) => strcmp((string) $a->pivot->sort, (string) $b->pivot->sort),
                         fn (HmallCategory $a, HmallCategory $b) => strcmp($a->code, $b->code),

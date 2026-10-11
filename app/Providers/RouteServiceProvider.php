@@ -39,8 +39,7 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
-        // 限流一律用具名限流器：沒具名的 throttle:次數,分鐘 只拿「網域＋IP」當計數
-        // key，不同路由會共用同一個計數器。
+        // 一律用具名限流器：沒具名的 throttle 只拿「網域＋IP」當 key，不同路由會共用計數
 
         // 搜尋會打到資料庫做全表掃描，避免被當成免費的查詢介面
         RateLimiter::for('search', function (Request $request) {
@@ -52,9 +51,7 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->ip());
         });
 
-        // 分類頁的關鍵字比對在大分類上會掃全表（跟 /search 同一種工作量），
-        // 純瀏覽只是帶分頁的索引查詢，不需要限流。「有沒有關鍵字」要跟實際篩選
-        // 讀同一份（只認網址參數），否則內文帶空的 q 就能繞過。
+        // 只有帶關鍵字時才會掃全表；判斷要跟實際篩選讀同一份，否則內文帶空的 q 就能繞過
         RateLimiter::for('category-search', function (Request $request) {
             return ListRequest::keywordFrom($request) !== null
                 ? Limit::perMinute(30)->by($request->ip())

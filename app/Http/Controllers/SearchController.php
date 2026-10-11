@@ -10,15 +10,10 @@ use Illuminate\Support\Facades\Validator;
 
 class SearchController extends Controller
 {
-    /**
-     * index 與 show 兩個入口都要擋：使用者可以直接開 /search/{query}。
-     */
+    /** index 與 show 都要擋：/search/{query} 可以直接開 */
     private const MAX_QUERY_LENGTH = 100;
 
-    /**
-     * 貨號固定 6 碼。更短的數字（2、100、2WAY 的 2）不是貨號，照編號查會用
-     * 數字邊界比對撈出一大串、而且沒有分頁，改走有分頁的關鍵字搜尋。
-     */
+    /** 貨號固定 6 碼；更短的數字照編號查會撈出一大串且沒有分頁，改走關鍵字搜尋 */
     private const MIN_PRODUCT_CODE_LENGTH = 6;
 
     protected $searchService;
@@ -29,9 +24,8 @@ class SearchController extends Controller
     }
 
     /**
-     * 表單入口直接顯示結果，不轉址到 /search/{query}：關鍵字放進路徑時，Laravel
-     * 產生網址不編碼 / ? #（會 404 或被截斷），還會撞到 /search/keywords，
-     * 轉址也會讓一次搜尋扣兩次限流。
+     * 直接顯示結果、不轉址到 /search/{query}：關鍵字放進路徑會遇到 / ? # 不編碼、
+     * 撞到 /search/keywords，轉址也會讓一次搜尋扣兩次限流。
      */
     public function index(Request $request)
     {
@@ -84,9 +78,7 @@ class SearchController extends Controller
         return view('search.google-cse');
     }
 
-    /**
-     * 含已凍結的舊軌 Product：編號是兩套系統唯一通用的識別。
-     */
+    /** 含已凍結的舊軌 Product：編號是兩套系統唯一通用的識別 */
     private function showProductCodeResults(string $query, Collection $hmallProducts)
     {
         $products = Product::where('id', 'like', "{$query}%")->get();
@@ -105,9 +97,6 @@ class SearchController extends Controller
         ]);
     }
 
-    /**
-     * 只查現行商品。
-     */
     private function showKeywordResults(string $query)
     {
         $keywords = $this->searchService->tokenize($query);
