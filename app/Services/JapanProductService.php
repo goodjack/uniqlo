@@ -22,12 +22,7 @@ class JapanProductService
 
     public function __construct(protected JapanProductRepository $repository) {}
 
-    /**
-     * 抓一個品牌的日本官網商品，最後做缺貨判定。缺貨判定的前提跟台灣那支一樣：
-     * 從頭開始、每一批都抓到而且件數對得上總數、至少看到一件商品（見 CatalogScan），
-     * 否則沒看到的那一段會被整批標成下架。寫不進去的商品也比照台灣：知道 l1Id 的
-     * 排除，拿不到的整輪不做。在售件數比例與逾期升級同樣走 StockoutGate。
-     */
+    /** 缺貨判定的前提與台灣那支相同（CatalogScan、StockoutGate） */
     public function fetchAllProducts($brand = 'UNIQLO', bool $fresh = false, bool $acceptShrink = false): CrawlResult
     {
         $japanProductListApiUrl = $this->getJapanProductListApiUrl($brand);
@@ -56,7 +51,7 @@ class JapanProductService
 
         do {
             try {
-                // retry 只包住打官網與解析回傳，資料庫的問題重打官網修不好
+                // retry 只包打官網與解析回傳：資料庫的問題重打官網修不好
                 [$items, $total] = retry(
                     $retryTimes,
                     function ($attempts) use ($japanProductListApiUrl, $brand, $offset, $limit, $scan, $retryTimes) {
@@ -161,7 +156,6 @@ class JapanProductService
 
         $scan->recordEnd($offset);
 
-        // 官網回的總數跟實際件數常態差多少，要靠這筆紀錄才判斷得了
         logger()->info('JapanProductService fetchAllProducts catalog summary', [
             'brand' => $brand,
             'largest_total' => $scan->largestTotal(),
@@ -187,71 +181,21 @@ class JapanProductService
 
         Cache::forget($cacheKey);
 
-        // 續跑只看了目錄的後半段；續跑點停在目錄尾端時甚至只會看到一批空的
-        if ($startOffset !== 0) {
-            logger()->info('Resumed crawl finished cleanly - stockout deferred to the next full scan', [
-                'brand' => $brand,
-                'started_from_offset' => $startOffset,
-            ]);
-
-            return $gate->skip('未執行缺貨判定，這一輪是從上次中斷的地方接著跑');
-        }
-
-        if ($scan->itemsSeen() === 0) {
-            logger()->error('The catalog came back empty - skipping stockout', ['brand' => $brand]);
-
-            return $gate->skip('未執行缺貨判定，這一輪一件商品都沒看到');
-        }
-
-        if ($unidentifiedFailures > 0) {
-            logger()->error('Japan product failures without an l1Id - skipping stockout', [
-                'brand' => $brand,
-                'unidentified_failures' => $unidentifiedFailures,
-            ]);
-
-            return $gate->skip("未執行缺貨判定，{$unidentifiedFailures} 件失敗資料缺少商品識別");
-        }
-
-        $inStockCount = $this->repository->countInStockProducts($brand);
-
-        if (! $acceptShrink && $gate->seenTooFew($scan->itemsSeen(), $inStockCount)) {
-            logger()->error('Saw far fewer Japan products than are in stock - skipping stockout', [
-                'brand' => $brand,
-                'items_seen' => $scan->itemsSeen(),
-                'in_stock' => $inStockCount,
-            ]);
-
-            return $gate->skip(StockoutGate::seenTooFewNote($scan->itemsSeen(), $inStockCount));
-        }
-
-        $failedIds = array_values(array_unique($failedIds));
-
-        $this->repository->setStockoutProducts($brand, null, $failedIds);
-        $gate->recordRun();
-
-        if ($failedIds === []) {
-            logger()->info("Completed fetching Japan products for {$brand}");
-
-            return new CrawlResult(CrawlOutcome::Succeeded);
-        }
-
-        logger()->error('Japan stockout ran with the products that failed to save excluded', [
-            'brand' => $brand,
-            'excluded_l1_ids' => $failedIds,
-        ]);
-
-        return new CrawlResult(
-            CrawlOutcome::PartiallySucceeded,
-            sprintf('已執行缺貨判定，排除 %d 件寫入失敗商品', count($failedIds))
+        $result = $gate->decide(
+            $scan,
+            $startOffset !== 0,
+            $failedIds,
+            $unidentifiedFailures,
+            fn () => $this->repository->countInStockProducts($brand),
+            $acceptShrink,
+            fn (array $excluded) => $this->repository->setStockoutProducts($brand, null, $excluded),
         );
-    }
 
-    /**
-     * 續跑點只在當天有效，隔天一律從頭完整掃，理由同台灣那支。
-     */
-    private function saveCheckpoint(string $cacheKey, int $offset): void
-    {
-        Cache::put($cacheKey, $offset, now()->endOfDay());
+        if ($result->outcome === CrawlOutcome::Succeeded) {
+            logger()->info("Completed fetching Japan products for {$brand}");
+        }
+
+        return $result;
     }
 
     private function getJapanProductListApiUrl($brand = 'UNIQLO')

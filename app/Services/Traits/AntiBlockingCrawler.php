@@ -3,6 +3,7 @@
 namespace App\Services\Traits;
 
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 trait AntiBlockingCrawler
@@ -13,6 +14,15 @@ trait AntiBlockingCrawler
      * Managed by resetDetailCounter() / shouldDetailBatchRest() / doDetailBatchRest().
      */
     private int $detailCounter = 0;
+
+    /**
+     * 續跑點只在當天有效，隔天一律從頭完整掃：某一段天天失敗時，跨日續跑會讓前面那段
+     * 的資料從此不再更新，缺貨判定也永遠輪不到。
+     */
+    private function saveCheckpoint(string $cacheKey, int $position): void
+    {
+        Cache::put($cacheKey, $position, now()->endOfDay());
+    }
 
     /**
      * Get a random User-Agent from the configured pool.
