@@ -40,7 +40,8 @@ class FetchHmallProductDescriptions extends Command
         $this->info("Fetching Hmall product descriptions for {$brand}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $succeeded = $hmallProductService->fetchAllHmallProductDescriptions($brand, false, $fresh);
+        $succeeded = $hmallProductService->fetchAllHmallProductDescriptions($brand, false, $fresh)
+            && $hmallProductService->refetchEmptyHmallProductDescriptions($brand);
 
         if ($succeeded) {
             AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);

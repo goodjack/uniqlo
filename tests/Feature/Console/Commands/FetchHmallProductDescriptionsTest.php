@@ -32,6 +32,7 @@ class FetchHmallProductDescriptionsTest extends TestCase
             ->method('fetchAllHmallProductDescriptions')
             ->with('UNIQLO', false, true)
             ->willReturn(true);
+        $mockService->method('refetchEmptyHmallProductDescriptions')->willReturn(true);
 
         $this->app->instance(HmallProductService::class, $mockService);
 
@@ -44,6 +45,7 @@ class FetchHmallProductDescriptionsTest extends TestCase
         $mockService = $this->createMock(HmallProductService::class);
         $mockService->method('fetchAllHmallProductDescriptions')
             ->willReturn(true);
+        $mockService->method('refetchEmptyHmallProductDescriptions')->willReturn(true);
 
         $this->app->instance(HmallProductService::class, $mockService);
 
@@ -62,5 +64,20 @@ class FetchHmallProductDescriptionsTest extends TestCase
 
         $this->artisan('hmall-product-description:fetch UNIQLO')
             ->assertExitCode(1);
+    }
+
+    public function test_empty_descriptions_are_refetched_only_after_a_run_that_was_not_blocked()
+    {
+        $mockService = $this->createMock(HmallProductService::class);
+        $mockService->method('fetchAllHmallProductDescriptions')->willReturnOnConsecutiveCalls(true, false);
+        $mockService->expects($this->once())
+            ->method('refetchEmptyHmallProductDescriptions')
+            ->with('GU')
+            ->willReturn(true);
+
+        $this->app->instance(HmallProductService::class, $mockService);
+
+        $this->artisan('hmall-product-description:fetch GU')->assertExitCode(0);
+        $this->artisan('hmall-product-description:fetch GU')->assertExitCode(1);
     }
 }

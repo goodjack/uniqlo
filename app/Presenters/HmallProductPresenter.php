@@ -40,7 +40,15 @@ class HmallProductPresenter
 
     public function getDescription($hmallProduct)
     {
-        $description = $hmallProduct->instruction;
+        return $this->getDescriptionBody($hmallProduct->instruction)."<br><br>網路商店編號：{$hmallProduct->product_code}";
+    }
+
+    /**
+     * 拿掉官網制式說明後剩下的內容；空字串代表官網這件商品其實還沒有說明。
+     */
+    public function getDescriptionBody(?string $instruction): string
+    {
+        $description = (string) $instruction;
 
         // 去除 GU 產品標示
         $description = preg_replace('/<div class="desc-item">\X*<\/div>/U', '', $description);
@@ -65,11 +73,8 @@ class HmallProductPresenter
 
         // 整理前後換行
         $description = trim($description);
-        $description = preg_replace('/^(<br>)+|(<br>)+$/', '', $description);
 
-        $description .= "<br><br>網路商店編號：{$hmallProduct->product_code}";
-
-        return $description;
+        return preg_replace('/^(<br>)+|(<br>)+$/', '', $description) ?? '';
     }
 
     public function getMainFirstPic($hmallProduct)

@@ -182,13 +182,13 @@ class JapanProductService
         Cache::forget($cacheKey);
 
         $result = $gate->decide(
-            $scan,
-            $startOffset !== 0,
-            $failedIds,
-            $unidentifiedFailures,
-            fn () => $this->repository->countInStockProducts($brand),
-            $acceptShrink,
-            fn (array $excluded) => $this->repository->setStockoutProducts($brand, null, $excluded),
+            scan: $scan,
+            resumed: $startOffset !== 0,
+            failedIds: $failedIds,
+            unidentifiedFailures: $unidentifiedFailures,
+            countInStock: fn () => $this->repository->countInStockProducts($brand),
+            acceptShrink: $acceptShrink,
+            markStockout: fn (array $excluded) => $this->repository->setStockoutProducts($brand, null, $excluded),
         );
 
         if ($result->outcome === CrawlOutcome::Succeeded) {
