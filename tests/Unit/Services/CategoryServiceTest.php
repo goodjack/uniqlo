@@ -89,9 +89,6 @@ class CategoryServiceTest extends TestCase
         $this->assertSame('all_women-inner-heattech', $this->service->getPrimaryCategory($product)->code);
     }
 
-    /**
-     * 同層 sort 同分時用 code 決定，不看關聯載入的順序，麵包屑才不會換來換去。
-     */
     public function test_it_breaks_a_sort_tie_by_code(): void
     {
         // 比 all_women-tops-tshirt 晚建立（id 較大），但 code 排在前面

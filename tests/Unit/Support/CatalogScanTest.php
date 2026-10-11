@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 class CatalogScanTest extends TestCase
 {
     /**
-     * 每一批是 [件數, 那一批回的總數]，依序從第 0 件開始；最後照實際翻頁停下的位置收尾。
+     * 每一批是 [件數, 那一批回的總數]，依序從第 0 件開始。
      *
      * @param  array<int, array{0: int, 1: int}>  $batches
      */

@@ -48,9 +48,6 @@ class ListFilterTest extends TestCase
         $this->assertStringNotContainsString('name="sort" value="oops"', $content);
     }
 
-    /**
-     * 帶 JSON 內文的 GET 會讓驗證改讀內文；整理過的網址參數跟驗證要讀同一份。
-     */
     public function test_a_json_get_request_reads_filters_from_the_url_only(): void
     {
         $this->call(

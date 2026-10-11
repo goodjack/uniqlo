@@ -159,9 +159,6 @@ class FetchHmallProductsTest extends TestCase
         $this->artisan('hmall-product:fetch GU --accept-shrink')->assertExitCode(0);
     }
 
-    /**
-     * 缺貨判定逾期跟完全失敗一樣不送一般的結束通知，交給排程發紅色的失敗通知。
-     */
     public function test_an_overdue_stockout_does_not_send_the_finished_notification()
     {
         $mockService = $this->createMock(HmallProductService::class);

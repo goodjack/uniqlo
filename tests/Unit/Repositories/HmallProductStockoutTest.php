@@ -13,10 +13,6 @@ class HmallProductStockoutTest extends TestCase
 {
     use RefreshDatabase;
 
-    /**
-     * 官網回的資料跟資料庫一字不差時 save() 不會寫入；這輪看到的商品仍要算
-     * 「還在」，不能被缺貨判定掃到。
-     */
     public function test_a_product_seen_again_with_identical_data_is_not_marked_as_stocked_out(): void
     {
         $repository = app(HmallProductRepository::class);

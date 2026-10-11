@@ -12,9 +12,6 @@ class JapanProductRepository
 {
     public function __construct(protected JapanProduct $model) {}
 
-    /**
-     * 回傳哪幾件寫不進去：知道 l1Id 的從下架判定排除，拿不到的只能整輪不做下架判定。
-     */
     public function saveProducts($products, $brand = 'UNIQLO'): ProductSaveResult
     {
         $failedIds = [];
@@ -42,11 +39,9 @@ class JapanProductRepository
                 $model->sub_images = json_decode(json_encode($product->images->sub), true);
                 $model->sub_videos = json_decode(json_encode($product->images->sub), true);
 
-                // 日本的商品列表沒有庫存欄位，出現在回傳裡就是還在賣；
-                // 不清掉的話，被標過下架的商品重新上架也永遠顯示下架
+                // 日本的列表沒有庫存欄位，出現在回傳裡就是還在賣
                 $model->stockout_at = null;
-                // 下架判定以 updated_at 認定「這輪還看得到」，資料完全沒變時
-                // save() 不會碰它，商品會被誤標下架
+                // 下架判定靠 updated_at；資料沒變時 save() 不會碰它，商品會被誤標下架
                 $model->updated_at = now();
 
                 $model->save();
@@ -76,9 +71,7 @@ class JapanProductRepository
         return $this->model->where('brand', $brand)->whereNull('stockout_at')->count();
     }
 
-    /**
-     * @param  array<int, string>  $excludedIds  寫入失敗、但官網其實還在賣的 l1Id
-     */
+    /** @param  array<int, string>  $excludedIds  寫入失敗、但官網其實還在賣的 l1Id */
     public function setStockoutProducts($brand = 'UNIQLO', $updatedIsBefore = null, array $excludedIds = [])
     {
         if (is_null($updatedIsBefore)) {

@@ -9,7 +9,7 @@
 @section('content')
     <div class="ts fluid slate">
         <i class="heart negative icon"></i>
-        <span class="header">收藏</span>
+        <h1 class="unstyled header">收藏</h1>
         <span class="description" id="favorites-summary">只存在這個瀏覽器，換裝置看不到</span>
     </div>
 

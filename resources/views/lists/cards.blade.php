@@ -4,13 +4,14 @@
 --}}
 @php
     $currentQ = (string) request('q');
+    $hasTags = ! empty(request('tags'));
 @endphp
 
 @if ($count === 0)
     @include('partials.empty-state', [
         'icon' => 'search faded',
         'title' => $currentQ !== '' ? "沒有符合「{$currentQ}」的商品" : '沒有符合的商品',
-        'hint' => $currentQ !== '' ? '試試看換個關鍵字，或少選幾個條件' : '試試看少選幾個條件',
+        'hint' => \App\Enums\ProductTag::emptyResultHint($currentQ !== '', $hasTags),
     ])
 @else
     {{-- list-search.js 即時篩到一張都不剩時才顯示，同時藏起下面四段與章節選單 --}}
@@ -19,7 +20,7 @@
             <i class="search faded icon"></i>
             <div class="content">
                 <span id="list-instant-empty-title"></span>
-                <div class="sub header">試試看換個關鍵字，或少選幾個條件</div>
+                <div class="sub header">{{ \App\Enums\ProductTag::emptyResultHint(true, $hasTags) }}</div>
             </div>
         </div>
     </div>

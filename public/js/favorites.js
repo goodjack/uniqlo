@@ -7,8 +7,7 @@
 window.UqFavorites = (function () {
     const STORAGE_KEY = 'uq-favorites';
     const BATCH_SIZE = 100; // 跟 FavoriteController::MAX_CODES 一致，超過整批 422
-    // 跟 App\Enums\Brand 與 FavoriteController 的單筆驗證一致；不合的那筆伺服器會略過，
-    // 留在瀏覽器裡就永遠換不到卡片、還被算成「已經找不到」
+    // 跟 FavoriteController 的單筆驗證一致，不合的那筆伺服器會略過、永遠換不到卡片
     const BRANDS = ['UNIQLO', 'GU'];
     const MAX_CODE_LENGTH = 191;
     const FETCH_TIMEOUT_MS = 15000;
@@ -350,7 +349,6 @@ window.UqFavorites = (function () {
         }
     }
 
-    // 重畫後焦點的去處，依序找第一個看得到的
     const REFOCUS_ORDER = [
         '[data-favorite-remove]',
         '#favorites-offer-filter',
@@ -824,10 +822,7 @@ window.UqFavorites = (function () {
         document.getElementById('favorites-loading').hidden = true;
     }
 
-    /**
-     * refocus：整份重畫會把焦點所在的列或按鈕一起換掉（重新載入、清空後復原、
-     * 別的分頁改了收藏），焦點原本在清單裡的話要放回看得到的第一個控制項。
-     */
+    // 整份重畫會把焦點所在的列一起換掉，refocus 時要把焦點放回看得到的第一個控制項
     async function renderPage(options, refocus) {
         const pending = renderList(options);
         const token = renderToken;

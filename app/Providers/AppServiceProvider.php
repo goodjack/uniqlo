@@ -14,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // 排程步驟留給彙整通知的說明文字。指令寫、AppSchedule 讀，兩邊必須拿到同一份。
+        // 指令寫、AppSchedule 讀，兩邊必須拿到同一份
         $this->app->singleton(TaskNotes::class);
     }
 
@@ -25,8 +25,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
 
-        // 框架預設用 input() 讀頁碼，GET 帶 JSON 內文時會讀到內文；分頁連結、
-        // canonical 與篩選都只認網址參數，頁碼也要讀同一份
+        // 預設用 input() 讀頁碼會讀到 JSON 內文；分頁連結與篩選都只認網址參數
         Paginator::currentPageResolver(function ($pageName = 'page') {
             $page = request()->query($pageName);
 

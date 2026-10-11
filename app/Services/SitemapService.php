@@ -50,7 +50,6 @@ class SitemapService extends Service
         ]);
 
         foreach ($categories as $category) {
-            // 跟站內連結同一套網址編碼，搜尋引擎才不會看到兩個網址
             $sitemap->add(Url::create(SiteUrl::category($category->brand, $category->code)));
         }
 

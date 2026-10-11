@@ -262,10 +262,6 @@ class SearchTest extends TestCase
             ->assertDontSee('寬鬆工作短褲');
     }
 
-    /**
-     * 商品名與分類名常帶這些字元（「休閒長褲 469930 / 475382」「男裝/男女適穿」），
-     * 使用者直接複製貼上就會碰到。
-     */
     #[DataProvider('queriesWithUnusualCharacters')]
     public function test_queries_with_unusual_characters_reach_the_matching_product(string $query, string $name): void
     {
@@ -283,9 +279,6 @@ class SearchTest extends TestCase
             ->assertSee($name);
     }
 
-    /**
-     * 搜尋框帶回的字跟 SearchController 一樣只認網址參數，內文的同名欄位不算。
-     */
     public function test_the_search_box_shows_the_query_string_value_not_a_json_body(): void
     {
         $this->call('GET', route('search.index', ['query' => '羽絨']), [], [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['query' => '短褲']))
@@ -306,9 +299,6 @@ class SearchTest extends TestCase
         ];
     }
 
-    /**
-     * /search/keywords 是 Google 站內搜尋頁，搜「keywords」這個字不能被帶過去。
-     */
     public function test_searching_for_the_word_keywords_does_not_land_on_google_search(): void
     {
         $this->createProduct(['name' => 'keywords 印花T恤', 'code' => '460002', 'product_code' => 'u460002']);
@@ -317,6 +307,13 @@ class SearchTest extends TestCase
             ->assertOk()
             ->assertSee('keywords 印花T恤')
             ->assertDontSee('gcse-searchbox', false);
+    }
+
+    public function test_the_google_search_fallback_passes_the_query_parameter_google_reads(): void
+    {
+        $this->get(route('search.index', ['query' => '找不到的東西']))
+            ->assertOk()
+            ->assertSee(e(route('search.google-cse', ['query' => '找不到的東西'])), false);
     }
 
     public function test_pagination_from_the_search_form_keeps_the_query(): void
@@ -334,9 +331,6 @@ class SearchTest extends TestCase
             ->assertSee('羽絨背心');
     }
 
-    /**
-     * 驗證與取值要讀同一個來源：GET 只帶 JSON 內文時，網址參數是空的。
-     */
     public function test_a_get_request_with_only_a_json_body_is_rejected_instead_of_crashing(): void
     {
         $this->call(
@@ -347,9 +341,6 @@ class SearchTest extends TestCase
         )->assertUnprocessable();
     }
 
-    /**
-     * 表單送出一次搜尋只能扣一次額度（以前會轉址到 /search/{query} 再扣一次）。
-     */
     public function test_a_search_from_the_form_counts_once_against_the_limit(): void
     {
         for ($i = 0; $i < 30; $i++) {

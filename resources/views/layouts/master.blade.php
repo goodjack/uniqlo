@@ -9,18 +9,33 @@
     <meta name="theme-color" content="#ce5f58">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
     <link rel="manifest" href="{{ asset('app.webmanifest') }}">
-    <meta name="apple-mobile-web-app-title" content="UQ 搜尋">
+    <meta name="apple-mobile-web-app-title" content="{{ \App\Support\SiteTitle::NAME }}">
     <link rel="apple-touch-icon" href="{{ asset('icons/icon-192x192.png') }}">
 
-    <title>@yield('title') | UQ 搜尋</title>
+    @php
+        // section 內容在設定時已跳脫，這裡原樣輸出
+        $pageTitle = $__env->hasSection('full-title')
+            ? $__env->yieldContent('full-title')
+            : \App\Support\SiteTitle::append($__env->yieldContent('title'));
+        $socialTitle = $__env->hasSection('og-title')
+            ? \App\Support\SiteTitle::append($__env->yieldContent('og-title'))
+            : $pageTitle;
+    @endphp
+    <title>{!! $pageTitle !!}</title>
 
     @yield('json-ld')
 
+    <meta property="og:type" content="@yield('og-type', 'website')" />
+    <meta property="og:title" content="{!! $socialTitle !!}" />
+    <meta name="twitter:title" content="{!! $socialTitle !!}" />
+    <meta property="og:site_name" content="{{ \App\Support\SiteTitle::NAME }}" />
+    <meta property="og:locale" content="zh_TW" />
     @yield('metadata')
 
     <link rel="preconnect" href="https://im.uniqlo.com">
     <link rel="preconnect" href="https://www.uniqlo.com">
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    {{-- Tocas 與 Font Awesome 的 CSS、字型都以 crossorigin 載入，預連也要帶 crossorigin 才會用同一條連線 --}}
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="dns-prefetch" href="https://im.uniqlo.com">
     <link rel="dns-prefetch" href="https://www.uniqlo.com">
     <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
@@ -28,6 +43,17 @@
     <!-- Tocas UI：CSS 與元件 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/2.3.3/tocas.css"
         integrity="sha512-D41DQHff3/kvdRtWlfJ69BltxL2ovJ2hRFiQopYGGiSFgJE4i5Un3qaqlKCAuo+00yaMzdcw7aVRl11taevIdw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    {{-- 分享相關的品牌圖示（LINE、X、新版 Facebook）Tocas 內建的圖示沒有，其他圖示仍用 Tocas --}}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/fontawesome.min.css"
+        integrity="sha512-v8QQ0YQ3H4K6Ic3PJkym91KoeNT5S3PnDKvqnwqFD1oiqIl653crGZplPdU5KKtHjO0QKcQ2aUlQZYjHczkmGw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/brands.min.css"
+        integrity="sha512-58P9Hy7II0YeXLv+iFiLCv1rtLW47xmiRpC1oFafeKNShp8V5bKV/ciVtYqbk2YfxXQMt58DjNfkXFOn62xE+g=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/solid.min.css"
+        integrity="sha512-DzC7h7+bDlpXPDQsX/0fShhf1dLxXlHuhPBkBo/5wJWRoTU6YL7moeiNoej6q3wh5ti78C57Tu1JwTNlcgHSjg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     {{-- 跨頁共用的元件樣式。放在 Tocas 之後才蓋得掉它，放在 @yield('css') 之前才蓋得掉這裡 --}}
@@ -150,9 +176,8 @@
                     }
                 });
 
-                // 只在焦點確定移到選單外的元素時收合。relatedTarget 是 null 的情況
-                // （Safari 點連結不給焦點）交給 tocas.js 的點擊外部收合，不然選單會在
-                // mousedown 時先消失，連結點不到
+                // Safari 點連結時 relatedTarget 是 null，交給 tocas.js 的點擊外部收合，
+                // 否則選單會在 mousedown 時先消失、連結點不到
                 dropdown.addEventListener('focusout', function(event) {
                     if (event.relatedTarget && !dropdown.contains(event.relatedTarget)) {
                         close(dropdown);
@@ -165,12 +190,60 @@
         (function () {
             // 選了就送出；送出鈕留給沒有 JavaScript 的情況，有 JavaScript 才藏起來
             document.querySelectorAll('select[data-auto-submit]').forEach(function(select) {
+                // requestSubmit 才會觸發 submit 事件，下面的載入中狀態才接得到
                 select.addEventListener('change', function() {
-                    select.form.submit();
+                    select.form.requestSubmit ? select.form.requestSubmit() : select.form.submit();
                 });
 
                 select.form.querySelectorAll('[data-auto-submit-fallback]').forEach(function(button) {
                     button.hidden = true;
+                });
+            });
+        })();
+    </script>
+    <script>
+        (function () {
+            // 篩選、排序、品牌都是整頁重新載入，伺服器要一兩秒；按下就讓人看到有在動，也擋掉連點
+            function markBusy(event, control) {
+                if (document.body.classList.contains('uq-busy')) {
+                    event.preventDefault();
+                    return;
+                }
+
+                document.body.classList.add('uq-busy');
+
+                if (control && control.matches('.ts.button')) {
+                    control.classList.add('loading');
+                } else if (control) {
+                    control.setAttribute('aria-busy', 'true');
+                }
+            }
+
+            document.addEventListener('submit', function (event) {
+                const form = event.target.closest('[data-shows-busy]');
+
+                if (form && !event.defaultPrevented) {
+                    markBusy(event, event.submitter || form.querySelector('select[data-auto-submit]'));
+                }
+            });
+
+            document.addEventListener('click', function (event) {
+                const link = event.target.closest('[data-shows-busy] a[href]');
+                const opensElsewhere = event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+
+                if (link && !event.defaultPrevented && !opensElsewhere) {
+                    markBusy(event, link);
+                }
+            });
+
+            // 按上一頁回來時，瀏覽器可能直接還原離開前的畫面，要把載入中拿掉
+            window.addEventListener('pageshow', function () {
+                document.body.classList.remove('uq-busy');
+                document.querySelectorAll('[data-shows-busy] .loading').forEach(function (control) {
+                    control.classList.remove('loading');
+                });
+                document.querySelectorAll('[data-shows-busy] [aria-busy]').forEach(function (control) {
+                    control.removeAttribute('aria-busy');
                 });
             });
         })();
@@ -192,6 +265,40 @@
                     if (firstItem) {
                         firstItem.classList.add('active');
                     }
+                }
+
+                const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+                // 選單可以橫向捲動，目前這一段要留在看得見的地方；只捲選單本身，不動整頁
+                new MutationObserver(function () {
+                    const active = sectionMenu.querySelector('.item.active');
+
+                    if (!active) {
+                        return;
+                    }
+
+                    const menuBox = sectionMenu.getBoundingClientRect();
+                    const itemBox = active.getBoundingClientRect();
+
+                    if (itemBox.left < menuBox.left || itemBox.right > menuBox.right) {
+                        sectionMenu.scrollBy({
+                            left: itemBox.left - menuBox.left - (menuBox.width - itemBox.width) / 2,
+                            behavior: reduceMotion ? 'auto' : 'smooth'
+                        });
+                    }
+                }).observe(sectionMenu, { subtree: true, attributes: true, attributeFilter: ['class'] });
+
+                const wrapper = sectionMenu.closest('.uq-section-menu');
+                const revealAfter = wrapper.dataset.revealAfter && document.getElementById(wrapper.dataset.revealAfter);
+
+                if (revealAfter && 'IntersectionObserver' in window) {
+                    const navHeight = getComputedStyle(document.documentElement).getPropertyValue('--uq-nav-height').trim();
+
+                    wrapper.classList.add('is-floating');
+
+                    new IntersectionObserver(function (entries) {
+                        wrapper.classList.toggle('is-shown', !entries[0].isIntersecting);
+                    }, { rootMargin: '-' + navHeight + ' 0px 0px 0px' }).observe(revealAfter);
                 }
             }
         })();

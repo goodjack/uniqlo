@@ -42,16 +42,15 @@
     @if ($currentQ !== '')
         <meta name="robots" content="noindex, follow" />
     @endif
-    <meta name="description" content="{{ $category->name }} 的 UNIQLO 與 GU 商品比價 | UQ 搜尋" />
-    <meta property="og:title" content="{{ $category->name }} | UQ 搜尋" />
+    <meta name="description" content="{{ \App\Support\SiteTitle::append($category->name.' 的 UNIQLO 與 GU 商品比價') }}" />
     <meta property="og:url" content="{{ $canonicalUrl }}" />
-    <meta property="og:description" content="{{ $title }} | UNIQLO 比價 | UQ 搜尋" />
+    <meta property="og:description" content="{{ \App\Support\SiteTitle::appendWithTagline($title) }}" />
 @endsection
 
 @section('content')
     <div class="ts fluid slate">
         <i class="tags faded icon"></i>
-        <span class="header">{{ $category->name }}</span>
+        <h1 class="unstyled header">{{ $category->name }}</h1>
         {{-- 分類不提供品牌篩選：兩家的分類 code 各成一套，一個分類只會有一家的商品 --}}
         <span class="description">
             <div class="ts mini @if ($brand === \App\Enums\Brand::Gu) info @else negative @endif label">
@@ -79,7 +78,7 @@
         <x-toolbar>
             <x-slot:end>
                 {{-- 不掛即時篩（data-instant-filter）：分類頁有分頁，前端只篩得到這一頁，會誤以為篩了整個分類 --}}
-                <form method="GET" action="{{ $currentUrl }}" class="ts input uq-search-form">
+                <form method="GET" action="{{ $currentUrl }}" class="ts input uq-search-form" data-shows-busy>
                     @foreach ($selectedTagValues as $tagValue)
                         <input type="hidden" name="tags[]" value="{{ $tagValue }}">
                     @endforeach
@@ -103,7 +102,7 @@
             @include('partials.empty-state', [
                 'icon' => 'search faded',
                 'title' => $currentQ !== '' ? "沒有符合「{$currentQ}」的商品" : '沒有符合的商品',
-                'hint' => $currentQ !== '' ? '試試看換個關鍵字，或少選幾個條件' : '試試看少選幾個條件',
+                'hint' => \App\Enums\ProductTag::emptyResultHint($currentQ !== '', ! empty($selectedTagValues)),
             ])
         @else
             <div class="ts doubling cards four uq-product-cards">

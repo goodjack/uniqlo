@@ -2,7 +2,7 @@
 @extends('layouts.master')
 
 @php
-$shareText = $product->name . ' | UNIQLO 比價 | UQ 搜尋';
+$shareText = \App\Support\SiteTitle::appendWithTagline($product->name);
 $shareTextEncode = urlencode($shareText);
 
 $url = url()->current();
@@ -16,57 +16,50 @@ $shareUrl = [
 
 @section('title', "{$product->name}")
 
+@section('og-type', 'product')
+
 @section('json-ld')
-    <script type="application/ld+json">
-        {
-            "@context": "https://schema.org/",
-            "@type": "Product",
-            "sku": "{{ $product->id }}",
-            "name": "{{ $product->name }} | UNIQLO 比價 | UQ 搜尋",
-            "description": {!! json_encode($product->comment) !!},
-            "image": [
-                "{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
+    @php
+        $productJsonLd = [
+            '@context' => 'https://schema.org/',
+            '@type' => 'Product',
+            'sku' => (string) $product->id,
+            'name' => $product->name,
+            'description' => $product->comment,
+            'image' => [$productPresenter->getProductMainImageUrl($product, $relatedHmallProducts)],
+            'itemCondition' => 'https://schema.org/NewCondition',
+            'brand' => ['@type' => 'Brand', 'name' => 'UNIQLO'],
+            'offers' => [
+                '@type' => 'AggregateOffer',
+                'lowPrice' => $product->min_price,
+                'highPrice' => $product->max_price,
+                'priceCurrency' => 'TWD',
+                'availability' => $productPresenter->getProductAvailabilityForJsonLd($product),
+                'itemCondition' => 'https://schema.org/NewCondition',
+                'url' => route('products.show', ['product' => $product->id]),
+                'seller' => ['@type' => 'Organization', 'name' => 'UNIQLO'],
             ],
-            "itemCondition": "http://schema.org/NewCondition",
-            "brand": {
-                "@type": "Brand",
-                "name": "UNIQLO"
-            },
-            "offers": {
-                "@type": "AggregateOffer",
-                "lowPrice": "{{ $product->min_price }}",
-                "highPrice": "{{ $product->max_price }}",
-                "priceCurrency": "TWD",
-                "priceValidUntil": "{{ $product->updated_at->toDateString() }}",
-                "availability": "{{ $productPresenter->getProductAvailabilityForJsonLd($product) }}",
-                "itemCondition": "http://schema.org/NewCondition",
-                "url": "{{ route('products.show', ['product' => $product->id]) }}",
-                "seller": {
-                    "@type": "Organization",
-                    "name": "UNIQLO"
-                }
-            }
-            @if ($product->review_count > 0 && !empty($product->review_rating))
-                , "aggregateRating": {
-                    "ratingValue": "{{ $product->review_rating }}",
-                    "ratingCount": "{{ $product->review_count }}"
-                }
-            @endif
+        ];
+
+        if ($product->review_count > 0 && ! empty($product->review_rating)) {
+            $productJsonLd['aggregateRating'] = [
+                '@type' => 'AggregateRating',
+                'ratingValue' => $product->review_rating,
+                'ratingCount' => $product->review_count,
+            ];
         }
-    </script>
+    @endphp
+    @include('partials.json-ld', ['data' => $productJsonLd])
 @endsection
 
 @section('metadata')
     <link rel="canonical" href="{{ route('products.show', ['product' => $product->id]) }}" />
     <meta name="description" content="{{ $productPresenter->getSocialMediaDescription($product) }}" />
-    <meta property="og:type" content="og:product" />
-    <meta property="og:title" content="{{ $product->name }} | UQ 搜尋" />
     <meta property="og:url" content="{{ route('products.show', ['product' => $product->id]) }}" />
     <meta property="og:description" content="{{ $productPresenter->getSocialMediaDescription($product) }}" />
     <meta property="og:image" content="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@littlegoodjack" />
-    <meta name="twitter:title" content="{{ $product->name }} | UQ 搜尋" />
     <meta name="twitter:description" content="{{ $productPresenter->getSocialMediaDescription($product) }}" />
     <meta name="twitter:image"
         content="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}" />
@@ -99,11 +92,11 @@ $shareUrl = [
         }
 
         #twitter:hover {
-            color: #1d95e0 !important;
+            color: #0f1419 !important;
         }
 
         #twitter:active {
-            color: #0d7bbf !important;
+            color: #000 !important;
         }
 
         #line {
@@ -180,18 +173,18 @@ $shareUrl = [
                                 <div class="ts buttons">
                                     <a id="facebook" class="ts link button"
                                         href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="Facebook">
-                                        <i class="facebook icon"></i>
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Facebook">
+                                        <i class="fa-brands fa-facebook" aria-hidden="true"></i>
                                     </a>
                                     <a id="twitter" class="ts link button"
                                         href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="Twitter">
-                                        <i class="twitter icon"></i>
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 X">
+                                        <i class="fa-brands fa-x-twitter" aria-hidden="true"></i>
                                     </a>
                                     <a id="line" class="ts link button"
                                         href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="Line">
-                                        <i class="chat icon"></i>
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 LINE">
+                                        <i class="fa-brands fa-line" aria-hidden="true"></i>
                                     </a>
                                 </div>
                             </div>
@@ -223,7 +216,7 @@ $shareUrl = [
                                     rel="nofollow noopener" aria-label="UNIQLO">無法前往 UNIQLO 舊官網<i
                                         class="external icon"></i></a>
                                 <a class="ts basic button" id="share" target="_blank" rel="nofollow noopener"
-                                    aria-label="Share" style="display: none;"><i class="share icon"></i>分享</a>
+                                    aria-label="Share" style="display: none;"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i>分享</a>
                             </div>
                         </div>
                     </div>

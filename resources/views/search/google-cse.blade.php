@@ -2,6 +2,11 @@
 
 @section('title', '關鍵字搜尋')
 
+@section('metadata')
+    {{-- 內容是 Google 站內搜尋的空殼，沒有可收錄的東西 --}}
+    <meta name="robots" content="noindex, follow" />
+@endsection
+
 @section('content')
     <div class="ts attached very padded fluid tertiary segment">
         <div class="ts very narrow container">

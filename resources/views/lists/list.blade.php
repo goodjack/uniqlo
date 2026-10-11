@@ -23,26 +23,26 @@
 
 @section('title', $title)
 
+@section('og-title', $typeName)
+
 @section('metadata')
     <link rel="canonical" href="{{ $currentUrl }}" />
     @if ($currentQ !== '')
         {{-- 帶關鍵字的結果是既有清單的重組，不需要另外被索引 --}}
         <meta name="robots" content="noindex, follow" />
     @endif
-    <meta name="description" content="{{ $title }} | UNIQLO 比價 | UQ 搜尋" />
-    <meta property="og:title" content="{{ $typeName }} | UQ 搜尋" />
+    <meta name="description" content="{{ \App\Support\SiteTitle::appendWithTagline($title) }}" />
     <meta property="og:url" content="{{ $currentUrl }}" />
-    <meta property="og:description" content="{{ $title }} | UNIQLO 比價 | UQ 搜尋" />
+    <meta property="og:description" content="{{ \App\Support\SiteTitle::appendWithTagline($title) }}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@littlegoodjack" />
-    <meta name="twitter:title" content="{{ $typeName }} | UQ 搜尋" />
-    <meta name="twitter:description" content="{{ $title }} | UNIQLO 比價 | UQ 搜尋" />
+    <meta name="twitter:description" content="{{ \App\Support\SiteTitle::appendWithTagline($title) }}" />
 @endsection
 
 @section('content')
     <div class="ts fluid slate">
         <i class="{{ $typeStyle }} {{ $typeIcon }} icon"></i>
-        <span class="header">{{ $typeName }}</span>
+        <h1 class="unstyled header">{{ $typeName }}</h1>
         {{-- list-search.js 即時篩之後會用 data-sort-text 重組這句話 --}}
         <span class="description" data-instant-subtitle data-sort-text="{{ $sortText }}">
             @if ($currentQ !== '')
@@ -57,7 +57,7 @@
         <x-toolbar>
             <x-slot:start>
                 {{-- 不加 basic：Tocas 的 basic 按鈕群選中狀態對比只有 1.3:1，看不出選了哪一顆 --}}
-                <div class="ts compact buttons" data-keeps-q>
+                <div class="ts compact buttons" data-keeps-q data-shows-busy>
                     <a class="ts button {{ $currentBrand === null ? 'active' : '' }}"
                         href="{{ $currentUrl }}?{{ $queryFor(['brand' => null]) }}">全部</a>
                     <a class="ts button {{ $currentBrand === 'UNIQLO' ? 'active' : '' }}"
@@ -68,7 +68,7 @@
             </x-slot:start>
 
             <x-slot:end>
-                <form method="GET" action="{{ $currentUrl }}" class="ts input uq-search-form">
+                <form method="GET" action="{{ $currentUrl }}" class="ts input uq-search-form" data-shows-busy>
                     @if ($currentBrand)
                         <input type="hidden" name="brand" value="{{ $currentBrand }}">
                     @endif
@@ -89,7 +89,7 @@
                 </form>
 
                 {{-- 原生 <select> 套 Tocas 的 .ts.basic.dropdown，沒有 JavaScript 也能用 --}}
-                <form method="GET" action="{{ $currentUrl }}" class="uq-sort-form" data-keeps-q>
+                <form method="GET" action="{{ $currentUrl }}" class="uq-sort-form" data-keeps-q data-shows-busy>
                     @if ($currentBrand)
                         <input type="hidden" name="brand" value="{{ $currentBrand }}">
                     @endif

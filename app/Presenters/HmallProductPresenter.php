@@ -5,6 +5,7 @@ namespace App\Presenters;
 use App\Enums\ProductTag;
 use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
+use App\Support\SiteTitle;
 
 class HmallProductPresenter
 {
@@ -23,6 +24,11 @@ class HmallProductPresenter
         $fullName = $this->getFullName($hmallProduct);
 
         return "{$fullName} {$hmallProduct->code}";
+    }
+
+    public function getShareText($hmallProduct): string
+    {
+        return SiteTitle::appendWithTagline($this->getFullNameWithCode($hmallProduct));
     }
 
     public function getFullNameWithCodeAndProductCode($hmallProduct)
@@ -250,13 +256,6 @@ class HmallProductPresenter
         return json_encode($data);
     }
 
-    public function getDescriptionForJsonLd($hmallProduct)
-    {
-        $description = $this->getSocialMediaDescription($hmallProduct);
-
-        return json_encode($description);
-    }
-
     public function getProductAvailabilityForJsonLd($hmallProduct)
     {
         if ($hmallProduct->is_stockout) {
@@ -305,7 +304,7 @@ class HmallProductPresenter
         $description = strip_tags($description);
         $description = trim(preg_replace('/\s+/', ' ', $description));
 
-        $description = "{$description} | UNIQLO 比價 | UQ 搜尋";
+        $description = SiteTitle::appendWithTagline($description);
 
         $rating = $this->getRating($hmallProduct, true);
 

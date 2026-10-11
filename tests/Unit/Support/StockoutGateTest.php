@@ -21,9 +21,6 @@ class StockoutGateTest extends TestCase
         Carbon::setTestNow('2026-10-09 09:30:00');
     }
 
-    /**
-     * 跳過兩天以內只是部分成功；超過兩天改成要人處理，說明裡寫出幾天、上次哪天。
-     */
     #[DataProvider('daysSinceLastRun')]
     public function test_skipping_escalates_only_after_two_days(int $daysAgo, CrawlOutcome $expected): void
     {
@@ -55,9 +52,6 @@ class StockoutGateTest extends TestCase
         );
     }
 
-    /**
-     * 剛上線還沒有紀錄時從今天起算，不會一上線就發失敗通知，也不會永遠不升級。
-     */
     public function test_the_first_skip_without_a_record_starts_counting_from_today(): void
     {
         $gate = new StockoutGate('hmall', 'GU');
@@ -85,9 +79,6 @@ class StockoutGateTest extends TestCase
         );
     }
 
-    /**
-     * 看到的件數不到在售件數的一半就不做缺貨判定；剛建好的空資料庫（在售 0 件）照做。
-     */
     #[DataProvider('seenCounts')]
     public function test_seeing_far_fewer_than_in_stock_blocks_stockout(int $seen, int $inStock, bool $tooFew): void
     {

@@ -1,6 +1,33 @@
 @extends('layouts.master')
 
+@php
+    $homeTitle = 'UQ 搜尋｜UNIQLO 與 GU 價格查詢比價';
+    $homeDescription = '查 UNIQLO 與 GU 商品的歷史價格、限時特價與新品，比較台灣與日本售價，看網友穿搭。';
+@endphp
+
 @section('title', '首頁')
+@section('full-title', $homeTitle)
+
+@section('json-ld')
+    @include('partials.json-ld', [
+        'data' => [
+            '@context' => 'https://schema.org',
+            '@type' => 'WebSite',
+            'name' => 'UQ 搜尋',
+            'alternateName' => 'UNIQLO 比價',
+            'url' => route('home'),
+        ],
+    ])
+@endsection
+
+@section('metadata')
+    <link rel="canonical" href="{{ route('home') }}" />
+    <meta name="description" content="{{ $homeDescription }}" />
+    <meta property="og:url" content="{{ route('home') }}" />
+    <meta property="og:description" content="{{ $homeDescription }}" />
+    <meta property="og:image" content="{{ asset('icons/icon-512x512.png') }}" />
+    <meta name="twitter:card" content="summary" />
+@endsection
 
 @section('content')
     <div class="ts very padded horizontally fitted attached fluid segment">

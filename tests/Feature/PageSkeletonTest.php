@@ -196,6 +196,23 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
+     * 主圖是商品頁第一眼要看到的圖，不能等頁尾的延後載入腳本才補上網址。
+     */
+    public function test_the_product_page_main_image_loads_right_away(): void
+    {
+        $this->seedProduct();
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(
+            1,
+            $this->countNodes($content, '//a[@data-lightbox]/img[@fetchpriority="high"][starts-with(@src, "http")][not(@loading)]')
+        );
+    }
+
+    /**
      * 屬性標籤（豐富尺碼、男女適穿等）只在商品頁，是決定要不要買時才看的細節。
      */
     public function test_the_attribute_labels_stay_off_the_cards(): void
@@ -281,6 +298,18 @@ class PageSkeletonTest extends TestCase
         );
     }
 
+    public function test_the_product_page_ad_comes_after_the_price_chart(): void
+    {
+        config(['app.adsense.client_id' => 'ca-pub-0000000000000000', 'app.adsense.slot_id' => '0000000000']);
+        $this->seedProduct();
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertGreaterThan(strpos($content, 'id="priceChart"'), strpos($content, 'class="uq-ad"'));
+    }
+
     /**
      * 右欄不用小標題分段，標題會比它標的內容還長。
      */
@@ -310,6 +339,23 @@ class PageSkeletonTest extends TestCase
     /**
      * 商品資訊與分類是屬性資料，不擠在價格與按鈕旁邊，是章節選單的第一段。
      */
+    public function test_only_the_product_page_section_menu_waits_for_the_hero_to_scroll_away(): void
+    {
+        $this->seedProduct(['identity' => json_encode(['concessional_rate'])]);
+
+        $product = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, $this->countNodes($product, '//*[contains(@class, "uq-section-menu")][@data-reveal-after="product_hero"]'));
+        $this->assertSame(1, $this->countNodes($product, '//*[@id="product_hero"]'));
+
+        $list = $this->get(route('lists.sale'))->assertOk()->getContent();
+
+        $this->assertSame(1, $this->countNodes($list, '//*[contains(@class, "uq-section-menu")]'));
+        $this->assertSame(0, $this->countNodes($list, '//*[@data-reveal-after]'));
+    }
+
     public function test_the_facts_live_in_their_own_section(): void
     {
         $this->seedProduct();
@@ -500,6 +546,7 @@ class PageSkeletonTest extends TestCase
         // 區間那一行還在：現價 490、歷史 790 – 390，而且現價高於歷史最低要染綠
         $range = $this->xpath($html)->query('//div[contains(@class, "sub")][contains(@class, "header")]');
         $this->assertSame(1, $range->length);
+        $this->assertStringStartsWith('歷史', trim($range->item(0)->textContent), '區間要標明是過去的價格，不然像不同尺寸的售價範圍');
         $this->assertStringContainsString('790', $range->item(0)->textContent);
         $this->assertStringContainsString('390', $range->item(0)->textContent);
         $this->assertStringContainsString('var(--uq-new-text)', $html, '現價還高於歷史最低時，最低價染綠');
@@ -554,10 +601,6 @@ class PageSkeletonTest extends TestCase
         $this->assertSame("{$base}?page=2", $canonical("{$base}?page=2&q=%E4%B8%8A%E8%A1%A3"));
     }
 
-    /**
-     * 導覽列的下拉（桌機的分組與手機的「選單」）要能用鍵盤打開：tocas.js 只綁
-     * click，觸發字是 <div> 的話根本進不了 Tab 順序。
-     */
     public function test_every_nav_dropdown_opens_from_a_keyboard_reachable_button(): void
     {
         $xpath = $this->xpath($this->get(route('home'))->assertOk()->getContent());
@@ -616,6 +659,13 @@ class PageSkeletonTest extends TestCase
     /**
      * @param  array<string, mixed>  $overrides  這一個案例才需要的欄位（標籤用的 identity、說明用的 instruction）
      */
+    public function test_the_cdnjs_preconnect_matches_the_cors_requests(): void
+    {
+        $this->get(route('pages.changelog'))
+            ->assertOk()
+            ->assertSee('<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>', false);
+    }
+
     private function seedProduct(array $overrides = []): void
     {
         $product = HmallProduct::unguarded(fn () => HmallProduct::create(array_merge([

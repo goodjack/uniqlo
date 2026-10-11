@@ -2,7 +2,7 @@
 @extends('layouts.master')
 
 @php
-    $shareText = $hmallProductPresenter->getFullName($hmallProduct) . ' | UNIQLO 比價 | UQ 搜尋';
+    $shareText = $hmallProductPresenter->getShareText($hmallProduct);
     $shareTextEncode = urlencode($shareText);
 
     $currentUrl = url()->current();
@@ -90,61 +90,55 @@
         ->all();
 @endphp
 
-@section('title', $hmallProductPresenter->getFullName($hmallProduct))
+@section('title', $hmallProductPresenter->getFullNameWithCode($hmallProduct))
+
+@section('og-type', 'product')
 
 @section('json-ld')
-    <script type="application/ld+json">
-        {
-            "@context": "https://schema.org/",
-            "@type": "Product",
-            "sku": "{{ $hmallProduct->product_code }}",
-            "productID": "{{ $hmallProduct->code }}",
-            "model": "{{ $hmallProduct->code }}",
-            "name": "{{ $hmallProductPresenter->getFullName($hmallProduct) }} | UNIQLO 比價 | UQ 搜尋",
-            "description": {!! $hmallProductPresenter->getDescriptionForJsonLd($hmallProduct) !!},
-            "image": [
-                "{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
+    @php
+        $productJsonLd = [
+            '@context' => 'https://schema.org/',
+            '@type' => 'Product',
+            'sku' => $hmallProduct->product_code,
+            'productID' => $hmallProduct->code,
+            'model' => $hmallProduct->code,
+            'name' => $productName,
+            'description' => $hmallProductPresenter->getSocialMediaDescription($hmallProduct),
+            'image' => [$hmallProductPresenter->getMainFirstPic($hmallProduct)],
+            'itemCondition' => 'https://schema.org/NewCondition',
+            'brand' => ['@type' => 'Brand', 'name' => $hmallProduct->brand],
+            // 價格區間刻意標歷史最低與最高價，跟頁面上顯示的一致
+            'offers' => [
+                '@type' => 'AggregateOffer',
+                'lowPrice' => $hmallProduct->lowest_record_price,
+                'highPrice' => $hmallProduct->highest_record_price,
+                'priceCurrency' => 'TWD',
+                'availability' => $hmallProductPresenter->getProductAvailabilityForJsonLd($hmallProduct),
+                'itemCondition' => 'https://schema.org/NewCondition',
+                'url' => $currentUrl,
+                'seller' => ['@type' => 'Organization', 'name' => $hmallProduct->brand],
             ],
-            "itemCondition": "http://schema.org/NewCondition",
-            "brand": {
-                "@type": "Brand",
-                "name": "{{ $hmallProduct->brand }}"
-            },
-            "offers": {
-                "@type": "AggregateOffer",
-                "lowPrice": "{{ $hmallProduct->lowest_record_price }}",
-                "highPrice": "{{ $hmallProduct->highest_record_price }}",
-                "priceCurrency": "TWD",
-                "priceValidUntil": "{{ $hmallProduct->updated_at->toDateString() }}",
-                "availability": "{{ $hmallProductPresenter->getProductAvailabilityForJsonLd($hmallProduct) }}",
-                "itemCondition": "http://schema.org/NewCondition",
-                "url": "{{ $currentUrl }}",
-                "seller": {
-                    "@type": "Organization",
-                    "name": "{{ $hmallProduct->brand }}"
-                }
-            }
-            @if ($hmallProduct->evaluation_count > 0 && !empty($hmallProduct->score))
-                , "aggregateRating": {
-                    "ratingValue": "{{ $hmallProduct->score }}",
-                    "ratingCount": "{{ $hmallProduct->evaluation_count }}"
-                }
-            @endif
+        ];
+
+        if ($hmallProduct->evaluation_count > 0 && ! empty($hmallProduct->score)) {
+            $productJsonLd['aggregateRating'] = [
+                '@type' => 'AggregateRating',
+                'ratingValue' => $hmallProduct->score,
+                'ratingCount' => $hmallProduct->evaluation_count,
+            ];
         }
-    </script>
+    @endphp
+    @include('partials.json-ld', ['data' => $productJsonLd])
 @endsection
 
 @section('metadata')
     <link rel="canonical" href="{{ $currentUrl }}" />
     <meta name="description" content="{{ $hmallProductPresenter->getSocialMediaDescription($hmallProduct) }}" />
-    <meta property="og:type" content="og:product" />
-    <meta property="og:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} | UQ 搜尋" />
     <meta property="og:url" content="{{ $currentUrl }}" />
     <meta property="og:description" content="{{ $hmallProductPresenter->getSocialMediaDescription($hmallProduct) }}" />
     <meta property="og:image" content="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@littlegoodjack" />
-    <meta name="twitter:title" content="{{ $hmallProductPresenter->getFullName($hmallProduct) }} | UQ 搜尋" />
     <meta name="twitter:description" content="{{ $hmallProductPresenter->getSocialMediaDescription($hmallProduct) }}" />
     <meta name="twitter:image" content="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" />
     <meta name="share:text" content="{{ $shareText }}" />
@@ -179,11 +173,11 @@
 
         #twitter:hover {
             background: #fff !important;
-            color: #1d95e0 !important;
+            color: #0f1419 !important;
         }
 
         #twitter:active {
-            color: #0d7bbf !important;
+            color: #000 !important;
         }
 
         #line {
@@ -251,14 +245,14 @@
         @include('partials.breadcrumb', ['crumbs' => $crumbs])
     </div>
 
-    <div class="ts very padded horizontally fitted attached fluid segment">
+    <div class="ts very padded horizontally fitted attached fluid segment" id="product_hero">
         <div class="ts container relaxed grid">
             <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
                 <div class="ts fluid container">
                     <a class="ts centered image" href="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
                         rel="nofollow noopener" data-lightbox="image"
                         data-title="{{ $productName }}">
-                        <x-lazy-load-image class="ts centered image"
+                        <x-lazy-load-image class="ts centered image" :priority="true"
                             src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
                             alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
                     </a>
@@ -277,17 +271,17 @@
                                     <a id="facebook" class="ts link button"
                                         href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
                                         target="_blank" rel="nofollow noopener" aria-label="分享到 Facebook">
-                                        <i class="facebook icon"></i>
+                                        <i class="fa-brands fa-facebook" aria-hidden="true"></i>
                                     </a>
                                     <a id="twitter" class="ts link button"
                                         href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Twitter">
-                                        <i class="twitter icon"></i>
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 X">
+                                        <i class="fa-brands fa-x-twitter" aria-hidden="true"></i>
                                     </a>
                                     <a id="line" class="ts link button"
                                         href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Line">
-                                        <i class="chat icon"></i>
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 LINE">
+                                        <i class="fa-brands fa-line" aria-hidden="true"></i>
                                     </a>
                                 </div>
                             </div>
@@ -341,8 +335,8 @@
                                     data-brand="{{ $hmallProduct->brand }}"
                                     data-product-code="{{ $hmallProduct->product_code }}" aria-pressed="false"><i
                                         class="heart outline icon"></i><span class="label">收藏</span></button>
-                                <button type="button" class="ts basic button" id="share" style="display: none;"><i
-                                        class="share icon" aria-hidden="true"></i>分享</button>
+                                <button type="button" class="ts basic button" id="share" hidden><i
+                                        class="fa-solid fa-share-nodes" aria-hidden="true"></i>分享</button>
                             </div>
                         </div>
                     </div>
@@ -351,7 +345,7 @@
         </div>
     </div>
 
-    @include('partials.section-menu', ['id' => 'product_menu', 'items' => $sections])
+    @include('partials.section-menu', ['id' => 'product_menu', 'items' => $sections, 'revealAfter' => 'product_hero'])
 
     @if ($shown['facts'])
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
@@ -509,21 +503,6 @@
         </div>
     @endif
 
-    @if (!empty($adsenseClientId) && !empty($adsenseSlotId))
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-            <div class="ts container">
-                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ $adsenseClientId }}"
-                    crossorigin="anonymous"></script>
-                <ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-layout="in-article"
-                    data-ad-format="fluid" data-ad-client="{{ $adsenseClientId }}" data-ad-slot="{{ $adsenseSlotId }}">
-                </ins>
-                <script>
-                    (adsbygoogle = window.adsbygoogle || []).push({});
-                </script>
-            </div>
-        </div>
-    @endif
-
     <div class="ts very padded horizontally fitted attached fluid tertiary segment">
         <div class="ts container">
             @include('partials.section-anchor', ['anchor' => 'price-history', 'menu' => 'product_menu'])
@@ -589,6 +568,19 @@
                     </div>
                 </div>
             </div>
+            {{-- 放在價格走勢下方：從章節選單跳過來的人看完圖表就會看到，也不擋在內容前面 --}}
+            @if (!empty($adsenseClientId) && !empty($adsenseSlotId))
+                <div class="uq-ad">
+                    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ $adsenseClientId }}"
+                        crossorigin="anonymous"></script>
+                    <ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-layout="in-article"
+                        data-ad-format="fluid" data-ad-client="{{ $adsenseClientId }}" data-ad-slot="{{ $adsenseSlotId }}">
+                    </ins>
+                    <script>
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    </script>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -879,7 +871,7 @@
 
         function onLoad() {
             if (navigator.share !== undefined) {
-                document.getElementById('share').style.display = 'inline-flex';
+                document.getElementById('share').hidden = false;
             }
 
             document.querySelector('#share').addEventListener('click', webShare);

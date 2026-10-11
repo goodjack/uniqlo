@@ -22,4 +22,25 @@
             @endforeach
         </nav>
     </div>
+
+    @php
+        // Google 要求除了最後一層之外每層都有網址，只是文字的中間層（例如品牌頂層）跳過
+        $breadcrumbItems = collect($crumbs)
+            ->filter(fn($crumb, $index) => ! empty($crumb['url']) || $index === array_key_last($crumbs))
+            ->values()
+            ->map(fn($crumb, $index) => array_filter([
+                '@type' => 'ListItem',
+                'position' => $index + 1,
+                'name' => $crumb['label'],
+                'item' => $crumb['url'] ?? null,
+            ]))
+            ->all();
+    @endphp
+    @include('partials.json-ld', [
+        'data' => [
+            '@context' => 'https://schema.org',
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => $breadcrumbItems,
+        ],
+    ])
 @endif

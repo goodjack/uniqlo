@@ -66,16 +66,8 @@ class HmallProductService extends Service
     }
 
     /**
-     * 抓一個品牌的完整商品目錄，最後做缺貨判定。
-     *
-     * 缺貨判定是把 updated_at 早於今天的商品標成下架，前提是這一輪真的把整份目錄
-     * 看過一遍；看漏的那一段會被整批誤判成下架。所以只有「從第 1 頁開始、每一頁
-     * 都抓到而且件數對得上總數、至少看到一件商品」才做（判斷見 CatalogScan），
-     * 看到的件數也不能遠少於目前在售件數；跳過太多天會升級成失敗通知（StockoutGate）。
-     * 頁面抓到但個別商品寫不進去＝目錄其實看完了，照做但排除那幾件，不然它們會被
-     * 冤枉下架。
-     *
-     * 回傳的說明文字是給通知看的：同樣是「部分成功」，有沒有做缺貨判定處理方式不同。
+     * 缺貨判定是把 updated_at 早於今天的商品標成下架，只有這一輪確定看完整份目錄
+     * 才能做（CatalogScan、StockoutGate）；個別商品寫不進去時照做但排除那幾件。
      */
     public function fetchAllHmallProducts($brand = 'UNIQLO', bool $fresh = false, bool $acceptShrink = false): CrawlResult
     {
@@ -98,20 +90,17 @@ class HmallProductService extends Service
         $page = $startPage;
         $productSum = 0;
         $hasSucceeded = false;
-        // 每一頁成功都會把續跑點往後推，有缺口時要退回最早的缺口，否則那一頁永遠不補抓
         $scan = new CatalogScan($pageSize);
         $gate = new StockoutGate('hmall', $brand);
         $retryTimes = (int) config('app.crawler.retry.times');
         $failedProductCodes = [];
-        // 寫不進去而且連商品編號都拿不到的件數，沒辦法從缺貨判定排除
         $unidentifiedFailures = 0;
 
         logger()->info("Fetching Hmall products for {$brand}, starting from page {$page}");
 
         do {
             try {
-                // retry 只包住打官網與解析回傳。資料庫的問題重打官網修不好，
-                // 還會被歸成「整頁沒抓到」。
+                // retry 只包打官網與解析回傳：資料庫的問題重打官網修不好
                 [$products, $productSum] = retry(
                     $retryTimes,
                     function ($attempts) use ($searchApiUrl, $page, $pageSize, $scan, $retryTimes) {
@@ -231,7 +220,6 @@ class HmallProductService extends Service
 
         $scan->recordEnd(($page - 1) * $pageSize);
 
-        // 官網回的總數跟實際件數常態差多少，要靠這筆紀錄才判斷得了
         logger()->info('fetchAllHmallProducts catalog summary', [
             'brand' => $brand,
             'largest_product_sum' => $scan->largestTotal(),
@@ -257,73 +245,23 @@ class HmallProductService extends Service
             return $gate->skip("未執行缺貨判定，目錄有缺頁（最早在第 {$firstGapPage} 頁）");
         }
 
-        // 每一頁都抓到了，續跑點沒有用處；個別商品寫入失敗也不保留，
-        // 保留只會讓下一輪從空頁起跑、白白錯過一次完整掃描
         Cache::forget($cacheKey);
 
-        // 續跑只看了目錄的後半段，前半段這一輪沒被摸到
-        if (! $startedFromFirstPage) {
-            logger()->info('Resumed crawl finished cleanly - stockout deferred to the next full scan', [
-                'brand' => $brand,
-                'started_from_page' => $startPage,
-            ]);
-
-            return $gate->skip('未執行缺貨判定，這一輪是從上次中斷的地方接著跑');
-        }
-
-        // 官網回 200 但 productList 是空的（WAF 軟擋、上游條件跑掉都長這樣），
-        // 照做缺貨判定會讓整個品牌從站上消失
-        if ($scan->itemsSeen() === 0) {
-            logger()->error('The catalog came back empty - skipping stockout', [
-                'brand' => $brand,
-                'started_from_page' => $startPage,
-            ]);
-
-            return $gate->skip('未執行缺貨判定，這一輪一件商品都沒看到');
-        }
-
-        $failedProductCodes = array_values(array_unique($failedProductCodes));
-
-        if ($unidentifiedFailures > 0) {
-            logger()->error('Product failures without a product code - skipping stockout', [
-                'brand' => $brand,
-                'unidentified_failures' => $unidentifiedFailures,
-                'failed_product_codes' => $failedProductCodes,
-            ]);
-
-            return $gate->skip("未執行缺貨判定，{$unidentifiedFailures} 件失敗資料缺少商品編號");
-        }
-
-        $inStockCount = $this->repository->countInStockHmallProducts($brand);
-
-        if (! $acceptShrink && $gate->seenTooFew($scan->itemsSeen(), $inStockCount)) {
-            logger()->error('Saw far fewer products than are in stock - skipping stockout', [
-                'brand' => $brand,
-                'items_seen' => $scan->itemsSeen(),
-                'in_stock' => $inStockCount,
-            ]);
-
-            return $gate->skip(StockoutGate::seenTooFewNote($scan->itemsSeen(), $inStockCount));
-        }
-
-        $this->repository->setStockoutHmallProducts($brand, null, $failedProductCodes);
-        $gate->recordRun();
-
-        if ($failedProductCodes === []) {
-            logger()->info("Completed fetching Hmall products for {$brand}");
-
-            return new CrawlResult(CrawlOutcome::Succeeded);
-        }
-
-        logger()->error('Stockout ran with the products that failed to save excluded', [
-            'brand' => $brand,
-            'excluded_product_codes' => $failedProductCodes,
-        ]);
-
-        return new CrawlResult(
-            CrawlOutcome::PartiallySucceeded,
-            sprintf('已執行缺貨判定，排除 %d 件寫入失敗商品', count($failedProductCodes))
+        $result = $gate->decide(
+            $scan,
+            ! $startedFromFirstPage,
+            $failedProductCodes,
+            $unidentifiedFailures,
+            fn () => $this->repository->countInStockHmallProducts($brand),
+            $acceptShrink,
+            fn (array $excluded) => $this->repository->setStockoutHmallProducts($brand, null, $excluded),
         );
+
+        if ($result->outcome === CrawlOutcome::Succeeded) {
+            logger()->info("Completed fetching Hmall products for {$brand}");
+        }
+
+        return $result;
     }
 
     public function fetchAllHmallProductDescriptions(string $brand = 'UNIQLO', bool $updateTimestamps = false, bool $fresh = false): bool
@@ -457,15 +395,6 @@ class HmallProductService extends Service
 
             throw $e;
         }
-    }
-
-    /**
-     * 續跑點只在當天有效。隔天的排程一律從第 1 頁完整掃：某一頁天天失敗時，
-     * 跨日續跑會讓前面那幾頁的價格從此不再更新，缺貨判定也永遠輪不到。
-     */
-    private function saveCheckpoint(string $cacheKey, int $page): void
-    {
-        Cache::put($cacheKey, $page, now()->endOfDay());
     }
 
     private function getV3SearchApiUrl($brand = 'UNIQLO'): string

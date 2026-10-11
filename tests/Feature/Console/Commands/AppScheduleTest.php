@@ -128,9 +128,6 @@ class AppScheduleTest extends TestCase
         });
     }
 
-    /**
-     * 日本官網那支也會回部分成功（沒做缺貨判定），不能被當成整步失敗。
-     */
     public function test_the_japan_crawler_can_also_partially_succeed(): void
     {
         $this->fakeAllSteps(partiallySucceeding: ['japan-product:fetch']);
@@ -168,9 +165,6 @@ class AppScheduleTest extends TestCase
         });
     }
 
-    /**
-     * 缺貨判定連續多天沒做時，就算資料有更新也要發紅色的失敗通知，不能混在一般的結束通知裡。
-     */
     public function test_an_overdue_stockout_sends_a_failure_notification(): void
     {
         $this->fakeAllSteps(

@@ -3,14 +3,9 @@
 namespace App\Support;
 
 /**
- * 一輪爬蟲有沒有把整份目錄看完。缺貨判定只能在看完時做，看漏的那一段會被整批
- * 誤判成下架。官網被軟擋時常回 200 加空清單、或把總數改小讓翻頁提早結束，所以
- * 「請求成功」不等於「那一段看到了」，要拿件數對總數。
- *
- * 抓取途中有商品下架、總數小幅縮水很正常：只會讓最後一批變短或翻頁少一頁，
- * 縮水不到一批的量都不算缺口。
- *
- * 位置一律用第幾件（從 0 起算），分頁與 offset 兩種翻法共用。
+ * 一輪爬蟲有沒有把整份目錄看完，缺貨判定只能在看完時做。官網軟擋時常回 200
+ * 加空清單、或把總數改小讓翻頁提早結束，所以要拿件數對總數；抓取途中總數縮水
+ * 不到一批的量屬正常下架，不算缺口。位置用第幾件（從 0 起算）。
  */
 final class CatalogScan
 {
@@ -27,17 +22,12 @@ final class CatalogScan
 
     public function __construct(private readonly int $batchSize) {}
 
-    /**
-     * 一批照它自己回的總數該有幾件。呼叫端拿來判斷要不要重打這一批。
-     */
     public function expectedCount(int $offset, int $total): int
     {
         return min($this->batchSize, max(0, $total - $offset));
     }
 
-    /**
-     * 記下一批成功的回應。件數少於這一批該有的量就記成缺口，回傳 false。
-     */
+    /** 件數不足就記成缺口並回傳 false */
     public function recordBatch(int $offset, int $count, int $total): bool
     {
         $this->largestTotal = max($this->largestTotal, $total);
@@ -62,9 +52,7 @@ final class CatalogScan
         $this->firstGap ??= $offset;
     }
 
-    /**
-     * 翻頁停下時呼叫。總數中途被大幅改小會讓翻頁提早結束，停下的位置之後都沒看到。
-     */
+    /** 總數中途被大幅改小會讓翻頁提早結束，停下的位置之後都沒看到 */
     public function recordEnd(int $nextOffset): void
     {
         if ($nextOffset >= $this->largestTotal) {
@@ -98,7 +86,6 @@ final class CatalogScan
         return $this->largestTotal;
     }
 
-    /** 第幾件落在第幾頁（從 1 起算），給續跑點與通知用 */
     public function pageOf(int $offset): int
     {
         return intdiv($offset, $this->batchSize) + 1;

@@ -3,8 +3,9 @@
 <div class="header">
     ${{ $hmallProduct->price }}
     @if ($hmallProduct->highest_record_price !== $hmallProduct->lowest_record_price)
+        {{-- 只寫數字會被看成不同尺寸的售價範圍，所以標明是本站記錄到的過去價格 --}}
         <div class="sub header">
-            ${{ (int) $hmallProduct->highest_record_price }}
+            歷史 ${{ (int) $hmallProduct->highest_record_price }}
             -
             {{-- 現價還高於歷史最低，代表還可以再等，最低價染綠 --}}
             @if ($hmallProduct->price > $hmallProduct->lowest_record_price)

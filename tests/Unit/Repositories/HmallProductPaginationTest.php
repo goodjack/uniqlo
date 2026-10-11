@@ -64,9 +64,6 @@ class HmallProductPaginationTest extends TestCase
         );
     }
 
-    /**
-     * 清單快取不分頁，但首頁只取前幾件；同分時取到哪幾件不能每次重建都不同。
-     */
     public function test_list_caches_order_ties_by_newest_id(): void
     {
         $ids = collect(range(1, 3))->map(

@@ -7,7 +7,7 @@
 @section('content')
 <div class="ts massive borderless basic very padded horizontally fitted slate">
     <i class="frown faded icon"></i>
-    <span class="header">@yield('code', __('Oh no'))</span>
+    <h1 class="unstyled header">@yield('code', __('Oh no'))</h1>
     <span class="description">@yield('message')</span>
 </div>
 @endsection
