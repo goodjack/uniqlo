@@ -6,6 +6,7 @@ use App\Enums\CategoryLevel;
 use App\Models\HmallCategory;
 use App\Models\HmallProduct;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -193,6 +194,22 @@ class PageSkeletonTest extends TestCase
             $this->countNodes($content, '//a[contains(@class, "circular")][contains(@class, "label")][normalize-space()="修改褲長"]'),
             '沒有對應清單頁的標籤不做成連結'
         );
+    }
+
+    public function test_the_style_hint_strip_ends_with_a_link_to_all_of_them_only_when_some_are_hidden(): void
+    {
+        $this->seedProduct();
+        $url = route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']);
+
+        foreach (range(1, 12) as $id) {
+            DB::table('style_hints')->insert(['id' => $id, 'outfit_id' => "outfit-{$id}", 'country' => 'tw']);
+            DB::table('style_hint_items')->insert(['style_hint_id' => $id, 'code' => '990001', 'original_product_id' => "p{$id}"]);
+        }
+        $this->get($url)->assertOk()->assertDontSee('uq-strip-more');
+
+        DB::table('style_hints')->insert(['id' => 13, 'outfit_id' => 'outfit-13', 'country' => 'tw']);
+        DB::table('style_hint_items')->insert(['style_hint_id' => 13, 'code' => '990001', 'original_product_id' => 'p13']);
+        $this->get($url)->assertOk()->assertSee('看全部 13 張');
     }
 
     public function test_font_awesome_loads_only_on_product_pages(): void

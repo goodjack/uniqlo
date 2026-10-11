@@ -798,3 +798,40 @@ html:has(.uq-section-menu) {
     text-align: center;
     transition: opacity .1s ease;
 }
+
+.uq-strip-more {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .ts.doubling.four.cards.uq-strip:not(.waterfall) {
+        margin-left: 0;
+        margin-right: 0;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+    }
+
+    .ts.doubling.four.cards.uq-strip::-webkit-scrollbar {
+        display: none;
+    }
+
+    .ts.doubling.four.cards.uq-strip:not(.waterfall)>.card {
+        flex: 0 0 auto;
+        /* 第三張只露出一部分，看得出還能往右滑 */
+        width: 40%;
+        margin-left: 0;
+        margin-right: .75em;
+        scroll-snap-align: start;
+    }
+
+    .ts.doubling.four.cards.uq-strip>.uq-strip-more {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px dashed var(--uq-line);
+        color: var(--uq-text);
+        text-align: center;
+    }
+}
