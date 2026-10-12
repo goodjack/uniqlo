@@ -249,11 +249,10 @@
 @endsection
 
 @section('content')
-    <div class="ts container">
-        @include('partials.breadcrumb', ['crumbs' => $crumbs])
-    </div>
-
     <div class="ts very padded horizontally fitted attached fluid segment" id="product_hero">
+        <div class="ts container">
+            @include('partials.breadcrumb', ['crumbs' => $crumbs])
+        </div>
         <div class="ts container relaxed grid">
             <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
                 <div class="ts fluid container">
