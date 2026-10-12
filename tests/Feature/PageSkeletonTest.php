@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\CategoryLevel;
 use App\Models\HmallCategory;
 use App\Models\HmallProduct;
+use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -210,6 +211,25 @@ class PageSkeletonTest extends TestCase
         DB::table('style_hints')->insert(['id' => 13, 'outfit_id' => 'outfit-13', 'country' => 'tw']);
         DB::table('style_hint_items')->insert(['style_hint_id' => 13, 'code' => '990001', 'original_product_id' => 'p13']);
         $this->get($url)->assertOk()->assertSee('看全部 13 張');
+    }
+
+    public function test_both_product_pages_can_be_shared_to_threads(): void
+    {
+        $this->seedProduct();
+        Product::unguarded(fn () => Product::create(['id' => '4199990001', 'name' => '男裝 圓領T恤', 'price' => 390]));
+
+        foreach ([
+            route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']),
+            route('products.show', ['product' => '4199990001']),
+        ] as $url) {
+            $content = $this->get($url)->assertOk()->getContent();
+
+            $this->assertSame(
+                1,
+                $this->countNodes($content, '//a[starts-with(@href, "https://www.threads.com/intent/post?text=")][contains(@href, "&url=")]//i[contains(@class, "fa-threads")]'),
+                $url
+            );
+        }
     }
 
     public function test_font_awesome_loads_only_on_product_pages(): void

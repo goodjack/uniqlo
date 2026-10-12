@@ -10,6 +10,7 @@
         'facebook' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=fb&utm_campaign=share'),
         'twitter' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=twtr&utm_campaign=share'),
         'line' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
+        'threads' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=threads&utm_campaign=share'),
         'webShare' => $currentUrl . '?utm_source=uqs&utm_medium=webshare&utm_campaign=share',
     ];
 
@@ -188,6 +189,19 @@
             color: #048a27 !important;
         }
 
+        #threads {
+            color: var(--uq-muted);
+        }
+
+        #threads:hover {
+            background: #fff !important;
+            color: #101010 !important;
+        }
+
+        #threads:active {
+            color: #000 !important;
+        }
+
         .ts.button.coming-soon.positive {
             border-color: #50723C;
             background: #50723C;
@@ -235,11 +249,10 @@
 @endsection
 
 @section('content')
-    <div class="ts container">
-        @include('partials.breadcrumb', ['crumbs' => $crumbs])
-    </div>
-
     <div class="ts very padded horizontally fitted attached fluid segment" id="product_hero">
+        <div class="ts container">
+            @include('partials.breadcrumb', ['crumbs' => $crumbs])
+        </div>
         <div class="ts container relaxed grid">
             <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
                 <div class="ts fluid container">
@@ -276,6 +289,11 @@
                                         href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
                                         target="_blank" rel="nofollow noopener" aria-label="分享到 LINE">
                                         <i class="fa-brands fa-line" aria-hidden="true"></i>
+                                    </a>
+                                    <a id="threads" class="ts link button"
+                                        href="https://www.threads.com/intent/post?text={{ $shareTextEncode }}&url={{ $shareUrl['threads'] }}"
+                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Threads">
+                                        <i class="fa-brands fa-threads" aria-hidden="true"></i>
                                     </a>
                                 </div>
                             </div>

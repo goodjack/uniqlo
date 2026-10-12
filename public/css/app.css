@@ -776,6 +776,16 @@ html:has(.uq-section-menu) {
     }
 }
 
+/* 商品頁的麵包屑放進主區 very padded 的上方留白：上內距、麵包屑一行、下距合起來等於原本的 3em */
+#product_hero {
+    padding-top: .75em;
+}
+
+#product_hero .ts.segment:has(> .ts.breadcrumb) {
+    margin: 0 0 .75em;
+    padding: 0;
+}
+
 /* AdSense 會在 ins 上直接寫 z-index: 30，不自成一層就會蓋過導覽列與章節選單 */
 .uq-ad {
     position: relative;
