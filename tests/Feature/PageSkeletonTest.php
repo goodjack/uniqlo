@@ -229,6 +229,12 @@ class PageSkeletonTest extends TestCase
                 $this->countNodes($content, '//a[starts-with(@href, "https://www.threads.com/intent/post?text=")][contains(@href, "&url=")]//i[contains(@class, "fa-threads")]'),
                 $url
             );
+            // Threads 不把 + 當空白，分享文字會出現一串加號
+            $this->assertSame(
+                1,
+                $this->countNodes($content, '//a[@id="threads"][contains(@href, "%20")][not(contains(@href, "+"))]'),
+                $url
+            );
         }
     }
 

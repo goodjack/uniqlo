@@ -671,6 +671,11 @@ html:has(.uq-section-menu) {
     font-size: .9rem;
 }
 
+/* 標題、張數、按鈕差一點排成一行時，彈性排版會先把張數壓到一字一行，而不是把按鈕換到下一行 */
+.ts.header>.inline.sub.header {
+    white-space: nowrap;
+}
+
 /* ------------------------------------------------------------------
  * 導覽列。
  * ------------------------------------------------------------------ */
@@ -809,7 +814,25 @@ html:has(.uq-section-menu) {
     transition: opacity .1s ease;
 }
 
-.uq-strip-more {
+/* 分享圖示只有圖示沒有字，點擊範圍要靠按鈕本身撐開 */
+.uq-share-links .ts.link.button {
+    min-width: 32px;
+    text-align: center;
+}
+
+.uq-share-links .ts.link.button>.fa-brands {
+    margin: 0;
+}
+
+@media (pointer: coarse) {
+    .uq-share-links .ts.link.button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+
+/* 要蓋過 Tocas 讓每張卡片都顯示的 .ts.cards>.card */
+.ts.cards.uq-strip>.uq-strip-more {
     display: none;
 }
 

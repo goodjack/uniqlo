@@ -3,14 +3,14 @@
 
 @php
     $shareText = $hmallProductPresenter->getShareText($hmallProduct);
-    $shareTextEncode = urlencode($shareText);
+    $shareTextEncode = rawurlencode($shareText);
 
     $currentUrl = url()->current();
     $shareUrl = [
-        'facebook' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=fb&utm_campaign=share'),
-        'twitter' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=twtr&utm_campaign=share'),
-        'line' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
-        'threads' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=threads&utm_campaign=share'),
+        'facebook' => rawurlencode($currentUrl . '?utm_source=uqs&utm_medium=fb&utm_campaign=share'),
+        'twitter' => rawurlencode($currentUrl . '?utm_source=uqs&utm_medium=twtr&utm_campaign=share'),
+        'line' => rawurlencode($currentUrl . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
+        'threads' => rawurlencode($currentUrl . '?utm_source=uqs&utm_medium=threads&utm_campaign=share'),
         'webShare' => $currentUrl . '?utm_source=uqs&utm_medium=webshare&utm_campaign=share',
     ];
 
@@ -273,29 +273,31 @@
                             <div class="sub header">
                                 {{ $hmallProduct->brand }} 商品編號 {{ $hmallProduct->code }}
                                 {!! $hmallProductPresenter->getRatingForProductShow($hmallProduct) !!}
-                                &middot;
-                                <div class="ts buttons">
-                                    <a id="facebook" class="ts link button"
-                                        href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Facebook">
-                                        <i class="fa-brands fa-facebook" aria-hidden="true"></i>
-                                    </a>
-                                    <a id="twitter" class="ts link button"
-                                        href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="分享到 X">
-                                        <i class="fa-brands fa-x-twitter" aria-hidden="true"></i>
-                                    </a>
-                                    <a id="line" class="ts link button"
-                                        href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="分享到 LINE">
-                                        <i class="fa-brands fa-line" aria-hidden="true"></i>
-                                    </a>
-                                    <a id="threads" class="ts link button"
-                                        href="https://www.threads.com/intent/post?text={{ $shareTextEncode }}&url={{ $shareUrl['threads'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Threads">
-                                        <i class="fa-brands fa-threads" aria-hidden="true"></i>
-                                    </a>
-                                </div>
+                                <span class="uq-share-links">
+                                    &middot;
+                                    <span class="ts buttons">
+                                        <a id="facebook" class="ts link button"
+                                            href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
+                                            target="_blank" rel="nofollow noopener" aria-label="分享到 Facebook">
+                                            <i class="fa-brands fa-facebook" aria-hidden="true"></i>
+                                        </a>
+                                        <a id="twitter" class="ts link button"
+                                            href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
+                                            target="_blank" rel="nofollow noopener" aria-label="分享到 X">
+                                            <i class="fa-brands fa-x-twitter" aria-hidden="true"></i>
+                                        </a>
+                                        <a id="line" class="ts link button"
+                                            href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
+                                            target="_blank" rel="nofollow noopener" aria-label="分享到 LINE">
+                                            <i class="fa-brands fa-line" aria-hidden="true"></i>
+                                        </a>
+                                        <a id="threads" class="ts link button"
+                                            href="https://www.threads.com/intent/post?text={{ $shareTextEncode }}&url={{ $shareUrl['threads'] }}"
+                                            target="_blank" rel="nofollow noopener" aria-label="分享到 Threads">
+                                            <i class="fa-brands fa-threads" aria-hidden="true"></i>
+                                        </a>
+                                    </span>
+                                </span>
                             </div>
                         </h1>
                     </div>
@@ -889,6 +891,11 @@
         function onLoad() {
             if (navigator.share !== undefined) {
                 document.getElementById('share').hidden = false;
+
+                // 手機的系統分享選單已經涵蓋這幾個平台，同一件事不放兩組按鈕
+                if (window.matchMedia('(pointer: coarse)').matches) {
+                    document.querySelector('.uq-share-links').hidden = true;
+                }
             }
 
             document.querySelector('#share').addEventListener('click', webShare);
