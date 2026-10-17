@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\CategoryLevel;
 use App\Models\HmallCategory;
 use App\Models\HmallProduct;
+use App\Models\JapanProduct;
 use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -157,6 +158,33 @@ class PageSkeletonTest extends TestCase
         // 四個：期間限定、特價、新款、合購。revision 是屬性標籤，只在商品頁
         $this->assertSame(4, $labels->length, '卡片上的標籤不再收合');
         $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-label-more")]'));
+    }
+
+    public function test_product_videos_wait_until_scrolled_to_and_have_their_own_pause_button(): void
+    {
+        $this->seedProduct();
+        $this->seedJapanProduct(['sub_videos' => [['video' => 'https://image.uniqlo.com/UQ/ST3/jp/imagesgoods/990001/subvideo/jpgoods_990001_sub1_video.mp4']]]);
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))->assertOk()->getContent();
+
+        $this->assertSame(1, $this->countNodes($content, '//video[@data-src][not(@src)][not(@controls)][not(@autoplay)]'));
+        $this->assertSame(1, $this->countNodes($content, '//button[contains(@class, "uq-video-toggle")]'));
+    }
+
+    public function test_a_long_photo_gallery_folds_behind_a_show_all_button(): void
+    {
+        $this->seedProduct();
+        $image = fn (int $n) => ['image' => "https://image.uniqlo.com/UQ/ST3/jp/imagesgoods/990001/item/jpgoods_{$n}_990001.jpg"];
+        $url = route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']);
+
+        $this->seedJapanProduct(['main_images' => array_map($image, range(1, 8))]);
+        $content = $this->get($url)->assertOk()->getContent();
+        $this->assertSame(0, $this->countNodes($content, '//*[@data-collapse-on]'));
+
+        $this->seedJapanProduct(['main_images' => array_map($image, range(1, 9))]);
+        $content = $this->get($url)->assertOk()->getContent();
+        $this->assertSame(1, $this->countNodes($content, '//*[contains(@class, "uq-strip")][@data-collapse-on="desktop"]'));
+        $this->assertSame(1, $this->countNodes($content, '//button[contains(@class, "uq-expand")][@hidden][normalize-space()="顯示全部 9 張"]'));
     }
 
     /**
@@ -738,6 +766,18 @@ class PageSkeletonTest extends TestCase
             $category = HmallCategory::where('brand', 'UNIQLO')->where('code', $code)->firstOrFail();
             $product->categories()->attach($category->id, ['sort' => $sort]);
         }
+    }
+
+    private function seedJapanProduct(array $overrides): void
+    {
+        JapanProduct::where('l1Id', '990001')->delete();
+        JapanProduct::unguarded(fn () => JapanProduct::create(array_merge([
+            'product_id' => 'E990001-000',
+            'l1Id' => '990001',
+            'main_images' => [],
+            'sub_images' => [],
+            'sub_videos' => [],
+        ], $overrides)));
     }
 
     private function createCategory(

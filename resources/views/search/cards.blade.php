@@ -27,7 +27,7 @@
         舊系統商品
         <div class="inline sub header">共 {{ $products->count() }} 件</div>
     </h2>
-    <div class="ts doubling cards four uq-product-cards">
+    <div class="ts doubling cards four uq-product-cards uq-text-cards">
         @each('products.card', $products, 'product')
     </div>
 @endif

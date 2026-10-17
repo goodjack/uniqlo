@@ -183,9 +183,8 @@ $shareUrl = [
                             <div class="sub header">
                                 舊系統 &middot; 商品編號 {{ $product->id }}
                                 {!! $productPresenter->getRatingForProductShow($product) !!}
-                                <span class="uq-share-links">
-                                    &middot;
-                                    <span class="ts buttons">
+                                <div class="uq-share-links">
+                                    <div class="ts buttons">
                                         <a id="facebook" class="ts link button"
                                             href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
                                             target="_blank" rel="nofollow noopener" aria-label="分享到 Facebook">
@@ -206,8 +205,8 @@ $shareUrl = [
                                             target="_blank" rel="nofollow noopener" aria-label="分享到 Threads">
                                             <i class="fa-brands fa-threads" aria-hidden="true"></i>
                                         </a>
-                                    </span>
-                                </span>
+                                    </div>
+                                </div>
                             </div>
                         </h1>
                     </div>
@@ -230,14 +229,14 @@ $shareUrl = [
                         <h2>${{ $product->price }}</h2>
                     </div>
                     <div class="twelve wide column">
-                        <div id="uniqlo-column">
+                        <div id="uniqlo-column" data-keeps-clear>
                             <div class="ts right floated separated stackable buttons">
                                 <a class="ts negative right labeled icon disabled button"
                                     href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank"
                                     rel="nofollow noopener" aria-label="UNIQLO">無法前往 UNIQLO 舊官網<i
                                         class="external icon"></i></a>
-                                <a class="ts basic button" id="share" target="_blank" rel="nofollow noopener"
-                                    aria-label="Share" style="display: none;"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i>分享</a>
+                                <button type="button" class="ts basic button" id="share" hidden><i
+                                        class="fa-solid fa-share-nodes" aria-hidden="true"></i>分享</button>
                             </div>
                         </div>
                     </div>
@@ -263,7 +262,7 @@ $shareUrl = [
             <div class="ts container">
                 <h2 class="ts large dividing header">延伸商品</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling cards six uq-product-cards">
+                <div class="ts doubling cards six uq-product-cards uq-text-cards">
                     @each('products.card', $relatedProducts, 'product')
                 </div>
             </div>
@@ -520,7 +519,7 @@ $shareUrl = [
 
         function onLoad() {
             if (navigator.share !== undefined) {
-                document.getElementById('share').style.display = 'block';
+                document.getElementById('share').hidden = false;
 
                 // 手機的系統分享選單已經涵蓋這幾個平台，同一件事不放兩組按鈕
                 if (window.matchMedia('(pointer: coarse)').matches) {

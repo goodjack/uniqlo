@@ -33,6 +33,7 @@
 
     /* 導覽型連結用安靜的深灰：Tocas 的亮藍放在密集的分類清單與麵包屑裡讀不出結構 */
     --uq-link: #404040;
+    --uq-focus-border: #404040;
     /* 同 Tocas 的線色與 tertiary 底色 */
     --uq-line: #e9e9e9;
     --uq-panel: #f7f7f7;
@@ -51,6 +52,34 @@ textarea:focus-visible,
 .ts.button:focus-visible {
     outline: 2px solid var(--uq-brand);
     outline-offset: 2px;
+}
+
+/* 文字框連滑鼠點也算 focus-visible，外框會跟 Tocas 的淡藍邊疊成兩層；改成只加深邊框 */
+.ts.input input:focus-visible,
+.ts.input textarea:focus-visible,
+input.ts.input:focus-visible {
+    outline: none;
+}
+
+.ts.input input:focus,
+.ts.input textarea:focus,
+input.ts.input:focus {
+    border-color: var(--uq-focus-border) !important;
+    box-shadow: inset 0 0 0 1px var(--uq-focus-border);
+}
+
+/* Tocas 另外把帶按鈕輸入框的右邊框染藍，要用同樣具體的選擇器才蓋得過 */
+.ts.action.input:not([class*="left action"]):not(.error):not(.success):not(.warning) input:focus {
+    border-right-color: var(--uq-focus-border) !important;
+}
+
+/* 強制色彩模式會拿掉陰影並接管邊框色，焦點要靠系統色外框 */
+@media (forced-colors: active) {
+    .ts.input input:focus-visible,
+    .ts.input textarea:focus-visible,
+    input.ts.input:focus-visible {
+        outline: 2px solid Highlight;
+    }
 }
 
 /* ------------------------------------------------------------------
@@ -578,6 +607,136 @@ html:has(.uq-section-menu) {
 }
 
 /*
+ * 卡片彼此沒有縫（同 UNIQLO 官網）。Tocas 沒有這個變體，它的欄寬是「百分比減掉間距」，這裡蓋成
+ * 純百分比，欄數照 Tocas 的 doubling；選擇器帶 four／six 才跟 Tocas 一樣具體。上下沿用 Tocas
+ * 的負 margin，跟標題與下一段的距離才不變。舊系統商品只有文字，要靠外框與間距分開，不套用。
+ */
+.ts.doubling.four.cards:not(.waterfall):not(.uq-text-cards),
+.ts.doubling.six.cards:not(.waterfall):not(.uq-text-cards) {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.ts.doubling.four.cards:not(.waterfall):not(.uq-text-cards)>.card,
+.ts.doubling.six.cards:not(.waterfall):not(.uq-text-cards)>.card {
+    margin: .875em 0;
+}
+
+/* 純圖片連上下也不留縫；底下補回原本的距離，用 padding 才不會跟外層 margin 合併 */
+.ts.doubling.four.flatted.cards:not(.waterfall):not(.uq-text-cards) {
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-bottom: .875em;
+}
+
+.ts.doubling.four.flatted.cards:not(.waterfall):not(.uq-text-cards)>.card {
+    margin: 0;
+}
+
+.ts.doubling.four.cards:not(.waterfall):not(.uq-text-cards)>.card {
+    width: 25%;
+}
+
+.ts.doubling.six.cards:not(.waterfall):not(.uq-text-cards)>.card {
+    width: calc(100% / 6);
+}
+
+@media (max-width: 991px) {
+    .ts.doubling.four.cards:not(.waterfall):not(.uq-text-cards)>.card {
+        width: 50%;
+    }
+
+    .ts.doubling.six.cards:not(.waterfall):not(.uq-text-cards)>.card {
+        width: calc(100% / 3);
+    }
+}
+
+@media (max-width: 767px) {
+    .ts.doubling.four.cards:not(.waterfall):not(.uq-text-cards),
+    .ts.doubling.six.cards:not(.waterfall):not(.uq-text-cards) {
+        margin-left: calc(50% - 50vw);
+        margin-right: calc(50% - 50vw);
+    }
+
+    .ts.doubling.six.cards:not(.waterfall):not(.uq-text-cards)>.card {
+        width: 50%;
+    }
+}
+
+.ts.button.uq-expand {
+    margin-top: 1rem;
+}
+
+@media (max-width: 767px) {
+    .ts.cards.uq-collapsed[data-collapse-on="mobile"]>.uq-folded {
+        display: none;
+    }
+
+    .ts.button.uq-expand[data-collapse-on="desktop"] {
+        display: none;
+    }
+}
+
+@media (min-width: 768px) {
+    .ts.cards.uq-collapsed[data-collapse-on="desktop"]>.uq-folded {
+        display: none;
+    }
+
+    .ts.button.uq-expand[data-collapse-on="mobile"] {
+        display: none;
+    }
+}
+
+.ts.card>.video.uq-video {
+    position: relative;
+}
+
+/* 影片滑到才載入，先撐出官網影片的 3:4，載入時版面才不會跳 */
+.ts.card>.video.uq-video video:not([hidden]) {
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+}
+
+.ts.card>.video.uq-video>video {
+    cursor: pointer;
+}
+
+.uq-video-toggle {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.uq-video-toggle>.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    border-radius: 50%;
+    background: rgb(0 0 0 / .5);
+    color: #fff;
+    font-size: 12px;
+}
+
+.uq-video-toggle:focus-visible {
+    outline: 2px solid var(--uq-brand);
+    outline-offset: -4px;
+}
+
+/*
  * 商品頁收藏鈕：已收藏時按鈕維持中性、只有愛心變紅。Tocas 的 basic active 按鈕
  * 用疊四次 .active 的選擇器給深底深字，權重追不上，只能 !important。
  */
@@ -671,7 +830,7 @@ html:has(.uq-section-menu) {
     font-size: .9rem;
 }
 
-/* 標題、張數、按鈕差一點排成一行時，彈性排版會先把張數壓到一字一行，而不是把按鈕換到下一行 */
+/* 標題列差一點放得下時，彈性排版會把張數壓成一字一行，而不是讓按鈕換行 */
 .ts.header>.inline.sub.header {
     white-space: nowrap;
 }
@@ -718,6 +877,41 @@ html:has(.uq-section-menu) {
     max-height: calc(100dvh - var(--uq-nav-height));
     overflow-y: auto;
     overscroll-behavior: contain;
+    position: fixed;
+    top: var(--uq-nav-height);
+    left: 0;
+    right: 0;
+    width: auto;
+    grid-template-columns: 1fr 1fr;
+    padding: .25rem .5rem .5rem;
+}
+
+/* Tocas 給下拉加的 will-change: transform 會讓裡面的 fixed 改以下拉本身定位，選單就撐不滿 */
+.ts.top.fixed.menu .mobile.only .ts.dropdown {
+    will-change: auto;
+}
+
+/* Tocas 收合動畫期間（.hidden.animating）也會顯示選單，排法要一致 */
+.ts.top.fixed.menu .mobile.only .ts.dropdown.visible>.menu,
+.ts.top.fixed.menu .mobile.only .ts.dropdown.hidden.animating>.menu {
+    display: grid;
+}
+
+.ts.top.fixed.menu .mobile.only .ts.dropdown>.menu>.item {
+    align-items: center;
+    min-height: 48px;
+    white-space: normal;
+}
+
+.ts.top.fixed.menu .mobile.only .ts.dropdown>.menu>.header,
+.ts.top.fixed.menu .mobile.only .ts.dropdown>.menu>.divider {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 319px) {
+    .ts.top.fixed.menu .mobile.only .ts.dropdown>.menu {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ------------------------------------------------------------------
@@ -814,7 +1008,11 @@ html:has(.uq-section-menu) {
     transition: opacity .1s ease;
 }
 
-/* 分享圖示只有圖示沒有字，點擊範圍要靠按鈕本身撐開 */
+/* 圖示在按鈕裡置中，左邊拉回跟上一行文字對齊 */
+.uq-share-links {
+    margin-left: -7px;
+}
+
 .uq-share-links .ts.link.button {
     min-width: 32px;
     text-align: center;
@@ -825,10 +1023,24 @@ html:has(.uq-section-menu) {
 }
 
 @media (pointer: coarse) {
+    .uq-share-links {
+        margin-left: -13px;
+    }
+
     .uq-share-links .ts.link.button {
         min-width: 44px;
         min-height: 44px;
     }
+}
+
+/* 標題下已有隱藏分隔線的留白，表格自己的上邊距會再疊一段 */
+.ts.table.uq-facts {
+    margin-top: 0;
+}
+
+/* 區段灰底上 --uq-muted 對比不到 4.5:1，這裡加深一階 */
+.ts.table.uq-facts td.collapsing {
+    color: #6e6e6e;
 }
 
 /* 要蓋過 Tocas 讓每張卡片都顯示的 .ts.cards>.card */
@@ -837,9 +1049,7 @@ html:has(.uq-section-menu) {
 }
 
 @media (max-width: 767px) {
-    .ts.doubling.four.cards.uq-strip:not(.waterfall) {
-        margin-left: 0;
-        margin-right: 0;
+    .ts.doubling.four.cards.uq-strip:not(.waterfall):not(.uq-text-cards) {
         flex-wrap: nowrap;
         overflow-x: auto;
         scroll-snap-type: x proximity;
@@ -850,12 +1060,11 @@ html:has(.uq-section-menu) {
         display: none;
     }
 
-    .ts.doubling.four.cards.uq-strip:not(.waterfall)>.card {
+    .ts.doubling.four.cards.uq-strip:not(.waterfall):not(.uq-text-cards)>.card {
         flex: 0 0 auto;
         /* 第三張只露出一部分，看得出還能往右滑 */
         width: 40%;
-        margin-left: 0;
-        margin-right: .75em;
+        margin: 0;
         scroll-snap-align: start;
     }
 
@@ -866,5 +1075,15 @@ html:has(.uq-section-menu) {
         border: 1px dashed var(--uq-line);
         color: var(--uq-text);
         text-align: center;
+    }
+}
+
+/* Tocas 的 fluid image 只撐滿欄寬，貼齊螢幕要跨出容器內距 */
+@media (max-width: 767px) {
+    #product_hero a.ts.centered.image {
+        display: block;
+        width: 100vw;
+        max-width: none;
+        margin-left: calc(50% - 50vw);
     }
 }

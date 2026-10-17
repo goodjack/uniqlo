@@ -29,9 +29,15 @@
                 <span>{{ $hmallProduct->sex }}@if ($hmallProduct->is_unisex)/男女適穿@endif</span>
             @endif
             <span>{{ $hmallProduct->short_product_code }}</span>
-            {!! $hmallProductPresenter->getRatingForProductCardAndItem($hmallProduct, $useJapanRating) !!}
-            {!! $hmallProductPresenter->getVideoIconForProductCardAndItem($hmallProduct) !!}
         </div>
+        {{-- 星等固定自己一行：跟分類擠同一行時，換行處會多出一個開頭的中點 --}}
+        @php
+            $rating = $hmallProductPresenter->getRatingForProductCardAndItem($hmallProduct, $useJapanRating);
+            $videoIcon = $hmallProductPresenter->getVideoIconForProductCardAndItem($hmallProduct);
+        @endphp
+        @if ($rating || $videoIcon)
+            <div class="middoted meta">{!! $rating !!}{!! $videoIcon !!}</div>
+        @endif
         {!! $slot ?? '' !!}
     </div>
 </div>
