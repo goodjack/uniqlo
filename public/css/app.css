@@ -577,6 +577,104 @@ html:has(.uq-section-menu) {
     color: #404040;
 }
 
+/* 文字跟圖片左緣切齊；愛心原本靠內距吃掉的負 margin 改成不往右凸出卡片 */
+.ts.cards.uq-product-cards>.card>.content {
+    padding: .75rem 0 0;
+}
+
+.ts.cards.uq-product-cards .uq-card-heart {
+    margin-right: -10px;
+}
+
+/* 價格緊接品名，跟下面的分類那一行隔一點 */
+.ts.card>.content>.header.uq-card-price {
+    margin: .35em 0 .3em;
+}
+
+/* 手機兩欄：Tocas 的欄距 21px、列距 25px 對 390px 寬的螢幕太鬆 */
+@media (max-width: 767px) {
+    .ts.doubling.cards.uq-product-cards:not(.waterfall) {
+        margin: -10px -6px;
+    }
+
+    .ts.doubling.cards.uq-product-cards:not(.waterfall)>.card {
+        width: calc(50% - 12px);
+        margin: 10px 6px;
+    }
+}
+
+/*
+ * 很長的清單先收起來，按 .uq-expand 才全開。張數門檻跟 show.blade.php 的 $collapseAfter 一致：
+ * 手機露一排兩件，電腦露兩排八張。收起只在 JS 加上 .uq-collapsed 之後發生。
+ */
+.ts.button.uq-expand {
+    margin-top: 1rem;
+}
+
+@media (max-width: 767px) {
+    .ts.cards.uq-collapsed[data-collapse-on="mobile"]>:nth-child(n+3) {
+        display: none;
+    }
+
+    .ts.button.uq-expand[data-collapse-on="desktop"] {
+        display: none;
+    }
+}
+
+@media (min-width: 768px) {
+    .ts.cards.uq-collapsed[data-collapse-on="desktop"]>:nth-child(n+9) {
+        display: none;
+    }
+
+    .ts.button.uq-expand[data-collapse-on="mobile"] {
+        display: none;
+    }
+}
+
+/* 影片不顯示播放列，只在角落放一顆暫停／播放鈕；看得到的圓 28px，可點範圍 44px */
+.ts.card>.video.uq-video {
+    position: relative;
+}
+
+.ts.card>.video.uq-video>video {
+    display: block;
+    width: 100%;
+    cursor: pointer;
+}
+
+.uq-video-toggle {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.uq-video-toggle>.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    border-radius: 50%;
+    background: rgb(0 0 0 / .5);
+    color: #fff;
+    font-size: 12px;
+}
+
+.uq-video-toggle:focus-visible {
+    outline: 2px solid var(--uq-brand);
+    outline-offset: -4px;
+}
+
 /*
  * 商品頁收藏鈕：已收藏時按鈕維持中性、只有愛心變紅。Tocas 的 basic active 按鈕
  * 用疊四次 .active 的選擇器給深底深字，權重追不上，只能 !important。
@@ -671,6 +769,11 @@ html:has(.uq-section-menu) {
     font-size: .9rem;
 }
 
+/* 標題、張數、按鈕差一點排成一行時，彈性排版會先把張數壓到一字一行，而不是把按鈕換到下一行 */
+.ts.header>.inline.sub.header {
+    white-space: nowrap;
+}
+
 /* ------------------------------------------------------------------
  * 導覽列。
  * ------------------------------------------------------------------ */
@@ -713,6 +816,47 @@ html:has(.uq-section-menu) {
     max-height: calc(100dvh - var(--uq-nav-height));
     overflow-y: auto;
     overscroll-behavior: contain;
+}
+
+/*
+ * 手機選單鋪滿畫面寬度、一排兩格，每格至少 48px 高。分組小標與分隔線各自佔滿一整排；
+ * 畫面太窄或字放大時退回一排一格。
+ */
+.ts.top.fixed.menu .mobile.only .ts.dropdown>.menu {
+    position: fixed;
+    top: var(--uq-nav-height);
+    left: 0;
+    right: 0;
+    width: auto;
+    grid-template-columns: 1fr 1fr;
+    padding: .25rem .5rem .5rem;
+}
+
+/* Tocas 給下拉加的 will-change: transform 會讓裡面的 fixed 改以下拉本身定位，選單就撐不滿 */
+.ts.top.fixed.menu .mobile.only .ts.dropdown {
+    will-change: auto;
+}
+
+.ts.top.fixed.menu .mobile.only .ts.dropdown.visible>.menu {
+    display: grid;
+}
+
+.ts.top.fixed.menu .mobile.only .ts.dropdown>.menu>.item {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    white-space: normal;
+}
+
+.ts.top.fixed.menu .mobile.only .ts.dropdown>.menu>.header,
+.ts.top.fixed.menu .mobile.only .ts.dropdown>.menu>.divider {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 319px) {
+    .ts.top.fixed.menu .mobile.only .ts.dropdown>.menu {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ------------------------------------------------------------------
@@ -809,7 +953,25 @@ html:has(.uq-section-menu) {
     transition: opacity .1s ease;
 }
 
-.uq-strip-more {
+/* 分享圖示只有圖示沒有字，點擊範圍要靠按鈕本身撐開 */
+.uq-share-links .ts.link.button {
+    min-width: 32px;
+    text-align: center;
+}
+
+.uq-share-links .ts.link.button>.fa-brands {
+    margin: 0;
+}
+
+@media (pointer: coarse) {
+    .uq-share-links .ts.link.button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+
+/* 要蓋過 Tocas 讓每張卡片都顯示的 .ts.cards>.card */
+.ts.cards.uq-strip>.uq-strip-more {
     display: none;
 }
 

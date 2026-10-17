@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\CategoryLevel;
 use App\Models\HmallCategory;
 use App\Models\HmallProduct;
+use App\Models\JapanProduct;
 use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -159,6 +160,53 @@ class PageSkeletonTest extends TestCase
         $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-label-more")]'));
     }
 
+    public function test_a_card_shows_the_price_right_under_the_name(): void
+    {
+        $this->seedProduct();
+
+        $content = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, $this->countNodes(
+            $content,
+            '//*[contains(@class, "uq-card")]/*[contains(@class, "content")]/*[contains(@class, "smaller")]/following-sibling::*[1][contains(@class, "uq-card-price")]'
+        ));
+    }
+
+    /**
+     * 影片不給瀏覽器網址與播放列：滑到才載入，暫停鈕是自己的。
+     */
+    public function test_product_videos_wait_until_scrolled_to_and_have_their_own_pause_button(): void
+    {
+        $this->seedProduct();
+        $this->seedJapanProduct(['sub_videos' => [['video' => 'https://image.uniqlo.com/UQ/ST3/jp/imagesgoods/990001/subvideo/jpgoods_990001_sub1_video.mp4']]]);
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))->assertOk()->getContent();
+
+        $this->assertSame(1, $this->countNodes($content, '//video[@data-src][not(@src)][not(@controls)][not(@autoplay)]'));
+        $this->assertSame(1, $this->countNodes($content, '//button[contains(@class, "uq-video-toggle")]'));
+    }
+
+    /**
+     * 電腦版實照超過兩排（八張）才收起來並給展開鈕。
+     */
+    public function test_a_long_photo_gallery_folds_behind_a_show_all_button(): void
+    {
+        $this->seedProduct();
+        $image = fn (int $n) => ['image' => "https://image.uniqlo.com/UQ/ST3/jp/imagesgoods/990001/item/jpgoods_{$n}_990001.jpg"];
+        $url = route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']);
+
+        $this->seedJapanProduct(['main_images' => array_map($image, range(1, 8))]);
+        $content = $this->get($url)->assertOk()->getContent();
+        $this->assertSame(0, $this->countNodes($content, '//*[@data-collapse-on]'));
+
+        $this->seedJapanProduct(['main_images' => array_map($image, range(1, 9))]);
+        $content = $this->get($url)->assertOk()->getContent();
+        $this->assertSame(1, $this->countNodes($content, '//*[contains(@class, "uq-strip")][@data-collapse-on="desktop"]'));
+        $this->assertSame(1, $this->countNodes($content, '//button[contains(@class, "uq-expand")][@hidden][normalize-space()="顯示全部 9 張"]'));
+    }
+
     /**
      * 商品頁的標籤是對應清單頁的入口；沒有清單頁的標籤維持純文字。
      */
@@ -227,6 +275,12 @@ class PageSkeletonTest extends TestCase
             $this->assertSame(
                 1,
                 $this->countNodes($content, '//a[starts-with(@href, "https://www.threads.com/intent/post?text=")][contains(@href, "&url=")]//i[contains(@class, "fa-threads")]'),
+                $url
+            );
+            // Threads 不把 + 當空白，分享文字會出現一串加號
+            $this->assertSame(
+                1,
+                $this->countNodes($content, '//a[@id="threads"][contains(@href, "%20")][not(contains(@href, "+"))]'),
                 $url
             );
         }
@@ -732,6 +786,18 @@ class PageSkeletonTest extends TestCase
             $category = HmallCategory::where('brand', 'UNIQLO')->where('code', $code)->firstOrFail();
             $product->categories()->attach($category->id, ['sort' => $sort]);
         }
+    }
+
+    private function seedJapanProduct(array $overrides): void
+    {
+        JapanProduct::where('l1Id', '990001')->delete();
+        JapanProduct::unguarded(fn () => JapanProduct::create(array_merge([
+            'product_id' => 'E990001-000',
+            'l1Id' => '990001',
+            'main_images' => [],
+            'sub_images' => [],
+            'sub_videos' => [],
+        ], $overrides)));
     }
 
     private function createCategory(

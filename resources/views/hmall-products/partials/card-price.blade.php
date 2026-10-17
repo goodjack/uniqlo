@@ -1,6 +1,5 @@
 {{-- 不放原價：歷史區間已經回答「現在算不算便宜」，官方原價又常等於歷史最高 --}}
-<div class="ts hidden divider"></div>
-<div class="header">
+<div class="header uq-card-price">
     ${{ $hmallProduct->price }}
     @if ($hmallProduct->highest_record_price !== $hmallProduct->lowest_record_price)
         <div class="sub header">
@@ -17,4 +16,3 @@
         </div>
     @endif
 </div>
-@include('hmall-products.partials.card-labels')

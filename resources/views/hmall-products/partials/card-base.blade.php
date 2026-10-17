@@ -23,6 +23,8 @@
     <div class="content">
         @include('partials.favorite-toggle', ['hmallProduct' => $hmallProduct])
         <div class="smaller header">{{ $hmallProductPresenter->getNameWithCode($hmallProduct) }}</div>
+        {{-- 比價站最先要看的是價格，排在品名正下方 --}}
+        {!! $price ?? '' !!}
         <div class="middoted meta">
             {{-- 適穿是空字串的商品有一批，空的 <span> 會讓 .middoted 多畫一個中點 --}}
             @if (filled($hmallProduct->sex))
