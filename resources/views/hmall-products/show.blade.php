@@ -51,6 +51,10 @@
     $descriptionHtml = $hmallProductPresenter->getDescriptionBody($hmallProduct->instruction);
 
 
+    // 收起後先露出幾件，要跟 app.css 的 .uq-collapsed 規則一致：手機一排兩件、電腦兩排八張
+    $collapseAfter = ['mobile' => 2, 'desktop' => 8];
+    $photoCount = count($colorNums ?? []) + count(optional($japanProduct)->main_images ?? []) + count(optional($japanProduct)->sub_images ?? []);
+
     // 每一段有沒有內容。章節選單與下面各段的 @if 共用這一份，選單才不會指到不存在的段落
     $shown = [
         'facts' => ! empty($productFacts) || $categories->isNotEmpty(),
@@ -331,7 +335,7 @@
                         <h2>${{ $hmallProduct->price }}</h2>
                     </div>
                     <div class="twelve wide column">
-                        <div id="uniqlo-column">
+                        <div id="uniqlo-column" data-keeps-clear>
                             <div class="ts right floated separated stackable buttons">
                                 @if ($hmallProduct->brand === 'GU')
                                     <a class="ts info right labeled icon button"
@@ -405,9 +409,12 @@
                 <div class="ts doubling four flatted cards">
                     @foreach ($japanProduct->sub_videos as $key => $subVideo)
                         <div class="ts card">
-                            <div class="video">
-                                <video preload="metadata" src="{{ $subVideo }}" autoplay muted loop controls
-                                    playsinline></video>
+                            <div class="video uq-video">
+                                {{-- 網址放 data-src，滑到才載入；播放與暫停交給頁尾的 setUpVideos() --}}
+                                <video data-src="{{ $subVideo }}" preload="none" muted loop playsinline></video>
+                                <button type="button" class="uq-video-toggle" aria-label="播放影片">
+                                    <i class="play icon" aria-hidden="true"></i>
+                                </button>
                             </div>
                         </div>
                     @endforeach
@@ -422,7 +429,8 @@
                 @include('partials.section-anchor', ['anchor' => 'photos', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">商品實照</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling four flatted cards uq-strip">
+                <div class="ts doubling four flatted cards uq-strip"
+                    @if ($photoCount > $collapseAfter['desktop']) data-collapse-on="desktop" @endif>
                     @if ($colorNums)
                         @foreach ($colorNums as $key => $colorNum)
                             <x-image-card imageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
@@ -445,6 +453,9 @@
                         @endforeach
                     @endif
                 </div>
+                @if ($photoCount > $collapseAfter['desktop'])
+                    @include('partials.expand-button', ['on' => 'desktop', 'label' => "顯示全部 {$photoCount} 張"])
+                @endif
             </div>
         </div>
     @endif
@@ -455,13 +466,17 @@
                 @include('partials.section-anchor', ['anchor' => 'styles', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">Official Styling 官方精選穿搭</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling four flatted cards uq-strip">
+                <div class="ts doubling four flatted cards uq-strip"
+                    @if ($styles->count() > $collapseAfter['desktop']) data-collapse-on="desktop" @endif>
                     @foreach ($styles as $key => $style)
                         <x-image-card link="{{ $style->detail_url }}" imageUrl="{{ $style->image_url }}"
                             largeImageUrl="{{ $style->large_image_url }}"
                             alt="Official Styling 官方精選穿搭 {{ $key + 1 }}" width="720" height="960" album="styles" />
                     @endforeach
                 </div>
+                @if ($styles->count() > $collapseAfter['desktop'])
+                    @include('partials.expand-button', ['on' => 'desktop', 'label' => "顯示全部 {$styles->count()} 張"])
+                @endif
             </div>
         </div>
     @endif
@@ -502,9 +517,13 @@
                 @include('partials.section-anchor', ['anchor' => 'commonly-styled', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">經常搭配商品</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling cards six uq-product-cards">
+                <div class="ts doubling cards six uq-product-cards"
+                    @if ($commonlyStyledHmallProducts->count() > $collapseAfter['mobile']) data-collapse-on="mobile" @endif>
                     @each('hmall-products.simple-card', $commonlyStyledHmallProducts, 'hmallProduct')
                 </div>
+                @if ($commonlyStyledHmallProducts->count() > $collapseAfter['mobile'])
+                    @include('partials.expand-button', ['on' => 'mobile', 'label' => '展開其餘 ' . ($commonlyStyledHmallProducts->count() - $collapseAfter['mobile']) . ' 件'])
+                @endif
             </div>
         </div>
     @endif
@@ -515,9 +534,13 @@
                 @include('partials.section-anchor', ['anchor' => 'related', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">延伸商品</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling cards six uq-product-cards">
+                <div class="ts doubling cards six uq-product-cards"
+                    @if ($relatedHmallProducts->count() > $collapseAfter['mobile']) data-collapse-on="mobile" @endif>
                     @each('hmall-products.card', $relatedHmallProducts, 'hmallProduct')
                 </div>
+                @if ($relatedHmallProducts->count() > $collapseAfter['mobile'])
+                    @include('partials.expand-button', ['on' => 'mobile', 'label' => '展開其餘 ' . ($relatedHmallProducts->count() - $collapseAfter['mobile']) . ' 件'])
+                @endif
             </div>
         </div>
     @endif
@@ -888,7 +911,103 @@
             } catch (error) {}
         }
 
+        // 影片照官網自動、靜音、重複播放，但滑到才載入、滑走就暫停；使用者按了暫停，
+        // 滑回來也不自己再播。系統設定減少動態效果時，等使用者自己按。
+        function setUpVideos() {
+            const players = document.querySelectorAll('.uq-video');
+
+            if (players.length === 0 || !('IntersectionObserver' in window)) {
+                players.forEach(player => {
+                    const video = player.querySelector('video');
+                    video.src = video.dataset.src;
+                    video.controls = true;
+                    player.querySelector('.uq-video-toggle').hidden = true;
+                });
+
+                return;
+            }
+
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const pausedByUser = new WeakSet();
+
+            const play = video => video.play().catch(() => {});
+
+            players.forEach(player => {
+                const video = player.querySelector('video');
+                const button = player.querySelector('.uq-video-toggle');
+                const icon = button.querySelector('.icon');
+
+                if (reduceMotion) {
+                    pausedByUser.add(video);
+                }
+
+                const showState = () => {
+                    icon.className = (video.paused ? 'play' : 'pause') + ' icon';
+                    button.setAttribute('aria-label', video.paused ? '播放影片' : '暫停影片');
+                };
+
+                const toggle = () => {
+                    if (!video.src) {
+                        video.src = video.dataset.src;
+                    }
+
+                    if (video.paused) {
+                        pausedByUser.delete(video);
+                        play(video);
+                    } else {
+                        pausedByUser.add(video);
+                        video.pause();
+                    }
+                };
+
+                video.addEventListener('play', showState);
+                video.addEventListener('pause', showState);
+                video.addEventListener('click', toggle);
+                button.addEventListener('click', toggle);
+            });
+
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    const video = entry.target.querySelector('video');
+
+                    if (!entry.isIntersecting) {
+                        video.pause();
+
+                        return;
+                    }
+
+                    if (!video.src) {
+                        video.preload = 'metadata';
+                        video.src = video.dataset.src;
+                    }
+
+                    if (!pausedByUser.has(video)) {
+                        play(video);
+                    }
+                });
+            }, { threshold: 0.25 });
+
+            players.forEach(player => observer.observe(player));
+        }
+
+        // 收起只在這裡發生：沒跑 JS 時清單維持全開
+        function setUpCollapsibles() {
+            document.querySelectorAll('[data-collapse-on]:not(.uq-expand)').forEach(list => {
+                const button = list.nextElementSibling;
+
+                list.classList.add('uq-collapsed');
+                button.hidden = false;
+                button.addEventListener('click', () => {
+                    list.classList.remove('uq-collapsed');
+                    button.remove();
+                });
+            });
+        }
+
         function onLoad() {
+            setUpCollapsibles();
+            setUpVideos();
+
             if (navigator.share !== undefined) {
                 document.getElementById('share').hidden = false;
 

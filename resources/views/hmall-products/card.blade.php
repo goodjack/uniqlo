@@ -1,3 +1,4 @@
 @include('hmall-products.partials.card-base', [
-    'slot' => view('hmall-products.partials.card-extra-content', ['hmallProduct' => $hmallProduct]),
+    'price' => view('hmall-products.partials.card-price', ['hmallProduct' => $hmallProduct]),
+    'slot' => view('hmall-products.partials.card-labels', ['hmallProduct' => $hmallProduct]),
 ])

@@ -230,7 +230,7 @@ $shareUrl = [
                         <h2>${{ $product->price }}</h2>
                     </div>
                     <div class="twelve wide column">
-                        <div id="uniqlo-column">
+                        <div id="uniqlo-column" data-keeps-clear>
                             <div class="ts right floated separated stackable buttons">
                                 <a class="ts negative right labeled icon disabled button"
                                     href="https://www.uniqlo.com/tw/store/goods/{{ $product->id }}" target="_blank"
