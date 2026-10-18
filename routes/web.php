@@ -8,6 +8,7 @@ use App\Http\Controllers\ListController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\SocialPostImageController;
 use App\Http\Controllers\StyleHintController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +25,12 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// 社群熱推卡片的預覽圖。.jpg 結尾讓 CDN 預設就會快取
+Route::get('/social-img/{socialPost}.jpg', [SocialPostImageController::class, 'show'])
+    ->whereNumber('socialPost')
+    ->middleware('throttle:120,1')
+    ->name('social-posts.image');
 
 Route::get('/2', function () {
     return view('welcome');

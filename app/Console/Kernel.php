@@ -19,6 +19,10 @@ class Kernel extends ConsoleKernel
         $schedule->command('hmall-product:cache-most-visited')
             ->everyTwoHours()
             ->withoutOverlapping();
+
+        // 平常只處理 Notion 上新加或改過的；定期整批重抓，發現刪文、轉私人
+        $schedule->command('social-post:sync')->hourlyAt(17)->withoutOverlapping();
+        $schedule->command('social-post:sync --full')->dailyAt('04:37')->withoutOverlapping();
     }
 
     /**

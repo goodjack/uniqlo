@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\HmallProduct;
 use App\Services\CategoryService;
 use App\Services\HmallProductService;
+use App\Services\SocialPostService;
 use Illuminate\Http\Request;
 
 class HmallProductController extends Controller
@@ -54,7 +55,7 @@ class HmallProductController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function show(HmallProduct $hmallProduct)
+    public function show(HmallProduct $hmallProduct, SocialPostService $socialPostService)
     {
         $commonlyStyledHmallProducts = $this->service->getCommonlyStyledHmallProducts($hmallProduct);
         $relatedHmallProducts = $this->service->getRelatedHmallProducts($hmallProduct);
@@ -76,6 +77,7 @@ class HmallProductController extends Controller
             'styleHints' => $styleHints,
             'styleHintCount' => $styleHintCount,
             'hmallPriceHistories' => $hmallPriceHistories,
+            'socialPosts' => $socialPostService->getForProduct($hmallProduct),
             'japanProduct' => $hmallProduct->japanProduct,
             'categories' => $categories,
             'categoryTrail' => $primaryCategory === null
