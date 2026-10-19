@@ -1,4 +1,4 @@
-<a class="ts card" href="{{ $largeImageUrl }}" rel="nofollow noopener" data-lightbox="{{ $album }}"
+<a class="ts borderless card" href="{{ $largeImageUrl }}" rel="nofollow noopener" data-lightbox="{{ $album }}"
     @if (!empty($link)) data-title="<a href='{{ $link }}' target='_blank' rel='nofollow noopener'>{{ $alt }}</a>"
     @else data-title="{{ $alt }}" @endif>
     <div class="image">

@@ -301,20 +301,27 @@
     </script>
     <script>
         (function () {
-            const showOnPx = 100;
             const backToTopButton = document.querySelector(".back-to-top")
 
             const scrollContainer = () => {
                 return document.documentElement || document.body;
             };
 
-            document.addEventListener("scroll", () => {
-                if (scrollContainer().scrollTop > showOnPx) {
-                    backToTopButton.classList.remove("hidden")
-                } else {
-                    backToTopButton.classList.add("hidden")
-                }
-            })
+            const clearZones = new Set();
+            const update = () => {
+                const scrolledAway = scrollContainer().scrollTop > window.innerHeight;
+                backToTopButton.classList.toggle("hidden", !scrolledAway || clearZones.size > 0);
+            };
+
+            if ('IntersectionObserver' in window) {
+                const observer = new IntersectionObserver(entries => {
+                    entries.forEach(entry => entry.isIntersecting ? clearZones.add(entry.target) : clearZones.delete(entry.target));
+                    update();
+                });
+                document.querySelectorAll('[data-keeps-clear]').forEach(zone => observer.observe(zone));
+            }
+
+            document.addEventListener("scroll", update)
 
             const goToTop = () => {
                 document.body.scrollIntoView();

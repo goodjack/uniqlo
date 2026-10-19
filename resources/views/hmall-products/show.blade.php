@@ -3,14 +3,14 @@
 
 @php
     $shareText = $hmallProductPresenter->getShareText($hmallProduct);
-    $shareTextEncode = urlencode($shareText);
+    $shareTextEncode = rawurlencode($shareText);
 
     $currentUrl = url()->current();
     $shareUrl = [
-        'facebook' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=fb&utm_campaign=share'),
-        'twitter' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=twtr&utm_campaign=share'),
-        'line' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
-        'threads' => urlencode($currentUrl . '?utm_source=uqs&utm_medium=threads&utm_campaign=share'),
+        'facebook' => rawurlencode($currentUrl . '?utm_source=uqs&utm_medium=fb&utm_campaign=share'),
+        'twitter' => rawurlencode($currentUrl . '?utm_source=uqs&utm_medium=twtr&utm_campaign=share'),
+        'line' => rawurlencode($currentUrl . '?utm_source=uqs&utm_medium=line&utm_campaign=share'),
+        'threads' => rawurlencode($currentUrl . '?utm_source=uqs&utm_medium=threads&utm_campaign=share'),
         'webShare' => $currentUrl . '?utm_source=uqs&utm_medium=webshare&utm_campaign=share',
     ];
 
@@ -50,6 +50,12 @@
     // 不用 getDescription()：它文末接的網路商店編號，上面的商品資訊已經有了
     $descriptionHtml = $hmallProductPresenter->getDescriptionBody($hmallProduct->instruction);
 
+
+    $collapseAfter = ['mobile' => 2, 'desktop' => 8];
+    $collapsible = fn (int $count, string $on) => $count > $collapseAfter[$on]
+        ? new \Illuminate\Support\HtmlString("data-collapse-on=\"{$on}\" data-collapse-after=\"{$collapseAfter[$on]}\"")
+        : '';
+    $photoCount = count($colorNums ?? []) + count(optional($japanProduct)->main_images ?? []) + count(optional($japanProduct)->sub_images ?? []);
 
     // 每一段有沒有內容。章節選單與下面各段的 @if 共用這一份，選單才不會指到不存在的段落
     $shown = [
@@ -259,7 +265,7 @@
                     <a class="ts centered image" href="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
                         rel="nofollow noopener" data-lightbox="image"
                         data-title="{{ $productName }}">
-                        <x-lazy-load-image class="ts centered image" :priority="true"
+                        <x-lazy-load-image class="ts centered fluid image" :priority="true"
                             src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
                             alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
                     </a>
@@ -273,28 +279,29 @@
                             <div class="sub header">
                                 {{ $hmallProduct->brand }} 商品編號 {{ $hmallProduct->code }}
                                 {!! $hmallProductPresenter->getRatingForProductShow($hmallProduct) !!}
-                                &middot;
-                                <div class="ts buttons">
-                                    <a id="facebook" class="ts link button"
-                                        href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Facebook">
-                                        <i class="fa-brands fa-facebook" aria-hidden="true"></i>
-                                    </a>
-                                    <a id="twitter" class="ts link button"
-                                        href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="分享到 X">
-                                        <i class="fa-brands fa-x-twitter" aria-hidden="true"></i>
-                                    </a>
-                                    <a id="line" class="ts link button"
-                                        href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="分享到 LINE">
-                                        <i class="fa-brands fa-line" aria-hidden="true"></i>
-                                    </a>
-                                    <a id="threads" class="ts link button"
-                                        href="https://www.threads.com/intent/post?text={{ $shareTextEncode }}&url={{ $shareUrl['threads'] }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="分享到 Threads">
-                                        <i class="fa-brands fa-threads" aria-hidden="true"></i>
-                                    </a>
+                                <div class="uq-share-links">
+                                    <div class="ts buttons">
+                                        <a id="facebook" class="ts link button"
+                                            href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl['facebook'] }}&quote={{ $shareTextEncode }}"
+                                            target="_blank" rel="nofollow noopener" aria-label="分享到 Facebook">
+                                            <i class="fa-brands fa-facebook" aria-hidden="true"></i>
+                                        </a>
+                                        <a id="twitter" class="ts link button"
+                                            href="https://twitter.com/intent/tweet/?text={{ $shareTextEncode }}&url={{ $shareUrl['twitter'] }}"
+                                            target="_blank" rel="nofollow noopener" aria-label="分享到 X">
+                                            <i class="fa-brands fa-x-twitter" aria-hidden="true"></i>
+                                        </a>
+                                        <a id="line" class="ts link button"
+                                            href="https://social-plugins.line.me/lineit/share?text={{ $shareTextEncode }}&url={{ $shareUrl['line'] }}"
+                                            target="_blank" rel="nofollow noopener" aria-label="分享到 LINE">
+                                            <i class="fa-brands fa-line" aria-hidden="true"></i>
+                                        </a>
+                                        <a id="threads" class="ts link button"
+                                            href="https://www.threads.com/intent/post?text={{ $shareTextEncode }}&url={{ $shareUrl['threads'] }}"
+                                            target="_blank" rel="nofollow noopener" aria-label="分享到 Threads">
+                                            <i class="fa-brands fa-threads" aria-hidden="true"></i>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </h1>
@@ -329,7 +336,7 @@
                         <h2>${{ $hmallProduct->price }}</h2>
                     </div>
                     <div class="twelve wide column">
-                        <div id="uniqlo-column">
+                        <div id="uniqlo-column" data-keeps-clear>
                             <div class="ts right floated separated stackable buttons">
                                 @if ($hmallProduct->brand === 'GU')
                                     <a class="ts info right labeled icon button"
@@ -366,27 +373,30 @@
                 <h2 class="ts large dividing header">商品資訊</h2>
                 <div class="ts hidden divider"></div>
 
-                @if (!empty($productFacts))
-                    {{-- 名稱與值包在同一個 span：.item 是 inline-flex，中間的空格會被吃掉 --}}
-                    <div class="ts horizontal stackable list uq-facts">
+                <table class="ts very basic table uq-facts">
+                    <tbody>
                         @foreach ($productFacts as $label => $value)
-                            <div class="item"><span><b>{{ $label }}</b> {{ $value }}</span></div>
+                            <tr>
+                                <td class="collapsing">{{ $label }}</td>
+                                <td>{{ $value }}</td>
+                            </tr>
                         @endforeach
-                    </div>
-                @endif
-
-                @if ($categories->isNotEmpty())
-                    {{-- 商品同時掛在男裝、女裝、企劃等幾棵樹下，是平行的入口，所以用中點清單、不用麵包屑 --}}
-                    <div>
-                        <b>分類</b>
-                        <div class="ts horizontal middoted list uq-categories-line">
-                            @foreach ($categories as $category)
-                                <a class="item"
-                                    href="{{ \App\Support\Url::category($category->brand, $category->code) }}">{{ $category->name }}</a>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
+                        @if ($categories->isNotEmpty())
+                            <tr>
+                                <td class="collapsing">分類</td>
+                                <td>
+                                    {{-- 商品同時掛在男裝、女裝、企劃等幾棵樹下，是平行的入口，所以用中點清單、不用麵包屑 --}}
+                                    <div class="ts horizontal middoted list uq-categories-line">
+                                        @foreach ($categories as $category)
+                                            <a class="item"
+                                                href="{{ \App\Support\Url::category($category->brand, $category->code) }}">{{ $category->name }}</a>
+                                        @endforeach
+                                    </div>
+                                </td>
+                            </tr>
+                        @endif
+                    </tbody>
+                </table>
             </div>
         </div>
     @endif
@@ -402,10 +412,15 @@
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
                     @foreach ($japanProduct->sub_videos as $key => $subVideo)
-                        <div class="ts card">
-                            <div class="video">
-                                <video preload="metadata" src="{{ $subVideo }}" autoplay muted loop controls
-                                    playsinline></video>
+                        <div class="ts borderless card">
+                            <div class="video uq-video">
+                                <video data-src="{{ $subVideo }}" preload="none" muted loop playsinline hidden></video>
+                                <noscript>
+                                    <video src="{{ $subVideo }}" preload="none" muted loop playsinline controls></video>
+                                </noscript>
+                                <button type="button" class="uq-video-toggle" aria-label="播放影片" hidden>
+                                    <i class="play icon" aria-hidden="true"></i>
+                                </button>
                             </div>
                         </div>
                     @endforeach
@@ -420,29 +435,30 @@
                 @include('partials.section-anchor', ['anchor' => 'photos', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">商品實照</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling four flatted cards uq-strip">
+                <div class="ts doubling four flatted cards uq-strip" {{ $collapsible($photoCount, 'desktop') }}>
                     @if ($colorNums)
                         @foreach ($colorNums as $key => $colorNum)
                             <x-image-card imageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
                                 largeImageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
-                                link="" alt="商品實照 {{ $key + 1 }}" />
+                                link="" alt="商品實照 {{ $key + 1 }}" width="1200" height="1600" />
                         @endforeach
                     @endif
                     @if (optional($japanProduct)->main_images)
                         @foreach ($japanProduct->main_images as $key => $mainImage)
                             <x-image-card imageUrl="{{ $mainImage }}" largeImageUrl="{{ $mainImage }}"
-                                country="jp" link="" alt="日本版商品穿搭照 {{ $key + 1 }}" width="561"
-                                height="561" />
+                                country="jp" link="" alt="日本版商品穿搭照 {{ $key + 1 }}" width="1200"
+                                height="1600" />
                         @endforeach
                     @endif
                     @if (optional($japanProduct)->sub_images)
                         @foreach ($japanProduct->sub_images as $key => $subImage)
                             <x-image-card imageUrl="{{ $subImage }}" largeImageUrl="{{ $subImage }}"
-                                country="jp" link="" alt="日本版商品實照 {{ $key + 1 }}" width="561"
-                                height="561" />
+                                country="jp" link="" alt="日本版商品實照 {{ $key + 1 }}" width="1200"
+                                height="1600" />
                         @endforeach
                     @endif
                 </div>
+                @includeWhen($collapsible($photoCount, 'desktop'), 'partials.expand-button', ['on' => 'desktop', 'label' => "顯示全部 {$photoCount} 張"])
             </div>
         </div>
     @endif
@@ -453,13 +469,14 @@
                 @include('partials.section-anchor', ['anchor' => 'styles', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">Official Styling 官方精選穿搭</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling four flatted cards uq-strip">
+                <div class="ts doubling four flatted cards uq-strip" {{ $collapsible($styles->count(), 'desktop') }}>
                     @foreach ($styles as $key => $style)
                         <x-image-card link="{{ $style->detail_url }}" imageUrl="{{ $style->image_url }}"
                             largeImageUrl="{{ $style->large_image_url }}"
                             alt="Official Styling 官方精選穿搭 {{ $key + 1 }}" width="720" height="960" album="styles" />
                     @endforeach
                 </div>
+                @includeWhen($collapsible($styles->count(), 'desktop'), 'partials.expand-button', ['on' => 'desktop', 'label' => "顯示全部 {$styles->count()} 張"])
             </div>
         </div>
     @endif
@@ -485,7 +502,7 @@
                             height="960" album="style-hints" />
                     @endforeach
                     @if ($styleHintCount > count($styleHints))
-                        <a class="ts card uq-strip-more" href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
+                        <a class="ts borderless card uq-strip-more" href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
                             看全部 {{ $styleHintCount }} 張
                         </a>
                     @endif
@@ -500,9 +517,10 @@
                 @include('partials.section-anchor', ['anchor' => 'commonly-styled', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">經常搭配商品</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling cards six uq-product-cards">
+                <div class="ts doubling cards six uq-product-cards" {{ $collapsible($commonlyStyledHmallProducts->count(), 'mobile') }}>
                     @each('hmall-products.simple-card', $commonlyStyledHmallProducts, 'hmallProduct')
                 </div>
+                @includeWhen($collapsible($commonlyStyledHmallProducts->count(), 'mobile'), 'partials.expand-button', ['on' => 'mobile', 'label' => '展開其餘 ' . ($commonlyStyledHmallProducts->count() - $collapseAfter['mobile']) . ' 件'])
             </div>
         </div>
     @endif
@@ -513,9 +531,10 @@
                 @include('partials.section-anchor', ['anchor' => 'related', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">延伸商品</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling cards six uq-product-cards">
+                <div class="ts doubling cards six uq-product-cards" {{ $collapsible($relatedHmallProducts->count(), 'mobile') }}>
                     @each('hmall-products.card', $relatedHmallProducts, 'hmallProduct')
                 </div>
+                @includeWhen($collapsible($relatedHmallProducts->count(), 'mobile'), 'partials.expand-button', ['on' => 'mobile', 'label' => '展開其餘 ' . ($relatedHmallProducts->count() - $collapseAfter['mobile']) . ' 件'])
             </div>
         </div>
     @endif
@@ -714,7 +733,7 @@
                 @include('partials.section-anchor', ['anchor' => 'legacy', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">舊系統商品</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling cards six uq-product-cards">
+                <div class="ts doubling cards six uq-product-cards uq-text-cards">
                     @each('products.card', $relatedProducts, 'product')
                 </div>
             </div>
@@ -729,6 +748,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox-plus-jquery.min.js"
         integrity="sha512-U9dKDqsXAE11UA9kZ0XKFyZ2gQCj+3AwZdBMni7yXSvWqLFEj8C1s7wRmWl9iyij8d5zb4wm56j4z/JVEwS77g=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="{{ asset('js/product-page.js') }}?v={{ filemtime(public_path('js/product-page.js')) }}"></script>
 
     <script>
         'use strict';
@@ -889,6 +909,11 @@
         function onLoad() {
             if (navigator.share !== undefined) {
                 document.getElementById('share').hidden = false;
+
+                // 手機的系統分享選單已經涵蓋這幾個平台，同一件事不放兩組按鈕
+                if (window.matchMedia('(pointer: coarse)').matches) {
+                    document.querySelector('.uq-share-links').hidden = true;
+                }
             }
 
             document.querySelector('#share').addEventListener('click', webShare);
