@@ -26,6 +26,10 @@ Allow: /categories$
 Allow: /categories/
 Allow: /sitemap
 Allow: /favicon.ico
+Allow: /favorites$
+Allow: /css/
+Allow: /js/
+Allow: /icons/
 
 User-agent: *
 Disallow: /
