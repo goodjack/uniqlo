@@ -6,6 +6,18 @@
 --}}
 @php
     $bare = $bare ?? false;
+
+    // 第 1 頁連回不帶頁碼的網址：canonical 就是它，帶 page=1 只會讓搜尋引擎多抓一個重複網址
+    $pageUrl = function (int $page) use ($paginator) {
+        if ($page !== 1) {
+            return $paginator->url($page);
+        }
+
+        parse_str(parse_url($paginator->url(1), PHP_URL_QUERY) ?? '', $query);
+        unset($query[$paginator->getPageName()]);
+
+        return $paginator->path().($query ? '?'.\Illuminate\Support\Arr::query($query) : '');
+    };
 @endphp
 
 @if ($paginator->hasPages())
@@ -31,7 +43,7 @@
                 <i class="left chevron icon"></i>
             </a>
         @else
-            <a class="ts icon button" href="{{ $paginator->previousPageUrl() }}" rel="prev"
+            <a class="ts icon button" href="{{ $pageUrl($paginator->currentPage() - 1) }}" rel="prev"
                 aria-label="@lang('pagination.previous')">
                 <i class="left chevron icon"></i>
             </a>
@@ -43,11 +55,11 @@
             @endif
 
             @if (is_array($element))
-                @foreach ($element as $page => $url)
+                @foreach (array_keys($element) as $page)
                     @if ($page == $paginator->currentPage())
-                        <a class="ts icon active button" href="{{ $url }}" aria-current="page">{{ $page }}</a>
+                        <a class="ts icon active button" href="{{ $pageUrl($page) }}" aria-current="page">{{ $page }}</a>
                     @else
-                        <a class="ts icon button" href="{{ $url }}">{{ $page }}</a>
+                        <a class="ts icon button" href="{{ $pageUrl($page) }}">{{ $page }}</a>
                     @endif
                 @endforeach
             @endif

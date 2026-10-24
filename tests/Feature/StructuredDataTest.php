@@ -8,6 +8,7 @@ use App\Models\HmallProduct;
 use DOMDocument;
 use DOMXPath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class StructuredDataTest extends TestCase
@@ -107,6 +108,28 @@ class StructuredDataTest extends TestCase
             ->getContent();
 
         $this->assertSame('noindex, follow', $this->meta($content, 'robots'));
+    }
+
+    public function test_style_hint_pages_after_the_first_are_not_indexed(): void
+    {
+        $this->seedProduct();
+        $this->seedStyleHints(33);
+        $url = route('uniqlo-style-hints.show', ['uniqlo_product_code' => 'u990001']);
+
+        $this->assertNull($this->meta($this->get($url)->assertOk()->getContent(), 'robots'));
+        $this->assertSame('noindex, follow', $this->meta($this->get($url.'?page=2')->assertOk()->getContent(), 'robots'));
+    }
+
+    public function test_pagination_links_back_to_the_first_page_without_a_page_number(): void
+    {
+        $this->seedProduct();
+        $this->seedStyleHints(33);
+        $url = route('uniqlo-style-hints.show', ['uniqlo_product_code' => 'u990001']);
+
+        $xpath = $this->xpath($this->get($url.'?page=2')->assertOk()->getContent());
+
+        $this->assertSame($url, $xpath->query('//a[@rel="prev"]')->item(0)?->getAttribute('href'));
+        $this->assertSame($url, $xpath->query('//*[contains(@class, "buttons")]/a[normalize-space()="1"]')->item(0)?->getAttribute('href'));
     }
 
     /**
@@ -219,6 +242,14 @@ class StructuredDataTest extends TestCase
                 'level' => $level->value,
             ]);
             $product->categories()->attach($category->id, ['sort' => '001']);
+        }
+    }
+
+    private function seedStyleHints(int $count): void
+    {
+        foreach (range(1, $count) as $id) {
+            DB::table('style_hints')->insert(['id' => $id, 'outfit_id' => "outfit-{$id}", 'country' => 'tw']);
+            DB::table('style_hint_items')->insert(['style_hint_id' => $id, 'code' => '990001', 'original_product_id' => "p{$id}"]);
         }
     }
 

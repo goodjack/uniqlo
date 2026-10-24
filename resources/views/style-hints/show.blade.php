@@ -14,8 +14,8 @@
 @section('og-type', 'product')
 
 @section('metadata')
-    @if ($styleHints->isEmpty())
-        {{-- 沒有任何照片的穿搭頁是空頁，不收錄 --}}
+    {{-- 空頁不收錄；第 2 頁起只有外站照片、標題說明都跟第 1 頁一樣，會被判成重複，只留第 1 頁給搜尋 --}}
+    @if ($styleHints->isEmpty() || $styleHints->currentPage() > 1)
         <meta name="robots" content="noindex, follow" />
     @endif
     <link rel="canonical" href="{{ $currentUrl }}" />
