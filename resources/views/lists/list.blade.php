@@ -143,6 +143,7 @@
                 'hmallProductList' => $hmallProductList,
                 'genders' => $genders,
                 'count' => $count,
+                'analyticsList' => $analyticsList,
             ])
         </div>
     </div>

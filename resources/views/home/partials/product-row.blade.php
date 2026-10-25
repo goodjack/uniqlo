@@ -8,7 +8,7 @@
                 href="{{ route($section['route']) }}">看全部</a>
         </h2>
 
-        <div class="ts doubling cards six uq-product-cards">
+        <div class="ts doubling cards six uq-product-cards" data-analytics-list="{{ $section['analytics_list'] }}">
             @each('hmall-products.simple-card', $section['products'], 'hmallProduct')
         </div>
     </div>

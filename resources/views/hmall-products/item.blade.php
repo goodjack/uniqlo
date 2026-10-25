@@ -3,8 +3,10 @@
 {{--
     整列不是 <a>：$actions 裡的按鈕不能是連結的子孫（巢狀互動元素）。
     $actions 選用，不傳就不輸出 .actions（商品頁的延伸商品沒有動作鈕）。
+    收藏頁的列表也用這個，data-analytics-item 一律不帶價格。
 --}}
-<div class="item" {!! $itemAttributes ?? '' !!}>
+<div class="item" {!! $itemAttributes ?? '' !!}
+    data-analytics-item="{{ json_encode($hmallProductPresenter->getAnalyticsItem($hmallProduct, withPrice: false), JSON_UNESCAPED_UNICODE) }}">
     <a class="ts tiny image" href="{{ $hmallProduct->route_url }}">
         <x-lazy-load-image src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
             alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />

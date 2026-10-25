@@ -9,9 +9,12 @@
 
     data-card-search 給 list-search.js 的即時篩用，欄位要跟
     ListService::hmallProductMatchesKeyword() 比對的一致。
+
+    data-analytics-item 給 analytics.js：點卡片與按愛心送 GA 事件時讀的商品資料。
 --}}
 <div class="ts borderless card uq-card" data-card-name="{{ $hmallProductPresenter->getNameWithCode($hmallProduct) }}"
-    data-card-search="{{ $hmallProductPresenter->getNameWithCode($hmallProduct) }} {{ $hmallProduct->product_code }} {{ $hmallProduct->short_product_code }}">
+    data-card-search="{{ $hmallProductPresenter->getNameWithCode($hmallProduct) }} {{ $hmallProduct->product_code }} {{ $hmallProduct->short_product_code }}"
+    data-analytics-item="{{ json_encode($hmallProductPresenter->getAnalyticsItem($hmallProduct), JSON_UNESCAPED_UNICODE) }}">
     <a class="uq-card-link" href="{{ $hmallProduct->route_url }}"
         aria-label="{{ $hmallProductPresenter->getNameWithCode($hmallProduct) }}"></a>
     <div class="image">

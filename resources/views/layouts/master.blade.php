@@ -101,6 +101,8 @@
 
     <!-- Tocas JS：模組與 JavaScript 函式 -->
     <script src="{{ asset('js/tocas.js') }}"></script>
+    {{-- 要在 favorites.js 之前：收藏鈕送事件用的是這裡的 UqAnalytics --}}
+    <script src="{{ asset('js/analytics.js') }}?v={{ filemtime(public_path('js/analytics.js')) }}"></script>
     {{-- 每一頁的商品卡片都有收藏鈕；版號帶 mtime，避免舊快取的腳本配上新的 HTML --}}
     <script src="{{ asset('js/favorites.js') }}?v={{ filemtime(public_path('js/favorites.js')) }}"></script>
     <script>

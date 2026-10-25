@@ -1,6 +1,7 @@
 {{--
     genders  四個性別，跟章節選單共用 lists/list.blade.php 算好的同一份
     count    篩選後的總件數；0 件時整頁換成空狀態，不列四段「沒有商品」
+    analyticsList  GA 事件裡這份清單的來源代號
 --}}
 @php
     $currentQ = (string) request('q');
@@ -33,7 +34,8 @@
             <div class="inline sub header">共 <span data-gender-count>{{ count($hmallProductList[$key]) }}</span> 件</div>
         </h2>
         @if (count($hmallProductList[$key]) > 0)
-            <div class="ts doubling cards four uq-product-cards" data-gender-body="{{ $key }}">
+            <div class="ts doubling cards four uq-product-cards" data-gender-body="{{ $key }}"
+                data-analytics-list="{{ $analyticsList }}">
                 @foreach ($hmallProductList[$key] as $hmallProduct)
                     @include('hmall-products.card', ['hmallProduct' => $hmallProduct])
                 @endforeach

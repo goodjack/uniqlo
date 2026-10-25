@@ -30,7 +30,7 @@
             </x-slot:end>
         </x-toolbar>
 
-        <div class="ts relaxed divided items" id="favorites-cards"></div>
+        <div class="ts relaxed divided items" id="favorites-cards" data-analytics-list="favorites"></div>
 
         {{-- 四種空狀態分開講：沒收藏、篩選後沒有、都已下架、載入失敗，使用者才知道收藏沒有不見 --}}
         @include('partials.empty-state', [

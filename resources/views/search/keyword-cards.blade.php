@@ -1,6 +1,6 @@
 {{-- 只搜現行商品，舊系統的 Product 已凍結不納入 --}}
 @if ($hmallProducts->isNotEmpty())
-    <div class="ts doubling cards four uq-product-cards">
+    <div class="ts doubling cards four uq-product-cards" data-analytics-list="search_keyword">
         @each('hmall-products.card', $hmallProducts, 'hmallProduct')
     </div>
 

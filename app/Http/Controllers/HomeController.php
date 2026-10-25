@@ -32,6 +32,8 @@ class HomeController extends Controller
      * 熱門瀏覽排第一：那份排名是這個站自己的流量資料，站內其他頁面都看不到，
      * 其餘三組在對應的清單頁都找得到。
      *
+     * analytics_list 是 GA 事件裡的來源代號，改了會跟舊資料對不起來。
+     *
      * 已知風險：四組資料平時由排程預熱；快取被清掉後，第一批訪客會各自就地
      * 跑一次查詢（沒有互斥鎖）。
      */
@@ -42,6 +44,7 @@ class HomeController extends Controller
                 'title' => '大家都在看',
                 'subtitle' => '最多人瀏覽的商品',
                 'route' => 'lists.most-visited',
+                'analytics_list' => 'home_most_visited',
                 'style' => 'most-visited',
                 'icon' => 'chart line',
                 'products' => fn () => $this->listService->getMostVisitedHmallProducts(),
@@ -50,6 +53,7 @@ class HomeController extends Controller
                 'title' => '限時特價',
                 'subtitle' => '期間限定的優惠價格',
                 'route' => 'lists.limited-offers',
+                'analytics_list' => 'home_limited_offers',
                 'style' => 'negative',
                 'icon' => 'certificate',
                 'products' => fn () => $this->listService->getLimitedOfferHmallProducts(),
@@ -58,6 +62,7 @@ class HomeController extends Controller
                 'title' => '新品上市',
                 'subtitle' => '最近上架的商品',
                 'route' => 'lists.new',
+                'analytics_list' => 'home_new',
                 'style' => 'positive',
                 'icon' => 'leaf',
                 'products' => fn () => $this->listService->getNewHmallProducts(),
@@ -66,6 +71,7 @@ class HomeController extends Controller
                 'title' => '熱門穿搭',
                 'subtitle' => '最多人搭配的商品',
                 'route' => 'lists.top-wearing',
+                'analytics_list' => 'home_top_wearing',
                 'style' => 'top-wearing',
                 'icon' => 'camera retro',
                 'products' => fn () => $this->listService->getTopWearingHmallProducts(),

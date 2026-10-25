@@ -105,7 +105,7 @@
                 'hint' => \App\Enums\ProductTag::emptyResultHint($currentQ !== '', ! empty($selectedTagValues)),
             ])
         @else
-            <div class="ts doubling cards four uq-product-cards">
+            <div class="ts doubling cards four uq-product-cards" data-analytics-list="category">
                 @each('hmall-products.card', $hmallProducts, 'hmallProduct')
             </div>
 
