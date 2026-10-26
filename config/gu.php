@@ -18,6 +18,12 @@ return [
             'tw' => env('GU_API_UGC_OFFICIAL_STYLE_LIST_TW'),
         ],
 
+        // 用吊牌條碼查商品，網址裡的 {barcode} 換成條碼
+        'sku_lookup' => [
+            'tw' => env('GU_API_SKU_LOOKUP_TW'),
+            'jp' => env('GU_API_SKU_LOOKUP_JP'),
+        ],
+
         'v3' => [
             'search' => [
                 'tw' => env('GU_API_V3_SEARCH_TW'),
