@@ -32,6 +32,7 @@ class ListFilterTest extends TestCase
             'unknown' => ['?ref[]=x'],
             'q' => ['?q[]=x'],
             'query' => ['?query[]=x'],
+            'sort' => ['?sort[]=discount'],
         ];
     }
 
