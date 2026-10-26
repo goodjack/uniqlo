@@ -340,6 +340,11 @@
         })();
     </script>
 
+    @if (config('barcode.enabled'))
+        @include('layouts.barcode-scanner')
+        <script src="{{ asset('js/barcode-scan.js') }}?v={{ filemtime(public_path('js/barcode-scan.js')) }}" defer></script>
+    @endif
+
     @yield('javascript')
 </body>
 

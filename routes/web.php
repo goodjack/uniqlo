@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BarcodeController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\HmallProductController;
@@ -61,6 +62,12 @@ Route::group(['prefix' => 'search'], function () {
         ->middleware('throttle:search')
         ->name('search.show');
 });
+
+// 吊牌條碼只吃數字，其他字元直接 404，不會打到官網
+Route::get('/barcodes/{barcode}', [BarcodeController::class, 'show'])
+    ->where('barcode', '[0-9]+')
+    ->middleware('throttle:barcode-lookup')
+    ->name('barcodes.show');
 
 Route::group(['prefix' => 'pages'], function () {
     Route::get('/changelog', [PageController::class, 'getChangelog'])->name('pages.changelog');
