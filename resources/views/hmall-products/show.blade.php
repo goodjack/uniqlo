@@ -340,12 +340,12 @@
                             <div class="ts right floated separated stackable buttons">
                                 @if ($hmallProduct->brand === 'GU')
                                     <a class="ts info right labeled icon button"
-                                        href="https://www.gu-global.com/tw/zh_TW/product-detail.html?productCode={{ $hmallProduct->product_code }}"
+                                        href="{{ \App\Support\Url::officialTaiwanProduct(\App\Enums\Brand::Gu, $hmallProduct->product_code) }}"
                                         target="_blank" rel="nofollow noopener" aria-label="GU">前往 GU 官網<i
                                             class="external icon"></i></a>
                                 @else
                                     <a class="ts negative right labeled icon button"
-                                        href="https://www.uniqlo.com/tw/zh_TW/product-detail.html?productCode={{ $hmallProduct->product_code }}"
+                                        href="{{ \App\Support\Url::officialTaiwanProduct(\App\Enums\Brand::Uniqlo, $hmallProduct->product_code) }}"
                                         target="_blank" rel="nofollow noopener" aria-label="UNIQLO">前往 UNIQLO 官網<i
                                             class="external icon"></i></a>
                                 @endif
@@ -705,20 +705,20 @@
                     <div class="right floated column">
                         @if ($japanProduct->brand === 'GU' && collect($japanProduct->prices)->count() >= 2)
                             <a class="ts right floated tiny basic info right labeled icon button"
-                                href="https://www.gu-global.com/jp/ja/search?q={{ $japanProduct->l1Id }}" target="_blank"
+                                href="{{ \App\Support\Url::officialJapanSearch(\App\Enums\Brand::Gu, $japanProduct->l1Id) }}" target="_blank"
                                 rel="nofollow noopener" aria-label="GU">前往日本 GU 官網<i class="external icon"></i></a>
                         @elseif ($japanProduct->brand === 'GU' && collect($japanProduct->prices)->count() <= 1)
                             <a class="ts right floated tiny basic info right labeled icon button"
-                                href="https://www.gu-global.com/jp/ja/products/{{ $japanProduct->product_id }}"
+                                href="{{ \App\Support\Url::officialJapanProduct(\App\Enums\Brand::Gu, $japanProduct->product_id) }}"
                                 target="_blank" rel="nofollow noopener" aria-label="GU">前往日本 GU 官網<i
                                     class="external icon"></i></a>
                         @elseif ($japanProduct->brand === 'UNIQLO' && collect($japanProduct->prices)->count() >= 2)
                             <a class="ts right floated tiny basic negative right labeled icon button"
-                                href="https://www.uniqlo.com/jp/ja/search?q={{ $japanProduct->l1Id }}" target="_blank"
+                                href="{{ \App\Support\Url::officialJapanSearch(\App\Enums\Brand::Uniqlo, $japanProduct->l1Id) }}" target="_blank"
                                 rel="nofollow noopener" aria-label="UNIQLO">前往日本 UNIQLO 官網<i class="external icon"></i></a>
                         @elseif ($japanProduct->brand === 'UNIQLO' && collect($japanProduct->prices)->count() <= 1)
                             <a class="ts right floated tiny basic negative right labeled icon button"
-                                href="https://www.uniqlo.com/jp/ja/products/{{ $japanProduct->product_id }}" target="_blank"
+                                href="{{ \App\Support\Url::officialJapanProduct(\App\Enums\Brand::Uniqlo, $japanProduct->product_id) }}" target="_blank"
                                 rel="nofollow noopener" aria-label="UNIQLO">前往日本 UNIQLO 官網<i class="external icon"></i></a>
                         @endif
                     </div>

@@ -1087,3 +1087,320 @@ html:has(.uq-section-menu) {
         margin-left: calc(50% - 50vw);
     }
 }
+
+/* ------------------------------------------------------------------
+ * 掃吊牌條碼（layouts/barcode-scanner.blade.php）。Tocas 沒有鏡頭畫面，
+ * 全螢幕、取景框與框外調暗只能自己做；輸入、結果、說明用 Tocas 的對話框。
+ * ------------------------------------------------------------------ */
+
+.uq-scan-trigger {
+    flex: 0 0 auto;
+    width: 40px;
+    margin: 0 0 0 -40px;
+    padding: 0;
+    border: 0;
+    background: none;
+    /* 跟放大鏡同色 */
+    color: var(--uq-scan-icon, #5a5a5a);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+}
+
+/* 輸入框比 40px 矮，觸控範圍往上下延伸；定位在按鈕內，不能蓋到輸入區 */
+.uq-scan-trigger::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+}
+
+.uq-scan-trigger svg {
+    width: 16px;
+    height: 16px;
+    /* 跟 Tocas 圖示（放大鏡）一樣的透明度，深淺才一致 */
+    opacity: .8;
+}
+
+.uq-scan-trigger:hover {
+    color: var(--uq-text);
+}
+
+.uq-scan-trigger:hover svg {
+    opacity: 1;
+}
+
+/* 文字不要跑到圖示底下 */
+.ts.action.input>input:has(+ .uq-scan-trigger) {
+    padding-right: 40px;
+}
+
+/* 開著的時候後面的頁面不要跟著捲 */
+html.uq-scanner-open {
+    overflow: hidden;
+}
+
+.uq-scanner {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    background: #000;
+    color: #fff;
+}
+
+.uq-scanner-camera,
+.uq-scanner-camera video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.uq-scanner-camera video {
+    object-fit: cover;
+}
+
+/* 扁長的取景框對準吊牌條碼；框外調暗靠超大的陰影，不用另外量四塊遮罩 */
+.uq-scanner-frame {
+    position: absolute;
+    left: 50%;
+    top: 42%;
+    width: min(84vw, 440px);
+    aspect-ratio: 3 / 1;
+    transform: translate(-50%, -50%);
+    border: 2px dashed rgba(255, 255, 255, 0.75);
+    border-radius: 10px;
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.55);
+}
+
+/* 掃到時框線變實線，不只靠顏色 */
+.uq-scanner.is-locked .uq-scanner-frame {
+    border: 4px solid #fff;
+}
+
+.uq-scanner-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+}
+
+.uq-scanner-title {
+    flex: 1;
+    margin: 0;
+    font-size: 16px;
+    font-weight: normal;
+    text-align: center;
+    color: #fff;
+}
+
+/* 狀態文字放在框的正下方；空的時候不留底色，但元素一直在，讀屏軟體才念得到變化 */
+.uq-scanner.is-locked .uq-scanner-status:empty {
+    padding: 0;
+    background: none;
+}
+
+.uq-scanner-status {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: calc(42% + min(84vw, 440px) / 6 + 16px);
+    margin: 0;
+    text-align: center;
+    font-size: 15px;
+}
+
+.uq-scanner.is-locked .uq-scanner-status {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--uq-text);
+    white-space: nowrap;
+}
+
+.uq-scanner-actions {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    text-align: center;
+}
+
+/* 開鏡頭中、掃描中、切到背景暫停時才留著底部的輸入鈕，其他狀態讓給結果卡片 */
+.uq-scanner:not([data-state="scanning"]):not([data-state="starting"]):not([data-state="paused"]) .uq-scanner-actions {
+    display: none;
+}
+
+/* 鏡頭畫面底部的結果卡片，層次跟對話框一樣：標題、一句說明、按鈕列 */
+.uq-scanner-card {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 20px 16px calc(16px + env(safe-area-inset-bottom));
+    border-radius: 14px 14px 0 0;
+    background: #fff;
+    color: var(--uq-text);
+}
+
+.uq-scanner-card-title {
+    margin: 0 0 6px;
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--uq-ink);
+}
+
+.uq-scanner-card-title:focus {
+    outline: 0;
+}
+
+.uq-scanner-card-text,
+.uq-scanner-hint,
+.uq-scanner-error {
+    margin: 0;
+    line-height: 1.6;
+}
+
+.uq-scanner-hint {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--uq-muted);
+}
+
+.uq-scanner-hint:empty,
+.uq-scanner-card-text:empty,
+.uq-scanner-error:empty {
+    display: none;
+}
+
+.uq-scanner-error {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--uq-offer-text);
+}
+
+.uq-scanner-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+/* Tocas 給相鄰按鈕的左右 margin 會跟 gap 疊在一起 */
+.uq-scanner-card-actions>.ts.button {
+    margin: 0;
+}
+
+/* 輸入、結果、說明的對話框：用原生 showModal 開，位置要自己置中 */
+dialog.ts.modal.uq-scanner-panel {
+    position: fixed;
+    inset: 0;
+    width: min(440px, calc(100% - 32px));
+    height: fit-content;
+    max-height: calc(100% - 32px);
+    margin: auto;
+    overflow: auto;
+}
+
+.uq-scanner-panel::backdrop {
+    background: rgba(0, 0, 0, 0.45);
+}
+
+/* Tocas 寬螢幕時把關閉鈕放在框外的白字，這裡一律放在框內右上角、對齊標題 */
+.ts.modal.uq-scanner-panel>i.close {
+    top: 1.15rem;
+    right: 0.9rem;
+    color: var(--uq-muted);
+    font-size: 1.15em;
+    opacity: 1;
+}
+
+.ts.modal.uq-scanner-panel>i.close:hover {
+    background: var(--uq-line);
+    color: var(--uq-text);
+}
+
+/* Tocas 的內距與標題字級在手機、電腦不一樣，關閉鈕對不齊；這裡統一一組 */
+.ts.modal.uq-scanner-panel>.header {
+    padding: 1rem 2.75rem 1rem 1.25rem;
+    font-size: 1.2rem;
+    line-height: 1.4;
+}
+
+.ts.modal.uq-scanner-panel>.content,
+.ts.modal.uq-scanner-panel>.actions {
+    padding: 1rem 1.25rem;
+}
+
+/* 標題與說明只在空白或標點換行，詞不會被拆開、也不會只剩一個字掉到下一行；真的放不下才硬換 */
+.ts.modal.uq-scanner-panel>.header,
+.uq-scanner-card-title,
+.uq-scanner-card-text {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+}
+
+.ts.modal.uq-scanner-panel>.header:focus {
+    outline: 0;
+}
+
+.uq-scanner-steps {
+    margin: 8px 0 0;
+    padding-left: 1.4em;
+    list-style: decimal;
+    line-height: 1.8;
+}
+
+.uq-scanner-steps>li {
+    list-style: decimal;
+}
+
+.uq-scanner-steps:empty {
+    display: none;
+}
+
+/* 按鈕列：「改用鏡頭掃」靠左，其他靠右 */
+.ts.modal.uq-scanner-panel>.actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ts.modal.uq-scanner-panel>.actions .button {
+    margin: 0;
+}
+
+.uq-scanner-panel-buttons {
+    display: contents;
+}
+
+/* 「改用鏡頭掃」跟導覽型連結同色，不用 Tocas 的預設藍 */
+.ts.modal.uq-scanner-panel>.actions .ts.link.button.uq-scanner-use-camera {
+    margin-right: auto;
+    padding-left: 0;
+    color: var(--uq-link);
+    text-decoration: underline;
+}
