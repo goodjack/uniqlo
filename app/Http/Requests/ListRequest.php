@@ -32,7 +32,7 @@ class ListRequest extends FormRequest
     {
         $normalized = [
             'brand' => self::brandFrom($this),
-            'sort' => $this->query('sort') === ListService::SORT_PRICE_ASC ? ListService::SORT_PRICE_ASC : null,
+            'sort' => $this->sortFrom($this->query('sort')),
             'tags' => $this->normalizeTags($this->query('tags')),
             'q' => self::keywordFrom($this),
         ];
@@ -60,7 +60,7 @@ class ListRequest extends FormRequest
     {
         return [
             'brand' => ['nullable', Rule::enum(Brand::class)],
-            'sort' => ['nullable', Rule::in([ListService::SORT_PRICE_ASC])],
+            'sort' => ['nullable', Rule::in(array_keys(ListService::SORTS))],
             'tags' => 'nullable|array',
             'tags.*' => [Rule::enum(ProductTag::class)],
             'q' => ['nullable', 'string', 'max:'.self::MAX_QUERY_LENGTH],
@@ -87,6 +87,11 @@ class ListRequest extends FormRequest
         $q = mb_substr(trim($q), 0, self::MAX_QUERY_LENGTH);
 
         return $q === '' ? null : $q;
+    }
+
+    private function sortFrom(mixed $sort): ?string
+    {
+        return is_string($sort) && array_key_exists($sort, ListService::SORTS) ? $sort : null;
     }
 
     /**

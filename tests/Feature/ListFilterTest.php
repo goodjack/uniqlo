@@ -32,6 +32,7 @@ class ListFilterTest extends TestCase
             'unknown' => ['?ref[]=x'],
             'q' => ['?q[]=x'],
             'query' => ['?query[]=x'],
+            'sort' => ['?sort[]=discount'],
         ];
     }
 
@@ -46,6 +47,26 @@ class ListFilterTest extends TestCase
 
         $this->assertStringNotContainsString('name="brand" value="ZARA"', $content);
         $this->assertStringNotContainsString('name="sort" value="oops"', $content);
+    }
+
+    public function test_the_sort_menu_lists_every_option_and_marks_the_current_one(): void
+    {
+        $response = $this->get(route('lists.sale').'?sort=discount')->assertOk();
+
+        $response->assertSeeInOrder(['排序：預設', '排序：價格由低到高', '排序：降價最多']);
+        $response->assertSee('value="discount" selected>排序：降價最多', false);
+        $response->assertDontSee('value="" selected', false);
+        $response->assertSee('依比歷史最高價便宜的幅度由大到小排序');
+    }
+
+    public function test_an_unknown_sort_falls_back_to_the_default_order(): void
+    {
+        $response = $this->get(route('lists.sale').'?sort=discount-asc')->assertOk();
+
+        $this->assertNull(request()->query('sort'));
+        $response->assertSee('value="" selected>排序：預設', false);
+        $response->assertDontSee('value="discount" selected', false);
+        $response->assertSee('依特價幅度排序');
     }
 
     public function test_a_json_get_request_reads_filters_from_the_url_only(): void
