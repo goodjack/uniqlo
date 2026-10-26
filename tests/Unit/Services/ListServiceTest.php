@@ -101,6 +101,48 @@ class ListServiceTest extends TestCase
         $this->assertSame([90, 500, 1000], $grouped['women']->map->price->values()->all());
     }
 
+    public function test_sorts_by_discount_rate_when_asked(): void
+    {
+        $products = $this->createProductCollection([
+            ['sex' => '男裝', 'code' => '7折', 'min_price' => '700.00', 'highest_record_price' => '1000.00'],
+            ['sex' => '男裝', 'code' => '5折', 'min_price' => '500.00', 'highest_record_price' => '1000.00'],
+            ['sex' => '男裝', 'code' => '6折', 'min_price' => '90.00', 'highest_record_price' => '150.00'],
+        ]);
+
+        $sorted = $this->listService->sortHmallProducts($products, $this->listRequest(['sort' => 'discount']));
+
+        // 便宜最多元的是 7 折那件（300 元），但要排在前面的是打最多折的
+        $this->assertSame(['5折', '6折', '7折'], $sorted->map->code->all());
+    }
+
+    public function test_the_same_discount_rate_puts_the_bigger_saving_first(): void
+    {
+        $products = $this->createProductCollection([
+            ['sex' => '男裝', 'code' => '省100', 'min_price' => '100.00', 'highest_record_price' => '200.00'],
+            ['sex' => '男裝', 'code' => '省500', 'min_price' => '500.00', 'highest_record_price' => '1000.00'],
+            ['sex' => '男裝', 'code' => '省300', 'min_price' => '300.00', 'highest_record_price' => '600.00'],
+        ]);
+
+        $sorted = $this->listService->sortHmallProducts($products, $this->listRequest(['sort' => 'discount']));
+
+        $this->assertSame(['省500', '省300', '省100'], $sorted->map->code->all());
+    }
+
+    public function test_products_without_a_discount_keep_their_order_after_the_discounted_ones(): void
+    {
+        $products = $this->createProductCollection([
+            ['sex' => '男裝', 'code' => '沒降A', 'min_price' => '990.00', 'highest_record_price' => '990.00'],
+            ['sex' => '男裝', 'code' => '9折', 'min_price' => '900.00', 'highest_record_price' => '1000.00'],
+            ['sex' => '男裝', 'code' => '沒原價', 'min_price' => '590.00', 'highest_record_price' => null],
+            ['sex' => '男裝', 'code' => '沒降B', 'min_price' => '1290.00', 'highest_record_price' => '990.00'],
+            ['sex' => '男裝', 'code' => '5折', 'min_price' => '500.00', 'highest_record_price' => '1000.00'],
+        ]);
+
+        $sorted = $this->listService->sortHmallProducts($products, $this->listRequest(['sort' => 'discount']));
+
+        $this->assertSame(['5折', '9折', '沒降A', '沒原價', '沒降B'], $sorted->map->code->all());
+    }
+
     /**
      * 一個標籤底下的多個條件是「任一成立」，跟卡片上的標籤判準一致。
      */

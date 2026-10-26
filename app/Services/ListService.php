@@ -14,6 +14,17 @@ class ListService extends Service
 {
     public const SORT_PRICE_ASC = 'price-asc';
 
+    public const SORT_DISCOUNT = 'discount';
+
+    /**
+     * 網址參數認得的排序，選單照這裡的順序列。label 接在「排序：」後面，
+     * summary 換掉副標題裡的預設排序說法。
+     */
+    public const SORTS = [
+        self::SORT_PRICE_ASC => ['label' => '價格由低到高', 'summary' => '依價格由低到高排序'],
+        self::SORT_DISCOUNT => ['label' => '降價最多', 'summary' => '依比歷史最高價便宜的幅度由大到小排序'],
+    ];
+
     /** @var HmallProductRepository */
     protected $repository;
 
@@ -137,12 +148,52 @@ class ListService extends Service
      */
     public function sortHmallProducts(Collection $hmallProducts, ListRequest $listRequest): Collection
     {
-        if ($listRequest->input('sort') !== self::SORT_PRICE_ASC) {
-            return $hmallProducts;
+        return match ($listRequest->input('sort')) {
+            // min_price 是 decimal，PDO 取回字串，直接排會變字典順序
+            self::SORT_PRICE_ASC => $hmallProducts->sortBy('price')->values(),
+            self::SORT_DISCOUNT => $this->sortHmallProductsByDiscount($hmallProducts),
+            default => $hmallProducts,
+        };
+    }
+
+    /**
+     * 打越多折越前面，同折數再看便宜了幾元。沒降價的不參與排序，照原本順序接在最後。
+     */
+    private function sortHmallProductsByDiscount(Collection $hmallProducts): Collection
+    {
+        [$discounted, $notDiscounted] = $hmallProducts->partition(
+            fn (HmallProduct $hmallProduct) => $this->discountPrices($hmallProduct) !== null
+        );
+
+        return $discounted
+            ->sort(function (HmallProduct $a, HmallProduct $b) {
+                [$aNow, $aWas] = $this->discountPrices($a);
+                [$bNow, $bWas] = $this->discountPrices($b);
+
+                // 交叉相乘比 現價 ÷ 原價，不經過浮點數，同折數才會真的相等
+                return $aNow * $bWas <=> $bNow * $aWas
+                    ?: ($bWas - $bNow) <=> ($aWas - $aNow);
+            })
+            ->concat($notDiscounted)
+            ->values();
+    }
+
+    /**
+     * 原價用卡片上的「歷史」最高價，跟預設的「依特價幅度排序」同一把尺；官方原價
+     * origin_price 卡片沒顯示，清單快取也沒撈。
+     *
+     * @return array{int, int}|null [現價, 原價]，沒降價時是 null
+     */
+    private function discountPrices(HmallProduct $hmallProduct): ?array
+    {
+        if ($hmallProduct->min_price === null || $hmallProduct->highest_record_price === null) {
+            return null;
         }
 
-        // min_price 是 decimal，PDO 取回字串，直接排會變字典順序
-        return $hmallProducts->sortBy('price')->values();
+        $now = $hmallProduct->price;
+        $was = (int) $hmallProduct->highest_record_price;
+
+        return $now < $was ? [$now, $was] : null;
     }
 
     public function groupHmallProducts(Collection $hmallProducts): Collection

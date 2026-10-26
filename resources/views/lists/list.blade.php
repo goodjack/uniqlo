@@ -12,10 +12,11 @@
 
     // ListRequest 已經丟掉不合法的品牌、排序、標籤與關鍵字，這裡讀到的都是乾淨的值
     $currentBrand = request('brand');
-    $sortByPrice = request('sort') === \App\Services\ListService::SORT_PRICE_ASC;
+    $sortOptions = \App\Services\ListService::SORTS;
+    $currentSort = request('sort');
     $selectedTagValues = (array) request('tags', []);
     $currentQ = (string) request('q');
-    $sortText = $sortByPrice ? '依價格由低到高排序' : $sortSummary;
+    $sortText = $currentSort !== null ? $sortOptions[$currentSort]['summary'] : $sortSummary;
 
     // 四個性別段一律都列，「男裝 0 件」本身就是資訊；章節選單與正文共用這一份
     $genders = collect(['men' => '男裝', 'women' => '女裝', 'kids' => '童裝', 'baby' => '嬰幼兒']);
@@ -72,8 +73,8 @@
                     @if ($currentBrand)
                         <input type="hidden" name="brand" value="{{ $currentBrand }}">
                     @endif
-                    @if ($sortByPrice)
-                        <input type="hidden" name="sort" value="{{ \App\Services\ListService::SORT_PRICE_ASC }}">
+                    @if ($currentSort !== null)
+                        <input type="hidden" name="sort" value="{{ $currentSort }}">
                     @endif
                     @foreach ($selectedTagValues as $tagValue)
                         <input type="hidden" name="tags[]" value="{{ $tagValue }}">
@@ -101,8 +102,10 @@
                     @endif
 
                     <select class="ts basic dropdown" name="sort" data-auto-submit aria-label="排序方式">
-                        <option value="" @selected(! $sortByPrice)>排序：預設</option>
-                        <option value="{{ \App\Services\ListService::SORT_PRICE_ASC }}" @selected($sortByPrice)>排序：價格由低到高</option>
+                        <option value="" @selected($currentSort === null)>排序：預設</option>
+                        @foreach ($sortOptions as $value => $option)
+                            <option value="{{ $value }}" @selected($currentSort === $value)>排序：{{ $option['label'] }}</option>
+                        @endforeach
                     </select>
                     <button class="ts basic compact button" type="submit" data-auto-submit-fallback>套用</button>
                 </form>
