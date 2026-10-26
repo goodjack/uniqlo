@@ -62,7 +62,7 @@ class HmallProductController extends Controller
         $styles = $this->service->getStyles($hmallProduct);
         $styleHints = $this->service->getStyleHints($hmallProduct, 12);
         $styleHintCount = $this->service->getStyleHintCount($hmallProduct);
-        $hmallPriceHistories = $hmallProduct->hmallPriceHistories()->orderBy('created_at')->orderBy('id')->get();
+        $hmallPriceHistories = $hmallProduct->hmallPriceHistories()->get();
         $categories = $this->categoryService->getCategoryLinksForProductPage($hmallProduct);
 
         $primaryCategory = $this->categoryService->getPrimaryCategory($hmallProduct);

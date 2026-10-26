@@ -29,6 +29,19 @@ class PriceHistoryTest extends TestCase
         $this->assertSame([1, 3, 4, 2], $histories->pluck('id')->all());
     }
 
+    // 排序是這張表的規則，不只商品頁：直接讀關聯也要照日期排
+    public function test_the_relation_itself_orders_price_histories_by_date(): void
+    {
+        $product = $this->seedProduct();
+        $this->seedHistories($product, [
+            1 => ['2026-10-12 08:00:00', 990],
+            2 => ['2026-10-17 08:00:00', 590],
+            3 => ['2026-10-13 08:00:00', 890],
+        ]);
+
+        $this->assertSame([1, 3, 2], $product->hmallPriceHistories->pluck('id')->all());
+    }
+
     private function seedProduct(): HmallProduct
     {
         return HmallProduct::unguarded(fn () => HmallProduct::create([

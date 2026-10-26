@@ -32,9 +32,12 @@ class HmallProduct extends Model
         'stockout_at' => 'datetime',
     ];
 
+    /**
+     * 事後補抓的舊日期紀錄 id 比較大，讀取一律照日期排，不能靠寫入順序。
+     */
     public function hmallPriceHistories()
     {
-        return $this->hasMany(HmallPriceHistory::class);
+        return $this->hasMany(HmallPriceHistory::class)->orderBy('created_at')->orderBy('id');
     }
 
     public function categories()
