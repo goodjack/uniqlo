@@ -110,6 +110,13 @@
                         的寫入，但可能會導致網站某些功能無法正常執行 。
                     </p>
                 </div>
+                <div class="ts large padded basic horizontally fitted secondary attached message">
+                    <p>
+                        本網站使用 Google Analytics 透過 Cookie 分析匿名的使用行為，例如瀏覽的頁面、點選與收藏的商品、搜尋的關鍵字，用來改善網站內容與服務。Google
+                        如何收集與處理這些資料，請參閱 <a href="https://policies.google.com/technologies/partner-sites?hl=zh-TW"
+                            target="_blank" rel="nofollow noopener">Google 的說明</a>。
+                    </p>
+                </div>
 
                 <div class="ts large padded basic horizontally fitted secondary attached message">
                     <div class="header">七、隱私權保護政策之修正</div>

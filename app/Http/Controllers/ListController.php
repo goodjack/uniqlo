@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ListRequest;
 use App\Services\ListService;
+use Illuminate\Support\Str;
 
 class ListController extends Controller
 {
@@ -185,6 +186,9 @@ class ListController extends Controller
 
         $hmallProductList = $this->service->groupHmallProducts($hmallProducts);
 
+        // GA 事件裡的來源代號，例如 lists.limited-offers → list_limited_offers
+        $analyticsList = 'list_'.str_replace('-', '_', Str::after($listRequest->route()->getName(), 'lists.'));
+
         return view('lists.list', [
             'hmallProductList' => $hmallProductList,
             'count' => $count,
@@ -194,6 +198,7 @@ class ListController extends Controller
             'typeIcon' => $typeIcon,
             'sortSummary' => $sortSummary,
             'useJapanRating' => $useJapanRating,
+            'analyticsList' => $analyticsList,
         ]);
     }
 }

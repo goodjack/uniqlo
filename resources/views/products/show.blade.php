@@ -154,7 +154,7 @@ $shareUrl = [
             </div>
             @if ($relatedHmallProducts->isNotEmpty())
                 <div class="ts fitted attached fluid segment">
-                    <div class="ts segmented selection single line items">
+                    <div class="ts segmented selection single line items" data-analytics-list="legacy_product_related">
                         @each('hmall-products.item', $relatedHmallProducts, 'hmallProduct')
                     </div>
                 </div>

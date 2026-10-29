@@ -9,6 +9,29 @@ use App\Support\SiteTitle;
 
 class HmallProductPresenter
 {
+    /**
+     * GA4 電子商務事件 items 陣列的一筆，給卡片與收藏鈕的 data-analytics-item。
+     * 兩個品牌共用同一組商品編號，item_id 要帶品牌才不會在報表裡併成同一件。
+     * 收藏頁的卡片不帶價格（理由見 FavoriteController::cards），由呼叫端關掉。
+     *
+     * @return array{item_id: string, item_name: string, item_brand: string, price?: int}
+     */
+    public function getAnalyticsItem($hmallProduct, bool $withPrice = true): array
+    {
+        $item = [
+            'item_id' => "{$hmallProduct->brand}:{$hmallProduct->product_code}",
+            'item_name' => $this->getNameWithCode($hmallProduct),
+            'item_brand' => $hmallProduct->brand,
+        ];
+
+        // 沒有價格資料時 price accessor 是 0，送 0 會被當成免費商品
+        if ($withPrice && $hmallProduct->price > 0) {
+            $item['price'] = $hmallProduct->price;
+        }
+
+        return $item;
+    }
+
     public function getNameWithCode($hmallProduct): string
     {
         return "{$hmallProduct->name} {$hmallProduct->code}";

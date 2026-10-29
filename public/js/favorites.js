@@ -85,17 +85,19 @@ window.UqFavorites = (function () {
         return Object.prototype.hasOwnProperty.call(favorites, keyOf(brand, code));
     }
 
+    // 回傳這次是不是加入了收藏：取消收藏、存不進去都不算
     function toggle(brand, code) {
         const favorites = read();
         const key = keyOf(brand, code);
+        const adding = !has(favorites, brand, code);
 
-        if (has(favorites, brand, code)) {
-            delete favorites[key];
-        } else {
+        if (adding) {
             favorites[key] = { brand: brand, code: code, addedAt: new Date().toISOString() };
+        } else {
+            delete favorites[key];
         }
 
-        write(favorites);
+        return write(favorites) && adding;
     }
 
     // 收藏頁的移除不能用 toggle：別的分頁已經移掉同一件時，toggle 會把它加回去
@@ -327,6 +329,24 @@ window.UqFavorites = (function () {
         });
     }
 
+    /**
+     * product_key 跟收藏的 key 同一個格式，GA 登記成自訂維度後，用它數每件商品
+     * 有幾個不同使用者收藏。商品資料在卡片或商品頁收藏鈕的 data-analytics-item。
+     */
+    function trackAddToWishlist(button) {
+        const item = window.UqAnalytics && window.UqAnalytics.itemOf(button);
+
+        if (!item) {
+            return;
+        }
+
+        window.UqAnalytics.track('add_to_wishlist', {
+            currency: 'TWD',
+            items: [item],
+            product_key: keyOf(button.dataset.brand, button.dataset.productCode),
+        });
+    }
+
     function bindAll(root) {
         const scope = root || document;
 
@@ -334,7 +354,10 @@ window.UqFavorites = (function () {
 
         scope.querySelectorAll(BUTTON_SELECTOR).forEach(function (button) {
             button.addEventListener('click', function () {
-                toggle(button.dataset.brand, button.dataset.productCode);
+                if (toggle(button.dataset.brand, button.dataset.productCode)) {
+                    trackAddToWishlist(button);
+                }
+
                 paintAll();
             });
         });

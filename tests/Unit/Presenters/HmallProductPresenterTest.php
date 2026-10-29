@@ -98,6 +98,13 @@ class HmallProductPresenterTest extends TestCase
         $this->assertFalse($this->presenter->isOnOffer($product));
     }
 
+    public function test_the_analytics_item_leaves_out_a_missing_price(): void
+    {
+        $product = $this->createProduct(['min_price' => null]);
+
+        $this->assertArrayNotHasKey('price', $this->presenter->getAnalyticsItem($product));
+    }
+
     private function createProduct(array $attributes): HmallProduct
     {
         return HmallProduct::unguarded(fn () => HmallProduct::create(array_merge([

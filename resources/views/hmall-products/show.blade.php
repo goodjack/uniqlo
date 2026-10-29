@@ -352,7 +352,9 @@
                                 {{-- 文字固定「收藏」，狀態只靠 aria-pressed：切換按鈕的名稱不隨狀態變 --}}
                                 <button type="button" class="ts basic button" data-favorite-button
                                     data-brand="{{ $hmallProduct->brand }}"
-                                    data-product-code="{{ $hmallProduct->product_code }}" aria-pressed="false"><i
+                                    data-product-code="{{ $hmallProduct->product_code }}"
+                                    data-analytics-item="{{ json_encode($hmallProductPresenter->getAnalyticsItem($hmallProduct), JSON_UNESCAPED_UNICODE) }}"
+                                    aria-pressed="false"><i
                                         class="heart outline icon"></i><span class="label">收藏</span></button>
                                 <button type="button" class="ts basic button" id="share" hidden><i
                                         class="fa-solid fa-share-nodes" aria-hidden="true"></i>分享</button>
@@ -517,7 +519,7 @@
                 @include('partials.section-anchor', ['anchor' => 'commonly-styled', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">經常搭配商品</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling cards six uq-product-cards" {{ $collapsible($commonlyStyledHmallProducts->count(), 'mobile') }}>
+                <div class="ts doubling cards six uq-product-cards" data-analytics-list="product_commonly_styled" {{ $collapsible($commonlyStyledHmallProducts->count(), 'mobile') }}>
                     @each('hmall-products.simple-card', $commonlyStyledHmallProducts, 'hmallProduct')
                 </div>
                 @includeWhen($collapsible($commonlyStyledHmallProducts->count(), 'mobile'), 'partials.expand-button', ['on' => 'mobile', 'label' => '展開其餘 ' . ($commonlyStyledHmallProducts->count() - $collapseAfter['mobile']) . ' 件'])
@@ -531,7 +533,7 @@
                 @include('partials.section-anchor', ['anchor' => 'related', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">延伸商品</h2>
                 <div class="ts hidden divider"></div>
-                <div class="ts doubling cards six uq-product-cards" {{ $collapsible($relatedHmallProducts->count(), 'mobile') }}>
+                <div class="ts doubling cards six uq-product-cards" data-analytics-list="product_related" {{ $collapsible($relatedHmallProducts->count(), 'mobile') }}>
                     @each('hmall-products.card', $relatedHmallProducts, 'hmallProduct')
                 </div>
                 @includeWhen($collapsible($relatedHmallProducts->count(), 'mobile'), 'partials.expand-button', ['on' => 'mobile', 'label' => '展開其餘 ' . ($relatedHmallProducts->count() - $collapseAfter['mobile']) . ' 件'])

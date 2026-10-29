@@ -2,7 +2,7 @@
     同編號商品
     <div class="inline sub header">共 {{ $hmallProducts->count() }} 件</div>
 </h2>
-<div class="ts doubling cards four uq-product-cards">
+<div class="ts doubling cards four uq-product-cards" data-analytics-list="search_product_code">
     {{--
         UNIQLO 常把多個貨號放在同一個商品頁，code 不等於查詢字的卡片要補一行
         「同時包含貨號」。提示塞進卡片的 slot：.ts.cards 的欄寬算的是直接子元素。
