@@ -8,7 +8,8 @@
         : "「{$query}」共 {$hmallProducts->total()} 件";
 
     // 給 analytics.js 送 search_results，找出零結果的搜尋字。翻頁不重送，
-    // 搜尋次數才不會被翻頁灌高；編號搜尋沒有分頁，件數含舊系統商品
+    // 搜尋次數才不會被翻頁灌高；編號搜尋沒有分頁，件數含舊系統商品。搜尋框送出的編號
+    // 只命中一件時，SearchController::index() 直接轉到商品頁、不經過這裡，這類搜尋不會送
     $analyticsResultCount = $isProductCodeSearch
         ? $hmallProducts->count() + $products->count()
         : $hmallProducts->total();
