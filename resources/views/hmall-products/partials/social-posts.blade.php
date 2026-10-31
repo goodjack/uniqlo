@@ -81,9 +81,9 @@
                         </blockquote>
                     @break
                     @case('facebook')
-                        <iframe src="https://www.facebook.com/plugins/{{ $post->kind === '影片' ? 'video' : 'post' }}.php?{{ http_build_query(['href' => $post->canonical_url, 'show_text' => 'true', 'width' => 500]) }}"
-                            width="500" height="600" style="border: none; overflow: hidden" scrolling="no" frameborder="0"
-                            allowfullscreen allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+                        {{-- 用官方腳本嵌入，iframe 高度才會跟著貼文長短；直接放外掛 iframe 只能寫死高度，長的會被切掉 --}}
+                        <div class="{{ $post->kind === '影片' ? 'fb-video' : 'fb-post' }}" data-href="{{ $post->canonical_url }}"
+                            data-show-text="true"></div>
                     @break
                 @endswitch
                 {{-- 平台的嵌入被瀏覽器或擴充套件（例如 Facebook Container）擋掉時，改顯示自己存的內容 --}}

@@ -220,6 +220,16 @@
         embed.dataset.rendered = '1';
         fitToScreen(embed);
 
+        const fallBackIfBlocked = () => {
+            const fallback = embed.querySelector('.uq-social-fallback');
+            if (fallback && fallback.hidden && !embed.querySelector('iframe')) {
+                embed.querySelectorAll(':scope > :not(.uq-social-fallback)').forEach((el) => el.remove());
+                fallback.hidden = false;
+            }
+        };
+        // 腳本載完再給 5 秒換上 iframe；腳本一直沒回應時，打開 10 秒後也換成備用卡片
+        setTimeout(fallBackIfBlocked, 10000);
+
         // IG 與 Threads 的嵌入腳本是同一套，都掛在 window.instgrm 底下
         if (embed.querySelector('.instagram-media, .text-post-media')) {
             await loadScript(embed.querySelector('.text-post-media') ? 'https://www.threads.com/embed.js' : 'https://www.instagram.com/embed.js');
@@ -227,22 +237,27 @@
         } else if (embed.querySelector('.twitter-tweet')) {
             await loadScript('https://platform.twitter.com/widgets.js');
             window.twttr?.widgets?.load(embed);
+        } else if (embed.querySelector('.fb-post, .fb-video')) {
+            // Facebook 的嵌入寬度要用數字指定、最窄 350，不會自己撐滿；比 350 窄的由 fitToScreen 等比例縮小
+            embed.querySelectorAll('.fb-post, .fb-video').forEach((el) => {
+                el.dataset.width = Math.max(Math.round(embed.clientWidth), 350);
+            });
+            await loadScript('https://connect.facebook.net/zh_TW/sdk.js#xfbml=0&version=v25.0');
+            window.FB?.XFBML?.parse(embed);
         }
 
-        setTimeout(() => {
-            const fallback = embed.querySelector('.uq-social-fallback');
-            if (fallback && !embed.querySelector('iframe')) {
-                embed.querySelectorAll(':scope > :not(.uq-social-fallback)').forEach((el) => el.remove());
-                fallback.hidden = false;
-            }
-        }, 5000);
+        setTimeout(fallBackIfBlocked, 5000);
     }
 
     // 平台貼文的高度由平台決定，常比畫面高；整則等比例縮到放得下，不必在框裡捲才看得到下半部。
-    // 平台載入時會自己改高度，所以跟著重算
+    // Facebook 的寬度比框寬時也一樣縮。平台載入時會自己改高度、手機也會轉向，所以跟著重算
     function fitToScreen(embed) {
         const box = embed.closest('.gslide-inline');
         const fit = () => {
+            embed.querySelectorAll('.fb-post[data-width], .fb-video[data-width]').forEach((el) => {
+                const zoom = embed.clientWidth / el.dataset.width;
+                el.style.zoom = zoom < 1 ? zoom : '';
+            });
             const scale = Math.min(1, parseFloat(getComputedStyle(box).maxHeight) / embed.offsetHeight);
             embed.style.transform = scale < 1 ? `scale(${scale})` : '';
             embed.style.marginBottom = scale < 1 ? `${embed.offsetHeight * (scale - 1)}px` : '';
@@ -335,11 +350,44 @@
         lightbox.openAt(index);
     }
 
+    // 滑鼠移上去、手指按下（滑動卡片列也算）或鍵盤移到卡片時，才先跟那個平台建好連線，點開時少等一段；
+    // 沒碰到卡片的訪客不會因此連到平台
+    const PLATFORM_ORIGINS = {
+        youtube: ['https://www.youtube-nocookie.com'],
+        instagram: ['https://www.instagram.com'],
+        threads: ['https://www.threads.com'],
+        x: ['https://platform.twitter.com'],
+        facebook: ['https://connect.facebook.net', 'https://www.facebook.com'],
+    };
+    const preconnected = new Set();
+    function preconnect(card) {
+        (PLATFORM_ORIGINS[card.dataset.platform] || []).forEach((origin) => {
+            if (preconnected.has(origin)) {
+                return;
+            }
+            preconnected.add(origin);
+            const link = document.createElement('link');
+            link.rel = 'preconnect';
+            link.href = origin;
+            document.head.appendChild(link);
+        });
+    }
+    function preconnectOnIntent(target, card) {
+        ['pointerenter', 'pointerdown', 'focusin'].forEach((type) => {
+            target.addEventListener(type, () => preconnect(card), { passive: true });
+        });
+    }
+
     cards.forEach((card) => {
+        preconnectOnIntent(card, card);
         card.addEventListener('click', (e) => {
             e.preventDefault();
             open(Number(card.dataset.index));
         });
     });
-    document.querySelector('[data-social-all]')?.addEventListener('click', () => open(0));
+    const allButton = document.querySelector('[data-social-all]');
+    if (allButton && cards[0]) {
+        preconnectOnIntent(allButton, cards[0]);
+    }
+    allButton?.addEventListener('click', () => open(0));
 })();
