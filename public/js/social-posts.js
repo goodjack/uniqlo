@@ -237,11 +237,9 @@
             await loadScript('https://platform.twitter.com/widgets.js');
             window.twttr?.widgets?.load(embed);
         } else if (embed.querySelector('.fb-post, .fb-video')) {
-            // Facebook 的嵌入寬度要用數字指定、最窄 350，不會自己撐滿；比 350 窄的手機整則等比例縮小
-            const width = Math.round(embed.clientWidth);
+            // Facebook 的嵌入寬度要用數字指定、最窄 350，不會自己撐滿；比 350 窄的由 fitToScreen 等比例縮小
             embed.querySelectorAll('.fb-post, .fb-video').forEach((el) => {
-                el.dataset.width = Math.max(width, 350);
-                el.style.zoom = width < 350 ? width / 350 : '';
+                el.dataset.width = Math.max(Math.round(embed.clientWidth), 350);
             });
             await loadScript('https://connect.facebook.net/zh_TW/sdk.js#xfbml=0&version=v25.0');
             window.FB?.XFBML?.parse(embed);
@@ -249,10 +247,14 @@
     }
 
     // 平台貼文的高度由平台決定，常比畫面高；整則等比例縮到放得下，不必在框裡捲才看得到下半部。
-    // 平台載入時會自己改高度，所以跟著重算
+    // Facebook 的寬度比框寬時也一樣縮。平台載入時會自己改高度、手機也會轉向，所以跟著重算
     function fitToScreen(embed) {
         const box = embed.closest('.gslide-inline');
         const fit = () => {
+            embed.querySelectorAll('.fb-post[data-width], .fb-video[data-width]').forEach((el) => {
+                const zoom = embed.clientWidth / el.dataset.width;
+                el.style.zoom = zoom < 1 ? zoom : '';
+            });
             const scale = Math.min(1, parseFloat(getComputedStyle(box).maxHeight) / embed.offsetHeight);
             embed.style.transform = scale < 1 ? `scale(${scale})` : '';
             embed.style.marginBottom = scale < 1 ? `${embed.offsetHeight * (scale - 1)}px` : '';
