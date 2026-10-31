@@ -7,8 +7,11 @@ use App\Models\SocialPostCode;
 use App\Services\SocialPostFetcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -27,6 +30,7 @@ class SyncSocialPostsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Sleep::fake();
         Config::set('services.notion.social_data_source_id', self::DATA_SOURCE);
     }
 
@@ -198,5 +202,99 @@ class SyncSocialPostsTest extends TestCase
 
         $this->assertSame(0, SocialPost::count());
         $this->assertSame(0, SocialPostCode::count());
+    }
+
+    private function fetched(array $overrides = []): array
+    {
+        return array_merge([
+            'platform' => 'threads', 'kind' => '貼文', 'canonical_url' => self::CANONICAL_URL,
+            'author' => 'a', 'text' => 't', 'youtube_id' => null,
+            'cover_url' => 'https://scontent.cdninstagram.com/p.jpg', 'cover_expires_at' => null,
+        ], $overrides);
+    }
+
+    public function test_one_page_failing_to_save_does_not_stop_the_others_or_the_removals(): void
+    {
+        $this->fakeNotion([$this->page('page-0')]);
+        $this->fakeFetcher(fn () => $this->fetched());
+        $this->artisan('social-post:sync');
+
+        Http::swap(new \Illuminate\Http\Client\Factory);
+        $this->fakeNotion([$this->page('page-1'), $this->page('page-2'), $this->page('page-3')]);
+        $calls = 0;
+        $this->fakeFetcher(function () use (&$calls) {
+            // 第二則的作者超過欄位長度，存檔時資料庫會擋下
+            return $this->fetched(['author' => ++$calls === 2 ? str_repeat('a', 300) : 'a']);
+        });
+
+        $this->artisan('social-post:sync')
+            ->expectsOutput('社群熱推同步完成：抓取 2、失敗 1、沒變跳過 0、移除 1')
+            ->assertExitCode(0);
+
+        $this->assertEqualsCanonicalizing(['page-1', 'page-3'], SocialPost::pluck('notion_page_id')->all());
+    }
+
+    public function test_codes_longer_than_the_column_are_ignored_and_case_only_duplicates_are_merged(): void
+    {
+        $this->fakeNotion([$this->page('page-1', ['codes' => '479123, ABC-1, abc-1, 123456789012345678901'])]);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync');
+
+        $this->assertEqualsCanonicalizing(['479123', 'ABC-1'], SocialPost::sole()->codes->pluck('code')->all());
+    }
+
+    public function test_rate_limits_and_server_errors_keep_a_post_that_was_showing(): void
+    {
+        $this->fakeNotion([$this->page('page-1')]);
+        $this->fakeFetcher(fn () => $this->fetched());
+        $this->artisan('social-post:sync');
+
+        foreach ([429, 503] as $status) {
+            $this->fakeFetcher(fn () => throw new RequestException(new Response(new \GuzzleHttp\Psr7\Response($status))));
+            $this->artisan('social-post:sync --full');
+
+            $this->assertSame('ok', SocialPost::sole()->status, "HTTP {$status}");
+        }
+    }
+
+    public function test_refetch_without_any_preview_data_keeps_what_was_stored(): void
+    {
+        $this->fakeNotion([$this->page('page-1')]);
+        $this->fakeFetcher(fn () => $this->fetched(['author' => '原作者', 'text' => '原內文']));
+        $this->artisan('social-post:sync');
+
+        foreach ([null, ''] as $empty) {
+            $this->fakeFetcher(fn () => $this->fetched(['author' => $empty, 'text' => $empty, 'cover_url' => $empty]));
+            $this->artisan('social-post:sync --full');
+
+            $post = SocialPost::sole();
+            $this->assertSame('ok', $post->status);
+            $this->assertSame('原作者', $post->author);
+            $this->assertSame('原內文', $post->text);
+        }
+    }
+
+    public function test_failed_posts_are_not_refetched_just_because_their_old_preview_is_expiring(): void
+    {
+        $this->fakeNotion([$this->page('page-1', ['name' => '我的備註', 'url' => self::CANONICAL_URL])]);
+        $this->fakeFetcher(fn () => $this->fetched(['cover_expires_at' => now()->addHours(30)]));
+        $this->artisan('social-post:sync');
+        SocialPost::sole()->update(['status' => 'failed']);
+
+        $this->travel(26)->hours();
+        $this->artisan('social-post:sync');
+
+        $this->assertSame(1, $this->fetchCount);
+    }
+
+    public function test_full_refetch_pauses_between_posts(): void
+    {
+        $this->fakeNotion([$this->page('page-1'), $this->page('page-2'), $this->page('page-3')]);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync --full');
+
+        Sleep::assertSleptTimes(2);
     }
 }

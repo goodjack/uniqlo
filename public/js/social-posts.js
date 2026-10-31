@@ -208,6 +208,8 @@
         ? GLightbox({ elements, touchNavigation: true, loop: false, zoomable: false, draggable: true })
         : null;
     let lastFocus = null;
+    // 關閉時 GLightbox 會把每一則重建，這次開啟掛的大小監聽要一起拿掉
+    let openListeners = new AbortController();
 
     // 平台腳本會把 blockquote 換成 iframe；幾秒後還沒換，就是被瀏覽器或擴充套件擋了
     async function renderEmbed(slide) {
@@ -245,8 +247,10 @@
             embed.style.transform = scale < 1 ? `scale(${scale})` : '';
             embed.style.marginBottom = scale < 1 ? `${embed.offsetHeight * (scale - 1)}px` : '';
         };
-        new ResizeObserver(fit).observe(embed);
-        window.addEventListener('resize', fit, { passive: true });
+        const observer = new ResizeObserver(fit);
+        observer.observe(embed);
+        openListeners.signal.addEventListener('abort', () => observer.disconnect());
+        window.addEventListener('resize', fit, { passive: true, signal: openListeners.signal });
     }
 
     // GLightbox 會預先載入前後相鄰的那幾則，只有目前這一則的影片能播。
@@ -281,6 +285,8 @@
             frame.src = 'about:blank';
         });
         lightboxOpen = false;
+        openListeners.abort();
+        openListeners = new AbortController();
         pick();
         lastFocus?.focus();
     });

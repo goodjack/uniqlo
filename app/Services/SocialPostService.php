@@ -5,11 +5,11 @@ namespace App\Services;
 use App\Models\HmallProduct;
 use App\Models\SocialPost;
 use App\Models\SocialPostCode;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Sleep;
 use Illuminate\Support\Str;
 
 class SocialPostService
@@ -58,7 +58,21 @@ class SocialPostService
                 continue;
             }
 
-            $this->syncPage($row, $post) ? $stats['fetched']++ : $stats['failed']++;
+            // 整批重抓時一則一則隔開，不要一口氣打到平台被限流
+            if ($full && $stats['fetched'] + $stats['failed'] > 0) {
+                Sleep::for(2)->seconds();
+            }
+
+            // 一則存不進去只算這則失敗，後面的頁面與移除照樣處理
+            try {
+                $this->syncPage($row, $post) ? $stats['fetched']++ : $stats['failed']++;
+            } catch (\Throwable $e) {
+                Log::error('Social post save failed', [
+                    'notion_page_id' => $row['notion_page_id'],
+                    'exception' => $e->getMessage(),
+                ]);
+                $stats['failed']++;
+            }
         }
 
         $removed = $existing->keys()->diff(collect($pages)->pluck('id'));
@@ -70,7 +84,9 @@ class SocialPostService
     /** 預覽圖網址幾小時內就失效的，平常的同步也要重抓，不等整批重抓那一次 */
     private function coverExpiringSoon(SocialPost $post): bool
     {
-        return $post->cover_expires_at !== null && $post->cover_expires_at->isBefore(now()->addHours(6));
+        return $post->status === 'ok'
+            && $post->cover_expires_at !== null
+            && $post->cover_expires_at->isBefore(now()->addHours(6));
     }
 
     private function syncPage(array $row, ?SocialPost $post): bool
@@ -83,12 +99,23 @@ class SocialPostService
             'source_url' => $row['url'] ?? '',
         ]);
 
+        $noPreview = false;
+
         try {
             if (! $row['url']) {
                 throw new \InvalidArgumentException('沒有網址');
             }
 
             $data = $this->fetcher->fetch($row['url']);
+
+            // 原本有內容、重抓時作者、內文、預覽圖卻全空，多半是被導去登入頁，不拿空的蓋掉原本存好的
+            $hasPreview = fn (array $values) => filled($values['author']) || filled($values['text']) || filled($values['cover_url']);
+            if ($post->exists && $hasPreview($post->only(['author', 'text', 'cover_url'])) && ! $hasPreview($data)) {
+                $noPreview = true;
+
+                throw new \RuntimeException('頁面沒有預覽資料');
+            }
+
             $post->fill($data);
             $post->status = 'ok';
             $post->fetched_at = now();
@@ -98,8 +125,8 @@ class SocialPostService
                 'url' => $row['url'],
                 'exception' => $e->getMessage(),
             ]);
-            // 連不上可能只是暫時的，原本正常顯示的就先留著，隔天整批重抓再判斷
-            if (! ($e instanceof ConnectionException && $post->exists)) {
+            // 連不上或平台暫時擋下可能只是暫時的，原本正常顯示的就先留著，隔天整批重抓再判斷
+            if (! (($noPreview || SocialPostFetcher::isTemporaryFailure($e)) && $post->exists)) {
                 $post->status = 'failed';
             }
 
@@ -160,12 +187,13 @@ class SocialPostService
         $codes = [];
 
         foreach (preg_split('/[\s,，、]+/u', $value, -1, PREG_SPLIT_NO_EMPTY) as $token) {
-            if (! preg_match('/^([A-Za-z0-9-]+)(?:[@＠](\d+(?::\d{1,2}){0,2}))?$/u', $token, $m)) {
+            // 長度跟資料表的 code 欄一致；只差大小寫的當同一件，資料庫比對本來就不分大小寫
+            if (! preg_match('/^([A-Za-z0-9-]{1,20})(?:[@＠](\d+(?::\d{1,2}){0,2}))?$/u', $token, $m)) {
                 continue;
             }
 
             $seconds = isset($m[2]) ? array_reduce(explode(':', $m[2]), fn ($carry, $part) => $carry * 60 + (int) $part, 0) : null;
-            $codes[$m[1]] ??= ['code' => $m[1], 'start_seconds' => $seconds];
+            $codes[strtoupper($m[1])] ??= ['code' => $m[1], 'start_seconds' => $seconds];
         }
 
         return array_values($codes);

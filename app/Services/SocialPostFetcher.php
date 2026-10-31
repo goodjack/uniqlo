@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Support\SocialUrl;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -65,12 +67,21 @@ class SocialPostFetcher
         };
 
         $post['text'] = $post['text'] === null ? null : Str::limit(trim($post['text']), 500);
+        // 標題沒對到格式時整串會變成作者，截短才存得進 author 欄
+        $post['author'] = $post['author'] === null ? null : Str::limit($post['author'], 250);
         if ($post['cover_url'] !== null && ! SocialUrl::hostMatches($post['cover_url'], SocialUrl::COVER_HOSTS)) {
             $post['cover_url'] = null;
         }
         $post['cover_expires_at'] = $this->expiresAt($post['cover_url']);
 
         return $post;
+    }
+
+    /** 連不上、被限流或平台出錯，過一陣子再抓多半就好了，跟貼文刪除、轉私人分開處理 */
+    public static function isTemporaryFailure(\Throwable $e): bool
+    {
+        return $e instanceof ConnectionException
+            || ($e instanceof RequestException && ($e->response->status() === 429 || $e->response->serverError()));
     }
 
     /** Meta 的 CDN 網址用 oe 參數（16 進位的 Unix 時間）標失效時間；X 的圖網址沒有期限 */
@@ -134,7 +145,7 @@ class SocialPostFetcher
     /**
      * X 的作者與內文用官方 oEmbed；預覽圖取自頁面的 og:image。純文字貼文給的是 X 自己的標誌圖，當作沒有圖。
      * X 的 og:type 一律是 article、也沒有 og:video，只能從縮圖網址判斷影片：影片與 GIF 的縮圖路徑含 video_thumb。
-     * 頁面讀不到不影響卡片，退回文字卡。
+     * 頁面讀不到不影響卡片，退回文字卡；暫時的錯誤往外丟，免得原本存好的預覽圖被清掉。
      */
     private function x(array $post): array
     {
@@ -143,6 +154,10 @@ class SocialPostFetcher
         try {
             $cover = $this->ogTags($post['canonical_url'])['image'] ?? null;
         } catch (\Throwable $e) {
+            if (self::isTemporaryFailure($e)) {
+                throw $e;
+            }
+
             Log::error('X preview tags fetch failed', ['url' => $post['canonical_url'], 'exception' => $e->getMessage()]);
             $cover = null;
         }

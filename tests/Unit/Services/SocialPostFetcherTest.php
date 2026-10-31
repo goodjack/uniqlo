@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Services\SocialPostFetcher;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -64,6 +65,18 @@ class SocialPostFetcherTest extends TestCase
 
         $this->assertNull($post['cover_url']);
         $this->assertNull($post['cover_expires_at']);
+    }
+
+    public function test_author_is_cut_to_fit_when_the_title_is_not_in_the_usual_format(): void
+    {
+        Http::fake([
+            'graph.threads.net/*' => Http::response(['html' => self::OEMBED_HTML]),
+            'www.threads.com/*' => Http::response('<meta property="og:title" content="'.str_repeat('長', 300).'" />'),
+        ]);
+
+        $post = $this->fetch('https://www.threads.com/@uniqlo/post/DGxKQj5hK21');
+
+        $this->assertLessThanOrEqual(255, mb_strlen($post['author']));
     }
 
     public function test_threads_share_link_is_resolved_to_the_post_url(): void
@@ -179,6 +192,18 @@ class SocialPostFetcherTest extends TestCase
         $this->assertSame('優衣庫&東京', $post['text']);
         $this->assertNull($post['cover_url']);
         $this->assertSame('貼文', $post['kind']);
+    }
+
+    public function test_x_page_rate_limit_is_passed_on_instead_of_dropping_the_preview(): void
+    {
+        Http::fake([
+            'publish.twitter.com/*' => Http::response(self::X_OEMBED),
+            'x.com/*' => Http::response('', 429),
+        ]);
+
+        $this->expectException(RequestException::class);
+
+        $this->fetch('https://x.com/VOAChinese/status/1737165626911662317');
     }
 
     public function test_youtube_keeps_the_video_id_and_title(): void
