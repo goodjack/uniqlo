@@ -37,7 +37,7 @@ class SocialPostFetcher
      */
     public function fetch(string $url): array
     {
-        if (SocialUrl::isThreadsShareLink($url)) {
+        if (SocialUrl::isShareLink($url)) {
             $url = $this->resolveRedirect($url);
         }
 
@@ -177,9 +177,14 @@ class SocialPostFetcher
     private function facebook(array $post): array
     {
         $og = $this->ogTags($post['canonical_url']);
+        // Reels 與影片的標題是「觀看數 · 心情數 | 內文 | 粉專名稱」，作者取最後一段；一般貼文的標題就是粉專名稱
+        $title = $og['title'] ?? '';
+        if (preg_match('~^\S+ views\b.* \| ([^|]+)$~su', $title, $m)) {
+            $title = $m[1];
+        }
 
         return array_merge($post, [
-            'author' => $this->authorFromTitle($og['title'] ?? ''),
+            'author' => $this->authorFromTitle($title),
             'text' => $og['description'] ?? null,
             'cover_url' => $og['image'] ?? null,
         ]);
@@ -217,7 +222,7 @@ class SocialPostFetcher
         return $data;
     }
 
-    /** Threads 分享短網址：追轉址拿正式網址，拿不到就看頁面的 og:url */
+    /** 分享短網址：追轉址拿正式網址，拿不到就看頁面的 og:url */
     private function resolveRedirect(string $url): string
     {
         $response = $this->client('en-US')->get($url);

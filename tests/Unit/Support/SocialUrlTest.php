@@ -18,6 +18,10 @@ class SocialUrlTest extends TestCase
             'IG Reels' => ['https://www.instagram.com/reel/Dcx6CJmzjTX/?exln=MWdh', 'https://www.instagram.com/reel/Dcx6CJmzjTX/'],
             'Threads 語言參數與舊網域' => ['https://www.threads.net/@uniqlo/post/DGxKQj5hK21?hl=zh-tw', 'https://www.threads.com/@uniqlo/post/DGxKQj5hK21'],
             'X 舊網域' => ['https://twitter.com/ea_eran/status/1299301346047262722?s=20', 'https://x.com/ea_eran/status/1299301346047262722'],
+            'FB 轉址後的追蹤參數' => ['https://www.facebook.com/gu.taiwan/posts/pfbid0bxFq?rdid=PTo9&share_url=x', 'https://www.facebook.com/gu.taiwan/posts/pfbid0bxFq'],
+            'FB 手機網域' => ['https://m.facebook.com/reel/1978382603541077/?locale=zh_TW', 'https://www.facebook.com/reel/1978382603541077'],
+            'FB 影片頁留 v' => ['https://www.facebook.com/watch/?v=1090493390461918&ref=sharing', 'https://www.facebook.com/watch/?v=1090493390461918'],
+            'FB 粉專影片' => ['https://www.facebook.com/gu.taiwan/videos/gu-staff/1090493390461918/', 'https://www.facebook.com/gu.taiwan/videos/gu-staff/1090493390461918'],
         ];
     }
 
@@ -27,10 +31,40 @@ class SocialUrlTest extends TestCase
         $this->assertSame($expected, SocialUrl::canonical($url));
     }
 
-    public function test_threads_share_link_needs_redirect_before_it_has_a_canonical_url(): void
+    public static function shareLinks(): array
     {
-        $this->assertTrue(SocialUrl::isThreadsShareLink('https://www.threads.com/share/BAXKotUx6Y/'));
-        $this->assertNull(SocialUrl::canonical('https://www.threads.com/share/BAXKotUx6Y/'));
+        return [
+            'Threads' => ['https://www.threads.com/share/BAXKotUx6Y/'],
+            'FB 貼文' => ['https://www.facebook.com/share/p/19ztyAj4YK/'],
+            'FB Reels' => ['https://www.facebook.com/share/r/1CSqeMdYfS/'],
+            'fb.watch' => ['https://fb.watch/abcDEF123/'],
+        ];
+    }
+
+    #[DataProvider('shareLinks')]
+    public function test_share_links_need_redirect_before_they_have_a_canonical_url(string $url): void
+    {
+        $this->assertTrue(SocialUrl::isShareLink($url));
+        $this->assertNull(SocialUrl::canonical($url));
+    }
+
+    public static function unsupportedFacebookUrls(): array
+    {
+        return [
+            '相片頁要登入' => ['https://www.facebook.com/photo/?fbid=1128128896578513&set=a.207706561954089'],
+            '登入頁' => ['https://www.facebook.com/login/?next=x'],
+            '舊登入頁' => ['https://www.facebook.com/login.php?next=x'],
+            '首頁' => ['https://www.facebook.com/'],
+            '粉專首頁' => ['https://www.facebook.com/gu.taiwan/'],
+            '編號在參數裡的舊網址' => ['https://www.facebook.com/permalink.php?story_fbid=1&id=2'],
+            '影片頁沒有 v' => ['https://www.facebook.com/watch/'],
+        ];
+    }
+
+    #[DataProvider('unsupportedFacebookUrls')]
+    public function test_facebook_urls_that_do_not_point_to_a_post_are_not_supported(string $url): void
+    {
+        $this->assertNull(SocialUrl::canonical($url));
     }
 
     public function test_platform_is_decided_by_host_not_by_substring(): void
