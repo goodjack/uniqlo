@@ -1087,3 +1087,329 @@ html:has(.uq-section-menu) {
         margin-left: calc(50% - 50vw);
     }
 }
+
+/* 社群熱推：Tocas 無外框卡片排成一排往右滑，露出下一張的一角提示還有；封面 2:3、文字在下方 */
+.uq-social-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1em;
+    padding-bottom: .6em;
+    margin-bottom: 1em;
+    border-bottom: 1px solid var(--uq-line);
+}
+
+.uq-social-head > .header {
+    margin: 0 !important;
+}
+
+.uq-social-shelf {
+    position: relative;
+}
+
+.ts.cards.uq-social-strip {
+    flex-wrap: nowrap;
+    gap: 14px;
+    margin: 0;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+}
+
+.ts.cards.uq-social-strip::-webkit-scrollbar {
+    display: none;
+}
+
+/* 電腦一次看到四張多（YouTube 規定播放器至少 200px 寬，五張會太窄），手機兩張多 */
+.ts.cards.uq-social-strip > .ts.borderless.card {
+    flex: 0 0 calc((100% - 4 * 14px) / 4.4);
+    margin: 0;
+    overflow: visible;
+    background: none;
+    box-shadow: none;
+    min-width: 0;
+    cursor: pointer;
+    scroll-snap-align: start;
+}
+
+@media (max-width: 767px) {
+    .ts.cards.uq-social-strip > .ts.borderless.card {
+        flex-basis: 42%;
+    }
+}
+
+.uq-social-media {
+    position: relative;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #2a2a2a;
+    transition: box-shadow .15s;
+}
+
+.uq-social-card:hover .uq-social-media {
+    box-shadow: 0 6px 16px rgb(0 0 0 / .14);
+}
+
+.uq-social-media img,
+.uq-social-media iframe {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+    border: 0;
+    object-fit: cover;
+}
+
+/* 預覽播放器不能被任何東西蓋住（YouTube 規定），點擊交給外層卡片 */
+.uq-social-media iframe {
+    pointer-events: none;
+}
+
+.uq-social-quote {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .7em;
+    padding: 1em;
+    background: #f4f1ec;
+    color: var(--uq-text);
+}
+
+.uq-social-quote[hidden] {
+    display: none;
+}
+
+.uq-social-quote > i {
+    font-size: 1.4em;
+}
+
+.uq-social-quote > p {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    font-size: .95em;
+    line-height: 1.65;
+    -webkit-line-clamp: 9;
+    -webkit-box-orient: vertical;
+}
+
+/* 影片標記，像 YouTube 縮圖右下的時間；影片播放時收起來 */
+.uq-social-badge {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    padding: 1px 7px;
+    border-radius: 6px;
+    background: rgb(0 0 0 / .72);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.6;
+}
+
+.uq-social-badge > .icon {
+    margin: 0;
+    font-size: 10px;
+}
+
+.uq-social-card.is-playing .uq-social-badge,
+.uq-social-card.is-playing .uq-social-blocked {
+    display: none;
+}
+
+.uq-social-blocked {
+    position: absolute;
+    left: 6px;
+    bottom: 6px;
+    margin: 0 !important;
+}
+
+.ts.borderless.card.uq-social-card > .content {
+    padding: .6em .15em 0 !important;
+}
+
+.uq-social-title {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--uq-ink);
+    font-size: .95em;
+    font-weight: 600;
+    line-height: 1.42;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.uq-social-title:hover {
+    color: var(--uq-ink);
+}
+
+.uq-social-by {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin-top: .25em;
+    color: var(--uq-muted);
+    font-size: .85em;
+}
+
+.uq-social-by > span {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.uq-social-by > .is-youtube {
+    color: #cc0000;
+}
+
+.uq-social-by > .is-instagram {
+    color: #c13584;
+}
+
+.uq-social-by > .is-threads,
+.uq-social-by > .is-x {
+    color: #101010;
+}
+
+.uq-social-by > .is-facebook {
+    color: #145cbd;
+}
+
+.ts.button.uq-social-toggle {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.ts.button.uq-social-toggle[hidden],
+.ts.button.uq-social-arrow[hidden] {
+    display: none;
+}
+
+.ts.button.uq-social-arrow {
+    position: absolute;
+    top: calc(50% - 2.6em);
+    z-index: 2;
+    background: #fff;
+    box-shadow: 0 2px 8px rgb(0 0 0 / .18);
+}
+
+.ts.button.uq-social-arrow.is-prev {
+    left: -14px;
+}
+
+.ts.button.uq-social-arrow.is-next {
+    right: -14px;
+}
+
+@media (max-width: 767px), (hover: none) {
+    .ts.button.uq-social-arrow {
+        display: none;
+    }
+}
+
+/* GLightbox 裡的一則：寬度由每張投影片的設定決定，內容不加白框與內距；高度上限只在這裡定，直式影片與縮放都照它 */
+.glightbox-container {
+    --uq-lightbox-height: 88vh;
+}
+
+/* GLightbox 的樣式表比這份晚載入，要多一層才蓋得過它的白底與陰影 */
+.glightbox-container.glightbox-clean .gslide-inline {
+    max-width: 94vw !important;
+    max-height: var(--uq-lightbox-height) !important;
+    background: none;
+    box-shadow: none;
+}
+
+.glightbox-clean .ginlined-content {
+    padding: 0 !important;
+}
+
+/* 網站的 html、body 高度是 100%，GLightbox 只在電腦版改回 auto；手機版不改，打開時頁面會被捲回最上面 */
+html.glightbox-open,
+body.glightbox-open {
+    height: auto !important;
+}
+
+/* 在黑色區域用滑鼠拖曳換則時，不要順便選到文字 */
+.glightbox-container {
+    user-select: none;
+}
+
+/*
+ * 手機上 GLightbox 預設把左右箭頭藏起來、只靠滑動，但手指放在貼文上滑會被平台的嵌入吃掉。
+ * 改成在貼文下方留一條，放上一則、下一則的圓鈕
+ */
+@media (max-width: 768px) {
+    .glightbox-container {
+        --uq-lightbox-height: calc(100dvh - 150px);
+    }
+
+    .glightbox-container.glightbox-clean .gprev,
+    .glightbox-container.glightbox-clean .gnext {
+        top: auto;
+        bottom: calc(20px + env(safe-area-inset-bottom));
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgb(255 255 255 / .16);
+    }
+
+    .glightbox-container.glightbox-clean .gprev {
+        left: calc(50% - 64px);
+    }
+
+    .glightbox-container.glightbox-clean .gnext {
+        right: calc(50% - 64px);
+    }
+}
+
+/* flow-root：平台貼文自帶的上下外距（X 有）也算進高度，縮放才不會差一截 */
+.uq-social-embed {
+    display: flow-root;
+    transform-origin: top center;
+}
+
+/* 平台腳本會把 blockquote 換成自己的 iframe，寬度要設在換上來的那個上 */
+.uq-social-embed iframe,
+.uq-social-embed blockquote {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+}
+
+.uq-social-gl-yt {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+}
+
+/* 直式影片以畫面高度為準，矮螢幕也看得到整支 */
+.uq-social-gl-yt.is-vertical {
+    width: min(100%, calc(var(--uq-lightbox-height) * 9 / 16));
+    margin: 0 auto;
+    aspect-ratio: 9 / 16;
+}
+
+.uq-social-gl-yt iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.ts.card.uq-social-fallback {
+    width: 100%;
+    margin: 0;
+}
+
+.ts.card.uq-social-fallback > .image img {
+    max-height: 60vh;
+    object-fit: cover;
+}

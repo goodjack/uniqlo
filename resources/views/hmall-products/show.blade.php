@@ -60,6 +60,7 @@
     // 每一段有沒有內容。章節選單與下面各段的 @if 共用這一份，選單才不會指到不存在的段落
     $shown = [
         'facts' => ! empty($productFacts) || $categories->isNotEmpty(),
+        'social' => $socialPosts->isNotEmpty(),
         'videos' => (bool) optional($japanProduct)->has_videos,
         'photos' => (bool) ($colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images),
         'styles' => $styles->isNotEmpty(),
@@ -73,6 +74,7 @@
 
     // 選單用的短名，比各段標題短，橫向才排得下
     $sections = collect([
+        'social' => '社群熱推',
         'facts' => '商品資訊',
         'videos' => '商品影片',
         'photos' => '商品實照',
@@ -367,6 +369,21 @@
     </div>
 
     @include('partials.section-menu', ['id' => 'product_menu', 'items' => $sections, 'revealAfter' => 'product_hero'])
+
+    @if ($shown['social'])
+        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+            <div class="ts container">
+                @include('partials.section-anchor', ['anchor' => 'social', 'menu' => 'product_menu'])
+                <div class="uq-social-head">
+                    <h2 class="ts large header">社群熱推</h2>
+                    <button type="button" class="ts basic small button" data-social-all>
+                        逛全部 {{ $socialPosts->count() }} 則 <i class="chevron right icon" aria-hidden="true"></i>
+                    </button>
+                </div>
+                @include('hmall-products.partials.social-posts', ['socialPosts' => $socialPosts])
+            </div>
+        </div>
+    @endif
 
     @if ($shown['facts'])
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
@@ -744,6 +761,15 @@
 @endsection
 
 @section('javascript')
+    @if ($shown['social'])
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/glightbox/3.3.0/css/glightbox.min.css"
+            integrity="sha512-T+KoG3fbDoSnlgEXFQqwcTC9AdkFIxhBlmoaFqYaIjq2ShhNwNao9AKaLUPMfwiBPL0ScxAtc+UYbHAgvd+sjQ=="
+            crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/glightbox/3.3.0/js/glightbox.min.js"
+            integrity="sha512-RBWI5Qf647bcVhqbEnRoL4KuUT+Liz+oG5jtF+HP05Oa5088M9G0GxG0uoHR9cyq35VbjahcI+Hd1xwY8E1/Kg=="
+            crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+        <script src="{{ asset('js/social-posts.js') }}?v={{ filemtime(public_path('js/social-posts.js')) }}" defer></script>
+    @endif
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.bundle.min.js"
         integrity="sha512-SuxO9djzjML6b9w9/I07IWnLnQhgyYVSpHZx0JV97kGBfTIsUYlWflyuW4ypnvhBrslz1yJ3R+S14fdCWmSmSA=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>

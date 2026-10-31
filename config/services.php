@@ -14,6 +14,13 @@ return [
     |
     */
 
+    // 社群熱推的清單在 Notion；data source 是資料庫底下實際存資料的那一層（API 2025-09-03 起）
+    'notion' => [
+        'token' => env('NOTION_TOKEN'),
+        'social_data_source_id' => env('NOTION_SOCIAL_DATA_SOURCE_ID'),
+        'version' => '2026-03-11',
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),

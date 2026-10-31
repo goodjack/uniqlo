@@ -30,6 +30,7 @@ Allow: /favorites$
 Allow: /css/
 Allow: /js/
 Allow: /icons/
+Allow: /social-img/
 
 User-agent: *
 Disallow: /
