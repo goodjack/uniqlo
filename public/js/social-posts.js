@@ -347,11 +347,44 @@
         lightbox.openAt(index);
     }
 
+    // 滑鼠移上去、手指按下（滑動卡片列也算）或鍵盤移到卡片時，才先跟那個平台建好連線，點開時少等一段；
+    // 沒碰到卡片的訪客不會因此連到平台
+    const PLATFORM_ORIGINS = {
+        youtube: ['https://www.youtube-nocookie.com'],
+        instagram: ['https://www.instagram.com'],
+        threads: ['https://www.threads.com'],
+        x: ['https://platform.twitter.com'],
+        facebook: ['https://connect.facebook.net', 'https://www.facebook.com'],
+    };
+    const preconnected = new Set();
+    function preconnect(card) {
+        (PLATFORM_ORIGINS[card.dataset.platform] || []).forEach((origin) => {
+            if (preconnected.has(origin)) {
+                return;
+            }
+            preconnected.add(origin);
+            const link = document.createElement('link');
+            link.rel = 'preconnect';
+            link.href = origin;
+            document.head.appendChild(link);
+        });
+    }
+    function preconnectOnIntent(target, card) {
+        ['pointerenter', 'pointerdown', 'focusin'].forEach((type) => {
+            target.addEventListener(type, () => preconnect(card), { passive: true });
+        });
+    }
+
     cards.forEach((card) => {
+        preconnectOnIntent(card, card);
         card.addEventListener('click', (e) => {
             e.preventDefault();
             open(Number(card.dataset.index));
         });
     });
-    document.querySelector('[data-social-all]')?.addEventListener('click', () => open(0));
+    const allButton = document.querySelector('[data-social-all]');
+    if (allButton && cards[0]) {
+        preconnectOnIntent(allButton, cards[0]);
+    }
+    allButton?.addEventListener('click', () => open(0));
 })();
