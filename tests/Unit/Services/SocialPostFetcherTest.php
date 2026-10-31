@@ -106,26 +106,43 @@ class SocialPostFetcherTest extends TestCase
         $this->assertSame('貼文', $post['kind']);
     }
 
-    public static function reelTitles(): array
+    public static function videoTitles(): array
     {
+        $url = 'https://www.facebook.com/reel/1090493390461918/';
+
         return [
-            '觀看數開頭' => ['69K views &#xb7; 165 reactions | GU好搭針織！ | 下一行 | GU Taiwan'],
-            '單數觀看' => ['1 view &#xb7; 2 reactions | 內文 | GU Taiwan'],
-            '只有心情數' => ['165 reactions &#xb7; 3 comments | 內文 | GU Taiwan'],
+            'Reels 觀看數開頭' => [$url, '69K views &#xb7; 165 reactions | GU好搭針織！ | 下一行 | GU Taiwan'],
+            'Reels 單數觀看' => [$url, '1 view &#xb7; 2 reactions | 內文 | GU Taiwan'],
+            'Reels 只有心情數' => [$url, '165 reactions &#xb7; 3 comments | 內文 | GU Taiwan'],
+            '粉專影片' => ['https://www.facebook.com/gu.taiwan/videos/1090493390461918', '69K views &#xb7; 165 reactions | GU好搭針織！ | GU Taiwan'],
+            '影片頁' => ['https://www.facebook.com/watch/?v=1090493390461918', '69K views &#xb7; 165 reactions | GU好搭針織！ | GU Taiwan'],
         ];
     }
 
-    #[DataProvider('reelTitles')]
-    public function test_facebook_reel_author_is_the_page_at_the_end_of_the_title(string $title): void
+    #[DataProvider('videoTitles')]
+    public function test_facebook_video_author_is_the_page_at_the_end_of_the_title(string $url, string $title): void
     {
         Http::fake([
             'www.facebook.com/*' => Http::response('<meta property="og:title" content="'.$title.'" />'),
         ]);
 
-        $post = $this->fetch('https://www.facebook.com/reel/1090493390461918/');
+        $post = $this->fetch($url);
 
         $this->assertSame('GU Taiwan', $post['author']);
         $this->assertSame('影片', $post['kind']);
+    }
+
+    public function test_fb_watch_short_link_is_resolved_to_the_video_it_redirects_to(): void
+    {
+        Http::fake([
+            'fb.watch/*' => Http::response('', 302, ['Location' => 'https://www.facebook.com/reel/1090493390461918/?rdid=x']),
+            'www.facebook.com/*' => Http::response('<meta property="og:title" content="69K views &#xb7; 165 reactions | 內文 | GU Taiwan" />'),
+        ]);
+
+        $post = $this->fetch('https://fb.watch/abcDEF123/');
+
+        $this->assertSame('https://www.facebook.com/reel/1090493390461918', $post['canonical_url']);
+        $this->assertSame('GU Taiwan', $post['author']);
     }
 
     public function test_facebook_post_title_with_a_bar_is_kept_whole(): void

@@ -220,14 +220,15 @@
         embed.dataset.rendered = '1';
         fitToScreen(embed);
 
-        // 計時從打開就開始算，平台腳本一直沒回應時也會換成備用卡片
-        setTimeout(() => {
+        const fallBackIfBlocked = () => {
             const fallback = embed.querySelector('.uq-social-fallback');
-            if (fallback && !embed.querySelector('iframe')) {
+            if (fallback && fallback.hidden && !embed.querySelector('iframe')) {
                 embed.querySelectorAll(':scope > :not(.uq-social-fallback)').forEach((el) => el.remove());
                 fallback.hidden = false;
             }
-        }, 5000);
+        };
+        // 腳本載完再給 5 秒換上 iframe；腳本一直沒回應時，打開 10 秒後也換成備用卡片
+        setTimeout(fallBackIfBlocked, 10000);
 
         // IG 與 Threads 的嵌入腳本是同一套，都掛在 window.instgrm 底下
         if (embed.querySelector('.instagram-media, .text-post-media')) {
@@ -244,6 +245,8 @@
             await loadScript('https://connect.facebook.net/zh_TW/sdk.js#xfbml=0&version=v25.0');
             window.FB?.XFBML?.parse(embed);
         }
+
+        setTimeout(fallBackIfBlocked, 5000);
     }
 
     // 平台貼文的高度由平台決定，常比畫面高；整則等比例縮到放得下，不必在框裡捲才看得到下半部。
