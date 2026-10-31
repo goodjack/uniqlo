@@ -179,8 +179,8 @@ class SocialPostFetcher
         $og = $this->ogTags($post['canonical_url']);
         // Reels 與影片的標題是「觀看數 · 心情數 | 內文 | 粉專名稱」，作者取最後一段；一般貼文的標題就是粉專名稱
         $title = $og['title'] ?? '';
-        if (preg_match('~^\S+ views\b.* \| ([^|]+)$~su', $title, $m)) {
-            $title = $m[1];
+        if ($post['kind'] === '影片') {
+            $title = Str::afterLast($title, ' | ');
         }
 
         return array_merge($post, [

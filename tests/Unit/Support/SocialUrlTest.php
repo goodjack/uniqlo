@@ -21,7 +21,8 @@ class SocialUrlTest extends TestCase
             'FB 轉址後的追蹤參數' => ['https://www.facebook.com/gu.taiwan/posts/pfbid0bxFq?rdid=PTo9&share_url=x', 'https://www.facebook.com/gu.taiwan/posts/pfbid0bxFq'],
             'FB 手機網域' => ['https://m.facebook.com/reel/1978382603541077/?locale=zh_TW', 'https://www.facebook.com/reel/1978382603541077'],
             'FB 影片頁留 v' => ['https://www.facebook.com/watch/?v=1090493390461918&ref=sharing', 'https://www.facebook.com/watch/?v=1090493390461918'],
-            'FB 粉專影片' => ['https://www.facebook.com/gu.taiwan/videos/gu-staff/1090493390461918/', 'https://www.facebook.com/gu.taiwan/videos/gu-staff/1090493390461918'],
+            'FB 粉專影片去掉標題段' => ['https://www.facebook.com/gu.taiwan/videos/gu-staff/1090493390461918/', 'https://www.facebook.com/gu.taiwan/videos/1090493390461918'],
+            'FB 粉專影片' => ['https://www.facebook.com/gu.taiwan/videos/1090493390461918', 'https://www.facebook.com/gu.taiwan/videos/1090493390461918'],
         ];
     }
 
@@ -92,5 +93,11 @@ class SocialUrlTest extends TestCase
         $this->assertSame('影片', SocialUrl::kind('https://www.youtube.com/watch?v=VJyhv7PvLdU'));
         $this->assertSame('Reels', SocialUrl::kind('https://www.instagram.com/reel/Dcx6CJmzjTX/'));
         $this->assertSame('貼文', SocialUrl::kind('https://www.threads.com/@uniqlo/post/DGxKQj5hK21'));
+        $this->assertSame('影片', SocialUrl::kind('https://www.facebook.com/reel/1978382603541077'));
+        $this->assertSame('影片', SocialUrl::kind('https://www.facebook.com/gu.taiwan/videos/1090493390461918'));
+        $this->assertSame('影片', SocialUrl::kind('https://www.facebook.com/watch/?v=1090493390461918'));
+        // 粉專名稱剛好以 watch、reel 開頭的貼文不算影片
+        $this->assertSame('貼文', SocialUrl::kind('https://www.facebook.com/watchdog.tw/posts/pfbid0'));
+        $this->assertSame('貼文', SocialUrl::kind('https://www.facebook.com/reelshop/posts/pfbid0'));
     }
 }
