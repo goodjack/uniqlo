@@ -1382,6 +1382,13 @@ body.glightbox-open {
     margin: 0 !important;
 }
 
+/* Facebook 的嵌入背景是透明的，放在彈出視窗的黑底上字會看不到 */
+.uq-social-embed .fb-post,
+.uq-social-embed .fb-video {
+    display: block;
+    background: #fff;
+}
+
 .uq-social-gl-yt {
     position: relative;
     width: 100%;

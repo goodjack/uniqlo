@@ -220,15 +220,7 @@
         embed.dataset.rendered = '1';
         fitToScreen(embed);
 
-        // IG 與 Threads 的嵌入腳本是同一套，都掛在 window.instgrm 底下
-        if (embed.querySelector('.instagram-media, .text-post-media')) {
-            await loadScript(embed.querySelector('.text-post-media') ? 'https://www.threads.com/embed.js' : 'https://www.instagram.com/embed.js');
-            window.instgrm?.Embeds?.process?.();
-        } else if (embed.querySelector('.twitter-tweet')) {
-            await loadScript('https://platform.twitter.com/widgets.js');
-            window.twttr?.widgets?.load(embed);
-        }
-
+        // 計時從打開就開始算，平台腳本一直沒回應時也會換成備用卡片
         setTimeout(() => {
             const fallback = embed.querySelector('.uq-social-fallback');
             if (fallback && !embed.querySelector('iframe')) {
@@ -236,6 +228,24 @@
                 fallback.hidden = false;
             }
         }, 5000);
+
+        // IG 與 Threads 的嵌入腳本是同一套，都掛在 window.instgrm 底下
+        if (embed.querySelector('.instagram-media, .text-post-media')) {
+            await loadScript(embed.querySelector('.text-post-media') ? 'https://www.threads.com/embed.js' : 'https://www.instagram.com/embed.js');
+            window.instgrm?.Embeds?.process?.();
+        } else if (embed.querySelector('.twitter-tweet')) {
+            await loadScript('https://platform.twitter.com/widgets.js');
+            window.twttr?.widgets?.load(embed);
+        } else if (embed.querySelector('.fb-post, .fb-video')) {
+            // Facebook 的嵌入寬度要用數字指定、最窄 350，不會自己撐滿；比 350 窄的手機整則等比例縮小
+            const width = Math.round(embed.clientWidth);
+            embed.querySelectorAll('.fb-post, .fb-video').forEach((el) => {
+                el.dataset.width = Math.max(width, 350);
+                el.style.zoom = width < 350 ? width / 350 : '';
+            });
+            await loadScript('https://connect.facebook.net/zh_TW/sdk.js#xfbml=0&version=v25.0');
+            window.FB?.XFBML?.parse(embed);
+        }
     }
 
     // 平台貼文的高度由平台決定，常比畫面高；整則等比例縮到放得下，不必在框裡捲才看得到下半部。

@@ -191,4 +191,16 @@ class SocialPostsSectionTest extends TestCase
         // 平台嵌入被擋時才顯示的備用卡片，用的是自己存的內容
         $this->assertStringContainsString('只在卡片上出現的內文', $fallback);
     }
+
+    public function test_facebook_embed_uses_the_official_script_so_its_height_follows_the_post(): void
+    {
+        $this->seedPost('GU Taiwan', ['platform' => 'facebook', 'kind' => '貼文', 'canonical_url' => 'https://www.facebook.com/gu.taiwan/posts/pfbid0']);
+        $this->seedPost('GU Taiwan', ['platform' => 'facebook', 'kind' => '影片', 'canonical_url' => 'https://www.facebook.com/reel/1090493390461918']);
+
+        $html = $this->productPage();
+
+        $this->assertStringContainsString('class="fb-post" data-href="https://www.facebook.com/gu.taiwan/posts/pfbid0"', $html);
+        $this->assertStringContainsString('class="fb-video" data-href="https://www.facebook.com/reel/1090493390461918"', $html);
+        $this->assertStringNotContainsString('facebook.com/plugins/', $html);
+    }
 }
