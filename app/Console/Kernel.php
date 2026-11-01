@@ -14,7 +14,9 @@ class Kernel extends ConsoleKernel
     {
         // TODO: 等現有排程結束後再開啟
         // $schedule->command('app:style-hint-schedule')->dailyAt('01:01')->withoutOverlapping(2880);
-        $schedule->command('app:schedule')->dailyAt('09:01');
+        // 爬蟲會續跑與重試，一輪可能超過一天；兩輪同時跑會共用同一份續跑進度。
+        // 鎖留 36 小時：中途被強制中止時最多擋住隔天那一輪
+        $schedule->command('app:schedule')->dailyAt('09:01')->withoutOverlapping(2160);
 
         $schedule->command('hmall-product:cache-most-visited')
             ->everyTwoHours()
