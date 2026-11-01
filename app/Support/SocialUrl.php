@@ -66,14 +66,21 @@ class SocialUrl
         return preg_match('~(?:[?&]v=|/shorts/|youtu\.be/|/embed/|/live/)([A-Za-z0-9_-]{11})~', $url, $m) ? $m[1] : null;
     }
 
-    public static function isThreadsShareLink(string $url): bool
+    /** 分享短網址看不出是哪則，要先追轉址：Threads 與 Facebook 的 /share/，以及 fb.watch */
+    public static function isShareLink(string $url): bool
     {
-        return self::platform($url) === 'threads' && str_contains((string) parse_url($url, PHP_URL_PATH), '/share/');
+        $path = (string) parse_url($url, PHP_URL_PATH);
+
+        return match (self::platform($url)) {
+            'threads' => str_contains($path, '/share/'),
+            'facebook' => str_starts_with($path, '/share/') || self::hostMatches($url, ['fb.watch']),
+            default => false,
+        };
     }
 
     /**
      * 去掉追蹤參數、統一網域，同一則貼文不管從哪裡分享都得到同一個網址。
-     * Threads 分享短網址要先追轉址才知道是哪則，這裡不處理。
+     * 分享短網址要先追轉址才知道是哪則，這裡不處理。
      */
     public static function canonical(string $url): ?string
     {
@@ -93,9 +100,33 @@ class SocialUrl
             'x' => preg_match('~/([A-Za-z0-9_]+)/status/(\d+)~', $path, $m)
                 ? "https://x.com/{$m[1]}/status/{$m[2]}"
                 : null,
-            'facebook' => 'https://'.parse_url($url, PHP_URL_HOST).$path,
+            'facebook' => self::facebookCanonical($url, $path),
             default => null,
         };
+    }
+
+    /**
+     * 只認得出是哪一則的網址：粉專貼文、粉專影片、Reels，以及編號在 v 參數裡的影片頁。
+     * 相片頁、首頁、登入頁這些沒登入讀不到或不是貼文的，當作不支援，免得把登入頁存成貼文。
+     */
+    private static function facebookCanonical(string $url, string $path): ?string
+    {
+        if ($path === '/watch') {
+            parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+            return isset($query['v']) && ctype_digit($query['v']) ? "https://www.facebook.com/watch/?v={$query['v']}" : null;
+        }
+
+        if (self::isShareLink($url)) {
+            return null;
+        }
+
+        // 粉專影片網址中間可能夾著標題，只留編號，同一支影片才會得到同一個網址
+        if (preg_match('~^/([^/]+)/videos/(?:[^/]+/)?(\d+)$~', $path, $m)) {
+            return "https://www.facebook.com/{$m[1]}/videos/{$m[2]}";
+        }
+
+        return preg_match('~^/(reel/\d+|[^/]+/posts/[^/]+)$~', $path) ? 'https://www.facebook.com'.$path : null;
     }
 
     public static function kind(string $canonicalUrl): string
@@ -103,7 +134,7 @@ class SocialUrl
         return match (self::platform($canonicalUrl)) {
             'youtube' => str_contains($canonicalUrl, '/shorts/') ? 'Shorts' : '影片',
             'instagram' => str_contains($canonicalUrl, '/reel/') ? 'Reels' : '貼文',
-            'facebook' => preg_match('~/(videos|reel|watch)~', $canonicalUrl) ? '影片' : '貼文',
+            'facebook' => preg_match('~^https://www\.facebook\.com/(reel/|watch/|[^/]+/videos/)~', $canonicalUrl) ? '影片' : '貼文',
             default => '貼文',
         };
     }

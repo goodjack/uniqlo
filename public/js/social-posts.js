@@ -211,6 +211,10 @@
     // 關閉時 GLightbox 會把每一則重建，這次開啟掛的大小監聽要一起拿掉
     let openListeners = new AbortController();
 
+    const fbPlayers = new Map();
+    let fbVideoCount = 0;
+    let fbSubscribed = false;
+
     // 平台腳本會把 blockquote 換成 iframe；幾秒後還沒換，就是被瀏覽器或擴充套件擋了
     async function renderEmbed(slide) {
         const embed = slide.querySelector('.uq-social-embed');
@@ -220,6 +224,16 @@
         embed.dataset.rendered = '1';
         fitToScreen(embed);
 
+        const fallBackIfBlocked = () => {
+            const fallback = embed.querySelector('.uq-social-fallback');
+            if (fallback && fallback.hidden && !embed.querySelector('iframe')) {
+                embed.querySelectorAll(':scope > :not(.uq-social-fallback)').forEach((el) => el.remove());
+                fallback.hidden = false;
+            }
+        };
+        // 腳本載完再給 5 秒換上 iframe；腳本一直沒回應時，打開 10 秒後也換成備用卡片
+        setTimeout(fallBackIfBlocked, 10000);
+
         // IG 與 Threads 的嵌入腳本是同一套，都掛在 window.instgrm 底下
         if (embed.querySelector('.instagram-media, .text-post-media')) {
             await loadScript(embed.querySelector('.text-post-media') ? 'https://www.threads.com/embed.js' : 'https://www.instagram.com/embed.js');
@@ -227,22 +241,48 @@
         } else if (embed.querySelector('.twitter-tweet')) {
             await loadScript('https://platform.twitter.com/widgets.js');
             window.twttr?.widgets?.load(embed);
+        } else if (embed.querySelector('.fb-post, .fb-video')) {
+            // Facebook 的嵌入寬度要用數字指定、不會自己撐滿，最窄貼文 350、影片 220；更窄的由 fitToScreen 等比例縮小
+            embed.querySelectorAll('.fb-post, .fb-video').forEach((el) => {
+                const min = el.classList.contains('fb-video') ? 220 : 350;
+                el.dataset.width = Math.max(Math.round(embed.clientWidth), min);
+                // 影片播放器由官方腳本依 id 交出來，切走時用它暫停
+                if (el.classList.contains('fb-video')) {
+                    el.id = `uq-fb-video-${++fbVideoCount}`;
+                }
+            });
+            await loadScript('https://connect.facebook.net/zh_TW/sdk.js#xfbml=0&version=v25.0');
+            if (window.FB && !fbSubscribed) {
+                fbSubscribed = true;
+                window.FB.Event.subscribe('xfbml.ready', (msg) => {
+                    if (msg.type !== 'video') {
+                        return;
+                    }
+                    // 播放器晚到時，那一則可能已經被切走，或彈出視窗已經關了
+                    const slide = document.getElementById(msg.id)?.closest('.gslide');
+                    if (lightboxOpen && slide) {
+                        fbPlayers.set(msg.id, msg.instance);
+                    }
+                    if (!slide?.classList.contains('current') || !lightboxOpen) {
+                        msg.instance.pause();
+                    }
+                });
+            }
+            window.FB?.XFBML?.parse(embed);
         }
 
-        setTimeout(() => {
-            const fallback = embed.querySelector('.uq-social-fallback');
-            if (fallback && !embed.querySelector('iframe')) {
-                embed.querySelectorAll(':scope > :not(.uq-social-fallback)').forEach((el) => el.remove());
-                fallback.hidden = false;
-            }
-        }, 5000);
+        setTimeout(fallBackIfBlocked, 5000);
     }
 
     // 平台貼文的高度由平台決定，常比畫面高；整則等比例縮到放得下，不必在框裡捲才看得到下半部。
-    // 平台載入時會自己改高度，所以跟著重算
+    // Facebook 的寬度比框寬時也一樣縮。平台載入時會自己改高度、手機也會轉向，所以跟著重算
     function fitToScreen(embed) {
         const box = embed.closest('.gslide-inline');
         const fit = () => {
+            embed.querySelectorAll('.fb-post[data-width], .fb-video[data-width]').forEach((el) => {
+                const zoom = embed.clientWidth / el.dataset.width;
+                el.style.zoom = zoom < 1 ? zoom : '';
+            });
             const scale = Math.min(1, parseFloat(getComputedStyle(box).maxHeight) / embed.offsetHeight);
             embed.style.transform = scale < 1 ? `scale(${scale})` : '';
             embed.style.marginBottom = scale < 1 ? `${embed.offsetHeight * (scale - 1)}px` : '';
@@ -264,11 +304,24 @@
                 frame.dataset.src = frame.src;
             });
             document.querySelectorAll('.gslide iframe[data-src]').forEach((frame) => {
+                const facebook = frame.closest('.fb-post, .fb-video');
+                if (facebook && !frame.dataset.watched) {
+                    frame.dataset.watched = '1';
+                    frame.addEventListener('load', () => {
+                        if (frame.src !== 'about:blank') {
+                            facebook.classList.remove('is-reloading');
+                        }
+                    });
+                }
                 if (current?.contains(frame)) {
                     if (!frame.src || frame.src === 'about:blank') {
                         frame.src = frame.dataset.src;
                     }
+                } else if (facebook?.classList.contains('fb-video')) {
+                    // Facebook 影片有暫停的方法，暫停就好，切回來不用重新載入
+                    fbPlayers.get(facebook.id)?.pause();
                 } else {
+                    facebook?.classList.add('is-reloading');
                     frame.src = 'about:blank';
                 }
             });
@@ -280,10 +333,9 @@
         renderEmbed(slideNode);
     });
     lightbox?.on('slide_changed', syncVideos);
+    // GLightbox 觸發 close 時已把整個彈出視窗移出頁面，裡面的嵌入跟著卸載、播放也就停了；下次打開會整個重建
     lightbox?.on('close', () => {
-        document.querySelectorAll('.gslide iframe[data-src]').forEach((frame) => {
-            frame.src = 'about:blank';
-        });
+        fbPlayers.clear();
         lightboxOpen = false;
         openListeners.abort();
         openListeners = new AbortController();
@@ -335,11 +387,44 @@
         lightbox.openAt(index);
     }
 
+    // 滑鼠移上去、手指按下（滑動卡片列也算）或鍵盤移到卡片時，才先跟那個平台建好連線，點開時少等一段；
+    // 沒碰到卡片的訪客不會因此連到平台
+    const PLATFORM_ORIGINS = {
+        youtube: ['https://www.youtube-nocookie.com'],
+        instagram: ['https://www.instagram.com'],
+        threads: ['https://www.threads.com'],
+        x: ['https://platform.twitter.com'],
+        facebook: ['https://connect.facebook.net', 'https://www.facebook.com'],
+    };
+    const preconnected = new Set();
+    function preconnect(card) {
+        (PLATFORM_ORIGINS[card.dataset.platform] || []).forEach((origin) => {
+            if (preconnected.has(origin)) {
+                return;
+            }
+            preconnected.add(origin);
+            const link = document.createElement('link');
+            link.rel = 'preconnect';
+            link.href = origin;
+            document.head.appendChild(link);
+        });
+    }
+    function preconnectOnIntent(target, card) {
+        ['pointerenter', 'pointerdown', 'focusin'].forEach((type) => {
+            target.addEventListener(type, () => preconnect(card), { passive: true });
+        });
+    }
+
     cards.forEach((card) => {
+        preconnectOnIntent(card, card);
         card.addEventListener('click', (e) => {
             e.preventDefault();
             open(Number(card.dataset.index));
         });
     });
-    document.querySelector('[data-social-all]')?.addEventListener('click', () => open(0));
+    const allButton = document.querySelector('[data-social-all]');
+    if (allButton) {
+        preconnectOnIntent(allButton, cards[0]);
+        allButton.addEventListener('click', () => open(0));
+    }
 })();

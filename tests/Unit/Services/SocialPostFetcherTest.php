@@ -92,6 +92,80 @@ class SocialPostFetcherTest extends TestCase
         $this->assertSame('https://www.threads.com/@meta/post/DDzbnVKx57R', $post['canonical_url']);
     }
 
+    public function test_facebook_share_link_is_resolved_to_the_post_it_redirects_to(): void
+    {
+        Http::fake([
+            'www.facebook.com/share/*' => Http::response('', 302, ['Location' => 'https://www.facebook.com/20531316728/posts/10154009990506729?rdid=abc&share_url=x']),
+            'www.facebook.com/*' => Http::response('<meta property="og:title" content="Facebook" /><meta property="og:description" content="範例內文" />'),
+        ]);
+
+        $post = $this->fetch('https://www.facebook.com/share/p/AbCdEf5678/');
+
+        $this->assertSame('https://www.facebook.com/20531316728/posts/10154009990506729', $post['canonical_url']);
+        $this->assertSame('Facebook', $post['author']);
+        $this->assertSame('貼文', $post['kind']);
+    }
+
+    public static function videoTitles(): array
+    {
+        $url = 'https://www.facebook.com/reel/1/';
+
+        return [
+            'Reels 觀看數開頭' => [$url, '69K views &#xb7; 165 reactions | 範例內文 | 下一行 | Facebook'],
+            'Reels 單數觀看' => [$url, '1 view &#xb7; 2 reactions | 內文 | Facebook'],
+            'Reels 只有心情數' => [$url, '165 reactions &#xb7; 3 comments | 內文 | Facebook'],
+            '粉專影片' => ['https://www.facebook.com/facebook/videos/10153231379946729', '69K views &#xb7; 165 reactions | 範例內文 | Facebook'],
+            '影片頁' => ['https://www.facebook.com/watch/?v=1', '69K views &#xb7; 165 reactions | 範例內文 | Facebook'],
+        ];
+    }
+
+    #[DataProvider('videoTitles')]
+    public function test_facebook_video_author_is_the_page_at_the_end_of_the_title(string $url, string $title): void
+    {
+        Http::fake([
+            'www.facebook.com/*' => Http::response('<meta property="og:title" content="'.$title.'" />'),
+        ]);
+
+        $post = $this->fetch($url);
+
+        $this->assertSame('Facebook', $post['author']);
+        $this->assertSame('影片', $post['kind']);
+    }
+
+    public function test_fb_watch_short_link_is_resolved_to_the_video_it_redirects_to(): void
+    {
+        Http::fake([
+            'fb.watch/*' => Http::response('', 302, ['Location' => 'https://www.facebook.com/reel/1/?rdid=x']),
+            'www.facebook.com/*' => Http::response('<meta property="og:title" content="69K views &#xb7; 165 reactions | 內文 | Facebook" />'),
+        ]);
+
+        $post = $this->fetch('https://fb.watch/abcDEF123/');
+
+        $this->assertSame('https://www.facebook.com/reel/1', $post['canonical_url']);
+        $this->assertSame('Facebook', $post['author']);
+    }
+
+    public function test_facebook_post_title_with_a_bar_is_kept_whole(): void
+    {
+        Http::fake(['www.facebook.com/*' => Http::response('<meta property="og:title" content="GU | 台灣" />')]);
+
+        $post = $this->fetch('https://www.facebook.com/20531316728/posts/10154009990506729');
+
+        $this->assertSame('GU | 台灣', $post['author']);
+    }
+
+    public function test_facebook_share_link_that_lands_on_the_login_page_is_rejected(): void
+    {
+        Http::fake([
+            'www.facebook.com/share/*' => Http::response('', 302, ['Location' => 'https://www.facebook.com/login/?next=x']),
+            'www.facebook.com/login*' => Http::response('<meta property="og:url" content="https://www.facebook.com/" />'),
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $this->fetch('https://www.facebook.com/share/p/AbCdEf5678/');
+    }
+
     public function test_instagram_detects_reels_from_the_page_url(): void
     {
         Http::fake([

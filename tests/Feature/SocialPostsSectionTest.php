@@ -191,4 +191,19 @@ class SocialPostsSectionTest extends TestCase
         // 平台嵌入被擋時才顯示的備用卡片，用的是自己存的內容
         $this->assertStringContainsString('只在卡片上出現的內文', $fallback);
     }
+
+    public function test_facebook_embed_uses_the_official_script_so_its_height_follows_the_post(): void
+    {
+        $this->seedPost('Facebook', ['platform' => 'facebook', 'kind' => '貼文', 'canonical_url' => 'https://www.facebook.com/20531316728/posts/10154009990506729']);
+        $this->seedPost('Facebook', ['platform' => 'facebook', 'kind' => '影片', 'canonical_url' => 'https://www.facebook.com/reel/1']);
+
+        $html = $this->productPage();
+
+        $this->assertStringContainsString('class="fb-post" data-href="https://www.facebook.com/20531316728/posts/10154009990506729"', $html);
+        $this->assertStringContainsString('class="fb-video" data-href="https://www.facebook.com/reel/1"', $html);
+        $this->assertStringNotContainsString('facebook.com/plugins/', $html);
+        // 影片才開全螢幕，官方設定預設是關的
+        $this->assertMatchesRegularExpression('~class="fb-video"[^>]*data-allowfullscreen="true"~', $html);
+        $this->assertDoesNotMatchRegularExpression('~class="fb-post"[^>]*data-allowfullscreen~', $html);
+    }
 }
