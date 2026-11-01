@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\SocialPlatform;
+use App\Enums\SocialPostKind;
+use App\Enums\SocialPostStatus;
 use App\Models\HmallProduct;
 use App\Models\SocialPost;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -42,11 +45,11 @@ class SocialPostsSectionTest extends TestCase
             'notion_edited_at' => now(),
             'source_url' => "https://www.threads.com/@meta/post/{$n}",
             'canonical_url' => "https://www.threads.com/@meta/post/{$n}",
-            'platform' => 'threads',
-            'kind' => '貼文',
+            'platform' => SocialPlatform::Threads,
+            'kind' => SocialPostKind::Post,
             'author' => $author,
             'text' => '內文',
-            'status' => 'ok',
+            'status' => SocialPostStatus::Ok,
         ], $attributes));
         $post->codes()->createMany(array_map(fn ($code) => ['code' => $code, 'start_seconds' => $start], $codes));
 
@@ -63,7 +66,7 @@ class SocialPostsSectionTest extends TestCase
     public function test_section_is_hidden_without_posts(): void
     {
         $this->seedPost('別的商品', codes: ['999999']);
-        $this->seedPost('抓取失敗', ['status' => 'failed']);
+        $this->seedPost('抓取失敗', ['status' => SocialPostStatus::Failed]);
 
         $html = $this->productPage();
 
@@ -91,8 +94,8 @@ class SocialPostsSectionTest extends TestCase
     public function test_youtube_card_carries_video_id_and_uses_the_official_thumbnail(): void
     {
         $this->seedPost('範例頻道', [
-            'platform' => 'youtube',
-            'kind' => 'Shorts',
+            'platform' => SocialPlatform::Youtube,
+            'kind' => SocialPostKind::Short,
             'youtube_id' => 'M7lc1UVf-VE',
         ]);
 
@@ -107,7 +110,7 @@ class SocialPostsSectionTest extends TestCase
 
     public function test_youtube_card_starts_where_the_video_talks_about_this_product(): void
     {
-        $this->seedPost('範例頻道', ['platform' => 'youtube', 'kind' => '影片', 'youtube_id' => '7lCDEYXw3mM'], start: 83);
+        $this->seedPost('範例頻道', ['platform' => SocialPlatform::Youtube, 'kind' => SocialPostKind::Video, 'youtube_id' => '7lCDEYXw3mM'], start: 83);
         $this->seedPost('Meta', start: 125);
 
         $html = $this->productPage();
@@ -136,12 +139,12 @@ class SocialPostsSectionTest extends TestCase
     public function test_x_video_card_shows_the_relayed_preview_and_a_play_badge(): void
     {
         $video = $this->seedPost('US Department of the Interior', [
-            'platform' => 'x',
-            'kind' => '影片',
+            'platform' => SocialPlatform::X,
+            'kind' => SocialPostKind::Video,
             'canonical_url' => 'https://x.com/Interior/status/1',
             'cover_url' => 'https://pbs.twimg.com/amplify_video_thumb/1/img/a?format=webp&name=large',
         ]);
-        $this->seedPost('純文字', ['platform' => 'x', 'canonical_url' => 'https://x.com/Interior/status/2', 'text' => '只有字的推文']);
+        $this->seedPost('純文字', ['platform' => SocialPlatform::X, 'canonical_url' => 'https://x.com/Interior/status/2', 'text' => '只有字的推文']);
 
         $html = $this->productPage();
 
@@ -194,8 +197,8 @@ class SocialPostsSectionTest extends TestCase
 
     public function test_facebook_embed_uses_the_official_script_so_its_height_follows_the_post(): void
     {
-        $this->seedPost('Facebook', ['platform' => 'facebook', 'kind' => '貼文', 'canonical_url' => 'https://www.facebook.com/20531316728/posts/10154009990506729']);
-        $this->seedPost('Facebook', ['platform' => 'facebook', 'kind' => '影片', 'canonical_url' => 'https://www.facebook.com/reel/1']);
+        $this->seedPost('Facebook', ['platform' => SocialPlatform::Facebook, 'kind' => SocialPostKind::Post, 'canonical_url' => 'https://www.facebook.com/20531316728/posts/10154009990506729']);
+        $this->seedPost('Facebook', ['platform' => SocialPlatform::Facebook, 'kind' => SocialPostKind::Video, 'canonical_url' => 'https://www.facebook.com/reel/1']);
 
         $html = $this->productPage();
 

@@ -2,12 +2,18 @@
 
 namespace App\Models;
 
+use App\Enums\SocialPlatform;
+use App\Enums\SocialPostKind;
+use App\Enums\SocialPostStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class SocialPost extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'notion_page_id', 'notion_created_at', 'notion_edited_at', 'sort', 'source_url', 'canonical_url', 'platform',
+        'kind', 'author', 'text', 'youtube_id', 'cover_url', 'cover_expires_at', 'status', 'fetched_at',
+    ];
 
     protected $casts = [
         'notion_created_at' => 'datetime',
@@ -15,6 +21,9 @@ class SocialPost extends Model
         'fetched_at' => 'datetime',
         'cover_expires_at' => 'datetime',
         'sort' => 'integer',
+        'platform' => SocialPlatform::class,
+        'kind' => SocialPostKind::class,
+        'status' => SocialPostStatus::class,
     ];
 
     public function codes()
@@ -24,7 +33,7 @@ class SocialPost extends Model
 
     public function scopeVisible(Builder $query): Builder
     {
-        return $query->where('status', 'ok');
+        return $query->where('status', SocialPostStatus::Ok);
     }
 
     public function scopeDisplayOrder(Builder $query): Builder
@@ -41,7 +50,7 @@ class SocialPost extends Model
     public function getImageUrlAttribute(): ?string
     {
         if ($this->youtube_id) {
-            return "https://i.ytimg.com/vi/{$this->youtube_id}/".($this->kind === 'Shorts' ? 'oardefault' : 'hqdefault').'.jpg';
+            return "https://i.ytimg.com/vi/{$this->youtube_id}/".($this->kind === SocialPostKind::Short ? 'oardefault' : 'hqdefault').'.jpg';
         }
 
         return $this->cover_url ? route('social-posts.image', ['socialPost' => $this->id, 'v' => crc32((string) $this->canonical_url)]) : null;

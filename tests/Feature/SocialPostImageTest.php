@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\SocialPlatform;
+use App\Enums\SocialPostKind;
+use App\Enums\SocialPostStatus;
 use App\Models\SocialPost;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -19,10 +22,10 @@ class SocialPostImageTest extends TestCase
             'notion_edited_at' => now(),
             'source_url' => 'https://www.threads.com/@meta/post/1',
             'canonical_url' => 'https://www.threads.com/@meta/post/1',
-            'platform' => 'threads',
-            'kind' => '貼文',
+            'platform' => SocialPlatform::Threads,
+            'kind' => SocialPostKind::Post,
             'cover_url' => 'https://scontent.cdninstagram.com/p.jpg',
-            'status' => 'ok',
+            'status' => SocialPostStatus::Ok,
         ], $attributes));
     }
 
@@ -64,7 +67,7 @@ class SocialPostImageTest extends TestCase
     {
         Http::fake();
         $foreign = $this->seedPost(['cover_url' => 'https://evil.example.com/a.jpg']);
-        $failed = $this->seedPost(['notion_page_id' => 'page-2', 'status' => 'failed']);
+        $failed = $this->seedPost(['notion_page_id' => 'page-2', 'status' => SocialPostStatus::Failed]);
 
         $this->get(route('social-posts.image', ['socialPost' => $foreign->id]))->assertNotFound();
         $this->get(route('social-posts.image', ['socialPost' => $failed->id]))->assertNotFound();
@@ -75,12 +78,12 @@ class SocialPostImageTest extends TestCase
     {
         Http::fake(['pbs.twimg.com/*' => Http::response('webp-bytes', 200, ['Content-Type' => 'image/webp'])]);
         $x = $this->seedPost([
-            'platform' => 'x',
+            'platform' => SocialPlatform::X,
             'canonical_url' => 'https://x.com/Interior/status/1',
             'cover_url' => 'https://pbs.twimg.com/amplify_video_thumb/1/img/a?format=webp&name=large',
         ]);
-        $logo = $this->seedPost(['notion_page_id' => 'page-2', 'platform' => 'x', 'cover_url' => 'https://abs.twimg.com/x-web/assets/og/default-og.1.jpg']);
-        $lookalike = $this->seedPost(['notion_page_id' => 'page-3', 'platform' => 'x', 'cover_url' => 'https://pbs.twimg.com.evil.example.com/a.jpg']);
+        $logo = $this->seedPost(['notion_page_id' => 'page-2', 'platform' => SocialPlatform::X, 'cover_url' => 'https://abs.twimg.com/x-web/assets/og/default-og.1.jpg']);
+        $lookalike = $this->seedPost(['notion_page_id' => 'page-3', 'platform' => SocialPlatform::X, 'cover_url' => 'https://pbs.twimg.com.evil.example.com/a.jpg']);
 
         $response = $this->get(route('social-posts.image', ['socialPost' => $x->id]));
         $response->assertOk();

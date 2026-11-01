@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services;
 
+use App\Enums\SocialPostKind;
 use App\Services\SocialPostFetcher;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\RequestException;
@@ -103,7 +104,7 @@ class SocialPostFetcherTest extends TestCase
 
         $this->assertSame('https://www.facebook.com/20531316728/posts/10154009990506729', $post['canonical_url']);
         $this->assertSame('Facebook', $post['author']);
-        $this->assertSame('貼文', $post['kind']);
+        $this->assertSame(SocialPostKind::Post, $post['kind']);
     }
 
     public static function videoTitles(): array
@@ -129,7 +130,7 @@ class SocialPostFetcherTest extends TestCase
         $post = $this->fetch($url);
 
         $this->assertSame('Facebook', $post['author']);
-        $this->assertSame('影片', $post['kind']);
+        $this->assertSame(SocialPostKind::Video, $post['kind']);
     }
 
     public function test_fb_watch_short_link_is_resolved_to_the_video_it_redirects_to(): void
@@ -193,7 +194,7 @@ class SocialPostFetcherTest extends TestCase
 
         $post = $this->fetch('https://www.instagram.com/p/fA9uwTtkSN/?igsh=abc');
 
-        $this->assertSame('Reels', $post['kind']);
+        $this->assertSame(SocialPostKind::Reel, $post['kind']);
         $this->assertSame('Instagram (@instagram)', $post['author']);
         $this->assertSame('UNIQLO 推薦', $post['text']);
         $this->assertSame('https://scontent.cdninstagram.com/square.jpg?stp=c288.0.864.864a', $post['cover_url']);
@@ -236,18 +237,18 @@ class SocialPostFetcherTest extends TestCase
             '影片' => [
                 'https://pbs.twimg.com/amplify_video_thumb/1/img/a?format=webp&amp;name=large',
                 'https://pbs.twimg.com/amplify_video_thumb/1/img/a?format=webp&name=large',
-                '影片',
+                SocialPostKind::Video,
             ],
-            'GIF' => ['https://pbs.twimg.com/tweet_video_thumb/GabcDEF.jpg', 'https://pbs.twimg.com/tweet_video_thumb/GabcDEF.jpg', '影片'],
-            '照片' => ['https://pbs.twimg.com/media/GabcDEF?format=jpg&amp;name=large', 'https://pbs.twimg.com/media/GabcDEF?format=jpg&name=large', '貼文'],
+            'GIF' => ['https://pbs.twimg.com/tweet_video_thumb/GabcDEF.jpg', 'https://pbs.twimg.com/tweet_video_thumb/GabcDEF.jpg', SocialPostKind::Video],
+            '照片' => ['https://pbs.twimg.com/media/GabcDEF?format=jpg&amp;name=large', 'https://pbs.twimg.com/media/GabcDEF?format=jpg&name=large', SocialPostKind::Post],
             // 純文字貼文給的是 X 的標誌圖，檔名的 hash 會變
-            '純文字' => ['https://abs.twimg.com/x-web/assets/og/default-og.7d3a1c2b.jpg', null, '貼文'],
-            '標誌圖換了主機' => ['https://pbs.twimg.com/x-web/assets/og/default-og.9e8f.jpg', null, '貼文'],
+            '純文字' => ['https://abs.twimg.com/x-web/assets/og/default-og.7d3a1c2b.jpg', null, SocialPostKind::Post],
+            '標誌圖換了主機' => ['https://pbs.twimg.com/x-web/assets/og/default-og.9e8f.jpg', null, SocialPostKind::Post],
         ];
     }
 
     #[DataProvider('xPreviewImages')]
-    public function test_x_cover_comes_from_the_page_preview_image(string $ogImage, ?string $cover, string $kind): void
+    public function test_x_cover_comes_from_the_page_preview_image(string $ogImage, ?string $cover, SocialPostKind $kind): void
     {
         Http::fake([
             'publish.twitter.com/*' => Http::response(self::X_OEMBED),
@@ -279,7 +280,7 @@ class SocialPostFetcherTest extends TestCase
 
         $this->assertSame('範例&內文', $post['text']);
         $this->assertNull($post['cover_url']);
-        $this->assertSame('貼文', $post['kind']);
+        $this->assertSame(SocialPostKind::Post, $post['kind']);
     }
 
     public function test_x_page_rate_limit_is_passed_on_instead_of_dropping_the_preview(): void
@@ -335,7 +336,7 @@ class SocialPostFetcherTest extends TestCase
 
         $post = $this->fetch('https://youtube.com/shorts/M7lc1UVf-VE?si=abc');
 
-        $this->assertSame('Shorts', $post['kind']);
+        $this->assertSame(SocialPostKind::Short, $post['kind']);
         $this->assertSame('M7lc1UVf-VE', $post['youtube_id']);
         $this->assertSame('範例影片', $post['text']);
         $this->assertNull($post['cover_url']);

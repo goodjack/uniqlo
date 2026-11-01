@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\Support;
 
+use App\Enums\SocialPlatform;
+use App\Enums\SocialPostKind;
 use App\Support\SocialUrl;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -105,7 +107,7 @@ class SocialUrlTest extends TestCase
 
     public function test_platform_is_decided_by_host_not_by_substring(): void
     {
-        $this->assertSame('instagram', SocialUrl::platform('https://www.instagram.com/p/abc/'));
+        $this->assertSame(SocialPlatform::Instagram, SocialUrl::platform('https://www.instagram.com/p/abc/'));
         $this->assertNull(SocialUrl::platform('https://192.168.1.1/?instagram.com'));
         $this->assertNull(SocialUrl::platform('https://evilinstagram.com/p/abc/'));
         $this->assertNull(SocialUrl::platform('http://www.instagram.com/p/abc/'));
@@ -124,15 +126,15 @@ class SocialUrlTest extends TestCase
 
     public function test_kind_follows_the_url_shape(): void
     {
-        $this->assertSame('Shorts', SocialUrl::kind('https://www.youtube.com/shorts/7lCDEYXw3mM'));
-        $this->assertSame('影片', SocialUrl::kind('https://www.youtube.com/watch?v=M7lc1UVf-VE'));
-        $this->assertSame('Reels', SocialUrl::kind('https://www.instagram.com/reel/fA9uwTtkSN/'));
-        $this->assertSame('貼文', SocialUrl::kind('https://www.threads.com/@meta/post/DDzbnVKx57R'));
-        $this->assertSame('影片', SocialUrl::kind('https://www.facebook.com/reel/2'));
-        $this->assertSame('影片', SocialUrl::kind('https://www.facebook.com/facebook/videos/10153231379946729'));
-        $this->assertSame('影片', SocialUrl::kind('https://www.facebook.com/watch/?v=1'));
+        $this->assertSame(SocialPostKind::Short, SocialUrl::kind('https://www.youtube.com/shorts/7lCDEYXw3mM'));
+        $this->assertSame(SocialPostKind::Video, SocialUrl::kind('https://www.youtube.com/watch?v=M7lc1UVf-VE'));
+        $this->assertSame(SocialPostKind::Reel, SocialUrl::kind('https://www.instagram.com/reel/fA9uwTtkSN/'));
+        $this->assertSame(SocialPostKind::Post, SocialUrl::kind('https://www.threads.com/@meta/post/DDzbnVKx57R'));
+        $this->assertSame(SocialPostKind::Video, SocialUrl::kind('https://www.facebook.com/reel/2'));
+        $this->assertSame(SocialPostKind::Video, SocialUrl::kind('https://www.facebook.com/facebook/videos/10153231379946729'));
+        $this->assertSame(SocialPostKind::Video, SocialUrl::kind('https://www.facebook.com/watch/?v=1'));
         // 粉專名稱剛好以 watch、reel 開頭的貼文不算影片
-        $this->assertSame('貼文', SocialUrl::kind('https://www.facebook.com/watchdog.tw/posts/pfbid0'));
-        $this->assertSame('貼文', SocialUrl::kind('https://www.facebook.com/reelshop/posts/pfbid0'));
+        $this->assertSame(SocialPostKind::Post, SocialUrl::kind('https://www.facebook.com/watchdog.tw/posts/pfbid0'));
+        $this->assertSame(SocialPostKind::Post, SocialUrl::kind('https://www.facebook.com/reelshop/posts/pfbid0'));
     }
 }

@@ -2,16 +2,11 @@
 
 namespace App\Support;
 
+use App\Enums\SocialPlatform;
+use App\Enums\SocialPostKind;
+
 class SocialUrl
 {
-    public const PLATFORM_HOSTS = [
-        'youtube' => ['youtube.com', 'youtu.be'],
-        'instagram' => ['instagram.com'],
-        'threads' => ['threads.com', 'threads.net'],
-        'x' => ['x.com', 'twitter.com'],
-        'facebook' => ['facebook.com', 'fb.watch'],
-    ];
-
     /** 預覽圖只收 Meta 與 X 的圖片 CDN；轉送圖片時也只連這些主機 */
     public const COVER_HOSTS = ['cdninstagram.com', 'fbcdn.net', 'pbs.twimg.com'];
 
@@ -22,7 +17,7 @@ class SocialUrl
      */
     public static function fetchHosts(): array
     {
-        return array_merge(...array_values(self::PLATFORM_HOSTS));
+        return array_merge(...array_map(fn (SocialPlatform $platform) => $platform->hosts(), SocialPlatform::cases()));
     }
 
     public static function hostMatches(string $url, array $suffixes): bool
@@ -50,10 +45,10 @@ class SocialUrl
         return self::hostMatches($url, ['abs.twimg.com']) || str_contains((string) parse_url($url, PHP_URL_PATH), 'default-og');
     }
 
-    public static function platform(string $url): ?string
+    public static function platform(string $url): ?SocialPlatform
     {
-        foreach (self::PLATFORM_HOSTS as $platform => $hosts) {
-            if (self::hostMatches($url, $hosts)) {
+        foreach (SocialPlatform::cases() as $platform) {
+            if (self::hostMatches($url, $platform->hosts())) {
                 return $platform;
             }
         }
@@ -72,8 +67,8 @@ class SocialUrl
         $path = (string) parse_url($url, PHP_URL_PATH);
 
         return match (self::platform($url)) {
-            'threads' => str_contains($path, '/share/') || preg_match('~^/t/[A-Za-z0-9_-]+$~', rtrim($path, '/')) === 1,
-            'facebook' => str_starts_with($path, '/share/') || self::hostMatches($url, ['fb.watch']),
+            SocialPlatform::Threads => str_contains($path, '/share/') || preg_match('~^/t/[A-Za-z0-9_-]+$~', rtrim($path, '/')) === 1,
+            SocialPlatform::Facebook => str_starts_with($path, '/share/') || self::hostMatches($url, ['fb.watch']),
             default => false,
         };
     }
@@ -88,17 +83,17 @@ class SocialUrl
         $path = rtrim((string) parse_url($url, PHP_URL_PATH), '/');
 
         return match ($platform) {
-            'youtube' => ($id = self::youtubeId($url))
+            SocialPlatform::Youtube => ($id = self::youtubeId($url))
                 ? (str_contains($path, '/shorts/') ? "https://www.youtube.com/shorts/{$id}" : "https://www.youtube.com/watch?v={$id}")
                 : null,
-            'instagram' => preg_match('~/(p|reel|reels|tv)/([A-Za-z0-9_-]+)~', $path, $m)
+            SocialPlatform::Instagram => preg_match('~/(p|reel|reels|tv)/([A-Za-z0-9_-]+)~', $path, $m)
                 ? 'https://www.instagram.com/'.($m[1] === 'p' ? 'p' : 'reel')."/{$m[2]}/"
                 : null,
-            'threads' => preg_match('~/(@[A-Za-z0-9_.]+)/post/([A-Za-z0-9_-]+)~', $path, $m)
+            SocialPlatform::Threads => preg_match('~/(@[A-Za-z0-9_.]+)/post/([A-Za-z0-9_-]+)~', $path, $m)
                 ? "https://www.threads.com/{$m[1]}/post/{$m[2]}"
                 : null,
-            'x' => self::xCanonical($path),
-            'facebook' => self::facebookCanonical($url, $path),
+            SocialPlatform::X => self::xCanonical($path),
+            SocialPlatform::Facebook => self::facebookCanonical($url, $path),
             default => null,
         };
     }
@@ -137,13 +132,13 @@ class SocialUrl
         return preg_match('~^/(reel/\d+|[^/]+/posts/[^/]+)$~', $path) ? 'https://www.facebook.com'.$path : null;
     }
 
-    public static function kind(string $canonicalUrl): string
+    public static function kind(string $canonicalUrl): SocialPostKind
     {
         return match (self::platform($canonicalUrl)) {
-            'youtube' => str_contains($canonicalUrl, '/shorts/') ? 'Shorts' : '影片',
-            'instagram' => str_contains($canonicalUrl, '/reel/') ? 'Reels' : '貼文',
-            'facebook' => preg_match('~^https://www\.facebook\.com/(reel/|watch/|[^/]+/videos/)~', $canonicalUrl) ? '影片' : '貼文',
-            default => '貼文',
+            SocialPlatform::Youtube => str_contains($canonicalUrl, '/shorts/') ? SocialPostKind::Short : SocialPostKind::Video,
+            SocialPlatform::Instagram => str_contains($canonicalUrl, '/reel/') ? SocialPostKind::Reel : SocialPostKind::Post,
+            SocialPlatform::Facebook => preg_match('~^https://www\.facebook\.com/(reel/|watch/|[^/]+/videos/)~', $canonicalUrl) ? SocialPostKind::Video : SocialPostKind::Post,
+            default => SocialPostKind::Post,
         };
     }
 }

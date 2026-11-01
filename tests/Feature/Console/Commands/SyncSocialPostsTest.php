@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Console\Commands;
 
+use App\Enums\SocialPlatform;
+use App\Enums\SocialPostKind;
+use App\Enums\SocialPostStatus;
 use App\Models\SocialPost;
 use App\Models\SocialPostCode;
 use App\Services\SocialPostFetcher;
@@ -69,8 +72,8 @@ class SyncSocialPostsTest extends TestCase
     private function fakeFetcher(?callable $fetch = null): void
     {
         $fetch ??= fn (string $url) => [
-            'platform' => 'threads',
-            'kind' => '貼文',
+            'platform' => SocialPlatform::Threads,
+            'kind' => SocialPostKind::Post,
             'canonical_url' => self::CANONICAL_URL,
             'author' => 'Meta ü (@meta)',
             'text' => "今天穿這件\n真的很好穿",
@@ -92,6 +95,13 @@ class SyncSocialPostsTest extends TestCase
         });
     }
 
+    /** 換一組新的假連線，前面假造的回應與紀錄都清掉，沒假造的請求照樣擋下 */
+    private function resetHttp(): void
+    {
+        Http::swap(new \Illuminate\Http\Client\Factory);
+        Http::preventStrayRequests();
+    }
+
     private function notionUpdates(): array
     {
         return Http::recorded(fn (Request $request) => $request->method() === 'PATCH')
@@ -108,7 +118,7 @@ class SyncSocialPostsTest extends TestCase
         $this->artisan('social-post:sync')->assertExitCode(0);
 
         $post = SocialPost::with('codes')->sole();
-        $this->assertSame('ok', $post->status);
+        $this->assertSame(SocialPostStatus::Ok, $post->status);
         $this->assertEqualsCanonicalizing(['479123', '470001'], $post->codes->pluck('code')->all());
         // 預覽圖只記網址，不下載；顯示時經自己的網址轉送
         $this->assertSame('https://scontent.cdninstagram.com/p.jpg', $post->cover_url);
@@ -164,7 +174,7 @@ class SyncSocialPostsTest extends TestCase
         $this->fakeNotion([$page]);
         $expiresAt = now()->addHours(30);
         $this->fakeFetcher(fn () => [
-            'platform' => 'threads', 'kind' => '貼文', 'canonical_url' => self::CANONICAL_URL,
+            'platform' => SocialPlatform::Threads, 'kind' => SocialPostKind::Post, 'canonical_url' => self::CANONICAL_URL,
             'author' => 'a', 'text' => 't', 'youtube_id' => null,
             'cover_url' => 'https://scontent.cdninstagram.com/p.jpg', 'cover_expires_at' => $expiresAt,
         ]);
@@ -185,7 +195,7 @@ class SyncSocialPostsTest extends TestCase
 
         $this->artisan('social-post:sync')->assertExitCode(0);
 
-        $this->assertSame('failed', SocialPost::sole()->status);
+        $this->assertSame(SocialPostStatus::Failed, SocialPost::sole()->status);
         $this->assertSame(0, SocialPost::visible()->count());
         $this->assertSame([], $this->notionUpdates());
     }
@@ -196,7 +206,7 @@ class SyncSocialPostsTest extends TestCase
         $this->fakeFetcher();
         $this->artisan('social-post:sync');
 
-        Http::swap(new \Illuminate\Http\Client\Factory);
+        $this->resetHttp();
         $this->fakeNotion([]);
         $this->artisan('social-post:sync');
 
@@ -207,7 +217,7 @@ class SyncSocialPostsTest extends TestCase
     private function fetched(array $overrides = []): array
     {
         return array_merge([
-            'platform' => 'threads', 'kind' => '貼文', 'canonical_url' => self::CANONICAL_URL,
+            'platform' => SocialPlatform::Threads, 'kind' => SocialPostKind::Post, 'canonical_url' => self::CANONICAL_URL,
             'author' => 'a', 'text' => 't', 'youtube_id' => null,
             'cover_url' => 'https://scontent.cdninstagram.com/p.jpg', 'cover_expires_at' => null,
         ], $overrides);
@@ -219,7 +229,7 @@ class SyncSocialPostsTest extends TestCase
         $this->fakeFetcher(fn () => $this->fetched());
         $this->artisan('social-post:sync');
 
-        Http::swap(new \Illuminate\Http\Client\Factory);
+        $this->resetHttp();
         $this->fakeNotion([$this->page('page-1'), $this->page('page-2'), $this->page('page-3')]);
         $calls = 0;
         $this->fakeFetcher(function () use (&$calls) {
@@ -254,7 +264,7 @@ class SyncSocialPostsTest extends TestCase
             $this->fakeFetcher(fn () => throw new RequestException(new Response(new \GuzzleHttp\Psr7\Response($status))));
             $this->artisan('social-post:sync --full');
 
-            $this->assertSame('ok', SocialPost::sole()->status, "HTTP {$status}");
+            $this->assertSame(SocialPostStatus::Ok, SocialPost::sole()->status, "HTTP {$status}");
         }
     }
 
@@ -269,7 +279,7 @@ class SyncSocialPostsTest extends TestCase
             $this->artisan('social-post:sync --full');
 
             $post = SocialPost::sole();
-            $this->assertSame('ok', $post->status);
+            $this->assertSame(SocialPostStatus::Ok, $post->status);
             $this->assertSame('原作者', $post->author);
             $this->assertSame('原內文', $post->text);
         }
@@ -280,7 +290,7 @@ class SyncSocialPostsTest extends TestCase
         $this->fakeNotion([$this->page('page-1', ['name' => '我的備註', 'url' => self::CANONICAL_URL])]);
         $this->fakeFetcher(fn () => $this->fetched(['cover_expires_at' => now()->addHours(30)]));
         $this->artisan('social-post:sync');
-        SocialPost::sole()->update(['status' => 'failed']);
+        SocialPost::sole()->update(['status' => SocialPostStatus::Failed]);
 
         $this->travel(26)->hours();
         $this->artisan('social-post:sync');
