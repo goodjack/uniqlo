@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\SocialPlatform;
+use App\Enums\SocialPostKind;
 use App\Support\SocialUrl;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
@@ -32,12 +34,12 @@ class SocialPostFetcher
     private const MAX_BYTES = 5 * 1024 * 1024;
 
     /**
-     * @return array{platform: string, kind: string, canonical_url: string, author: ?string, text: ?string,
+     * @return array{platform: SocialPlatform, kind: SocialPostKind, canonical_url: string, author: ?string, text: ?string,
      *     youtube_id: ?string, cover_url: ?string, cover_expires_at: ?Carbon}
      */
     public function fetch(string $url): array
     {
-        if (SocialUrl::isThreadsShareLink($url)) {
+        if (SocialUrl::isShareLink($url)) {
             $url = $this->resolveRedirect($url);
         }
 
@@ -59,11 +61,11 @@ class SocialPostFetcher
         ];
 
         $post = match ($platform) {
-            'youtube' => $this->youtube($post),
-            'instagram' => $this->instagram($post),
-            'threads' => $this->threads($post),
-            'x' => $this->x($post),
-            'facebook' => $this->facebook($post),
+            SocialPlatform::Youtube => $this->youtube($post),
+            SocialPlatform::Instagram => $this->instagram($post),
+            SocialPlatform::Threads => $this->threads($post),
+            SocialPlatform::X => $this->x($post),
+            SocialPlatform::Facebook => $this->facebook($post),
         };
 
         $post['text'] = $post['text'] === null ? null : Str::limit(trim($post['text']), 500);
@@ -112,7 +114,7 @@ class SocialPostFetcher
         $og = $this->ogTags($post['canonical_url']);
 
         if (str_contains($og['url'] ?? '', '/reel/')) {
-            $post['kind'] = 'Reels';
+            $post['kind'] = SocialPostKind::Reel;
         }
 
         // 描述是「（讚數 - ）帳號 on 日期: "內文".」，讚數不一定有；標題只有顯示名稱，補上帳號跟 Threads 一致
@@ -150,6 +152,14 @@ class SocialPostFetcher
     private function x(array $post): array
     {
         $data = $this->oembed('https://publish.twitter.com/oembed', str_replace('https://x.com/', 'https://twitter.com/', $post['canonical_url']));
+        // 沒有帳號的網址由 oEmbed 回傳的正式網址補上帳號；只收 X 上同一則推文
+        if (str_starts_with($post['canonical_url'], 'https://x.com/i/status/')) {
+            $named = (string) SocialUrl::canonical((string) ($data['url'] ?? ''));
+            $id = Str::afterLast($post['canonical_url'], '/');
+            if (str_starts_with($named, 'https://x.com/') && str_ends_with($named, "/status/{$id}")) {
+                $post['canonical_url'] = $named;
+            }
+        }
 
         try {
             $cover = $this->ogTags($post['canonical_url'])['image'] ?? null;
@@ -167,7 +177,7 @@ class SocialPostFetcher
         }
 
         return array_merge($post, [
-            'kind' => str_contains((string) parse_url((string) $cover, PHP_URL_PATH), 'video_thumb') ? '影片' : $post['kind'],
+            'kind' => str_contains((string) parse_url((string) $cover, PHP_URL_PATH), 'video_thumb') ? SocialPostKind::Video : $post['kind'],
             'author' => $data['author_name'] ?? null,
             'text' => html_entity_decode(strip_tags(explode('</p>', $data['html'])[0])),
             'cover_url' => $cover,
@@ -177,9 +187,14 @@ class SocialPostFetcher
     private function facebook(array $post): array
     {
         $og = $this->ogTags($post['canonical_url']);
+        // Reels 與影片的標題是「觀看數 · 心情數 | 內文 | 粉專名稱」，作者取最後一段；一般貼文的標題就是粉專名稱
+        $title = $og['title'] ?? '';
+        if ($post['kind'] === SocialPostKind::Video) {
+            $title = Str::afterLast($title, ' | ');
+        }
 
         return array_merge($post, [
-            'author' => $this->authorFromTitle($og['title'] ?? ''),
+            'author' => $this->authorFromTitle($title),
             'text' => $og['description'] ?? null,
             'cover_url' => $og['image'] ?? null,
         ]);
@@ -217,7 +232,7 @@ class SocialPostFetcher
         return $data;
     }
 
-    /** Threads 分享短網址：追轉址拿正式網址，拿不到就看頁面的 og:url */
+    /** 分享短網址：追轉址拿正式網址，拿不到就看頁面的 og:url */
     private function resolveRedirect(string $url): string
     {
         $response = $this->client('en-US')->get($url);

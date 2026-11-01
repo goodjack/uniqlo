@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\SocialPostStatus;
 use App\Models\SocialPost;
 use App\Services\SocialPostFetcher;
 use App\Support\SocialUrl;
@@ -23,7 +24,7 @@ class SocialPostImageController extends Controller
     public function show(SocialPost $socialPost): Response
     {
         $url = $socialPost->cover_url;
-        abort_unless($socialPost->status === 'ok' && $url && SocialUrl::hostMatches($url, SocialUrl::COVER_HOSTS), 404);
+        abort_unless($socialPost->status === SocialPostStatus::Ok && $url && SocialUrl::hostMatches($url, SocialUrl::COVER_HOSTS), 404);
 
         try {
             $upstream = Http::withHeaders(['User-Agent' => SocialPostFetcher::USER_AGENT])

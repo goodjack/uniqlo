@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\SocialPostStatus;
 use App\Models\HmallProduct;
 use App\Models\SocialPost;
 use App\Models\SocialPostCode;
@@ -84,7 +85,7 @@ class SocialPostService
     /** 預覽圖網址幾小時內就失效的，平常的同步也要重抓，不等整批重抓那一次 */
     private function coverExpiringSoon(SocialPost $post): bool
     {
-        return $post->status === 'ok'
+        return $post->status === SocialPostStatus::Ok
             && $post->cover_expires_at !== null
             && $post->cover_expires_at->isBefore(now()->addHours(6));
     }
@@ -117,7 +118,7 @@ class SocialPostService
             }
 
             $post->fill($data);
-            $post->status = 'ok';
+            $post->status = SocialPostStatus::Ok;
             $post->fetched_at = now();
         } catch (\Throwable $e) {
             Log::error('Social post fetch failed', [
@@ -127,7 +128,7 @@ class SocialPostService
             ]);
             // 連不上或平台暫時擋下可能只是暫時的，原本正常顯示的就先留著，隔天整批重抓再判斷
             if (! (($noPreview || SocialPostFetcher::isTemporaryFailure($e)) && $post->exists)) {
-                $post->status = 'failed';
+                $post->status = SocialPostStatus::Failed;
             }
 
             DB::transaction(fn () => $this->savePost($post, $row['codes']));

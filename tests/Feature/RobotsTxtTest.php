@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Enums\SocialPlatform;
+use App\Enums\SocialPostKind;
+use App\Enums\SocialPostStatus;
 use App\Models\HmallProduct;
 use App\Models\SocialPost;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,7 +28,7 @@ class RobotsTxtTest extends TestCase
         $post = SocialPost::create([
             'notion_page_id' => 'page-1', 'notion_created_at' => now(), 'notion_edited_at' => now(),
             'source_url' => 'https://www.threads.com/@a/post/1', 'canonical_url' => 'https://www.threads.com/@a/post/1',
-            'platform' => 'threads', 'kind' => '貼文', 'cover_url' => 'https://scontent.cdninstagram.com/p.jpg', 'status' => 'ok',
+            'platform' => SocialPlatform::Threads, 'kind' => SocialPostKind::Post, 'cover_url' => 'https://scontent.cdninstagram.com/p.jpg', 'status' => SocialPostStatus::Ok,
         ]);
         $post->codes()->create(['code' => '990001']);
         $html = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))->assertOk()->getContent();
