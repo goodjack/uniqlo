@@ -120,4 +120,37 @@ class HmallProductPresenterTest extends TestCase
             'lowest_record_price_count' => 0,
         ], $attributes)));
     }
+
+    public function test_social_media_description_is_plain_text_without_double_escaping(): void
+    {
+        // 說明裡的 & 在商品頁是 &amp;，社群說明要還原成 &，輸出時才不會變成看得到的 &amp;
+        $product = $this->createProduct(['instruction' => 'A&B', 'product_code' => 'u0001']);
+
+        $this->assertStringStartsWith('A&B網路商店編號：u0001', $this->presenter->getSocialMediaDescription($product));
+    }
+
+    public static function lineBreakProvider(): array
+    {
+        return [
+            '一般寫法' => ['A<br>B<br/>C<br />D', 'A<br>B<br>C<br>D'],
+            '帶屬性' => ['A<br onmouseover="alert(1)">B', 'A<br>B'],
+            '大寫' => ['A<BR style="x">B', 'A<br>B'],
+            '結尾標籤' => ['A</br onclick="x">B', 'A<br>B'],
+            '標籤名後面接換行字元' => ["A<br\nx onmouseover=alert(1)>B", 'A<br>B'],
+            '其他標籤' => ['A<script>x</script>B', 'AxB'],
+            '小於號後面接換行字元' => ["A<\nimg src=x onerror=alert(1)>B", 'A&lt;img src=x onerror=alert(1)&gt;B'],
+            '刪掉※那行後拼出標籤' => ["A<\n※x<br>img src=x onerror=alert(1)>B", 'A&lt;img src=x onerror=alert(1)&gt;B'],
+            '原本的實體不重複轉' => ['A&amp;B', 'A&amp;B'],
+        ];
+    }
+
+    /**
+     * 說明是原樣輸出的 HTML，換行標籤上的屬性要拿掉，不然官網資料被竄改時可以夾帶程式
+     *
+     * @dataProvider lineBreakProvider
+     */
+    public function test_description_keeps_only_bare_line_breaks(string $instruction, string $expected): void
+    {
+        $this->assertSame($expected, $this->presenter->getDescriptionBody($instruction));
+    }
 }

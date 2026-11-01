@@ -63,7 +63,7 @@ class HmallProductPresenter
 
     public function getDescription($hmallProduct)
     {
-        return $this->getDescriptionBody($hmallProduct->instruction)."<br><br>網路商店編號：{$hmallProduct->product_code}";
+        return $this->getDescriptionBody($hmallProduct->instruction).'<br><br>網路商店編號：'.e($hmallProduct->product_code);
     }
 
     /**
@@ -82,9 +82,10 @@ class HmallProductPresenter
         // 去除 HTML br 以外的 tag
         $description = strip_tags($description, '<br>');
 
-        // 整理中間換行
+        // 整理中間換行；換行標籤上的屬性一律拿掉，這段會原樣輸出成 HTML。
+        // 要在刪換行字元之前做，不然「<br」後面接換行字元時，刪掉換行會跟下一個字黏成認不出的標籤
+        $description = preg_replace('/<\/?br\b[^>]*>/i', '<br>', $description);
         $description = preg_replace('/\n/', '', $description);
-        $description = preg_replace('/<br\s*\/?>/', '<br>', $description);
         $description = preg_replace('/(<br>){3,}/', '<br><br>', $description);
         $description = preg_replace('/※.*(<br>|$)/U', '', $description);
 
@@ -97,7 +98,14 @@ class HmallProductPresenter
         // 整理前後換行
         $description = trim($description);
 
-        return preg_replace('/^(<br>)+|(<br>)+$/', '', $description) ?? '';
+        $description = preg_replace('/^(<br>)+|(<br>)+$/', '', $description) ?? '';
+
+        // 這段會原樣輸出成 HTML：只留固定的 <br>，其餘一律轉成純文字。前面的整理（刪換行字元、刪※那行）
+        // 可能把「<」和後面的字拼成新標籤，只過濾標籤擋不完；已經是實體的字（&amp;）不重複轉
+        return implode('<br>', array_map(
+            fn (string $part) => htmlspecialchars($part, ENT_QUOTES, 'UTF-8', false),
+            explode('<br>', $description),
+        ));
     }
 
     public function getMainFirstPic($hmallProduct)
@@ -328,8 +336,9 @@ class HmallProductPresenter
 
     public function getSocialMediaDescription($hmallProduct)
     {
+        // 說明是轉義過的 HTML，拿掉標籤後還原成純文字，交給輸出端轉義，才不會出現 &amp;
         $description = $this->getDescription($hmallProduct);
-        $description = strip_tags($description);
+        $description = html_entity_decode(strip_tags($description), ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $description = trim(preg_replace('/\s+/', ' ', $description));
 
         $description = SiteTitle::appendWithTagline($description);
