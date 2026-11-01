@@ -66,13 +66,13 @@ class SocialUrl
         return preg_match('~(?:[?&]v=|/shorts/|youtu\.be/|/embed/|/live/)([A-Za-z0-9_-]{11})~', $url, $m) ? $m[1] : null;
     }
 
-    /** 分享短網址看不出是哪則，要先追轉址：Threads 與 Facebook 的 /share/，以及 fb.watch */
+    /** 分享短網址看不出是哪則，要先追轉址：Threads 的 /share/ 與 /t/、Facebook 的 /share/，以及 fb.watch */
     public static function isShareLink(string $url): bool
     {
         $path = (string) parse_url($url, PHP_URL_PATH);
 
         return match (self::platform($url)) {
-            'threads' => str_contains($path, '/share/'),
+            'threads' => str_contains($path, '/share/') || preg_match('~^/t/[A-Za-z0-9_-]+$~', rtrim($path, '/')) === 1,
             'facebook' => str_starts_with($path, '/share/') || self::hostMatches($url, ['fb.watch']),
             default => false,
         };
@@ -97,12 +97,20 @@ class SocialUrl
             'threads' => preg_match('~/(@[A-Za-z0-9_.]+)/post/([A-Za-z0-9_-]+)~', $path, $m)
                 ? "https://www.threads.com/{$m[1]}/post/{$m[2]}"
                 : null,
-            'x' => preg_match('~/([A-Za-z0-9_]+)/status/(\d+)~', $path, $m)
-                ? "https://x.com/{$m[1]}/status/{$m[2]}"
-                : null,
+            'x' => self::xCanonical($path),
             'facebook' => self::facebookCanonical($url, $path),
             default => null,
         };
+    }
+
+    /** 從通知等地方複製的網址沒有帳號（/i/web/status/編號），嵌入只接受 /i/status/編號 */
+    private static function xCanonical(string $path): ?string
+    {
+        if (preg_match('~^/i/(?:web/)?status/(\d+)(?:/|$)~', $path, $m)) {
+            return "https://x.com/i/status/{$m[1]}";
+        }
+
+        return preg_match('~/([A-Za-z0-9_]+)/status/(\d+)(?:/|$)~', $path, $m) ? "https://x.com/{$m[1]}/status/{$m[2]}" : null;
     }
 
     /**

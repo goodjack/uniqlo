@@ -166,6 +166,19 @@ class SocialPostFetcherTest extends TestCase
         $this->fetch('https://www.facebook.com/share/p/AbCdEf5678/');
     }
 
+    public function test_threads_short_link_is_resolved_to_the_post_url(): void
+    {
+        Http::fake([
+            'www.threads.com/t/*' => Http::response('', 302, ['Location' => 'https://www.threads.com/@meta/post/DDzbnVKx57R']),
+            'graph.threads.net/*' => Http::response(['html' => self::OEMBED_HTML]),
+            'www.threads.com/*' => Http::response(''),
+        ]);
+
+        $post = $this->fetch('https://www.threads.com/t/DDzbnVKx57R');
+
+        $this->assertSame('https://www.threads.com/@meta/post/DDzbnVKx57R', $post['canonical_url']);
+    }
+
     public function test_instagram_detects_reels_from_the_page_url(): void
     {
         Http::fake([
@@ -190,6 +203,7 @@ class SocialPostFetcherTest extends TestCase
     {
         return [
             '有讚數' => ['1,000 likes, 10 comments - uniqlo on October 16, 2026: &quot;Layering for autumn.&quot;. ', 'UNIQLO Global (@uniqlo)', 'Layering for autumn.'],
+            '帳號有底線' => ['12 likes, 0 comments - gu_taiwan on October 1, 2026: &quot;範例內文&quot;. ', 'UNIQLO Global (@gu_taiwan)', '範例內文'],
             '沒有讚數、被截斷' => ['uniqlo on September 30, 2026: &quot;シャツの重ね着', 'UNIQLO Global (@uniqlo)', 'シャツの重ね着'],
         ];
     }
@@ -278,6 +292,41 @@ class SocialPostFetcherTest extends TestCase
         $this->expectException(RequestException::class);
 
         $this->fetch('https://x.com/Interior/status/463440424141459456');
+    }
+
+    public function test_x_link_without_the_account_gets_it_from_oembed(): void
+    {
+        Http::fake([
+            'publish.twitter.com/*' => Http::response(self::X_OEMBED + ['url' => 'https://x.com/Interior/status/463440424141459456']),
+            'x.com/*' => Http::response(''),
+        ]);
+
+        $post = $this->fetch('https://x.com/i/web/status/463440424141459456');
+
+        $this->assertSame('https://x.com/Interior/status/463440424141459456', $post['canonical_url']);
+        Http::assertSent(fn (Request $request) => str_contains($request->url(), urlencode('https://twitter.com/i/status/463440424141459456')));
+    }
+
+    public static function unusableOembedUrls(): array
+    {
+        return [
+            '沒有回網址' => [[]],
+            '回了別則推文' => [['url' => 'https://x.com/Interior/status/507185938620219395']],
+            '回了別的平台' => [['url' => 'https://www.threads.com/@meta/post/DDzbnVKx57R']],
+        ];
+    }
+
+    #[DataProvider('unusableOembedUrls')]
+    public function test_x_link_without_the_account_keeps_its_own_url_when_oembed_url_is_unusable(array $extra): void
+    {
+        Http::fake([
+            'publish.twitter.com/*' => Http::response(self::X_OEMBED + $extra),
+            'x.com/*' => Http::response(''),
+        ]);
+
+        $post = $this->fetch('https://x.com/i/web/status/463440424141459456');
+
+        $this->assertSame('https://x.com/i/status/463440424141459456', $post['canonical_url']);
     }
 
     public function test_youtube_keeps_the_video_id_and_title(): void

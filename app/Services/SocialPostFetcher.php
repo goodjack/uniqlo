@@ -150,6 +150,14 @@ class SocialPostFetcher
     private function x(array $post): array
     {
         $data = $this->oembed('https://publish.twitter.com/oembed', str_replace('https://x.com/', 'https://twitter.com/', $post['canonical_url']));
+        // 沒有帳號的網址由 oEmbed 回傳的正式網址補上帳號；只收 X 上同一則推文
+        if (str_starts_with($post['canonical_url'], 'https://x.com/i/status/')) {
+            $named = (string) SocialUrl::canonical((string) ($data['url'] ?? ''));
+            $id = Str::afterLast($post['canonical_url'], '/');
+            if (str_starts_with($named, 'https://x.com/') && str_ends_with($named, "/status/{$id}")) {
+                $post['canonical_url'] = $named;
+            }
+        }
 
         try {
             $cover = $this->ogTags($post['canonical_url'])['image'] ?? null;
