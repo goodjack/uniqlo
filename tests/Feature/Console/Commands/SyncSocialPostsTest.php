@@ -21,9 +21,9 @@ class SyncSocialPostsTest extends TestCase
 
     private const DATA_SOURCE = 'ds-1';
 
-    private const SHORT_URL = 'https://www.threads.com/share/BAXKotUx6Y/';
+    private const SHORT_URL = 'https://www.threads.com/share/AbCdEf1234/';
 
-    private const CANONICAL_URL = 'https://www.threads.com/@geelou0406/post/DWMAZ2UgRQi';
+    private const CANONICAL_URL = 'https://www.threads.com/@meta/post/DDzbnVKx57R';
 
     private int $fetchCount = 0;
 
@@ -72,7 +72,7 @@ class SyncSocialPostsTest extends TestCase
             'platform' => 'threads',
             'kind' => '貼文',
             'canonical_url' => self::CANONICAL_URL,
-            'author' => 'geelo ü (@geelou0406)',
+            'author' => 'Meta ü (@meta)',
             'text' => "今天穿這件\n真的很好穿",
             'youtube_id' => null,
             'cover_url' => 'https://scontent.cdninstagram.com/p.jpg',
@@ -116,7 +116,7 @@ class SyncSocialPostsTest extends TestCase
 
         $this->assertSame([[
             '網址' => ['url' => self::CANONICAL_URL],
-            '名稱' => ['title' => [['text' => ['content' => 'geelo ü (@geelou0406)：今天穿這件 真的很好穿']]]],
+            '名稱' => ['title' => [['text' => ['content' => 'Meta ü (@meta)：今天穿這件 真的很好穿']]]],
         ]], $this->notionUpdates());
         $this->assertTrue($post->notion_edited_at->equalTo('2026-10-18T02:00:00Z'));
     }

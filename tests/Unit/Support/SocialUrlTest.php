@@ -11,13 +11,13 @@ class SocialUrlTest extends TestCase
     public static function canonicalUrls(): array
     {
         return [
-            'YouTube 分享帶 si' => ['https://youtube.com/watch?v=VJyhv7PvLdU&si=Woxig', 'https://www.youtube.com/watch?v=VJyhv7PvLdU'],
-            'YouTube 短網址' => ['https://youtu.be/VJyhv7PvLdU?t=3', 'https://www.youtube.com/watch?v=VJyhv7PvLdU'],
-            'Shorts 保留 Shorts' => ['https://youtube.com/shorts/f0VtQlsYggQ?si=Ydry', 'https://www.youtube.com/shorts/f0VtQlsYggQ'],
-            'IG 追蹤參數' => ['https://www.instagram.com/p/DejKT8aH03w/?obrf=MWN2', 'https://www.instagram.com/p/DejKT8aH03w/'],
-            'IG Reels' => ['https://www.instagram.com/reel/Dcx6CJmzjTX/?exln=MWdh', 'https://www.instagram.com/reel/Dcx6CJmzjTX/'],
-            'Threads 語言參數與舊網域' => ['https://www.threads.net/@uniqlo/post/DGxKQj5hK21?hl=zh-tw', 'https://www.threads.com/@uniqlo/post/DGxKQj5hK21'],
-            'X 舊網域' => ['https://twitter.com/ea_eran/status/1299301346047262722?s=20', 'https://x.com/ea_eran/status/1299301346047262722'],
+            'YouTube 分享帶 si' => ['https://youtube.com/watch?v=M7lc1UVf-VE&si=abc', 'https://www.youtube.com/watch?v=M7lc1UVf-VE'],
+            'YouTube 短網址' => ['https://youtu.be/M7lc1UVf-VE?t=3', 'https://www.youtube.com/watch?v=M7lc1UVf-VE'],
+            'Shorts 保留 Shorts' => ['https://youtube.com/shorts/7lCDEYXw3mM?si=abc', 'https://www.youtube.com/shorts/7lCDEYXw3mM'],
+            'IG 追蹤參數' => ['https://www.instagram.com/p/fA9uwTtkSN/?igsh=abc', 'https://www.instagram.com/p/fA9uwTtkSN/'],
+            'IG Reels' => ['https://www.instagram.com/reel/fA9uwTtkSN/?igsh=abc', 'https://www.instagram.com/reel/fA9uwTtkSN/'],
+            'Threads 語言參數與舊網域' => ['https://www.threads.net/@meta/post/DDzbnVKx57R?hl=zh-tw', 'https://www.threads.com/@meta/post/DDzbnVKx57R'],
+            'X 舊網域' => ['https://twitter.com/Interior/status/507185938620219395?s=20', 'https://x.com/Interior/status/507185938620219395'],
         ];
     }
 
@@ -29,8 +29,8 @@ class SocialUrlTest extends TestCase
 
     public function test_threads_share_link_needs_redirect_before_it_has_a_canonical_url(): void
     {
-        $this->assertTrue(SocialUrl::isThreadsShareLink('https://www.threads.com/share/BAXKotUx6Y/'));
-        $this->assertNull(SocialUrl::canonical('https://www.threads.com/share/BAXKotUx6Y/'));
+        $this->assertTrue(SocialUrl::isThreadsShareLink('https://www.threads.com/share/AbCdEf1234/'));
+        $this->assertNull(SocialUrl::canonical('https://www.threads.com/share/AbCdEf1234/'));
     }
 
     public function test_platform_is_decided_by_host_not_by_substring(): void
@@ -54,9 +54,9 @@ class SocialUrlTest extends TestCase
 
     public function test_kind_follows_the_url_shape(): void
     {
-        $this->assertSame('Shorts', SocialUrl::kind('https://www.youtube.com/shorts/f0VtQlsYggQ'));
-        $this->assertSame('影片', SocialUrl::kind('https://www.youtube.com/watch?v=VJyhv7PvLdU'));
-        $this->assertSame('Reels', SocialUrl::kind('https://www.instagram.com/reel/Dcx6CJmzjTX/'));
-        $this->assertSame('貼文', SocialUrl::kind('https://www.threads.com/@uniqlo/post/DGxKQj5hK21'));
+        $this->assertSame('Shorts', SocialUrl::kind('https://www.youtube.com/shorts/7lCDEYXw3mM'));
+        $this->assertSame('影片', SocialUrl::kind('https://www.youtube.com/watch?v=M7lc1UVf-VE'));
+        $this->assertSame('Reels', SocialUrl::kind('https://www.instagram.com/reel/fA9uwTtkSN/'));
+        $this->assertSame('貼文', SocialUrl::kind('https://www.threads.com/@meta/post/DDzbnVKx57R'));
     }
 }

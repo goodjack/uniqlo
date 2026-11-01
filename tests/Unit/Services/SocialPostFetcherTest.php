@@ -24,17 +24,17 @@ class SocialPostFetcherTest extends TestCase
         Http::fake([
             'graph.threads.net/*' => Http::response(['html' => self::OEMBED_HTML]),
             'www.threads.com/*' => Http::response(
-                '<meta property="og:title" content="Tony Wang (&#064;haku_ou1015) on Threads" />'
-                .'<meta property="og:description" content="更：把鞋子內搭換過了" />'
+                '<meta property="og:title" content="Meta (&#064;meta) on Threads" />'
+                .'<meta property="og:description" content="範例內文" />'
                 .'<meta property="og:image" content="https://scontent.cdninstagram.com/p.jpg?a=1&amp;oe=6AD5FF99" />'
             ),
         ]);
 
-        $post = $this->fetch('https://www.threads.com/@haku_ou1015/post/DIqyoWbyeky?hl=zh-tw');
+        $post = $this->fetch('https://www.threads.com/@meta/post/DDzbnVKx57R?hl=zh-tw');
 
-        $this->assertSame('https://www.threads.com/@haku_ou1015/post/DIqyoWbyeky', $post['canonical_url']);
-        $this->assertSame('Tony Wang (@haku_ou1015)', $post['author']);
-        $this->assertSame('更：把鞋子內搭換過了', $post['text']);
+        $this->assertSame('https://www.threads.com/@meta/post/DDzbnVKx57R', $post['canonical_url']);
+        $this->assertSame('Meta (@meta)', $post['author']);
+        $this->assertSame('範例內文', $post['text']);
         $this->assertSame('https://scontent.cdninstagram.com/p.jpg?a=1&oe=6AD5FF99', $post['cover_url']);
         // 失效時間取自網址的 oe 參數（16 進位 Unix 時間）
         $this->assertSame(hexdec('6AD5FF99'), $post['cover_expires_at']->getTimestamp());
@@ -48,7 +48,7 @@ class SocialPostFetcherTest extends TestCase
             'www.threads.com/*' => Http::response(''),
         ]);
 
-        $this->fetch('https://www.threads.com/@uniqlo/post/DGxKQj5hK21');
+        $this->fetch('https://www.threads.com/@meta/post/DDzbnVKx57R');
 
         Http::assertSent(fn (Request $request) => $request->header('User-Agent') === [SocialPostFetcher::USER_AGENT]);
         Http::assertNotSent(fn (Request $request) => str_contains($request->url(), '/embed'));
@@ -61,7 +61,7 @@ class SocialPostFetcherTest extends TestCase
             'www.threads.com/*' => Http::response('<meta property="og:image" content="https://evil.example.com/p.jpg?oe=6AD5FF99" />'),
         ]);
 
-        $post = $this->fetch('https://www.threads.com/@uniqlo/post/DGxKQj5hK21');
+        $post = $this->fetch('https://www.threads.com/@meta/post/DDzbnVKx57R');
 
         $this->assertNull($post['cover_url']);
         $this->assertNull($post['cover_expires_at']);
@@ -74,7 +74,7 @@ class SocialPostFetcherTest extends TestCase
             'www.threads.com/*' => Http::response('<meta property="og:title" content="'.str_repeat('長', 300).'" />'),
         ]);
 
-        $post = $this->fetch('https://www.threads.com/@uniqlo/post/DGxKQj5hK21');
+        $post = $this->fetch('https://www.threads.com/@meta/post/DDzbnVKx57R');
 
         $this->assertLessThanOrEqual(255, mb_strlen($post['author']));
     }
@@ -82,14 +82,14 @@ class SocialPostFetcherTest extends TestCase
     public function test_threads_share_link_is_resolved_to_the_post_url(): void
     {
         Http::fake([
-            'www.threads.com/share/*' => Http::response('<meta property="og:url" content="https://www.threads.com/&#064;geelou0406/post/DWMAZ2UgRQi" />'),
+            'www.threads.com/share/*' => Http::response('<meta property="og:url" content="https://www.threads.com/&#064;meta/post/DDzbnVKx57R" />'),
             'graph.threads.net/*' => Http::response(['html' => self::OEMBED_HTML]),
             'www.threads.com/*' => Http::response(''),
         ]);
 
-        $post = $this->fetch('https://www.threads.com/share/BAXKotUx6Y/');
+        $post = $this->fetch('https://www.threads.com/share/AbCdEf1234/');
 
-        $this->assertSame('https://www.threads.com/@geelou0406/post/DWMAZ2UgRQi', $post['canonical_url']);
+        $this->assertSame('https://www.threads.com/@meta/post/DDzbnVKx57R', $post['canonical_url']);
     }
 
     public function test_instagram_detects_reels_from_the_page_url(): void
@@ -97,17 +97,17 @@ class SocialPostFetcherTest extends TestCase
         Http::fake([
             'graph.facebook.com/*' => Http::response(['html' => '<blockquote class="instagram-media"></blockquote>']),
             'www.instagram.com/*' => Http::response(
-                '<meta property="og:title" content="86 on Instagram: &quot;UNIQLO 推薦&quot;" />'
-                .'<meta property="og:description" content="6,226 likes, 118 comments - lin_86__ on September 2, 2026: &quot;UNIQLO 推薦&quot;" />'
-                .'<meta property="og:url" content="https://www.instagram.com/lin_86__/reel/Dcx6CJmzjTX/" />'
+                '<meta property="og:title" content="Instagram on Instagram: &quot;UNIQLO 推薦&quot;" />'
+                .'<meta property="og:description" content="6,226 likes, 118 comments - instagram on September 2, 2026: &quot;UNIQLO 推薦&quot;" />'
+                .'<meta property="og:url" content="https://www.instagram.com/instagram/reel/fA9uwTtkSN/" />'
                 .'<meta property="og:image" content="https://scontent.cdninstagram.com/square.jpg?stp=c288.0.864.864a" />'
             ),
         ]);
 
-        $post = $this->fetch('https://www.instagram.com/p/Dcx6CJmzjTX/?exln=abc');
+        $post = $this->fetch('https://www.instagram.com/p/fA9uwTtkSN/?igsh=abc');
 
         $this->assertSame('Reels', $post['kind']);
-        $this->assertSame('86 (@lin_86__)', $post['author']);
+        $this->assertSame('Instagram (@instagram)', $post['author']);
         $this->assertSame('UNIQLO 推薦', $post['text']);
         $this->assertSame('https://scontent.cdninstagram.com/square.jpg?stp=c288.0.864.864a', $post['cover_url']);
     }
@@ -115,8 +115,8 @@ class SocialPostFetcherTest extends TestCase
     public static function instagramDescriptions(): array
     {
         return [
-            '有讚數' => ['2,082 likes, 9 comments - uniqlo on October 16, 2026: &quot;Fleece is an essential.&quot;. ', 'UNIQLO Global (@uniqlo)', 'Fleece is an essential.'],
-            '沒有讚數、被截斷' => ['uniqlo on September 30, 2026: &quot;ジャケットの下に', 'UNIQLO Global (@uniqlo)', 'ジャケットの下に'],
+            '有讚數' => ['1,000 likes, 10 comments - uniqlo on October 16, 2026: &quot;Layering for autumn.&quot;. ', 'UNIQLO Global (@uniqlo)', 'Layering for autumn.'],
+            '沒有讚數、被截斷' => ['uniqlo on September 30, 2026: &quot;シャツの重ね着', 'UNIQLO Global (@uniqlo)', 'シャツの重ね着'],
         ];
     }
 
@@ -131,23 +131,23 @@ class SocialPostFetcherTest extends TestCase
             ),
         ]);
 
-        $post = $this->fetch('https://www.instagram.com/p/DejKT8aH03w/');
+        $post = $this->fetch('https://www.instagram.com/p/fA9uwTtkSN/');
 
         $this->assertSame($author, $post['author']);
         $this->assertSame($text, $post['text']);
     }
 
     private const X_OEMBED = [
-        'author_name' => '美国之音中文网',
-        'html' => '<blockquote class="twitter-tweet"><p lang="zh">優衣庫&amp;東京</p>&mdash; VOA</blockquote><script src="https://platform.twitter.com/widgets.js"></script>',
+        'author_name' => 'US Department of the Interior',
+        'html' => '<blockquote class="twitter-tweet"><p lang="zh">範例&amp;內文</p>&mdash; US Department of the Interior</blockquote><script src="https://platform.twitter.com/widgets.js"></script>',
     ];
 
     public static function xPreviewImages(): array
     {
         return [
             '影片' => [
-                'https://pbs.twimg.com/amplify_video_thumb/1737165473676931072/img/7OGLjITSntk646ds?format=webp&amp;name=large',
-                'https://pbs.twimg.com/amplify_video_thumb/1737165473676931072/img/7OGLjITSntk646ds?format=webp&name=large',
+                'https://pbs.twimg.com/amplify_video_thumb/1/img/a?format=webp&amp;name=large',
+                'https://pbs.twimg.com/amplify_video_thumb/1/img/a?format=webp&name=large',
                 '影片',
             ],
             'GIF' => ['https://pbs.twimg.com/tweet_video_thumb/GabcDEF.jpg', 'https://pbs.twimg.com/tweet_video_thumb/GabcDEF.jpg', '影片'],
@@ -166,16 +166,16 @@ class SocialPostFetcherTest extends TestCase
             'x.com/*' => Http::response('<meta property="og:type" content="article"/><meta property="og:image" content="'.$ogImage.'"/>'),
         ]);
 
-        $post = $this->fetch('https://twitter.com/VOAChinese/status/1737165626911662317?s=20');
+        $post = $this->fetch('https://twitter.com/Interior/status/463440424141459456?s=20');
 
-        $this->assertSame('https://x.com/VOAChinese/status/1737165626911662317', $post['canonical_url']);
-        $this->assertSame('美国之音中文网', $post['author']);
-        $this->assertSame('優衣庫&東京', $post['text']);
+        $this->assertSame('https://x.com/Interior/status/463440424141459456', $post['canonical_url']);
+        $this->assertSame('US Department of the Interior', $post['author']);
+        $this->assertSame('範例&內文', $post['text']);
         $this->assertSame($cover, $post['cover_url']);
         $this->assertSame($kind, $post['kind']);
         // X 的圖網址沒有 oe 參數，不設失效時間，跟著每天整批重抓更新
         $this->assertNull($post['cover_expires_at']);
-        Http::assertSent(fn (Request $request) => $request->url() === 'https://x.com/VOAChinese/status/1737165626911662317'
+        Http::assertSent(fn (Request $request) => $request->url() === 'https://x.com/Interior/status/463440424141459456'
             && $request->header('User-Agent') === [SocialPostFetcher::USER_AGENT]);
         Http::assertNotSent(fn (Request $request) => str_contains($request->url(), 'syndication'));
     }
@@ -187,9 +187,9 @@ class SocialPostFetcherTest extends TestCase
             'x.com/*' => Http::response('', 403),
         ]);
 
-        $post = $this->fetch('https://x.com/VOAChinese/status/1737165626911662317');
+        $post = $this->fetch('https://x.com/Interior/status/463440424141459456');
 
-        $this->assertSame('優衣庫&東京', $post['text']);
+        $this->assertSame('範例&內文', $post['text']);
         $this->assertNull($post['cover_url']);
         $this->assertSame('貼文', $post['kind']);
     }
@@ -203,18 +203,18 @@ class SocialPostFetcherTest extends TestCase
 
         $this->expectException(RequestException::class);
 
-        $this->fetch('https://x.com/VOAChinese/status/1737165626911662317');
+        $this->fetch('https://x.com/Interior/status/463440424141459456');
     }
 
     public function test_youtube_keeps_the_video_id_and_title(): void
     {
-        Http::fake(['www.youtube.com/oembed*' => Http::response(['author_name' => '質男日著 WearLife', 'title' => 'UNIQLO C系列好物必買！'])]);
+        Http::fake(['www.youtube.com/oembed*' => Http::response(['author_name' => '範例頻道', 'title' => '範例影片'])]);
 
-        $post = $this->fetch('https://youtube.com/shorts/T4Q6DY8xJgQ?si=abc');
+        $post = $this->fetch('https://youtube.com/shorts/M7lc1UVf-VE?si=abc');
 
         $this->assertSame('Shorts', $post['kind']);
-        $this->assertSame('T4Q6DY8xJgQ', $post['youtube_id']);
-        $this->assertSame('UNIQLO C系列好物必買！', $post['text']);
+        $this->assertSame('M7lc1UVf-VE', $post['youtube_id']);
+        $this->assertSame('範例影片', $post['text']);
         $this->assertNull($post['cover_url']);
     }
 

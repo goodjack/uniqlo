@@ -40,8 +40,8 @@ class SocialPostsSectionTest extends TestCase
             'notion_page_id' => "page-{$n}",
             'notion_created_at' => now()->subDays(10 - $n),
             'notion_edited_at' => now(),
-            'source_url' => "https://www.threads.com/@a/post/{$n}",
-            'canonical_url' => "https://www.threads.com/@a/post/{$n}",
+            'source_url' => "https://www.threads.com/@meta/post/{$n}",
+            'canonical_url' => "https://www.threads.com/@meta/post/{$n}",
             'platform' => 'threads',
             'kind' => '貼文',
             'author' => $author,
@@ -90,25 +90,25 @@ class SocialPostsSectionTest extends TestCase
 
     public function test_youtube_card_carries_video_id_and_uses_the_official_thumbnail(): void
     {
-        $this->seedPost('質男日著', [
+        $this->seedPost('範例頻道', [
             'platform' => 'youtube',
             'kind' => 'Shorts',
-            'youtube_id' => 'T4Q6DY8xJgQ',
+            'youtube_id' => 'M7lc1UVf-VE',
         ]);
 
         $html = $this->productPage();
 
-        $this->assertStringContainsString('data-youtube-id="T4Q6DY8xJgQ" data-vertical="1"', $html);
+        $this->assertStringContainsString('data-youtube-id="M7lc1UVf-VE" data-vertical="1"', $html);
         // Shorts 用直式縮圖，沒有就退回一般縮圖
-        $this->assertStringContainsString('data-src="https://i.ytimg.com/vi/T4Q6DY8xJgQ/oardefault.jpg"', $html);
-        $this->assertStringContainsString('https://i.ytimg.com/vi/T4Q6DY8xJgQ/hqdefault.jpg', $html);
-        $this->assertStringContainsString('aria-label="YouTube：質男日著"', $html);
+        $this->assertStringContainsString('data-src="https://i.ytimg.com/vi/M7lc1UVf-VE/oardefault.jpg"', $html);
+        $this->assertStringContainsString('https://i.ytimg.com/vi/M7lc1UVf-VE/hqdefault.jpg', $html);
+        $this->assertStringContainsString('aria-label="YouTube：範例頻道"', $html);
     }
 
     public function test_youtube_card_starts_where_the_video_talks_about_this_product(): void
     {
-        $this->seedPost('質男日著', ['platform' => 'youtube', 'kind' => '影片', 'youtube_id' => 'VUBxkGogbp0'], start: 83);
-        $this->seedPost('Tony', start: 125);
+        $this->seedPost('範例頻道', ['platform' => 'youtube', 'kind' => '影片', 'youtube_id' => '7lCDEYXw3mM'], start: 83);
+        $this->seedPost('Meta', start: 125);
 
         $html = $this->productPage();
 
@@ -121,7 +121,7 @@ class SocialPostsSectionTest extends TestCase
 
     public function test_preview_image_goes_through_our_own_url_and_card_shows_the_handle(): void
     {
-        $post = $this->seedPost('Tony Wang (@haku_ou1015)', ['cover_url' => 'https://scontent.cdninstagram.com/p.jpg?oe=6AD5FF99']);
+        $post = $this->seedPost('Meta (@meta)', ['cover_url' => 'https://scontent.cdninstagram.com/p.jpg?oe=6AD5FF99']);
         $this->seedPost('只有文字', ['text' => '沒有圖的貼文']);
 
         $html = $this->productPage();
@@ -129,19 +129,19 @@ class SocialPostsSectionTest extends TestCase
         $this->assertStringContainsString('data-src="'.e($post->image_url).'"', $html);
         $this->assertStringContainsString('/social-img/'.$post->id.'.jpg', $html);
         $this->assertStringNotContainsString('cdninstagram.com', $html);
-        $this->assertStringContainsString('class="uq-social-author">@haku_ou1015<', $html);
+        $this->assertStringContainsString('class="uq-social-author">@meta<', $html);
         $this->assertMatchesRegularExpression('~class="uq-social-quote"\s*>.*?沒有圖的貼文~s', $html);
     }
 
     public function test_x_video_card_shows_the_relayed_preview_and_a_play_badge(): void
     {
-        $video = $this->seedPost('美国之音中文网', [
+        $video = $this->seedPost('US Department of the Interior', [
             'platform' => 'x',
             'kind' => '影片',
-            'canonical_url' => 'https://x.com/VOAChinese/status/1',
+            'canonical_url' => 'https://x.com/Interior/status/1',
             'cover_url' => 'https://pbs.twimg.com/amplify_video_thumb/1/img/a?format=webp&name=large',
         ]);
-        $this->seedPost('純文字', ['platform' => 'x', 'canonical_url' => 'https://x.com/a/status/2', 'text' => '只有字的推文']);
+        $this->seedPost('純文字', ['platform' => 'x', 'canonical_url' => 'https://x.com/Interior/status/2', 'text' => '只有字的推文']);
 
         $html = $this->productPage();
 
@@ -165,7 +165,7 @@ class SocialPostsSectionTest extends TestCase
 
     public function test_section_comes_right_after_the_price_area_and_first_in_the_menu(): void
     {
-        $this->seedPost('Tony');
+        $this->seedPost('Meta');
 
         $html = $this->productPage();
 
@@ -176,8 +176,8 @@ class SocialPostsSectionTest extends TestCase
 
     public function test_platform_embed_is_built_from_the_url_only(): void
     {
-        $this->seedPost('Tony', [
-            'canonical_url' => 'https://www.threads.com/@haku_ou1015/post/DIqyoWbyeky',
+        $this->seedPost('Meta', [
+            'canonical_url' => 'https://www.threads.com/@meta/post/DDzbnVKx57R',
             'text' => '只在卡片上出現的內文',
         ]);
 
@@ -186,7 +186,7 @@ class SocialPostsSectionTest extends TestCase
 
         [$embed, $fallback] = explode('uq-social-fallback', $m[1]);
 
-        $this->assertStringContainsString('data-text-post-permalink="https://www.threads.com/t/DIqyoWbyeky"', $embed);
+        $this->assertStringContainsString('data-text-post-permalink="https://www.threads.com/t/DDzbnVKx57R"', $embed);
         $this->assertStringNotContainsString('只在卡片上出現的內文', $embed);
         // 平台嵌入被擋時才顯示的備用卡片，用的是自己存的內容
         $this->assertStringContainsString('只在卡片上出現的內文', $fallback);

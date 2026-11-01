@@ -17,8 +17,8 @@ class SocialPostImageTest extends TestCase
             'notion_page_id' => 'page-1',
             'notion_created_at' => now(),
             'notion_edited_at' => now(),
-            'source_url' => 'https://www.threads.com/@a/post/1',
-            'canonical_url' => 'https://www.threads.com/@a/post/1',
+            'source_url' => 'https://www.threads.com/@meta/post/1',
+            'canonical_url' => 'https://www.threads.com/@meta/post/1',
             'platform' => 'threads',
             'kind' => '貼文',
             'cover_url' => 'https://scontent.cdninstagram.com/p.jpg',
@@ -76,7 +76,7 @@ class SocialPostImageTest extends TestCase
         Http::fake(['pbs.twimg.com/*' => Http::response('webp-bytes', 200, ['Content-Type' => 'image/webp'])]);
         $x = $this->seedPost([
             'platform' => 'x',
-            'canonical_url' => 'https://x.com/a/status/1',
+            'canonical_url' => 'https://x.com/Interior/status/1',
             'cover_url' => 'https://pbs.twimg.com/amplify_video_thumb/1/img/a?format=webp&name=large',
         ]);
         $logo = $this->seedPost(['notion_page_id' => 'page-2', 'platform' => 'x', 'cover_url' => 'https://abs.twimg.com/x-web/assets/og/default-og.1.jpg']);
