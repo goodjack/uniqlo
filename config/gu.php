@@ -24,6 +24,12 @@ return [
             'jp' => env('GU_API_SKU_LOOKUP_JP'),
         ],
 
+        // 查條碼時要帶的標頭，JSON 物件字串，例如 {"Accept-Language":"zh-TW"}；解析失敗當成沒有
+        'sku_lookup_headers' => [
+            'tw' => env('GU_SKU_LOOKUP_HEADERS_TW'),
+            'jp' => env('GU_SKU_LOOKUP_HEADERS_JP'),
+        ],
+
         'v3' => [
             'search' => [
                 'tw' => env('GU_API_V3_SEARCH_TW'),

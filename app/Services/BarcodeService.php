@@ -175,7 +175,7 @@ class BarcodeService extends Service
         }
 
         try {
-            $response = Http::withHeaders($this->headers($region))
+            $response = Http::withHeaders($this->headers($region, $brand))
                 ->connectTimeout(3)
                 ->timeout(6)
                 ->get($url);
@@ -183,7 +183,8 @@ class BarcodeService extends Service
             throw new BarcodeLookupUnavailableException("{$region} {$brand->value} 連線失敗：{$e->getMessage()}");
         }
 
-        $json = $response->successful() ? $response->json() : null;
+        // 有的查詢網址查無商品時回真的 404，內文照樣是 JSON，交給各地區的解讀判斷
+        $json = $response->successful() || $response->notFound() ? $response->json() : null;
 
         if (! is_array($json)) {
             throw new BarcodeLookupUnavailableException("{$region} {$brand->value} 回應異常：HTTP {$response->status()}");
@@ -234,9 +235,9 @@ class BarcodeService extends Service
     /**
      * @return array<string, string>
      */
-    private function headers(string $region): array
+    private function headers(string $region, Brand $brand): array
     {
-        $headers = json_decode((string) config("barcode.headers.{$region}"), true);
+        $headers = json_decode((string) config("{$brand->slug()}.api.sku_lookup_headers.{$region}"), true);
 
         if (! is_array($headers)) {
             return [];

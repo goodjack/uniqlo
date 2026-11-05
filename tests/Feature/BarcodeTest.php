@@ -41,8 +41,10 @@ class BarcodeTest extends TestCase
 
         config([
             'barcode.enabled' => true,
-            'barcode.headers.tw' => '{"X-Test":"tw"}',
-            'barcode.headers.jp' => '{"X-Test":"jp"}',
+            'uniqlo.api.sku_lookup_headers.tw' => '{"X-Test":"uniqlo-tw"}',
+            'gu.api.sku_lookup_headers.tw' => '{"X-Test":"gu-tw"}',
+            'uniqlo.api.sku_lookup_headers.jp' => '{"X-Test":"uniqlo-jp"}',
+            'gu.api.sku_lookup_headers.jp' => '{"X-Test":"gu-jp"}',
             'barcode.limits.per_minute' => 10,
             'barcode.limits.daily_upstream' => 400,
             'barcode.limits.daily_upstream_per_client' => 40,
@@ -113,7 +115,7 @@ class BarcodeTest extends TestCase
         $this->assertSame(['482306'], Barcode::first()->codes);
 
         // 設定裡的標頭要原樣帶上
-        Http::assertSent(fn (HttpRequest $request) => $request->hasHeader('X-Test', 'tw'));
+        Http::assertSent(fn (HttpRequest $request) => $request->hasHeader('X-Test', 'uniqlo-tw'));
         Http::assertSentCount(1);
     }
 
@@ -134,6 +136,9 @@ class BarcodeTest extends TestCase
             ->assertJson(['status' => 'found', 'url' => $product->route_url, 'code' => '352745']);
 
         $this->assertDatabaseHas('barcodes', ['barcode' => '2200071521093', 'brand' => 'GU']);
+        // 每個品牌帶自己的標頭，不互相借用
+        Http::assertSent(fn (HttpRequest $request) => str_contains($request->url(), 'tw-gu.test')
+            && $request->hasHeader('X-Test', 'gu-tw'));
         Http::assertSentCount(2);
     }
 
@@ -167,7 +172,7 @@ class BarcodeTest extends TestCase
             'product_code' => 'E470077-000',
         ]);
         Http::assertSent(fn (HttpRequest $request) => str_contains($request->url(), 'jp-uniqlo.test')
-            && $request->hasHeader('X-Test', 'jp'));
+            && $request->hasHeader('X-Test', 'uniqlo-jp'));
         Http::assertSentCount(3);
     }
 
@@ -240,6 +245,27 @@ class BarcodeTest extends TestCase
             ]);
     }
 
+    public function test_a_japan_not_found_sent_as_http_404_still_counts_as_not_found(): void
+    {
+        Http::fake([
+            self::TW_UNIQLO => Http::response($this->taiwanEmpty()),
+            self::TW_GU => Http::response($this->taiwanEmpty()),
+            self::JP_UNIQLO => Http::response($this->japanEmpty(), 404),
+            self::JP_GU => Http::response($this->japanEmpty(), 404),
+        ]);
+
+        $this->getJson(route('barcodes.show', self::UNKNOWN_BARCODE))
+            ->assertOk()
+            ->assertJson(['status' => 'not_product']);
+    }
+
+    public function test_a_404_page_that_is_not_json_means_unavailable(): void
+    {
+        Http::fake([self::TW_UNIQLO => Http::response('<html>Not Found</html>', 404)]);
+
+        $this->getJson(route('barcodes.show', self::UNKNOWN_BARCODE))->assertJson(['status' => 'unavailable']);
+    }
+
     public function test_a_barcode_nobody_knows_is_remembered_for_a_day_only(): void
     {
         Http::fake([
@@ -253,6 +279,8 @@ class BarcodeTest extends TestCase
             ->assertOk()
             ->assertJson(['status' => 'not_product', 'barcode' => self::UNKNOWN_BARCODE]);
         Http::assertSentCount(4);
+        Http::assertSent(fn (HttpRequest $request) => str_contains($request->url(), 'jp-gu.test')
+            && $request->hasHeader('X-Test', 'gu-jp'));
         $this->assertDatabaseCount('barcodes', 0);
 
         $this->travel(23)->hours();
@@ -411,7 +439,7 @@ class BarcodeTest extends TestCase
 
     public function test_broken_header_settings_are_treated_as_empty(): void
     {
-        config(['barcode.headers.tw' => '{not json']);
+        config(['uniqlo.api.sku_lookup_headers.tw' => '{not json']);
         Http::fake([self::TW_UNIQLO => Http::response($this->taiwanFound())]);
 
         $this->getJson(route('barcodes.show', self::TW_BARCODE))->assertJson(['status' => 'not_listed']);
