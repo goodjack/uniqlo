@@ -25,6 +25,31 @@
                 <div class="ts basic segment">
                     <!-- 標題 -->
                     <h2 class="ts dividing header">
+                        v4.3.0
+                    </h2>
+                    <!-- / 標題 -->
+                    <div class="ts large compact basic fitted secondary message">
+                        <div class="header">全新功能上線</div>
+                        <ul>
+                            <li>掃描吊牌條碼，直接找到商品</li>
+                            <li>商品頁新增「社群熱推」，看大家怎麼穿</li>
+                            <li>清單頁可以依「降價最多」排序</li>
+                            <li>分享時可以選 Threads</li>
+                        </ul>
+                        <div class="header">功能優化</div>
+                        <ul>
+                            <li>頁面載入更快</li>
+                            <li>手機版多項改善，商品圖片可以橫向滑動，篩選面板重新設計</li>
+                            <li>修正價格走勢圖的日期順序</li>
+                            <li>補齊部分商品缺少的說明</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- / 文章 -->
+                <!-- 文章 -->
+                <div class="ts basic segment">
+                    <!-- 標題 -->
+                    <h2 class="ts dividing header">
                         v4.2.0
                     </h2>
                     <!-- / 標題 -->
