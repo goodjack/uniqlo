@@ -21,6 +21,12 @@ return [
         'version' => '2026-03-11',
     ],
 
+    // cloudflare:purge 用，見 .env.example
+    'cloudflare' => [
+        'zone_id' => env('CLOUDFLARE_ZONE_ID'),
+        'purge_token' => env('CLOUDFLARE_PURGE_TOKEN'),
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),

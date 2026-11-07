@@ -5,7 +5,7 @@ use App\Enums\ProductTag;
 // 導覽資料，桌機選單、手機選單、頁尾與麵包屑共用
 
 // 導覽列與頁尾顯示的版號。要跟更新日誌最新那篇的標題一致（PageSkeletonTest 會檢查）
-$version = 'v4.2.0';
+$version = 'v4.3.0';
 
 return [
     // 不屬於分組的單一入口。label 給導覽列（短名），title 給麵包屑與頁面標題

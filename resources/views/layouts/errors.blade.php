@@ -1,3 +1,0 @@
-@if (count($errors))
-
-@endif

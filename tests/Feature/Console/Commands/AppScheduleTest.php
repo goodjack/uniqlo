@@ -11,7 +11,9 @@ use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Console\ClosureCommand;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use ReflectionMethod;
 use Tests\TestCase;
 
@@ -194,6 +196,58 @@ class AppScheduleTest extends TestCase
         Event::assertDispatched(AppTaskFailed::class, function (AppTaskFailed $event) {
             return in_array('sitemap:generate（exit code 2）', $event->data['failed_steps'], true);
         });
+    }
+
+    /**
+     * 每日排程跑完，價格與商品資料都換新了，CDN 上的頁面要跟著清掉，
+     * 不然要等快取自然過期才看得到新價格。
+     */
+    public function test_cdn_cache_is_purged_once_after_a_successful_run(): void
+    {
+        $this->configureCloudflare();
+        $this->fakeAllSteps(partiallySucceeding: ['hmall-product:fetch']);
+
+        $exitCode = $this->artisan('app:schedule')->run();
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        Http::assertSentCount(1);
+        Http::assertSent(fn (Request $request) => str_ends_with($request->url(), '/zones/zone-123/purge_cache'));
+    }
+
+    /**
+     * 有步驟整步失敗時不清：失敗通知會叫人處理，頁面靠快取到期自然更新，
+     * 也避免原始伺服器狀況不好時一次把所有快取都清掉。
+     */
+    public function test_cdn_cache_is_left_alone_when_a_step_fails(): void
+    {
+        $this->configureCloudflare();
+        $this->fakeAllSteps(failing: ['style:fetch']);
+
+        $exitCode = $this->artisan('app:schedule')->run();
+
+        $this->assertSame(Command::FAILURE, $exitCode);
+        Http::assertNothingSent();
+    }
+
+    public function test_a_failed_purge_does_not_fail_the_daily_run(): void
+    {
+        $this->configureCloudflare(status: 500);
+        $this->fakeAllSteps();
+
+        $exitCode = $this->artisan('app:schedule')->run();
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
+        Http::assertSentCount(1);
+        Event::assertNotDispatched(AppTaskFailed::class);
+    }
+
+    private function configureCloudflare(int $status = 200): void
+    {
+        config([
+            'services.cloudflare.zone_id' => 'zone-123',
+            'services.cloudflare.purge_token' => 'token-abc',
+        ]);
+        Http::fake(['api.cloudflare.com/*' => Http::response(['success' => $status === 200, 'errors' => []], $status)]);
     }
 
     /**
