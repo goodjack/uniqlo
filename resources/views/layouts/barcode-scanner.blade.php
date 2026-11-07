@@ -38,8 +38,9 @@
     <div class="header" id="barcode-panel-title" data-panel-title tabindex="-1"></div>
     <div class="content">
         <form id="barcode-panel-form" data-panel-form novalidate>
+            {{-- 不設 maxlength：照吊牌分段貼上的空白也算字數，會先被截斷；送出時去掉非數字再檢查長度 --}}
             <div class="ts fluid input">
-                <input id="barcode-panel-input" type="text" inputmode="numeric" autocomplete="off" maxlength="13"
+                <input id="barcode-panel-input" type="text" inputmode="numeric" autocomplete="off"
                     placeholder="例如 2000216727355" aria-labelledby="barcode-panel-title"
                     aria-describedby="barcode-panel-hint barcode-panel-error">
             </div>

@@ -46,6 +46,8 @@
     const SLOW_HINT_AFTER = 5000;
     // 掃到後停格讓人看清楚「掃到了」，再換頁
     const CONFIRM_FOR = 500;
+    // 網站最多要依序問四個來源，給足時間；再久就當成暫時查不到，讓畫面能再操作
+    const QUERY_TIMEOUT = 15000;
 
     const TEXT = {
         starting: '正在開啟鏡頭…',
@@ -81,6 +83,13 @@
             detail: '也可以在搜尋框打吊牌上的商品編號。',
             camera: ['retry', 'search'],
             manual: ['retry', 'search'],
+        },
+        // 不是網站的回應，是 CDN 要先確認瀏覽器的驗證頁；fetch 解不了，等多久都一樣，要重新整理頁面
+        reload: {
+            title: '請重新整理頁面',
+            detail: '連線需要重新確認，重新整理頁面後再查一次。',
+            camera: ['reload'],
+            manual: ['reload'],
         },
     };
 
@@ -354,6 +363,12 @@
                 returnFocusTo = searchInput;
                 closeAll();
             });
+        } else if (kind === 'reload') {
+            element.className = 'ts button';
+            element.textContent = '重新整理頁面';
+            element.addEventListener('click', function () {
+                window.location.reload();
+            });
         }
 
         return element;
@@ -614,22 +629,49 @@
 
     // ---- 查詢 ------------------------------------------------------------
 
+    // CDN 的驗證頁：403 加上 cf-mitigated: challenge；沒帶標頭但 403 又不是 JSON 的也一樣處理
+    function isChallenge(response) {
+        return response.status === 403 && (
+            response.headers.get('cf-mitigated') === 'challenge'
+            || !(response.headers.get('content-type') || '').includes('application/json')
+        );
+    }
+
+    // 目標跟現在這頁只差錨點時，瀏覽器只會捲動、不會換頁
+    function isSamePageAnchor(url) {
+        const target = new URL(url, window.location.href);
+
+        return target.hash !== ''
+            && target.origin === window.location.origin
+            && target.pathname === window.location.pathname
+            && target.search === window.location.search;
+    }
+
     async function query(barcode, where) {
         const token = session;
         // 只有最後一次查詢的回應能更新畫面或跳頁
         const seq = ++querySeq;
         const startedAt = performance.now();
+        const controller = new AbortController();
+        const timeout = setTimeout(function () {
+            controller.abort();
+        }, QUERY_TIMEOUT);
         let data = null;
 
         try {
             const response = await fetch(dialog.dataset.endpoint + '/' + barcode, {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
+                signal: controller.signal,
             });
 
-            data = await response.json();
+            data = isChallenge(response)
+                ? { status: 'reload', barcode: barcode }
+                : await response.json();
         } catch (error) {
-            // 斷網、或功能剛被關掉（404 不是 JSON），都當成暫時查不到
+            // 斷網、逾時、或功能剛被關掉（404 不是 JSON），都當成暫時查不到
+        } finally {
+            clearTimeout(timeout);
         }
 
         if (!data || !data.status) {
@@ -646,6 +688,13 @@
 
         if (data.status === 'found' && data.url) {
             stopCamera();
+
+            // 已經在這件商品頁再掃同款日本吊牌時，網址只差 #japan：不換頁就不會有 pagehide，
+            // 要自己收掉。先收才會讓焦點回到圖示，接著的錨點跳轉才會停在日本版資訊
+            if (isSamePageAnchor(data.url)) {
+                closeAll();
+            }
+
             window.location.assign(data.url);
 
             return;
@@ -706,8 +755,9 @@
     function restoreFocus() {
         const target = returnFocusTo || (trigger.offsetParent !== null ? trigger : null);
 
+        // close 事件晚一步才到，不捲動才不會把剛跳到的錨點捲回頂端；一般關閉時圖示本來就在畫面上
         if (target) {
-            target.focus();
+            target.focus({ preventScroll: true });
         }
     }
 

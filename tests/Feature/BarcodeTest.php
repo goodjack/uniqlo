@@ -491,6 +491,15 @@ class BarcodeTest extends TestCase
         $this->assertStringContainsString('data-placeholder-narrow="關鍵字或編號"', $content);
     }
 
+    public function test_the_typed_barcode_is_not_cut_short_before_spaces_are_removed(): void
+    {
+        $content = $this->get(route('home'))->assertOk()->getContent();
+
+        // 照吊牌分段貼上「2 000216 727355」有 15 個字，長度交給送出時的檢查
+        $this->assertSame(1, preg_match('/<input id="barcode-panel-input"[^>]*>/', $content, $match));
+        $this->assertStringNotContainsString('maxlength', $match[0]);
+    }
+
     public function test_the_icon_comes_before_the_magnifier(): void
     {
         $content = $this->get(route('home'))->assertOk()->getContent();
