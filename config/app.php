@@ -225,6 +225,12 @@ return [
 
     'discord_webhook_url' => env('DISCORD_WEBHOOK_URL'),
 
+    // Better Stack 的定時回報網址：每日排程開始時、跑完時各打一次，沒收到就會發警報
+    'schedule_heartbeat' => [
+        'start_url' => env('SCHEDULE_HEARTBEAT_START_URL'),
+        'finish_url' => env('SCHEDULE_HEARTBEAT_FINISH_URL'),
+    ],
+
     'adsense' => [
         'client_id' => env('ADSENSE_CLIENT_ID'),
         'slot_id' => env('ADSENSE_SLOT_ID'),
