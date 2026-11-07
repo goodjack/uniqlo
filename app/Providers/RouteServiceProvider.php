@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
+use App\Enums\BarcodeStatus;
+use App\Http\Controllers\BarcodeController;
 use App\Http\Requests\ListRequest;
 use App\Models\HmallProduct;
+use App\Support\BarcodeResult;
+use App\Support\ClientKey;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -56,6 +60,21 @@ class RouteServiceProvider extends ServiceProvider
             return ListRequest::keywordFrom($request) !== null
                 ? Limit::perMinute(30)->by($request->ip())
                 : Limit::none();
+        });
+
+        // 每次查詢都可能轉問官網，同一個來源短時間內查太多次就擋；全站每日上限在 BarcodeService
+        RateLimiter::for('barcode-lookup', function (Request $request) {
+            if (! config('barcode.enabled')) {
+                return Limit::none();
+            }
+
+            return Limit::perMinute((int) config('barcode.limits.per_minute'))
+                ->by(ClientKey::fromIp($request->ip()))
+                ->response(fn (Request $request, array $headers) => BarcodeController::respond(
+                    new BarcodeResult(BarcodeStatus::Unavailable, (string) $request->route('barcode')),
+                    429,
+                    $headers,
+                ));
         });
 
         $this->routes(function () {

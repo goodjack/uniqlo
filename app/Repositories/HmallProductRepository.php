@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Enums\Brand;
 use App\Enums\CategoryLevel;
 use App\Enums\ProductTag;
 use App\Models\HmallCategory;
@@ -585,6 +586,28 @@ class HmallProductRepository extends Repository
             ->map(fn (array $item) => $products->get($item['brand'].':'.$item['code']))
             ->filter()
             ->values();
+    }
+
+    public function findByBrandAndProductCode(Brand $brand, string $productCode): ?HmallProduct
+    {
+        return $this->model
+            ->where('brand', $brand->value)
+            ->where('product_code', $productCode)
+            ->first();
+    }
+
+    /**
+     * 同一個 6 位數編號可能對到好幾件（換季重出、不同版本），挑有貨的、再挑最新的。
+     */
+    public function findPreferredByBrandAndCode(Brand $brand, string $code): ?HmallProduct
+    {
+        return $this->model
+            ->with('japanProduct')
+            ->where('brand', $brand->value)
+            ->where('code', $code)
+            ->orderBy(DB::raw('ISNULL(`stockout_at`)'), 'desc')
+            ->orderBy('id', 'desc')
+            ->first();
     }
 
     /**

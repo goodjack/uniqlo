@@ -32,6 +32,18 @@ return [
             'tw' => env('UQ_API_UGC_OFFICIAL_STYLE_LIST_TW'),
         ],
 
+        // 用吊牌條碼查商品，網址裡的 {barcode} 換成條碼
+        'sku_lookup' => [
+            'tw' => env('UQ_API_SKU_LOOKUP_TW'),
+            'jp' => env('UQ_API_SKU_LOOKUP_JP'),
+        ],
+
+        // 查條碼時要帶的標頭，JSON 物件字串，例如 {"Accept-Language":"zh-TW"}；解析失敗當成沒有
+        'sku_lookup_headers' => [
+            'tw' => env('UQ_SKU_LOOKUP_HEADERS_TW'),
+            'jp' => env('UQ_SKU_LOOKUP_HEADERS_JP'),
+        ],
+
         'v3' => [
             'search' => [
                 'tw' => env('UQ_API_V3_SEARCH_TW'),
