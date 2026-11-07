@@ -54,13 +54,20 @@ class AppSchedule extends Command
             }
         }
 
-        if ($failedSteps === [] && $partialSteps === []) {
-            return self::SUCCESS;
+        if ($failedSteps !== [] || $partialSteps !== []) {
+            $this->reportOutcome($failedSteps, $partialSteps, count($steps));
         }
 
-        $this->reportOutcome($failedSteps, $partialSteps, count($steps));
+        if ($failedSteps !== []) {
+            return self::FAILURE;
+        }
 
-        return $failedSteps === [] ? self::SUCCESS : self::FAILURE;
+        // 價格與商品資料整批換新了，CDN 上的頁面跟著清掉，不用等快取過期。
+        // 有步驟整步失敗時不清：交給快取自然過期，也避免原始伺服器狀況不好時清空快取。
+        // 清不掉只記 log，不影響這一輪的結果
+        $this->call('cloudflare:purge');
+
+        return self::SUCCESS;
     }
 
     /**

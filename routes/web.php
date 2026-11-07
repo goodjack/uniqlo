@@ -25,7 +25,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', [HomeController::class, 'index'])->name('home');
+// 掛 edge-cache 的頁面交給 CDN 快取，要遵守的條件見 App\Http\Middleware\SetEdgeCacheHeaders
+Route::get('/', [HomeController::class, 'index'])->middleware('edge-cache')->name('home');
 
 // 社群熱推卡片的預覽圖。.jpg 結尾讓 CDN 預設就會快取
 Route::get('/social-img/{socialPost}.jpg', [SocialPostImageController::class, 'show'])
@@ -45,15 +46,15 @@ Route::group(['prefix' => 'products'], function () {
     Route::permanentRedirect('/multi-buys', '/lists/multi-buy')->name('products.multi-buys');
     Route::permanentRedirect('/news', '/lists/new')->name('products.news');
     Route::permanentRedirect('/most-reviewed', '/lists/most-reviewed')->name('products.most-reviewed');
-    Route::get('/{product}', [ProductController::class, 'show'])->name('products.show');
+    Route::get('/{product}', [ProductController::class, 'show'])->middleware('edge-cache')->name('products.show');
 });
 
-Route::group(['prefix' => 'hmall-products'], function () {
+Route::group(['prefix' => 'hmall-products', 'middleware' => 'edge-cache'], function () {
     Route::get('/{uniqlo_product_code}', [HmallProductController::class, 'show'])->name('uniqlo-hmall-products.show');
     Route::get('/{uniqlo_product_code}/style-hints', [StyleHintController::class, 'show'])->name('uniqlo-style-hints.show');
 });
 
-Route::group(['prefix' => 'gu-products'], function () {
+Route::group(['prefix' => 'gu-products', 'middleware' => 'edge-cache'], function () {
     Route::get('/{gu_product_code}', [HmallProductController::class, 'show'])->name('gu-hmall-products.show');
     Route::get('/{gu_product_code}/style-hints', [StyleHintController::class, 'show'])->name('gu-style-hints.show');
 });
@@ -88,7 +89,7 @@ Route::group(['prefix' => 'favorites'], function () {
         ->name('favorites.cards');
 });
 
-Route::group(['prefix' => 'categories', 'middleware' => 'throttle:category-search'], function () {
+Route::group(['prefix' => 'categories', 'middleware' => ['edge-cache', 'throttle:category-search']], function () {
     Route::get('/', [CategoryController::class, 'index'])->name('categories.index');
     // code 來自官網，可能含 / 等字元；連結一律用 App\Support\Url::category() 產生
     Route::get('/{brand}/{code}', [CategoryController::class, 'show'])
@@ -96,7 +97,7 @@ Route::group(['prefix' => 'categories', 'middleware' => 'throttle:category-searc
         ->name('categories.show');
 });
 
-Route::group(['prefix' => 'lists'], function () {
+Route::group(['prefix' => 'lists', 'middleware' => 'edge-cache'], function () {
     Route::get('/limited-offers', [ListController::class, 'getLimitedOffers'])->name('lists.limited-offers');
     Route::get('/sale', [ListController::class, 'getSale'])->name('lists.sale');
     Route::get('/most-reviewed', [ListController::class, 'getMostReviewed'])->name('lists.most-reviewed');
