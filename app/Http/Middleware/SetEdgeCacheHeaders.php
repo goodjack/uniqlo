@@ -26,8 +26,11 @@ class SetEdgeCacheHeaders
     {
         $response = $next($request);
 
-        // 帶 cookie 的回應寧可不快取，否則某個人的 cookie 會被 CDN 發給所有人
-        if ($response->getStatusCode() === Response::HTTP_OK && $response->headers->getCookies() === []) {
+        // 帶 cookie 的回應寧可不快取，否則某個人的 cookie 會被 CDN 發給所有人。
+        // 帶內容的請求也不快取：CDN 的快取鍵只看網址，Laravel 卻會把請求內容當成輸入讀進去
+        if ($response->getStatusCode() === Response::HTTP_OK
+            && $response->headers->getCookies() === []
+            && $request->getContent() === '') {
             $response->setPublic();
             $response->setMaxAge(self::MAX_AGE);
             $response->setSharedMaxAge(self::S_MAXAGE);
