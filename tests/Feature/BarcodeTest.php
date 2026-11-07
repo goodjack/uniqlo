@@ -48,6 +48,7 @@ class BarcodeTest extends TestCase
             'barcode.limits.per_minute' => 10,
             'barcode.limits.daily_upstream' => 400,
             'barcode.limits.daily_upstream_per_client' => 40,
+            'barcode.limits.upstream_cooldown_minutes' => 10,
             'uniqlo.api.sku_lookup.tw' => 'https://tw-uniqlo.test/sku/{barcode}',
             'gu.api.sku_lookup.tw' => 'https://tw-gu.test/sku/{barcode}',
             'uniqlo.api.sku_lookup.jp' => 'https://jp-uniqlo.test/lookup/{barcode}',
@@ -297,6 +298,7 @@ class BarcodeTest extends TestCase
         return [
             '連不上' => [fn () => throw new ConnectionException('timed out')],
             '被擋' => [fn () => Http::response('<html>Access Denied</html>', 403)],
+            '太多請求' => [fn () => Http::response('<html>Too Many Requests</html>', 429)],
             '回了網頁不是 JSON' => [fn () => Http::response('<html></html>', 200)],
         ];
     }
@@ -317,6 +319,81 @@ class BarcodeTest extends TestCase
         $this->assertFalse(Cache::has(BarcodeService::NOT_FOUND_CACHE_PREFIX.self::UNKNOWN_BARCODE));
         // 出錯就停，不會接著問日本
         Http::assertNotSent(fn (HttpRequest $request) => str_contains($request->url(), 'jp-'));
+    }
+
+    #[DataProvider('upstreamFailures')]
+    public function test_after_an_upstream_failure_the_official_sites_are_left_alone_for_a_while(\Closure $failure): void
+    {
+        $calls = 0;
+        Http::fake([
+            self::TW_UNIQLO => function () use (&$calls, $failure) {
+                return ++$calls === 1 ? $failure() : Http::response($this->taiwanFound());
+            },
+        ]);
+        $product = $this->createProduct(['product_code' => 'u0000000053917', 'code' => '482306']);
+        $this->createBarcode(['barcode' => self::TW_BARCODE, 'product_code' => 'u0000000053917']);
+
+        $this->getJson(route('barcodes.show', self::UNKNOWN_BARCODE))->assertJson(['status' => 'unavailable']);
+        $this->assertSame(1, $calls);
+
+        // 暫停期間別的條碼也不問官網
+        $this->getJson(route('barcodes.show', '2000000000015'))->assertJson(['status' => 'unavailable']);
+        $this->assertSame(1, $calls);
+        $this->assertFalse(Cache::has(BarcodeService::NOT_FOUND_CACHE_PREFIX.'2000000000015'));
+
+        // 已經存表的照樣查得到
+        $this->getJson(route('barcodes.show', self::TW_BARCODE))
+            ->assertJson(['status' => 'found', 'url' => $product->route_url]);
+
+        $this->travel(10)->minutes();
+        $this->travel(1)->seconds();
+        $this->getJson(route('barcodes.show', '2000000000015'))->assertJson(['status' => 'found']);
+        $this->assertSame(2, $calls);
+    }
+
+    public function test_without_any_lookup_url_nothing_is_asked_or_remembered(): void
+    {
+        Http::fake();
+        config([
+            'uniqlo.api.sku_lookup.tw' => null,
+            'gu.api.sku_lookup.tw' => null,
+            'uniqlo.api.sku_lookup.jp' => null,
+            'gu.api.sku_lookup.jp' => null,
+        ]);
+
+        $this->getJson(route('barcodes.show', self::UNKNOWN_BARCODE))
+            ->assertOk()
+            ->assertJson(['status' => 'unavailable', 'barcode' => self::UNKNOWN_BARCODE]);
+
+        Http::assertNothingSent();
+        $this->assertFalse(Cache::has(BarcodeService::NOT_FOUND_CACHE_PREFIX.self::UNKNOWN_BARCODE));
+        $this->assertDatabaseCount('barcodes', 0);
+    }
+
+    public function test_a_miss_while_some_lookup_urls_are_unset_is_not_remembered(): void
+    {
+        Http::fake([
+            self::TW_UNIQLO => Http::response($this->taiwanEmpty()),
+            self::TW_GU => Http::response($this->taiwanEmpty()),
+        ]);
+        // 暫時關掉日本那一區：日本吊牌沒問到，不能說它不是吊牌
+        config(['uniqlo.api.sku_lookup.jp' => null, 'gu.api.sku_lookup.jp' => '']);
+
+        $this->getJson(route('barcodes.show', self::JP_BARCODE))->assertJson(['status' => 'unavailable']);
+
+        Http::assertSentCount(2);
+        $this->assertFalse(Cache::has(BarcodeService::NOT_FOUND_CACHE_PREFIX.self::JP_BARCODE));
+        $this->assertDatabaseCount('barcodes', 0);
+    }
+
+    public function test_a_hit_still_counts_while_some_lookup_urls_are_unset(): void
+    {
+        Http::fake([self::TW_GU => Http::response($this->taiwanFound())]);
+        config(['uniqlo.api.sku_lookup.tw' => null]);
+
+        $this->getJson(route('barcodes.show', self::TW_BARCODE))->assertJson(['status' => 'not_listed', 'brand' => 'GU']);
+
+        $this->assertDatabaseHas('barcodes', ['barcode' => self::TW_BARCODE, 'brand' => 'GU']);
     }
 
     public static function ambiguousAnswers(): array

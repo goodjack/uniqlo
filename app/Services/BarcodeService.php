@@ -32,6 +32,9 @@ class BarcodeService extends Service
 
     public const UPSTREAM_LOCK = 'barcode:upstream-lock';
 
+    /** 官網出錯後暫停向官網查詢，時間長度見 config/barcode.php */
+    public const UPSTREAM_COOLDOWN_KEY = 'barcode:upstream-cooldown';
+
     /** 等別的請求數完的最長秒數，等不到就當成暫時無法查詢 */
     public const UPSTREAM_LOCK_WAIT_SECONDS = 2;
 
@@ -78,7 +81,7 @@ class BarcodeService extends Service
         try {
             $attributes = $this->askOfficialSites($barcode, $client);
         } catch (BarcodeLookupUnavailableException $e) {
-            Log::warning('條碼查詢暫時無法使用', ['reason' => $e->getMessage()]);
+            Log::info('條碼查詢暫時無法使用', ['reason' => $e->getMessage()]);
 
             return new BarcodeResult(BarcodeStatus::Unavailable, $barcode);
         }
@@ -123,14 +126,19 @@ class BarcodeService extends Service
      */
     private function askOfficialSites(string $barcode, string $client): ?array
     {
-        $asked = false;
+        if (Cache::has(self::UPSTREAM_COOLDOWN_KEY)) {
+            throw new BarcodeLookupUnavailableException('官網剛出錯，暫停查詢中');
+        }
+
+        $skipped = false;
 
         foreach ($this->sources() as [$region, $brand, $urlTemplate]) {
             if (empty($urlTemplate)) {
+                $skipped = true;
+
                 continue;
             }
 
-            $asked = true;
             $json = $this->request($region, $brand, str_replace('{barcode}', $barcode, $urlTemplate), $client);
             $found = $region === Barcode::REGION_JP
                 ? $this->parseJapan($json, $brand)
@@ -145,8 +153,9 @@ class BarcodeService extends Service
             }
         }
 
-        if (! $asked) {
-            throw new BarcodeLookupUnavailableException('沒有設定查詢網址');
+        // 沒設定網址的來源沒問到，其他家查不到也不能斷定不是吊牌，不進快取
+        if ($skipped) {
+            throw new BarcodeLookupUnavailableException('有查詢網址沒設定');
         }
 
         return null;
@@ -180,17 +189,31 @@ class BarcodeService extends Service
                 ->timeout(6)
                 ->get($url);
         } catch (ConnectionException $e) {
-            throw new BarcodeLookupUnavailableException("{$region} {$brand->value} 連線失敗：{$e->getMessage()}");
+            throw $this->coolDown("{$region} {$brand->value} 連線失敗：{$e->getMessage()}");
         }
 
         // 有的查詢網址查無商品時回真的 404，內文照樣是 JSON，交給各地區的解讀判斷
         $json = $response->successful() || $response->notFound() ? $response->json() : null;
 
         if (! is_array($json)) {
-            throw new BarcodeLookupUnavailableException("{$region} {$brand->value} 回應異常：HTTP {$response->status()}");
+            throw $this->coolDown("{$region} {$brand->value} 回應異常：HTTP {$response->status()}");
         }
 
         return $json;
+    }
+
+    /**
+     * 被擋、太多請求、連不上或逾時，接著問多半也一樣，先停一段時間再問，不把額度耗在出錯上。
+     * 只看連線與 HTTP 這一層；查不到、額度用完、回應內容格式不對都不算。
+     */
+    private function coolDown(string $reason): BarcodeLookupUnavailableException
+    {
+        $minutes = (int) config('barcode.limits.upstream_cooldown_minutes');
+
+        Cache::put(self::UPSTREAM_COOLDOWN_KEY, true, now()->addMinutes($minutes));
+        Log::error('條碼查詢官網出錯，暫停向官網查詢', ['reason' => $reason, 'minutes' => $minutes]);
+
+        return new BarcodeLookupUnavailableException($reason);
     }
 
     /**
