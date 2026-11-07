@@ -83,6 +83,7 @@
 
     async function start(card) {
         const host = document.createElement('div');
+        host.className = 'uq-social-player';
         card.querySelector('.uq-social-media').appendChild(host);
         const current = { card, host, player: null };
         active = current;

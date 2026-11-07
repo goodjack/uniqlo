@@ -1161,6 +1161,12 @@ html:has(.uq-section-menu) {
     object-fit: cover;
 }
 
+/* 預覽播放器的外框鋪滿卡片，裡面的 iframe 才有高度；疊在縮圖上面 */
+.uq-social-player {
+    position: absolute;
+    inset: 0;
+}
+
 /* 預覽播放器不能被任何東西蓋住（YouTube 規定），點擊交給外層卡片 */
 .uq-social-media iframe {
     pointer-events: none;
