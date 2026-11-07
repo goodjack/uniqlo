@@ -670,13 +670,6 @@ window.UqFavorites = (function () {
         });
     }
 
-    // master 版型的 lazy-load 只處理頁面載入當下就在的圖片
-    function revealLazyImages(container) {
-        container.querySelectorAll('img[data-src]').forEach(function (img) {
-            img.src = img.dataset.src;
-        });
-    }
-
     // 看的是存了幾筆、不是畫面上幾列：已下架的商品沒有列，但還在收藏裡、還清得掉
     function syncToolbar() {
         const toolbar = document.getElementById('favorites-toolbar');
@@ -907,7 +900,6 @@ window.UqFavorites = (function () {
 
         loading.hidden = true;
         container.innerHTML = html;
-        revealLazyImages(container);
         bindAll(container);
         applyOfferFilter(container);
 
