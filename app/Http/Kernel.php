@@ -29,12 +29,14 @@ class Kernel extends HttpKernel
      * @var array<string, array<int, class-string|string>>
      */
     protected $middlewareGroups = [
+        /*
+         * 本站沒有需要 session 的功能（沒有登入、沒有表單，收藏存在瀏覽器），
+         * 所以拿掉 Laravel 預設的 cookie、session 與 CSRF 這幾層，回應不帶任何 cookie，
+         * 公開頁面才能交給 CDN 快取。之後要加登入或表單時，在那些路由依序加回
+         * EncryptCookies、AddQueuedCookiesToResponse、StartSession、
+         * ShareErrorsFromSession、VerifyCsrfToken，不要加回整個群組。
+         */
         'web' => [
-            Middleware\EncryptCookies::class,
-            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            \Illuminate\Session\Middleware\StartSession::class,
-            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-            Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
 
@@ -57,6 +59,7 @@ class Kernel extends HttpKernel
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,
         'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
+        'edge-cache' => Middleware\SetEdgeCacheHeaders::class,
         'can' => \Illuminate\Auth\Middleware\Authorize::class,
         'guest' => Middleware\RedirectIfAuthenticated::class,
         'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
