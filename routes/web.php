@@ -11,7 +11,6 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SocialPostImageController;
 use App\Http\Controllers\StyleHintController;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -118,7 +117,3 @@ Route::group(['prefix' => 'old-lists'], function () {
     Route::get('/news', [ProductController::class, 'news'])->name('old-lists.news');
     Route::get('/multi-buys', [ProductController::class, 'multiBuys'])->name('old-lists.multi-buys');
 });
-
-// Auth::routes();
-
-// Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
