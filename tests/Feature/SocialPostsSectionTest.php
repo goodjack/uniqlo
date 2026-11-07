@@ -103,7 +103,7 @@ class SocialPostsSectionTest extends TestCase
 
         $this->assertStringContainsString('data-youtube-id="M7lc1UVf-VE" data-vertical="1"', $html);
         // Shorts 用直式縮圖，沒有就退回一般縮圖
-        $this->assertStringContainsString('data-src="https://i.ytimg.com/vi/M7lc1UVf-VE/oardefault.jpg"', $html);
+        $this->assertStringContainsString('<img src="https://i.ytimg.com/vi/M7lc1UVf-VE/oardefault.jpg"', $html);
         $this->assertStringContainsString('https://i.ytimg.com/vi/M7lc1UVf-VE/hqdefault.jpg', $html);
         $this->assertStringContainsString('aria-label="YouTube：範例頻道"', $html);
     }
@@ -129,7 +129,7 @@ class SocialPostsSectionTest extends TestCase
 
         $html = $this->productPage();
 
-        $this->assertStringContainsString('data-src="'.e($post->image_url).'"', $html);
+        $this->assertStringContainsString('<img src="'.e($post->image_url).'"', $html);
         $this->assertStringContainsString('/social-img/'.$post->id.'.jpg', $html);
         $this->assertStringNotContainsString('cdninstagram.com', $html);
         $this->assertStringContainsString('class="uq-social-author">@meta<', $html);
@@ -148,7 +148,7 @@ class SocialPostsSectionTest extends TestCase
 
         $html = $this->productPage();
 
-        $this->assertStringContainsString('data-src="'.e($video->image_url).'"', $html);
+        $this->assertStringContainsString('<img src="'.e($video->image_url).'"', $html);
         $this->assertStringNotContainsString('pbs.twimg.com', $html);
         $this->assertSame(1, substr_count($html, 'uq-social-badge'));
         $this->assertMatchesRegularExpression('~class="uq-social-quote"\s*>.*?只有字的推文~s', $html);
