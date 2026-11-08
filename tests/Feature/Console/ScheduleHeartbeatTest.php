@@ -2,36 +2,22 @@
 
 namespace Tests\Feature\Console;
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Handler\MockHandler;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Middleware;
-use GuzzleHttp\Psr7\Response;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class ScheduleHeartbeatTest extends TestCase
 {
-    private const START_URL = 'https://uptime.betterstack.com/api/v1/heartbeat/start-token';
+    private const START_URL = 'https://heartbeat.example/start';
 
-    private const FINISH_URL = 'https://uptime.betterstack.com/api/v1/heartbeat/finish-token';
-
-    /** @var array<int, array{request: \Psr\Http\Message\RequestInterface}> */
-    private array $sentRequests = [];
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->sentRequests = [];
-        $handler = HandlerStack::create(new MockHandler(array_fill(0, 4, new Response(200))));
-        $handler->push(Middleware::history($this->sentRequests));
-        $this->app->instance(Client::class, new Client(['handler' => $handler]));
-    }
+    private const FINISH_URL = 'https://heartbeat.example/finish';
 
     public function test_daily_schedule_pings_start_before_and_finish_after(): void
     {
+        Http::fake();
         $event = $this->dailyScheduleEvent(self::START_URL, self::FINISH_URL);
 
         $event->callBeforeCallbacks($this->app);
@@ -43,12 +29,25 @@ class ScheduleHeartbeatTest extends TestCase
 
     public function test_daily_schedule_sends_nothing_when_urls_are_not_set(): void
     {
+        Http::fake();
         $event = $this->dailyScheduleEvent(null, null);
 
         $event->callBeforeCallbacks($this->app);
         $event->callAfterCallbacks($this->app);
 
-        $this->assertSame([], $this->sentUrls());
+        Http::assertNothingSent();
+    }
+
+    public function test_an_unreachable_monitor_does_not_stop_the_daily_schedule(): void
+    {
+        Http::fake(fn () => throw new ConnectionException('timed out'));
+        Log::spy();
+        $event = $this->dailyScheduleEvent(self::START_URL, self::FINISH_URL);
+
+        $event->callBeforeCallbacks($this->app);
+        $event->callAfterCallbacks($this->app);
+
+        Log::shouldHaveReceived('error')->twice();
     }
 
     private function dailyScheduleEvent(?string $startUrl, ?string $finishUrl): Event
@@ -70,6 +69,6 @@ class ScheduleHeartbeatTest extends TestCase
     /** @return array<int, string> */
     private function sentUrls(): array
     {
-        return array_map(fn (array $entry) => (string) $entry['request']->getUri(), $this->sentRequests);
+        return Http::recorded()->map(fn (array $pair) => $pair[0]->url())->all();
     }
 }

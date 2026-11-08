@@ -67,6 +67,7 @@ class EdgeCacheTest extends TestCase
             $this->assertTrue($response->headers->hasCacheControlDirective('public'), "{$route->uri()}: {$cacheControl}");
             $this->assertSame((string) SetEdgeCacheHeaders::MAX_AGE, $response->headers->getCacheControlDirective('max-age'));
             $this->assertSame((string) SetEdgeCacheHeaders::S_MAXAGE, $response->headers->getCacheControlDirective('s-maxage'));
+            $this->assertSame(SetEdgeCacheHeaders::CACHE_TAG, $response->headers->get('Cache-Tag'), $route->uri());
         }
     }
 

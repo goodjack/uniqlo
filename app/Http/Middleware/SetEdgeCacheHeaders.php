@@ -22,6 +22,9 @@ class SetEdgeCacheHeaders
     /** CDN 可以存的秒數，資料更新後最晚這麼久會反映。對齊每小時的社群熱推同步 */
     public const S_MAXAGE = 3600;
 
+    /** 清快取只清這個標籤，圖片、樣式這些 CDN 快取不受影響 */
+    public const CACHE_TAG = 'pages';
+
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
@@ -34,6 +37,7 @@ class SetEdgeCacheHeaders
             $response->setPublic();
             $response->setMaxAge(self::MAX_AGE);
             $response->setSharedMaxAge(self::S_MAXAGE);
+            $response->headers->set('Cache-Tag', self::CACHE_TAG);
         }
 
         return $response;
