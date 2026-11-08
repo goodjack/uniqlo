@@ -67,6 +67,7 @@ class EdgeCacheTest extends TestCase
             $this->assertTrue($response->headers->hasCacheControlDirective('public'), "{$route->uri()}: {$cacheControl}");
             $this->assertSame((string) SetEdgeCacheHeaders::MAX_AGE, $response->headers->getCacheControlDirective('max-age'));
             $this->assertSame((string) SetEdgeCacheHeaders::S_MAXAGE, $response->headers->getCacheControlDirective('s-maxage'));
+            $this->assertSame(SetEdgeCacheHeaders::CACHE_TAG, $response->headers->get('Cache-Tag'), $route->uri());
         }
     }
 
@@ -98,6 +99,21 @@ class EdgeCacheTest extends TestCase
         Route::middleware('edge-cache')->get('/__edge-cache-test', fn () => response('ok')->cookie('visited', '1'));
 
         $response = $this->get('/__edge-cache-test')->assertOk();
+
+        $this->assertFalse($response->headers->hasCacheControlDirective('public'));
+        $this->assertFalse($response->headers->hasCacheControlDirective('s-maxage'));
+    }
+
+    /**
+     * CDN 的快取鍵只看網址，不看請求內容。帶內容的 GET（例如 JSON）在 Laravel 會被當成輸入讀進去，
+     * 頁碼、篩選可能跟網址不同；這種回應存起來，會讓同一個網址的其他人看到錯的頁面。
+     */
+    public function test_a_get_request_with_a_body_is_not_marked_cacheable(): void
+    {
+        Route::middleware('edge-cache')->get('/__edge-cache-test', fn () => response('ok'));
+
+        $response = $this->call('GET', '/__edge-cache-test', server: ['CONTENT_TYPE' => 'application/json'], content: '{"page":2}')
+            ->assertOk();
 
         $this->assertFalse($response->headers->hasCacheControlDirective('public'));
         $this->assertFalse($response->headers->hasCacheControlDirective('s-maxage'));

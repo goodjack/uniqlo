@@ -225,7 +225,7 @@ return [
 
     'discord_webhook_url' => env('DISCORD_WEBHOOK_URL'),
 
-    // Better Stack 的定時回報網址：每日排程開始時、跑完時各打一次，沒收到就會發警報
+    // 每日排程的外部監控回報網址，用法見 App\Console\Kernel
     'schedule_heartbeat' => [
         'start_url' => env('SCHEDULE_HEARTBEAT_START_URL'),
         'finish_url' => env('SCHEDULE_HEARTBEAT_FINISH_URL'),

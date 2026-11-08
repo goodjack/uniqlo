@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Console\Commands;
 
+use App\Http\Middleware\SetEdgeCacheHeaders;
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
@@ -24,7 +25,7 @@ class PurgeCloudflareCacheTest extends TestCase
         Log::spy();
     }
 
-    public function test_purges_everything_in_the_configured_zone(): void
+    public function test_purges_only_the_cached_pages_in_the_configured_zone(): void
     {
         Http::fake([self::PURGE_URL => Http::response(['success' => true, 'errors' => []])]);
 
@@ -34,7 +35,7 @@ class PurgeCloudflareCacheTest extends TestCase
         Http::assertSent(fn (Request $request) => $request->method() === 'POST'
             && $request->url() === self::PURGE_URL
             && $request->hasHeader('Authorization', 'Bearer token-abc')
-            && $request->data() === ['purge_everything' => true]);
+            && $request->data() === ['tags' => [SetEdgeCacheHeaders::CACHE_TAG]]);
     }
 
     /**
