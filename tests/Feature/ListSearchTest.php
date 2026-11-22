@@ -59,35 +59,46 @@ class ListSearchTest extends TestCase
 
     public function test_q_and_brand_and_sort_and_tags_all_apply_together(): void
     {
+        // 預設照折扣排，這件折得多會排前面；照價格排則要排到後面
         $this->seedSaleProduct([
-            'name' => 'UNIQLO 特價短褲',
-            'code' => '111111',
+            'name' => 'UNIQLO 期間限定短褲 貴',
             'brand' => 'UNIQLO',
-            'sex' => '男裝',
-            'min_price' => 590,
-        ]);
-        $this->seedSaleProduct([
-            'name' => 'GU 特價短褲',
-            'code' => '222222',
-            'brand' => 'GU',
-            'sex' => '男裝',
-            'min_price' => 390,
-        ]);
-        $this->seedSaleProduct([
-            'name' => 'UNIQLO 特價上衣',
-            'code' => '333333',
-            'brand' => 'UNIQLO',
-            'sex' => '男裝',
+            'identity' => json_encode(['concessional_rate', 'time_doptimal']),
             'min_price' => 990,
+            'highest_record_price' => 2000,
+        ]);
+        $this->seedSaleProduct([
+            'name' => 'UNIQLO 期間限定短褲 便宜',
+            'brand' => 'UNIQLO',
+            'identity' => json_encode(['concessional_rate', 'time_doptimal']),
+            'min_price' => 390,
+            'highest_record_price' => 400,
+        ]);
+        $this->seedSaleProduct(['name' => 'UNIQLO 一般特價短褲', 'brand' => 'UNIQLO', 'min_price' => 590]);
+        $this->seedSaleProduct([
+            'name' => 'GU 期間限定短褲',
+            'brand' => 'GU',
+            'identity' => json_encode(['concessional_rate', 'time_doptimal']),
+        ]);
+        $this->seedSaleProduct([
+            'name' => 'UNIQLO 期間限定上衣',
+            'brand' => 'UNIQLO',
+            'identity' => json_encode(['concessional_rate', 'time_doptimal']),
         ]);
 
-        $content = $this->get(route('lists.sale').'?q='.urlencode('短褲').'&brand=UNIQLO&sort=price-asc')
+        $content = $this->get(route('lists.sale').'?q='.urlencode('短褲').'&brand=UNIQLO&sort=price-asc&tags[]=limited-offer')
             ->assertOk()
             ->getContent();
 
-        $this->assertStringContainsString('UNIQLO 特價短褲', $content);
-        $this->assertStringNotContainsString('GU 特價短褲', $content);
-        $this->assertStringNotContainsString('UNIQLO 特價上衣', $content);
+        $this->assertStringNotContainsString('UNIQLO 一般特價短褲', $content);
+        $this->assertStringNotContainsString('GU 期間限定短褲', $content);
+        $this->assertStringNotContainsString('UNIQLO 期間限定上衣', $content);
+        $cheap = strpos($content, 'UNIQLO 期間限定短褲 便宜');
+        $pricey = strpos($content, 'UNIQLO 期間限定短褲 貴');
+        // 先確認兩件都在，否則篩錯把其中一件濾掉時，strpos 回 false 也會讓排序比較通過
+        $this->assertNotFalse($cheap);
+        $this->assertNotFalse($pricey);
+        $this->assertLessThan($pricey, $cheap);
     }
 
     /**

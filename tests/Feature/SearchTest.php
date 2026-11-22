@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Enums\CategoryLevel;
 use App\Models\HmallCategory;
 use App\Models\HmallProduct;
+use App\Repositories\HmallProductRepository;
 use App\Support\Url;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -183,21 +183,21 @@ class SearchTest extends TestCase
     }
 
     /**
-     * 48251 只是 482514 的前綴，不算這個貨號；關鍵字搜尋本來就會用子字串撈到它。
+     * 482514 只是品名裡 4825140 的前綴，不算這個貨號；關鍵字搜尋本來就會用子字串撈到它。
      */
     public function test_a_number_that_is_only_a_prefix_of_another_code_does_not_match(): void
     {
         $this->createProduct([
-            'name' => 'AIRism 圓領T恤(短袖) 474238 / 482514 / 474236',
+            'name' => 'AIRism 圓領T恤(短袖) 4825140',
             'code' => '482516',
             'product_code' => 'u482516',
         ]);
 
-        $response = $this->get(route('search.show', ['query' => '48251']));
+        $response = $this->get(route('search.show', ['query' => '482514']));
 
         $response->assertOk();
-        $response->assertDontSee('商品編號 48251');
-        $response->assertSee('「48251」');
+        $response->assertDontSee('商品編號 482514');
+        $response->assertSee('「482514」');
     }
 
     /**
@@ -205,13 +205,16 @@ class SearchTest extends TestCase
      */
     public function test_a_short_number_uses_paginated_keyword_search(): void
     {
-        $this->createProduct(['name' => '2WAY 托特包', 'code' => '450010', 'product_code' => 'u450010']);
+        foreach (range(1, HmallProductRepository::PRODUCTS_PER_PAGE + 1) as $index) {
+            $this->createProduct(['name' => "2WAY 托特包 {$index}", 'code' => (string) (450000 + $index), 'product_code' => 'u'.(450000 + $index)]);
+        }
 
         $response = $this->get(route('search.show', ['query' => '2']));
 
         $response->assertOk();
-        $response->assertViewHas('isProductCodeSearch', false);
-        $response->assertViewHas('hmallProducts', fn ($products) => $products instanceof LengthAwarePaginator);
+        $response->assertSee('「2」的搜尋結果');
+        $response->assertDontSee('商品編號 2');
+        $response->assertSee('page=2', false);
     }
 
     public function test_a_short_number_with_a_single_hit_does_not_redirect(): void

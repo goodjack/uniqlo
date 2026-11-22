@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\CategoryLevel;
+use App\Enums\ProductTag;
 use App\Models\HmallCategory;
 use App\Models\HmallProduct;
 use App\Services\CategoryService;
@@ -106,14 +107,23 @@ class CategoryTest extends TestCase
         $content = $this->get(route('categories.index'))->assertOk()->getContent();
 
         // UNIQLO、GU 在導覽列與頁尾每頁都有，要看分類落在哪個品牌標題底下
-        $uniqloHeading = strpos($content, 'uq-brand-h2">UNIQLO<');
-        $guHeading = strpos($content, 'uq-brand-h2">GU<');
+        $this->assertSame('UNIQLO', $this->brandHeadingAbove($content, '上衣類'));
+        $this->assertSame('GU', $this->brandHeadingAbove($content, '針織上衣'));
+    }
 
-        $this->assertNotFalse($uniqloHeading);
-        $this->assertNotFalse($guHeading);
-        $this->assertGreaterThan($uniqloHeading, strpos($content, '上衣類'));
-        $this->assertLessThan($guHeading, strpos($content, '上衣類'));
-        $this->assertGreaterThan($guHeading, strpos($content, '針織上衣'));
+    /**
+     * 總覽裡某個分類（群組標題或子分類連結）上方最近的品牌標題。
+     */
+    private function brandHeadingAbove(string $content, string $categoryName): ?string
+    {
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$content);
+
+        $heading = (new \DOMXPath($dom))->query(
+            "(//h3[contains(., '{$categoryName}')] | //div[contains(@class, 'uq-cat-list')]/a[contains(., '{$categoryName}')])[1]/preceding::h2[1]"
+        )->item(0);
+
+        return $heading ? trim($heading->textContent) : null;
     }
 
     /**
@@ -412,7 +422,8 @@ class CategoryTest extends TestCase
         $response->assertOk();
         $response->assertDontSee('短袖上衣');
         $response->assertSee('沒有符合的商品');
-        $response->assertSee('試試看多勾幾個條件，或清除篩選');
+        // 只勾了標籤、沒有關鍵字時，提示要叫人放寬條件而不是換關鍵字
+        $response->assertSee(ProductTag::emptyResultHint(hasQuery: false, hasTags: true));
     }
 
     public function test_q_filters_the_category_by_name(): void
@@ -553,30 +564,6 @@ class CategoryTest extends TestCase
         $this->assertStringNotContainsString('page', (string) $form->getAttribute('action'));
     }
 
-    public function test_pagination_links_keep_the_q_parameter(): void
-    {
-        for ($i = 1; $i <= 30; $i++) {
-            $this->attachProduct($this->createProduct(['name' => "短褲 {$i} 號"]), 'all_women-tops');
-        }
-
-        $content = $this->get(
-            route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']).'?q='.urlencode('短褲')
-        )->assertOk()->getContent();
-
-        $dom = new \DOMDocument;
-        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$content);
-        $xpath = new \DOMXPath($dom);
-
-        $pageTwoLinks = $xpath->query("//div[contains(@class, 'uq-pagination')]//a[contains(text(), '2')]");
-
-        $this->assertGreaterThan(0, $pageTwoLinks->length);
-
-        $href = $pageTwoLinks->item(0)->getAttribute('href');
-
-        $this->assertStringContainsString('page=2', $href);
-        $this->assertStringContainsString('q='.urlencode('短褲'), $href);
-    }
-
     public function test_pagination_links_keep_both_q_and_tags(): void
     {
         for ($i = 1; $i <= 30; $i++) {
@@ -648,7 +635,10 @@ class CategoryTest extends TestCase
         $this->assertStringNotContainsString('原價', $content, '區間已經講完了，不再重複一行原價');
     }
 
-    public function test_category_page_uses_the_shared_pagination_component(): void
+    /**
+     * 分頁標出目前頁，上一頁回到第 1 頁時連不帶頁碼的網址（canonical 就是它）。
+     */
+    public function test_category_pagination_marks_the_current_page_and_links_page_one_without_a_page_number(): void
     {
         foreach (range(1, 25) as $index) {
             $this->attachProduct($this->createProduct([
@@ -657,13 +647,18 @@ class CategoryTest extends TestCase
             ]), 'all_women-tops');
         }
 
-        $content = $this->get(route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']))
-            ->assertOk()
-            ->getContent();
+        $categoryUrl = route('categories.show', ['brand' => 'uniqlo', 'code' => 'all_women-tops']);
 
-        $this->assertStringContainsString('ts small buttons', $content);
-        $this->assertStringContainsString('icon button', $content);
-        $this->assertStringNotContainsString('uq-pagination-current', $content);
+        $content = $this->get($categoryUrl.'?page=2')->assertOk()->getContent();
+
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$content);
+        $xpath = new \DOMXPath($dom);
+
+        $current = $xpath->query('//a[@rel="prev"]/parent::*/a[@aria-current="page"]');
+        $this->assertSame(1, $current->length);
+        $this->assertSame('2', trim($current->item(0)->textContent));
+        $this->assertSame($categoryUrl, $xpath->query('//a[@rel="prev"]')->item(0)?->getAttribute('href'));
     }
 
     /**

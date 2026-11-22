@@ -4,11 +4,11 @@ namespace Tests\Unit\Services;
 
 use App\Repositories\StyleRepository;
 use App\Services\StyleService;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use ReflectionClass;
 use Tests\TestCase;
 
 class StyleServiceTest extends TestCase
@@ -64,7 +64,7 @@ class StyleServiceTest extends TestCase
         $this->assertEquals('1', Cache::get('styles:last_gender:UNIQLO'));
     }
 
-    public function test_fetch_styles_by_gender_saves_checkpoint()
+    public function test_fetch_styles_clears_checkpoints_after_completion()
     {
         Http::fake([
             '*' => Http::response([
@@ -86,6 +86,23 @@ class StyleServiceTest extends TestCase
         $this->assertNull(Cache::get('styles:last_gender:UNIQLO'));
     }
 
+    public function test_fetch_styles_saves_page_checkpoint_after_each_completed_page()
+    {
+        Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
+
+        Http::fake(['https://api.example.com/styles*' => fn ($request) => $request['page'] === 1
+            ? Http::response(['result' => ['styles' => [], 'total_styles' => 100]])
+            : Http::response([], 403),
+        ]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $this->service->fetchAllStyles('UNIQLO');
+
+        $this->assertSame(2, Cache::get('styles:page:UNIQLO:1'), '第 1 頁做完、第 2 頁被擋時，下次要從第 2 頁續跑');
+    }
+
     public function test_fetch_styles_by_gender_resumes_from_checkpoint()
     {
         Cache::set('styles:page:UNIQLO:1', 3);
@@ -103,6 +120,8 @@ class StyleServiceTest extends TestCase
         Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
 
         $this->service->fetchAllStyles('UNIQLO');
+
+        $this->assertSame([3], $this->listPagesForGender('1'), '性別 1 要從續跑點第 3 頁開始');
 
         // Checkpoints should be cleared after completion
         $this->assertNull(Cache::get('styles:page:UNIQLO:1'));
@@ -167,8 +186,6 @@ class StyleServiceTest extends TestCase
 
     public function test_fetch_style_details_actually_stops_processing_on_403()
     {
-        // This test verifies that Collection::each() actually stops on 403
-        // Create a mock that tracks how many times save is called
         $saveCount = 0;
         $mockRepository = $this->createMock(StyleRepository::class);
         $mockRepository->method('saveStyleFromOfficialStyling')
@@ -196,8 +213,12 @@ class StyleServiceTest extends TestCase
                 ]);
             }
 
-            // Detail request — return 403
-            return Http::response([], 403);
+            // 只有第一筆被擋；若 403 後還繼續處理，後兩筆會成功存檔
+            if ($urlPath === '/styles/style1') {
+                return Http::response([], 403);
+            }
+
+            return Http::response(['result' => (object) ['some' => 'data']]);
         });
 
         Log::shouldReceive('error')->andReturnNull();
@@ -206,8 +227,8 @@ class StyleServiceTest extends TestCase
         $result = $service->fetchAllStyles('UNIQLO');
 
         $this->assertFalse($result, 'fetchAllStyles should return false on 403');
-        // save should not be called because 403 stops processing before save
-        $this->assertEquals(0, $saveCount, 'Should not save any styles when 403 occurs');
+        $this->assertSame(['/styles/style1'], $this->detailPaths(), '403 後不該再抓其他明細');
+        $this->assertSame(0, $saveCount);
     }
 
     public function test_uses_configured_retry_count()
@@ -215,22 +236,16 @@ class StyleServiceTest extends TestCase
         Config::set('app.crawler.retry.times', 3);
         Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
 
-        $requestCount = 0;
-        // Use wildcard to match GET URLs with query parameters (e.g. ?gender_id=1&...)
-        Http::fake(['https://api.example.com/styles*' => function ($request) use (&$requestCount) {
-            $requestCount++;
-
-            return Http::response([], 500);
-        }]);
+        Http::fake(['https://api.example.com/styles*' => Http::response([], 500)]);
 
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
+        Log::shouldReceive('warning')->andReturnNull();
 
-        // Directly call private fetchStylesByGenderId to avoid 4-gender loop
-        $this->invokeMethod($this->service, 'fetchStylesByGenderId', ['1', 'UNIQLO']);
+        $this->service->fetchAllStyles('UNIQLO');
 
         // retry(3) = 3 total attempts; totalStyles stays 0 → loop exits after 1 iteration
-        $this->assertEquals(3, $requestCount, 'Should make exactly 3 HTTP attempts (1 initial + 2 retries)');
+        $this->assertSame([1, 1, 1], $this->listPagesForGender('1'), 'Should make exactly 3 HTTP attempts (1 initial + 2 retries)');
     }
 
     public function test_fetch_styles_by_gender_fetches_last_partial_page()
@@ -238,23 +253,16 @@ class StyleServiceTest extends TestCase
         // total_styles=51, page_size=50 → page 1 and page 2 should both be fetched
         Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
 
-        $requestCount = 0;
-        // Use wildcard to match GET URLs with query parameters (e.g. ?gender_id=1&...)
-        // styles=[] so fetchStyleDetails makes no detail requests; all requestCount come from list
-        Http::fake(['https://api.example.com/styles*' => function ($request) use (&$requestCount) {
-            $requestCount++;
+        Http::fake(['https://api.example.com/styles*' => Http::response([
+            'result' => [
+                'styles' => [],
+                'total_styles' => 51,
+            ],
+        ])]);
 
-            return Http::response([
-                'result' => [
-                    'styles' => [],
-                    'total_styles' => 51,
-                ],
-            ]);
-        }]);
+        $this->service->fetchAllStyles('UNIQLO');
 
-        $this->invokeMethod($this->service, 'fetchStylesByGenderId', ['1', 'UNIQLO']);
-
-        $this->assertEquals(2, $requestCount, 'Should fetch page 1 (51 >= 50) and page 2 (51 >= 50), stop at page 3 (51 < 100)');
+        $this->assertSame([1, 2], $this->listPagesForGender('1'), 'Should fetch page 1 (51 >= 50) and page 2 (51 >= 50), stop at page 3 (51 < 100)');
     }
 
     public function test_list_api_not_re_called_when_detail_fails()
@@ -264,15 +272,8 @@ class StyleServiceTest extends TestCase
         // inside the list retry callback. It does NOT claim a currently reproducible bug.
         Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
 
-        $listRequestCount = 0;
-        // Use closure-based fake to distinguish list (/styles?) from detail (/styles/id?) by URL path
-        Http::fake(function ($request) use (&$listRequestCount) {
-            $urlPath = parse_url($request->url(), PHP_URL_PATH);
-
-            if ($urlPath === '/styles') {
-                // List request (path is exactly /styles, query params follow)
-                $listRequestCount++;
-
+        Http::fake(function ($request) {
+            if (parse_url($request->url(), PHP_URL_PATH) === '/styles') {
                 return Http::response([
                     'result' => [
                         'styles' => [
@@ -290,13 +291,9 @@ class StyleServiceTest extends TestCase
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        try {
-            $this->invokeMethod($this->service, 'fetchStylesByGenderId', ['1', 'UNIQLO']);
-        } catch (\Throwable $e) {
-            // detail failures may propagate (403) or be swallowed (500)
-        }
+        $this->service->fetchAllStyles('UNIQLO');
 
-        $this->assertEquals(1, $listRequestCount, 'List API should be called exactly once; detail failures must not trigger list retries');
+        $this->assertSame([1], $this->listPagesForGender('1'), 'List API should be called exactly once; detail failures must not trigger list retries');
     }
 
     // ==================== Earlier Review Bug Fix Tests ====================
@@ -333,12 +330,28 @@ class StyleServiceTest extends TestCase
 
     // ==================== Helper Methods ====================
 
-    private function invokeMethod(&$object, $methodName, array $parameters = [])
+    /**
+     * @return int[] 依送出順序列出該性別清單請求的頁碼（含重試）
+     */
+    private function listPagesForGender(string $genderId): array
     {
-        $reflection = new ReflectionClass(get_class($object));
-        $method = $reflection->getMethod($methodName);
-        $method->setAccessible(true);
+        return Http::recorded()
+            ->map(fn (array $pair) => $pair[0])
+            ->filter(fn (Request $request) => ($request->data()['gender_id'] ?? null) === $genderId)
+            ->map(fn (Request $request) => $request['page'])
+            ->values()
+            ->all();
+    }
 
-        return $method->invokeArgs($object, $parameters);
+    /**
+     * @return string[]
+     */
+    private function detailPaths(): array
+    {
+        return Http::recorded()
+            ->map(fn (array $pair) => parse_url($pair[0]->url(), PHP_URL_PATH))
+            ->filter(fn (string $path) => str_starts_with($path, '/styles/'))
+            ->values()
+            ->all();
     }
 }

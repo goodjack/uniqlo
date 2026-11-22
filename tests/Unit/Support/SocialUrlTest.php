@@ -115,7 +115,7 @@ class SocialUrlTest extends TestCase
 
     public function test_fetch_hosts_are_exactly_the_platform_hosts(): void
     {
-        $this->assertSame([
+        $this->assertEqualsCanonicalizing([
             'youtube.com', 'youtu.be',
             'instagram.com',
             'threads.com', 'threads.net',

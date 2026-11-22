@@ -10,7 +10,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 /**
@@ -82,9 +81,10 @@ class HmallProductPaginationTest extends TestCase
             ]))->id
         );
 
-        app(HmallProductRepository::class)->setSaleHmallProductsCache();
-
-        $this->assertSame($ids->reverse()->values()->all(), Cache::get('hmall_product:sale')->pluck('id')->all());
+        $this->assertSame(
+            $ids->reverse()->values()->all(),
+            app(HmallProductRepository::class)->getSaleHmallProducts()->pluck('id')->all()
+        );
     }
 
     /**

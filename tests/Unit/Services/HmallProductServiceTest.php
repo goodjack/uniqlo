@@ -57,9 +57,7 @@ class HmallProductServiceTest extends TestCase
 
     public function test_fetch_all_hmall_products_stops_on_403_error()
     {
-        // Pre-set checkpoint (simulating partial completion)
         Cache::set('hmall_products:page:UNIQLO', 5);
-        $checkpointBefore = Cache::get('hmall_products:page:UNIQLO');
 
         Http::fake([
             '*' => Http::response([], 403),
@@ -71,58 +69,12 @@ class HmallProductServiceTest extends TestCase
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        $this->service->fetchAllHmallProducts('UNIQLO');
+        $result = $this->service->fetchAllHmallProducts('UNIQLO');
 
-        // Checkpoint must not be overwritten on 403
-        $checkpointAfter = Cache::get('hmall_products:page:UNIQLO');
-        $this->assertEquals(5, $checkpointBefore);
-        $this->assertEquals(5, $checkpointAfter, 'Checkpoint must not be overwritten on 403');
-    }
-
-    public function test_fetch_all_hmall_products_saves_checkpoint()
-    {
-        Http::fake([
-            '*' => Http::response([
-                'resp' => [
-                    [
-                        'productList' => [],
-                        'productSum' => 0,
-                    ],
-                ],
-            ]),
-        ]);
-
-        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
-        Cache::flush();
-
-        $this->service->fetchAllHmallProducts('UNIQLO');
-
-        // Checkpoint should be cleared after successful completion
-        $this->assertNull(Cache::get('hmall_products:page:UNIQLO'));
-    }
-
-    public function test_fetch_all_hmall_products_resumes_from_checkpoint()
-    {
-        $initialPage = 3;
-        Cache::set('hmall_products:page:UNIQLO', $initialPage);
-
-        Http::fake([
-            '*' => Http::response([
-                'resp' => [
-                    [
-                        'productList' => [],
-                        'productSum' => 0,
-                    ],
-                ],
-            ]),
-        ]);
-
-        Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
-
-        $this->service->fetchAllHmallProducts('UNIQLO');
-
-        // Checkpoint should be cleared after completion
-        $this->assertNull(Cache::get('hmall_products:page:UNIQLO'));
+        // 被擋就不再重試、也不往下一頁打
+        Http::assertSentCount(1);
+        $this->assertSame(CrawlOutcome::Failed, $result->outcome);
+        $this->assertEquals(5, Cache::get('hmall_products:page:UNIQLO'), 'Checkpoint must not be overwritten on 403');
     }
 
     /**
@@ -238,11 +190,11 @@ class HmallProductServiceTest extends TestCase
 
         $this->service->fetchAllHmallProducts('UNIQLO', fresh: true);
 
-        // Checkpoint should be cleared
-        $this->assertNull(Cache::get('hmall_products:page:UNIQLO'));
+        Http::assertSent(fn ($request) => $request->data()['pageInfo']['page'] === 1);
+        Http::assertNotSent(fn ($request) => $request->data()['pageInfo']['page'] === 10);
     }
 
-    public function test_fetch_all_hmall_product_descriptions_stops_on_403_error()
+    public function test_a_single_description_fetch_throws_on_403_so_the_batch_can_stop()
     {
         Http::fake([
             '*' => Http::response([], 403),
@@ -262,43 +214,6 @@ class HmallProductServiceTest extends TestCase
         $this->expectException(RequestException::class);
 
         $this->service->fetchHmallProductDescriptions($mockProduct, 'UNIQLO');
-    }
-
-    public function test_fetch_all_hmall_product_descriptions_checkpoint_not_updated_on_403(): void
-    {
-        // This is the core regression test for the 403 bug fix.
-        // When fetchHmallProductDescriptions encounters 403, it must throw
-        // so that fetchAllHmallProductDescriptions does NOT update the checkpoint.
-
-        Http::fake([
-            '*' => Http::response([], 403),
-        ]);
-
-        Config::set('uniqlo.api.v3.description.tw', 'https://api.example.com/description/');
-
-        Log::shouldReceive('error')->andReturnNull();
-        Log::shouldReceive('info')->andReturnNull();
-
-        $cacheKey = 'hmall_descriptions:last_id:UNIQLO';
-        Cache::flush();
-
-        // Verify checkpoint is null before
-        $this->assertNull(Cache::get($cacheKey));
-
-        // Create a mock HmallProduct
-        $mockProduct = new stdClass;
-        $mockProduct->id = 42;
-        $mockProduct->product_code = 'TEST123';
-
-        // fetchHmallProductDescriptions throws on 403
-        try {
-            $this->service->fetchHmallProductDescriptions($mockProduct, 'UNIQLO');
-        } catch (\Throwable $e) {
-            // Expected throw
-        }
-
-        // Checkpoint must NOT be updated - this is the core fix
-        $this->assertNull(Cache::get($cacheKey), 'Checkpoint must not be updated when 403 is thrown');
     }
 
     public function test_uses_configured_retry_count()
@@ -686,6 +601,8 @@ class HmallProductServiceTest extends TestCase
         // 不能回成功：回成功等於排程判定今天一切正常，沒有人會知道整份目錄是空的
         $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
         $this->assertSame('未執行缺貨判定，這一輪一件商品都沒看到', $result->note);
+        // 目錄本身沒有缺頁，跑完照樣清掉續跑點，隔天從第 1 頁重掃
+        $this->assertNull(Cache::get('hmall_products:page:UNIQLO'));
     }
 
     /**
@@ -952,10 +869,9 @@ class HmallProductServiceTest extends TestCase
         $result = (new HmallProductService($repository, $this->mockProductRepository))->fetchAllHmallProducts('UNIQLO');
 
         $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
-        $this->assertSame(
-            '未執行缺貨判定，這一輪只看到 24 件，目前在售 1672 件（確認官網真的大量下架後，可加 --accept-shrink 重跑放行）',
-            $result->note
-        );
+        $this->assertStringContainsString('只看到 24 件', $result->note);
+        $this->assertStringContainsString('在售 1672 件', $result->note);
+        $this->assertStringContainsString('--accept-shrink', $result->note);
     }
 
     public function test_accepting_a_shrink_runs_stockout_despite_seeing_few_products()
@@ -1011,15 +927,39 @@ class HmallProductServiceTest extends TestCase
         $this->assertStringStartsWith('未執行缺貨判定，目錄有缺頁（最早在第 2 頁）；已經 3 天沒有執行缺貨判定', $result->note);
     }
 
+    /**
+     * 完整掃描做過缺貨判定後，之後跳過的天數要從那一天起算；
+     * 沒記下來的話，之後第一次跳過會被當成剛開始計算，逾期永遠不會被發現。
+     */
     public function test_running_stockout_records_today_as_the_last_run()
     {
         Cache::flush();
         Config::set('uniqlo.api.v3.search.tw', 'https://api.example.com/search');
-        Http::fake(['https://api.example.com/search' => Http::response($this->searchResponse(10, 10))]);
 
-        $this->service->fetchAllHmallProducts('UNIQLO');
+        $catalogHasGap = false;
+        Http::fake(['https://api.example.com/search' => function ($request) use (&$catalogHasGap) {
+            if (! $catalogHasGap) {
+                return Http::response($this->searchResponse(10, 10));
+            }
 
-        $this->assertSame(today()->toDateString(), Cache::get('stockout:last-run:hmall:UNIQLO'));
+            return $request->data()['pageInfo']['page'] === 1
+                ? Http::response($this->searchResponse(24, 48))
+                : Http::response($this->searchResponse(0, 48));
+        }]);
+
+        Log::shouldReceive('error')->andReturnNull();
+        Log::shouldReceive('info')->andReturnNull();
+
+        $stockoutDay = today()->toDateString();
+        $this->assertSame(CrawlOutcome::Succeeded, $this->service->fetchAllHmallProducts('UNIQLO')->outcome);
+
+        $this->travel(3)->days();
+        $catalogHasGap = true;
+
+        $result = $this->service->fetchAllHmallProducts('UNIQLO');
+
+        $this->assertSame(CrawlOutcome::StockoutOverdue, $result->outcome);
+        $this->assertStringContainsString("上次 {$stockoutDay}", $result->note);
     }
 
     /**

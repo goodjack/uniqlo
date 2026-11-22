@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Console\Commands;
 
-use App\Services\StyleHintService;
+use App\Events\AppTaskFinished;
+use App\Events\AppTaskStarting;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
@@ -32,40 +34,6 @@ class FetchStyleHintsFromUgcTest extends TestCase
 
         // Prevent real Discord notifications during tests
         Event::fake();
-    }
-
-    public function test_command_accepts_fresh_option()
-    {
-        Http::fake([
-            '*' => Http::response(
-                [
-                    'content_list' => [],
-                    'total_result_count' => 0,
-                ]
-            ),
-        ]);
-
-        Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc/list');
-
-        $this->artisan('style-hint-ugc:fetch UNIQLO --fresh')
-            ->assertExitCode(0);
-    }
-
-    public function test_command_runs_without_fresh_option()
-    {
-        Http::fake([
-            '*' => Http::response(
-                [
-                    'content_list' => [],
-                    'total_result_count' => 0,
-                ]
-            ),
-        ]);
-
-        Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc/list');
-
-        $this->artisan('style-hint-ugc:fetch UNIQLO')
-            ->assertExitCode(0);
     }
 
     public function test_command_shows_fresh_warning_when_fresh_option_used()
@@ -100,29 +68,35 @@ class FetchStyleHintsFromUgcTest extends TestCase
         Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc/list');
         Config::set('gu.api.ugc_style_hint_list.tw', 'https://api.example.com/gu/ugc/list');
 
-        // Test with GU brand
         $this->artisan('style-hint-ugc:fetch GU')
             ->assertExitCode(0);
+
+        Http::assertSent(fn ($request) => str_starts_with($request->url(), 'https://api.example.com/gu/ugc/list')
+            && $request['brand'] === 'gu'
+            && $request->header('x-fr-clientid') === ['gutw-sth-sb-proxy']);
+        Http::assertNotSent(fn ($request) => str_starts_with($request->url(), 'https://api.example.com/ugc/list'));
     }
 
     public function test_command_stops_on_403_blocking()
     {
-        $mockService = $this->createMock(StyleHintService::class);
-        $mockService->method('fetchAllStyleHintsFromUgc')
-            ->willReturn(false);
+        Http::fake([
+            '*' => Http::response([], 403),
+        ]);
 
-        $this->app->instance(StyleHintService::class, $mockService);
+        Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc/list');
 
-        $this->artisan('style-hint-ugc:fetch UNIQLO')
+        $this->artisan('style-hint-ugc:fetch UNIQLO --is-scheduled')
             ->assertExitCode(1);
 
-        Event::assertDispatched(\App\Events\AppTaskStarting::class);
-        Event::assertNotDispatched(\App\Events\AppTaskFinished::class);
+        // 403 不重試、不換下一個性別，並放掉排程旗標讓手動抓取之後能再跑
+        Http::assertSentCount(1);
+        $this->assertFalse(Cache::get('style_hint_ugc:scheduling'));
+        Event::assertDispatched(AppTaskStarting::class);
+        Event::assertNotDispatched(AppTaskFinished::class);
     }
 
-    public function test_command_clears_checkpoints_with_fresh_option()
+    public function test_command_starts_from_first_page_with_fresh_option()
     {
-        // Set some existing checkpoints
         Cache::forever('style_hint_ugc:manual:UNIQLO:last_page', 5);
         Cache::forever('style_hint_ugc:manual:UNIQLO:last_gender', '1');
 
@@ -140,21 +114,11 @@ class FetchStyleHintsFromUgcTest extends TestCase
         $this->artisan('style-hint-ugc:fetch UNIQLO --fresh')
             ->assertExitCode(0);
 
-        // Checkpoints should be cleared
-        $this->assertNull(
-            Cache::get('style_hint_ugc:manual:UNIQLO:last_page'),
-            'Last page checkpoint should be cleared'
-        );
-
-        $this->assertNull(
-            Cache::get('style_hint_ugc:manual:UNIQLO:last_gender'),
-            'Last gender checkpoint should be cleared'
-        );
+        $this->assertSame([1], $this->pagesForGender('1'), '帶 --fresh 要從第 1 頁開始，不沿用續跑點');
     }
 
-    public function test_command_preserves_checkpoints_without_fresh_option()
+    public function test_command_resumes_from_checkpoint_without_fresh_option()
     {
-        // Set some existing checkpoints
         Cache::forever('style_hint_ugc:manual:UNIQLO:last_page', 5);
         Cache::forever('style_hint_ugc:manual:UNIQLO:last_gender', '1');
 
@@ -172,17 +136,19 @@ class FetchStyleHintsFromUgcTest extends TestCase
         $this->artisan('style-hint-ugc:fetch UNIQLO')
             ->assertExitCode(0);
 
-        // Checkpoints should be preserved (command ends due to content_list being empty)
-        // Note: In actual execution, checkpoints would be modified as part of normal operation
+        $this->assertSame([5], $this->pagesForGender('1'), '不帶 --fresh 要從續跑點那一頁開始');
     }
 
     public function test_command_with_only_recent_option()
     {
+        // 頁大小放大，讓上限 10000 筆只對應 5 頁；不設上限時 50000 筆會抓到第 21 頁
+        Config::set('app.crawler.page_sizes.ugc_style_hints', 2500);
+
         Http::fake([
             '*' => Http::response(
                 [
                     'content_list' => [],
-                    'total_result_count' => 50000, // More than 10000
+                    'total_result_count' => 50000,
                 ]
             ),
         ]);
@@ -192,6 +158,8 @@ class FetchStyleHintsFromUgcTest extends TestCase
         $this->artisan('style-hint-ugc:fetch UNIQLO --only-recent')
             ->expectsOutput('Only recent style hints will be fetched.')
             ->assertExitCode(0);
+
+        $this->assertSame([1, 2, 3, 4, 5], $this->pagesForGender('1'));
     }
 
     public function test_command_with_is_scheduled_option()
@@ -207,9 +175,12 @@ class FetchStyleHintsFromUgcTest extends TestCase
 
         Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc/list');
 
-        // When is-scheduled is set, isManual should be false
         $this->artisan('style-hint-ugc:fetch UNIQLO --is-scheduled')
+            ->doesntExpectOutput('This is a manual task.')
             ->assertExitCode(0);
+
+        Event::assertDispatched(AppTaskStarting::class, fn (AppTaskStarting $event) => $event->data['isManual'] === false);
+        $this->assertFalse(Cache::get('style_hint_ugc:scheduling'), '排程跑完要放掉旗標');
     }
 
     public function test_command_dispatches_task_events()
@@ -229,7 +200,20 @@ class FetchStyleHintsFromUgcTest extends TestCase
             ->assertExitCode(0);
 
         // Verify AppTaskStarting and AppTaskFinished events were dispatched
-        Event::assertDispatched(\App\Events\AppTaskStarting::class);
-        Event::assertDispatched(\App\Events\AppTaskFinished::class);
+        Event::assertDispatched(AppTaskStarting::class);
+        Event::assertDispatched(AppTaskFinished::class);
+    }
+
+    /**
+     * @return int[] 依送出順序列出該性別 UGC 清單請求的頁碼
+     */
+    private function pagesForGender(string $gender): array
+    {
+        return Http::recorded()
+            ->map(fn (array $pair) => $pair[0])
+            ->filter(fn (Request $request) => ($request->data()['style_gender'] ?? null) === [$gender])
+            ->map(fn (Request $request) => $request['page'])
+            ->values()
+            ->all();
     }
 }

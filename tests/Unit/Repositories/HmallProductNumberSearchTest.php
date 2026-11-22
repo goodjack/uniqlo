@@ -40,15 +40,10 @@ class HmallProductNumberSearchTest extends TestCase
     {
         $this->createProductsSharingTheNumber('474238', 1);
 
-        $statements = [];
-        DB::listen(function ($query) use (&$statements) {
-            $statements[] = $query->sql;
-        });
+        $products = app(HmallProductRepository::class)->findHmallProductsByCodeOrSharedNumber('474238');
 
-        app(HmallProductRepository::class)->findHmallProductsByCodeOrSharedNumber('474238');
-
-        $this->assertStringNotContainsString('select *', $statements[0]);
-        $this->assertStringNotContainsString('instruction', $statements[0]);
+        $this->assertCount(1, $products);
+        $this->assertArrayNotHasKey('instruction', $products->first()->getAttributes());
     }
 
     private function createProductsSharingTheNumber(string $number, int $count): void

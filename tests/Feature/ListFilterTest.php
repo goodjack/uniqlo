@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ProductTag;
+use App\Services\ListService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -54,40 +56,41 @@ class ListFilterTest extends TestCase
         $response = $this->get(route('lists.sale').'?sort=discount')->assertOk();
 
         $response->assertSeeInOrder(['排序：預設', '排序：價格由低到高', '排序：降價最多']);
-        $response->assertSee('value="discount" selected>排序：降價最多', false);
-        $response->assertDontSee('value="" selected', false);
-        $response->assertSee('依比歷史最高價便宜的幅度由大到小排序');
+        $this->assertSame(['discount'], $this->selectedSortValues($response->getContent()));
+        // 副標題的排序說法跟著換
+        $response->assertSee(ListService::SORTS[ListService::SORT_DISCOUNT]['summary']);
     }
 
     public function test_an_unknown_sort_falls_back_to_the_default_order(): void
     {
         $response = $this->get(route('lists.sale').'?sort=discount-asc')->assertOk();
 
-        $this->assertNull(request()->query('sort'));
-        $response->assertSee('value="" selected>排序：預設', false);
-        $response->assertDontSee('value="discount" selected', false);
-        $response->assertSee('依特價幅度排序');
+        $this->assertSame([''], $this->selectedSortValues($response->getContent()));
+        $response->assertDontSee(ListService::SORTS[ListService::SORT_DISCOUNT]['summary']);
     }
 
     public function test_a_json_get_request_reads_filters_from_the_url_only(): void
     {
-        $this->call(
+        $content = $this->call(
             'GET',
             route('lists.sale').'?tags=abc&q[]=x',
             server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'],
             content: json_encode(['q' => 'from-body', 'tags' => ['sale']]),
-        )->assertOk();
+        )->assertOk()->getContent();
 
-        $this->assertNull(request()->input('q'));
-        $this->assertNull(request()->input('tags'));
+        $this->assertStringNotContainsString('from-body', $content);
+        $this->assertSame([], $this->appliedTagLabels($content));
     }
 
     public function test_invalid_tags_are_dropped_while_valid_ones_still_apply(): void
     {
-        $this->get(route('lists.sale').'?tags[]=sale&tags[]=nope')
-            ->assertOk();
+        $content = $this->get(route('lists.sale').'?tags[]=sale&tags[]=nope')
+            ->assertOk()
+            ->getContent();
 
-        $this->assertSame(['sale'], request()->query('tags'));
+        $this->assertSame([ProductTag::Sale->label()], $this->appliedTagLabels($content));
+        // 不認得的標籤也不能跟著表單與連結傳下去
+        $this->assertStringNotContainsString('nope', $content);
     }
 
     /**
@@ -167,5 +170,37 @@ class ListFilterTest extends TestCase
 
         $this->assertStringContainsString('noindex', $withQuery);
         $this->assertStringNotContainsString('noindex', $withoutQuery);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function selectedSortValues(string $content): array
+    {
+        return array_map(
+            fn ($node) => $node->getAttribute('value'),
+            iterator_to_array($this->xpath($content)->query('//select[@name="sort"]/option[@selected]'))
+        );
+    }
+
+    /**
+     * 已套用的標籤（可以點掉的那排）。
+     *
+     * @return array<int, string>
+     */
+    private function appliedTagLabels(string $content): array
+    {
+        return array_map(
+            fn ($node) => trim($node->textContent),
+            iterator_to_array($this->xpath($content)->query('//a[starts-with(@aria-label, "拿掉「")]'))
+        );
+    }
+
+    private function xpath(string $content): \DOMXPath
+    {
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$content);
+
+        return new \DOMXPath($dom);
     }
 }

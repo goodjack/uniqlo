@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Repositories;
 
+use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -31,35 +32,36 @@ class HmallProductMostVisitedTest extends TestCase
         ]));
         $this->app->instance('laravel-analytics', $analytics);
 
+        $product = HmallProduct::unguarded(fn () => HmallProduct::create([
+            'brand' => 'UNIQLO',
+            'name' => '測試商品',
+            'product_code' => 'u0000000053204',
+            'identity' => '[]',
+            'stock' => 'Y',
+        ]));
+
         $statements = [];
         DB::listen(function ($query) use (&$statements) {
             $statements[] = $query;
         });
 
-        app(HmallProductRepository::class)->setMostVisitedHmallProductsCache();
-
-        $ranked = array_values(array_filter(
-            $statements,
-            fn ($query) => str_contains($query->sql, 'FIELD(CONCAT(brand')
-        ));
-
         // 查詢真的跑到了。少了這一條，查詢就算整個沒執行（例外被
-        // setMostVisitedHmallProductsCache() 的 try/catch 吞掉）下面兩條也會過。
-        $this->assertCount(1, $ranked);
-
-        // 名次清單只剩 ? 參數，SQL 本文不含任何商品編號、引號或注入片段
-        $this->assertStringContainsString(
-            "FIELD(CONCAT(brand, '_', product_code), ?)",
-            $ranked[0]->sql
+        // setMostVisitedHmallProductsCache() 的 try/catch 吞掉）下面的檢查也會過。
+        $this->assertSame(
+            [$product->id],
+            app(HmallProductRepository::class)->getMostVisitedHmallProducts()->pluck('id')->all()
         );
-        $this->assertStringNotContainsString('select 1', $ranked[0]->sql);
+        $this->assertNotEmpty($statements);
 
-        // 過不了白名單的那筆整個被丟掉，連 binding 都不該出現；
-        // 合格的編號 whereIn 與 ORDER BY 各綁一次
-        $this->assertNotContains("UNIQLO_x',(select 1))-- ", $ranked[0]->bindings);
-        $this->assertCount(
-            2,
-            array_keys($ranked[0]->bindings, 'UNIQLO_u0000000053204', true)
-        );
+        foreach ($statements as $query) {
+            // 商品編號只能走 ? 參數，SQL 本文不含任何編號、引號或注入片段
+            $this->assertStringNotContainsString('u0000000053204', $query->sql);
+            $this->assertStringNotContainsString('select 1', $query->sql);
+
+            // 過不了白名單的那筆整個被丟掉，連 binding 都不該出現
+            foreach ($query->bindings as $binding) {
+                $this->assertStringNotContainsString('select 1', (string) $binding);
+            }
+        }
     }
 }

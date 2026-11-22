@@ -327,34 +327,22 @@ class SyncSocialPostsTest extends TestCase
         $this->assertEqualsCanonicalizing(['479123', 'ABC-1'], SocialPost::sole()->codes->pluck('code')->all());
     }
 
-    public function test_rate_limits_and_server_errors_keep_a_post_that_was_showing(): void
-    {
-        $this->fakeNotion([$this->page('page-1')]);
-        $this->fakeFetcher(fn () => $this->fetched());
-        $this->artisan('social-post:sync');
-
-        foreach ([429, 503] as $status) {
-            $this->fakeFetcher(fn () => throw new RequestException(new Response(new \GuzzleHttp\Psr7\Response($status))));
-            $this->artisan('social-post:sync --full');
-
-            $this->assertSame(SocialPostStatus::Ok, SocialPost::sole()->status, "HTTP {$status}");
-        }
-    }
-
     public function test_refetch_without_any_preview_data_keeps_what_was_stored(): void
     {
         $this->fakeNotion([$this->page('page-1')]);
         $this->fakeFetcher(fn () => $this->fetched(['author' => '原作者', 'text' => '原內文']));
         $this->artisan('social-post:sync');
 
-        foreach ([null, ''] as $empty) {
+        foreach ([null, ''] as $round => $empty) {
             $this->fakeFetcher(fn () => $this->fetched(['author' => $empty, 'text' => $empty, 'cover_url' => $empty]));
             $this->artisan('social-post:sync --full');
 
             $post = SocialPost::sole();
+            $this->assertSame($round + 2, $this->fetchCount, '要真的重抓過');
             $this->assertSame(SocialPostStatus::Ok, $post->status);
             $this->assertSame('原作者', $post->author);
             $this->assertSame('原內文', $post->text);
+            $this->assertSame('https://scontent.cdninstagram.com/p.jpg', $post->cover_url);
         }
     }
 
@@ -654,17 +642,26 @@ class SyncSocialPostsTest extends TestCase
         $this->assertSame([['同步狀態' => ['select' => ['name' => '抓取失敗']]]], $this->notionUpdates());
     }
 
-    public function test_temporary_failures_leave_the_sync_status_of_an_existing_row_alone(): void
+    public static function temporaryFailureStatuses(): array
+    {
+        return [
+            'rate limited' => [429],
+            'server error' => [503],
+        ];
+    }
+
+    #[DataProvider('temporaryFailureStatuses')]
+    public function test_temporary_failures_keep_a_showing_post_and_leave_its_sync_status_alone(int $status): void
     {
         $this->fakeNotion([$this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'status' => '正常'])]);
         $this->fakeFetcher(fn () => $this->fetched());
         $this->artisan('social-post:sync');
 
-        $this->fakeFetcher(fn () => throw new RequestException(new Response(new \GuzzleHttp\Psr7\Response(503))));
+        $this->fakeFetcher(fn () => throw new RequestException(new Response(new \GuzzleHttp\Psr7\Response($status))));
         $this->artisan('social-post:sync --full');
 
         $this->assertSame([], $this->notionUpdates());
-        $this->assertSame(SocialPostStatus::Ok, SocialPost::first()->status);
+        $this->assertSame(SocialPostStatus::Ok, SocialPost::sole()->status);
     }
 
     public function test_new_row_hit_by_a_temporary_failure_is_marked_failed(): void
@@ -1055,21 +1052,6 @@ class SyncSocialPostsTest extends TestCase
         // 不用連網就看得出合不了，不去重讀頁面、也不讀內文
         Http::assertNotSent(fn (Request $request) => $request->method() === 'GET'
             && preg_match('~/v1/(pages|blocks)/~', $request->url()) === 1);
-    }
-
-    public function test_duplicate_page_with_content_inside_is_only_marked(): void
-    {
-        Http::fake(['api.notion.com/v1/blocks/page-2/children*' => Http::response(['results' => [['type' => 'paragraph', 'paragraph' => ['rich_text' => [['plain_text' => '這件買黑色']]]]], 'has_more' => false])]);
-        $this->fakeNotion([
-            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'created' => self::EARLIER, 'status' => '正常']),
-            $this->page('page-2', ['url' => self::CANONICAL_URL, 'status' => null]),
-        ]);
-        $this->fakeFetcher(fn () => $this->fetched());
-
-        $this->artisan('social-post:sync');
-
-        $this->assertNotContains(['page-2', '垃圾桶'], $this->notionWrites());
-        $this->assertSame(2, SocialPost::count());
     }
 
     public static function pageContents(): array

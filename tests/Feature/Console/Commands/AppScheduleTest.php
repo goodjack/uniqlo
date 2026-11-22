@@ -14,19 +14,44 @@ use Illuminate\Foundation\Console\ClosureCommand;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
-use ReflectionMethod;
 use Tests\TestCase;
 
 class AppScheduleTest extends TestCase
 {
-    /** @var array<int, string> 實際被執行到的步驟，用來驗證失敗後有沒有繼續往下跑 */
-    private array $executedCommands = [];
+    /**
+     * 排程每天依序要跑的步驟（指令與參數）。這份清單刻意獨立寫在測試裡，
+     * 排程漏掉、調換或新增步驟時都會被抓到，提醒人回來更新這裡。
+     */
+    private const EXPECTED_STEPS = [
+        'hmall-product:fetch UNIQLO',
+        'hmall-product:fetch GU',
+        'hmall-product-description:fetch UNIQLO',
+        'hmall-product-description:fetch GU',
+        'japan-product:fetch UNIQLO',
+        'japan-product:fetch GU',
+        // 快取與 sitemap 要等爬蟲寫完資料才重建
+        'hmall-product:cache',
+        'hmall-product:cache-most-visited',
+        'sitemap:generate',
+        'style:fetch UNIQLO',
+        'style:fetch GU',
+        'style-hint:fetch us',
+        'style-hint:fetch jp',
+        'style-hint-ugc:fetch UNIQLO --only-recent --is-scheduled',
+        'style-hint-ugc:fetch GU --only-recent --is-scheduled',
+        'style-hint:cache-stats',
+        // 清完快取才接著抓商品詳細資料；有步驟整步失敗、不清快取時也不抓
+        'hmall-product-detail:fetch',
+    ];
+
+    /** @var array<int, string> 實際被執行到的步驟（指令與參數），用來驗證失敗後有沒有繼續往下跑 */
+    private array $executedSteps = [];
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->executedCommands = [];
+        $this->executedSteps = [];
         Event::fake([AppTaskFailed::class, AppTaskFinished::class]);
     }
 
@@ -37,7 +62,7 @@ class AppScheduleTest extends TestCase
         $exitCode = $this->artisan('app:schedule')->run();
 
         $this->assertSame(Command::SUCCESS, $exitCode);
-        $this->assertSame([...$this->stepCommands(), AppSchedule::PRODUCT_DETAIL_COMMAND], $this->executedCommands);
+        $this->assertSame(self::EXPECTED_STEPS, $this->executedSteps);
         Event::assertNotDispatched(AppTaskFailed::class);
     }
 
@@ -47,7 +72,7 @@ class AppScheduleTest extends TestCase
 
         $this->artisan('app:schedule')->run();
 
-        $this->assertNotContains(AppSchedule::PRODUCT_DETAIL_COMMAND, $this->executedCommands);
+        $this->assertNotContains(AppSchedule::PRODUCT_DETAIL_COMMAND, $this->executedSteps);
     }
 
     public function test_product_details_still_run_when_only_a_step_that_does_not_block_the_purge_fails(): void
@@ -57,7 +82,7 @@ class AppScheduleTest extends TestCase
         $exitCode = $this->artisan('app:schedule')->run();
 
         $this->assertSame(Command::FAILURE, $exitCode);
-        $this->assertContains(AppSchedule::PRODUCT_DETAIL_COMMAND, $this->executedCommands);
+        $this->assertContains(AppSchedule::PRODUCT_DETAIL_COMMAND, $this->executedSteps);
     }
 
     public function test_a_failed_product_detail_run_does_not_fail_the_daily_run(): void
@@ -78,9 +103,10 @@ class AppScheduleTest extends TestCase
 
         $this->assertSame(Command::FAILURE, $exitCode);
         // 爬蟲炸掉之後，快取重建與 sitemap 這些後段步驟仍然要跑到
-        $this->assertContains('hmall-product:cache', $this->executedCommands);
-        $this->assertContains('sitemap:generate', $this->executedCommands);
-        $this->assertSame($this->stepCommands(), $this->executedCommands);
+        $this->assertContains('hmall-product:cache', $this->executedSteps);
+        $this->assertContains('sitemap:generate', $this->executedSteps);
+        // 有步驟整步失敗時不清快取，最後的商品詳細資料也不抓
+        $this->assertSame(array_slice(self::EXPECTED_STEPS, 0, -1), $this->executedSteps);
     }
 
     /**
@@ -334,14 +360,20 @@ class AppScheduleTest extends TestCase
     ): void {
         $test = $this;
 
-        foreach ([...$this->stepCommands(), AppSchedule::PRODUCT_DETAIL_COMMAND] as $command) {
+        foreach ($this->stepCommands() as $command) {
             $fake = new ClosureCommand(
                 "{$command} {brand?} {country?} {--only-recent} {--is-scheduled}",
                 function () use ($test, $command, $failing, $throwing, $partiallySucceeding, $notes, $overdue) {
-                    $test->recordExecution($command);
-
                     // 真的指令跑完會把這一輪的說明留給排程，假指令照做
                     $brand = $this->argument('brand');
+
+                    $test->recordExecution(implode(' ', array_filter([
+                        $command,
+                        $brand,
+                        $this->argument('country'),
+                        $this->option('only-recent') ? '--only-recent' : null,
+                        $this->option('is-scheduled') ? '--is-scheduled' : null,
+                    ])));
                     $note = $notes[trim("{$command} {$brand}")] ?? null;
 
                     if ($note !== null) {
@@ -369,20 +401,22 @@ class AppScheduleTest extends TestCase
         }
     }
 
-    public function recordExecution(string $command): void
+    public function recordExecution(string $step): void
     {
-        $this->executedCommands[] = $command;
+        $this->executedSteps[] = $step;
     }
 
     /**
-     * 依 AppSchedule::steps() 的順序取出指令名，排程增減步驟時測試自動跟上。
+     * 除了排程本身與最後的清快取，所有已註冊的指令都換成假指令。不從預期清單推：
+     * 排程新加、清單還沒補的步驟才會被記錄下來讓比對失敗，也不會在測試裡跑真的指令。
      *
      * @return array<int, string>
      */
     private function stepCommands(): array
     {
-        $steps = (new ReflectionMethod(AppSchedule::class, 'steps'))->invoke(null);
-
-        return array_map(fn (array $step) => $step[0], $steps);
+        return array_values(array_diff(
+            array_keys($this->app[Kernel::class]->all()),
+            ['app:schedule', 'cloudflare:purge'],
+        ));
     }
 }

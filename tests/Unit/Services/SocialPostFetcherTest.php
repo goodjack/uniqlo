@@ -186,7 +186,10 @@ class SocialPostFetcherTest extends TestCase
 
         $this->fetch('https://www.threads.com/@meta/post/DDzbnVKx57R');
 
-        Http::assertSent(fn (Request $request) => $request->header('User-Agent') === [SocialPostFetcher::USER_AGENT]);
+        Http::assertSentCount(2);
+        foreach (Http::recorded() as [$request]) {
+            $this->assertSame([SocialPostFetcher::USER_AGENT], $request->header('User-Agent'), $request->url());
+        }
         Http::assertNotSent(fn (Request $request) => str_contains($request->url(), '/embed'));
     }
 

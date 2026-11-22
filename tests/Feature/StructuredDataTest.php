@@ -161,9 +161,8 @@ class StructuredDataTest extends TestCase
     {
         $content = $this->get(route('lists.sale'))->assertOk()->getContent();
 
+        $this->assertSame('特價商品 | UQ 搜尋', $this->meta($content, 'og:title'));
         $this->assertSame($this->meta($content, 'og:title'), $this->meta($content, 'twitter:title'));
-        $this->assertStringEndsWith(' | UQ 搜尋', $this->meta($content, 'og:title'));
-        $this->assertNotSame($this->title($content), $this->meta($content, 'og:title'));
     }
 
     public static function pagesWithATitle(): array

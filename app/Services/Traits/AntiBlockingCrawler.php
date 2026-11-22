@@ -4,6 +4,7 @@ namespace App\Services\Traits;
 
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Sleep;
 use Throwable;
 
 trait AntiBlockingCrawler
@@ -116,7 +117,7 @@ trait AntiBlockingCrawler
         $sleepSec = rand($offsetConfig['sleep_min'], $offsetConfig['sleep_max']);
 
         logger()->info("Offset batch rest: sleeping {$sleepSec}s");
-        sleep($sleepSec);
+        Sleep::for($sleepSec)->seconds();
     }
 
     /**
@@ -146,6 +147,6 @@ trait AntiBlockingCrawler
         $sleepSec = rand($detailConfig['sleep_min'], $detailConfig['sleep_max']);
 
         logger()->info("Detail batch rest: sleeping {$sleepSec}s");
-        sleep($sleepSec);
+        Sleep::for($sleepSec)->seconds();
     }
 }
