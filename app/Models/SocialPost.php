@@ -8,6 +8,8 @@ use App\Enums\SocialPostStatus;
 use App\Enums\SocialSyncStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 class SocialPost extends Model
 {
@@ -36,6 +38,28 @@ class SocialPost extends Model
     public function codes()
     {
         return $this->hasMany(SocialPostCode::class);
+    }
+
+    /**
+     * 存檔並把貨號換成這次給的。
+     *
+     * @param  array<int, array{code: string, start_seconds: ?int}>  $codes
+     */
+    public function saveWithCodes(array $codes): void
+    {
+        DB::transaction(function () use ($codes) {
+            $this->save();
+            $this->codes()->delete();
+            $this->codes()->createMany(array_map(fn (array $code) => Arr::only($code, ['code', 'start_seconds']), $codes));
+        });
+    }
+
+    /** Notion 上的網址既不是上次抓的、也不是寫回去的正式網址，就是改填了別篇 */
+    public function urlReplacedBy(?string $url): bool
+    {
+        $url ??= '';
+
+        return $url !== $this->source_url && $url !== $this->canonical_url;
     }
 
     public function scopeVisible(Builder $query): Builder

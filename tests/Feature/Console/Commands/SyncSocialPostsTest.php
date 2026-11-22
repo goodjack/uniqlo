@@ -10,8 +10,10 @@ use App\Exceptions\SocialPostUnavailableException;
 use App\Models\HmallProduct;
 use App\Models\SocialPost;
 use App\Models\SocialPostCode;
+use App\Services\SocialPostDuplicateMerger;
 use App\Services\SocialPostFetcher;
 use App\Services\SocialPostService;
+use App\Support\SocialPostRow;
 use App\Support\SocialUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -1194,5 +1196,20 @@ class SyncSocialPostsTest extends TestCase
         $this->artisan('social-post:sync --full');
 
         Sleep::assertSleptTimes(2);
+    }
+
+    public function test_duplicate_saved_by_another_sync_midway_is_left_for_the_next_round(): void
+    {
+        // 這輪讀完清單後，另一輪才存進一則同一篇的貼文：不在這輪清單上，不能讓這輪中止，留給下一輪
+        Http::fake();
+        SocialPost::create(['notion_page_id' => 'page-a', 'notion_created_at' => now()->subDay(), 'notion_edited_at' => now(), 'source_url' => self::CANONICAL_URL, 'canonical_url' => self::CANONICAL_URL, 'platform' => SocialPlatform::Threads, 'kind' => SocialPostKind::Post, 'author' => '作者', 'status' => SocialPostStatus::Ok]);
+        SocialPost::create(['notion_page_id' => 'page-b', 'notion_created_at' => now()->subDay(), 'notion_edited_at' => now(), 'source_url' => self::CANONICAL_URL, 'canonical_url' => self::CANONICAL_URL, 'platform' => SocialPlatform::Threads, 'kind' => SocialPostKind::Post, 'author' => '作者', 'status' => SocialPostStatus::Ok]);
+        $rows = collect(['page-a' => SocialPostRow::fromPage($this->page('page-a', ['url' => self::CANONICAL_URL]))]);
+
+        $marks = app(SocialPostDuplicateMerger::class)->merge($rows, []);
+
+        $this->assertSame([], $marks);
+        $this->assertSame(2, SocialPost::count());
+        Http::assertNothingSent();
     }
 }

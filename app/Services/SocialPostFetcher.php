@@ -87,13 +87,8 @@ class SocialPostFetcher
             $url = $this->resolveRedirect($url);
         }
 
-        $canonical = SocialUrl::canonical($url);
-
-        if (SocialUrl::platform($url) === null || $canonical === null) {
-            throw new InvalidArgumentException("不支援的網址：{$url}");
-        }
-
-        return $canonical;
+        // 認不得的平台也會在這裡得到 null
+        return SocialUrl::canonical($url) ?? throw new InvalidArgumentException("不支援的網址：{$url}");
     }
 
     /** 連不上、被限流或平台出錯，過一陣子再抓多半就好了，跟貼文刪除、轉私人分開處理 */
