@@ -37,6 +37,9 @@ return [
             'description' => [
                 'tw' => env('GU_API_V3_DESCRIPTION_TW'),
             ],
+            'detail' => [
+                'tw' => env('GU_API_V3_DETAIL_TW'),
+            ],
         ],
     ],
 

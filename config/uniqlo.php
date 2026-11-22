@@ -51,6 +51,9 @@ return [
             'description' => [
                 'tw' => env('UQ_API_V3_DESCRIPTION_TW'),
             ],
+            'detail' => [
+                'tw' => env('UQ_API_V3_DETAIL_TW'),
+            ],
         ],
     ],
 

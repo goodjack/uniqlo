@@ -221,6 +221,13 @@ return [
                 'sleep_max' => 20,
             ],
         ],
+        'product_details' => [
+            'priority_limit' => (int) env('CRAWLER_PRODUCT_DETAILS_PRIORITY_LIMIT', 300),
+            'rotation_limit' => (int) env('CRAWLER_PRODUCT_DETAILS_ROTATION_LIMIT', 50),
+            'follow_up_days' => [3, 7, 14],
+            'rotation_days' => ['min' => 30, 'max' => 60],
+            'max_consecutive_failures' => 3,
+        ],
     ],
 
     'discord_webhook_url' => env('DISCORD_WEBHOOK_URL'),

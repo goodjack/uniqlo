@@ -85,6 +85,11 @@ class HmallProduct extends Model
         return $this->hasOne(JapanProduct::class, 'l1Id', 'code');
     }
 
+    public function detail()
+    {
+        return $this->hasOne(HmallProductDetail::class);
+    }
+
     /**
      * Get the price of the product.
      *

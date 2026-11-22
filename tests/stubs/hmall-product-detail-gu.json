@@ -1,0 +1,79 @@
+{
+  "success": true,
+  "msg": "",
+  "msgCode": "",
+  "resp": [
+    {
+      "imageInfo": {
+        "main": {
+          "561": [
+            "/hmall/test/u0000000053291/main/first/561/1.jpg",
+            "/hmall/test/u0000000053291/main/other1/480/2.jpg",
+            "/hmall/test/u0000000053291/main/other2/480/3.jpg",
+            "/hmall/test/u0000000053291/main/other3/480/4.jpg",
+            "/hmall/test/u0000000053291/main/other4/480/5.jpg",
+            "/hmall/test/u0000000053291/main/other5/480/6.jpg",
+            "/hmall/test/u0000000053291/main/other6/480/7.jpg",
+            "/hmall/test/u0000000053291/main/other7/480/8.jpg",
+            "/hmall/test/u0000000053291/main/other8/480/9.jpg",
+            "/hmall/test/u0000000053291/main/other9/480/10.jpg",
+            "/hmall/test/u0000000053291/main/other10/480/11.jpg",
+            "/hmall/test/u0000000053291/main/other11/480/12.jpg"
+          ],
+          "1000": [
+            "/hmall/test/u0000000053291/main/first/1000/1.jpg",
+            "/hmall/test/u0000000053291/main/other1/1000/2.jpg",
+            "/hmall/test/u0000000053291/main/other2/1000/3.jpg",
+            "/hmall/test/u0000000053291/main/other3/1000/4.jpg",
+            "/hmall/test/u0000000053291/main/other4/1000/5.jpg",
+            "/hmall/test/u0000000053291/main/other5/1000/6.jpg",
+            "/hmall/test/u0000000053291/main/other6/1000/7.jpg",
+            "/hmall/test/u0000000053291/main/other7/1000/8.jpg",
+            "/hmall/test/u0000000053291/main/other8/1000/9.jpg",
+            "/hmall/test/u0000000053291/main/other9/1000/10.jpg",
+            "/hmall/test/u0000000053291/main/other10/1000/11.jpg",
+            "/hmall/test/u0000000053291/main/other11/1000/12.jpg"
+          ]
+        },
+        "video": null,
+        "productCode": "u0000000053291"
+      },
+      "spuInfo": {
+        "desc": {
+          "marketPrice": null,
+          "marketPriceH5": null,
+          "instruction": "/hmall/test/u0000000053291/zh_TW/instruction.html",
+          "instructionH5": "/hmall/test/u0000000053291/zh_TW/instructionH5.html",
+          "sizeChart": "/hmall/test/u0000000053291/zh_TW/sizeAndTryOn.html",
+          "sizeChartH5": "/hmall/test/u0000000053291/zh_TW/sizeAndTryOnH5.html",
+          "description": null,
+          "descriptionH5": null,
+          "sizeAndTryOn": "/hmall/test/u0000000053291/zh_TW/sizeAndTryOn.html",
+          "sizeAndTryOnH5": "/hmall/test/u0000000053291/zh_TW/sizeAndTryOnH5.html",
+          "defined": null,
+          "definedH5": null,
+          "features": "/hmall/test/u0000000053291/zh_TW/features.html",
+          "originPlace": "/hmall/test/u0000000053291/zh_TW/originPlace.html",
+          "materialCare": "/hmall/test/u0000000053291/zh_TW/materialCare.html",
+          "shippingAndReturns": "/hmall/test/u0000000053291/zh_TW/shippingAndReturns.html",
+          "limitedOffer": null
+        },
+        "summary": {
+          "productCode": "u0000000053291",
+          "code": "360889",
+          "name": "保暖透膚高領T恤(吸濕發熱)(十二分袖)UL",
+          "score": "5.0",
+          "evaluationCount": 16,
+          "levels": [
+            16,
+            0,
+            0,
+            0,
+            0
+          ],
+          "originPlaceSummary": "柬埔寨製"
+        }
+      }
+    }
+  ]
+}

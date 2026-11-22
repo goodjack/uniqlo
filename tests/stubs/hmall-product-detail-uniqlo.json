@@ -1,0 +1,65 @@
+{
+  "success": true,
+  "msg": "",
+  "msgCode": "",
+  "resp": [
+    {
+      "imageInfo": {
+        "main": {
+          "561": [
+            "/hmall/test/u0000000053924/main/first/561/1.jpg",
+            "/hmall/test/u0000000053924/main/other1/480/2.jpg",
+            "/hmall/test/u0000000053924/main/other2/480/3.jpg",
+            "/hmall/test/u0000000053924/main/other3/480/4.jpg",
+            "/hmall/test/u0000000053924/main/other4/480/5.jpg"
+          ],
+          "1000": [
+            "/hmall/test/u0000000053924/main/first/1000/1.jpg",
+            "/hmall/test/u0000000053924/main/other1/1000/2.jpg",
+            "/hmall/test/u0000000053924/main/other2/1000/3.jpg",
+            "/hmall/test/u0000000053924/main/other3/1000/4.jpg",
+            "/hmall/test/u0000000053924/main/other4/1000/5.jpg"
+          ]
+        },
+        "video": null,
+        "productCode": "u0000000053924"
+      },
+      "spuInfo": {
+        "desc": {
+          "marketPrice": null,
+          "marketPriceH5": null,
+          "instruction": "/hmall/test/u0000000053924/zh_TW/instruction.html",
+          "instructionH5": "/hmall/test/u0000000053924/zh_TW/instructionH5.html",
+          "sizeChart": "/hmall/test/u0000000053924/zh_TW/sizeAndTryOn.html",
+          "sizeChartH5": "/hmall/test/u0000000053924/zh_TW/sizeAndTryOnH5.html",
+          "description": null,
+          "descriptionH5": null,
+          "sizeAndTryOn": "/hmall/test/u0000000053924/zh_TW/sizeAndTryOn.html",
+          "sizeAndTryOnH5": "/hmall/test/u0000000053924/zh_TW/sizeAndTryOnH5.html",
+          "defined": null,
+          "definedH5": null,
+          "features": "/hmall/test/u0000000053924/zh_TW/features.html",
+          "originPlace": null,
+          "materialCare": "/hmall/test/u0000000053924/zh_TW/materialCare.html",
+          "shippingAndReturns": "/hmall/test/u0000000053924/zh_TW/shippingAndReturns.html",
+          "limitedOffer": null
+        },
+        "summary": {
+          "productCode": "u0000000053924",
+          "code": "485562",
+          "name": "AIRism棉質圓領T恤(長袖) 479781",
+          "score": "4.67",
+          "evaluationCount": 3,
+          "levels": [
+            2,
+            1,
+            0,
+            0,
+            0
+          ],
+          "originPlaceSummary": null
+        }
+      }
+    }
+  ]
+}

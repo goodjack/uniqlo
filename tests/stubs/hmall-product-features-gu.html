@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>product features</title>
+  <style type="text/css">
+      .product-features-content {
+          width: 100%;
+          overflow: hidden;
+      }
+      .product-features {
+          display: grid;
+          grid-column-gap: 20px;
+          grid-row-gap: 20px;
+          grid-template-columns: repeat(2, 1fr);
+      }
+      @media (max-width: 599px) {
+          .product-features {
+              grid-template-columns: repeat(1, 1fr) !important;
+          }
+      }
+      .feature-item {
+          display: grid;
+          grid-column-gap: 20px;
+          grid-template-columns: repeat(2, 1fr);
+      }
+      .feature-item-img img {
+          width: 100%;
+          aspect-ratio: 1;
+      }
+      .feature-item-desc a {
+          color: #005DB5 !important;
+      }
+  </style>
+                                </head>
+<body>
+<div class="product-features-content">
+  <div class="product-features">
+    <div class="feature-item">
+      <div class="feature-item-img"><img src="https://www.gu-global.com/tw/hmall/test/u0000000053291/features/1.jpg" alt=""></div>
+      <div class="feature-item-desc">商品機能介紹</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
