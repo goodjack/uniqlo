@@ -6,15 +6,19 @@ use App\Enums\CrawlOutcome;
 use App\Repositories\JapanProductRepository;
 use App\Services\JapanProductService;
 use App\Support\ProductSaveResult;
+use Carbon\CarbonInterval;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Sleep;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class JapanProductServiceTest extends TestCase
 {
+    private const OFFSET_REST_SECONDS = 9;
+
     private JapanProductService $service;
 
     protected function setUp(): void
@@ -43,9 +47,7 @@ class JapanProductServiceTest extends TestCase
 
     public function test_fetch_all_products_stops_on_403_error()
     {
-        // Pre-set checkpoint (simulating partial completion)
         Cache::set('japan_products:offset:UNIQLO', 36);
-        $checkpointBefore = Cache::get('japan_products:offset:UNIQLO');
 
         Http::fake([
             '*' => Http::response([], 403),
@@ -57,76 +59,56 @@ class JapanProductServiceTest extends TestCase
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        $this->service->fetchAllProducts('UNIQLO');
+        $result = $this->service->fetchAllProducts('UNIQLO');
 
-        // Checkpoint must not be overwritten on 403
-        $checkpointAfter = Cache::get('japan_products:offset:UNIQLO');
-        $this->assertEquals(36, $checkpointBefore);
-        $this->assertEquals(36, $checkpointAfter, 'Checkpoint must not be overwritten on 403');
+        // 被擋就不再重試、也不往下一批打
+        Http::assertSentCount(1);
+        $this->assertSame(CrawlOutcome::Failed, $result->outcome);
+        $this->assertEquals(36, Cache::get('japan_products:offset:UNIQLO'), 'Checkpoint must not be overwritten on 403');
     }
 
-    public function test_fetch_all_products_saves_checkpoint()
+    public function test_a_finished_crawl_clears_the_checkpoint()
     {
-        Http::fake([
-            '*' => Http::response([
-                'result' => [
-                    'items' => [],
-                    'pagination' => ['total' => 0],
-                ],
-            ]),
-        ]);
-
-        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
-
         Cache::flush();
+        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
+        Http::fake(['https://api.example.com/products*' => Http::response($this->listResponse(4, 4))]);
 
-        $this->service->fetchAllProducts('UNIQLO');
+        $result = $this->service->fetchAllProducts('UNIQLO');
 
-        // Checkpoint should be cleared after successful completion
+        // 跑的過程中會先寫下一批的 offset，跑完要清掉，隔天才會從頭掃
+        $this->assertSame(CrawlOutcome::Succeeded, $result->outcome);
         $this->assertNull(Cache::get('japan_products:offset:UNIQLO'));
     }
 
     public function test_fetch_all_products_resumes_from_checkpoint()
     {
-        $initialOffset = 72;
-        Cache::set('japan_products:offset:UNIQLO', $initialOffset);
+        Cache::set('japan_products:offset:UNIQLO', 72);
 
         Http::fake([
-            '*' => Http::response([
-                'result' => [
-                    'items' => [],
-                    'pagination' => ['total' => 0],
-                ],
-            ]),
+            '*' => Http::response($this->listResponse(0, 0)),
         ]);
 
         Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
 
         $this->service->fetchAllProducts('UNIQLO');
 
-        // Checkpoint should be cleared after completion
+        Http::assertSent(fn ($request) => $request->data()['offset'] === 72);
+        Http::assertNotSent(fn ($request) => $request->data()['offset'] === 0);
         $this->assertNull(Cache::get('japan_products:offset:UNIQLO'));
     }
 
     public function test_fetch_all_products_fresh_ignores_checkpoint()
     {
         Cache::set('japan_products:offset:UNIQLO', 100);
-
-        Http::fake([
-            '*' => Http::response([
-                'result' => [
-                    'items' => [],
-                    'pagination' => ['total' => 0],
-                ],
-            ]),
-        ]);
-
         Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
+        Http::fake(['https://api.example.com/products*' => Http::response($this->listResponse(4, 4))]);
 
-        $this->service->fetchAllProducts('UNIQLO', fresh: true);
+        $result = $this->serviceExpectingStockout($this->once())->fetchAllProducts('UNIQLO', fresh: true);
 
-        // Checkpoint should be cleared
-        $this->assertNull(Cache::get('japan_products:offset:UNIQLO'));
+        Http::assertSent(fn ($request) => $request->data()['offset'] === 0);
+        Http::assertNotSent(fn ($request) => $request->data()['offset'] === 100);
+        // 沒忽略續跑點的話會被當成續跑，不做缺貨判定
+        $this->assertSame(CrawlOutcome::Succeeded, $result->outcome);
     }
 
     public function test_uses_configured_retry_count()
@@ -170,9 +152,9 @@ class JapanProductServiceTest extends TestCase
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        $this->service->fetchAllProducts('UNIQLO');
+        $result = $this->serviceExpectingStockout($this->never())->fetchAllProducts('UNIQLO');
 
-        // Checkpoint must be preserved — not cleared
+        $this->assertSame(CrawlOutcome::Failed, $result->outcome);
         $this->assertEquals(
             72,
             Cache::get('japan_products:offset:UNIQLO'),
@@ -275,10 +257,9 @@ class JapanProductServiceTest extends TestCase
 
         $result = (new JapanProductService($repository))->fetchAllProducts('UNIQLO');
 
-        $this->assertSame(
-            '未執行缺貨判定，這一輪只看到 4 件，目前在售 900 件（確認官網真的大量下架後，可加 --accept-shrink 重跑放行）',
-            $result->note
-        );
+        $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
+        $this->assertStringContainsString('只看到 4 件', $result->note);
+        $this->assertStringContainsString('在售 900 件', $result->note);
     }
 
     public function test_accepting_a_shrink_runs_stockout_despite_seeing_few_products()
@@ -342,6 +323,49 @@ class JapanProductServiceTest extends TestCase
 
         $this->assertSame(CrawlOutcome::PartiallySucceeded, $result->outcome);
         $this->assertSame('未執行缺貨判定，1 件失敗資料缺少商品識別', $result->note);
+    }
+
+    /**
+     * 每抓滿 interval 頁休息一次。目錄 5 頁、每 2 頁休息：抓完第 2、4 頁各休息一次。
+     */
+    public function test_the_crawl_rests_after_every_interval_pages()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
+        Config::set('app.crawler.batch_rest.offset', ['interval' => 2, 'sleep_min' => self::OFFSET_REST_SECONDS, 'sleep_max' => self::OFFSET_REST_SECONDS]);
+        Sleep::fake();
+
+        Http::fake(['https://api.example.com/products*' => fn () => Http::response($this->listResponse(36, 180))]);
+
+        $this->assertSame(CrawlOutcome::Succeeded, $this->serviceExpectingStockout($this->once())->fetchAllProducts('UNIQLO')->outcome);
+        $this->assertOffsetRestedTimes(2);
+    }
+
+    /**
+     * 設定為 0 代表關閉休息；曾因拿 0 取餘數而整支爬蟲當掉。
+     */
+    public function test_an_interval_of_zero_turns_the_rest_off()
+    {
+        Cache::flush();
+        Config::set('uniqlo.api.product_list.jp', 'https://api.example.com/products');
+        Config::set('app.crawler.batch_rest.offset', ['interval' => 0, 'sleep_min' => self::OFFSET_REST_SECONDS, 'sleep_max' => self::OFFSET_REST_SECONDS]);
+        Sleep::fake();
+
+        Http::fake(['https://api.example.com/products*' => fn () => Http::response($this->listResponse(36, 180))]);
+
+        $this->assertSame(CrawlOutcome::Succeeded, $this->serviceExpectingStockout($this->once())->fetchAllProducts('UNIQLO')->outcome);
+        $this->assertOffsetRestedTimes(0);
+    }
+
+    /**
+     * 休息設成一個獨特的秒數，跟重試的睡眠分得開，只數這種長度的睡眠就是休息次數。
+     */
+    private function assertOffsetRestedTimes(int $times): void
+    {
+        Sleep::assertSlept(
+            fn (CarbonInterval $duration) => (int) $duration->totalSeconds === self::OFFSET_REST_SECONDS,
+            $times
+        );
     }
 
     private function listResponse(int $itemCount, int $total): array

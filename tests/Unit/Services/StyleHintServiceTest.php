@@ -4,19 +4,22 @@ namespace Tests\Unit\Services;
 
 use App\Repositories\StyleHintRepository;
 use App\Services\StyleHintService;
-use Exception;
-use GuzzleHttp\Psr7\Response as Psr7Response;
-use Illuminate\Http\Client\RequestException;
-use Illuminate\Http\Client\Response;
+use Carbon\CarbonInterval;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use ReflectionClass;
+use Illuminate\Support\Sleep;
+use PHPUnit\Framework\Attributes\DataProvider;
+use RuntimeException;
 use Tests\TestCase;
 
 class StyleHintServiceTest extends TestCase
 {
+    private const DETAIL_REST_SECONDS = 7;
+
     private StyleHintService $service;
 
     protected function setUp(): void
@@ -46,194 +49,86 @@ class StyleHintServiceTest extends TestCase
         $this->service = new StyleHintService($mockRepository);
     }
 
-    // ==================== Helper Methods Tests ====================
+    // ==================== Request Header Tests ====================
 
-    public function test_get_random_user_agent_returns_valid_ua()
+    public function test_list_and_detail_requests_carry_the_headers_the_api_requires()
     {
-        $userAgents = Config::get('app.user_agents');
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+        Config::set('uniqlo.api.style_hint_detail.us', 'https://api.example.com/style-hint-detail/');
 
-        for ($i = 0; $i < 10; $i++) {
-            $ua = $this->invokeMethod($this->service, 'getRandomUserAgent');
-            $this->assertTrue(in_array($ua, $userAgents), 'UA should be from the configured pool');
+        Http::fake([
+            'https://api.example.com/style-hint-list*' => Http::response([
+                'result' => [
+                    'images' => [(object) ['outfitId' => 'o1']],
+                    'pagination' => ['total' => 1],
+                ],
+            ]),
+            'https://api.example.com/style-hint-detail/*' => Http::response(['result' => (object) ['some' => 'data']]),
+        ]);
+
+        $this->service->fetchAllStyleHints('us');
+
+        $requests = Http::recorded();
+        $this->assertCount(2, $requests);
+
+        foreach ($requests as [$request]) {
+            $this->assertSame(['for-app-review'], $request->header('appCheck'), $request->url());
+            $this->assertSame(['zh_TW'], $request->header('langCode'), $request->url());
+            $this->assertSame(['https://m.uniqlo.com'], $request->header('Origin'), $request->url());
+            $this->assertSame(['https://m.uniqlo.com/'], $request->header('Referer'), $request->url());
         }
     }
 
-    public function test_build_headers_contains_required_fields()
+    public static function missingUserAgentConfigs(): array
     {
-        $headers = $this->invokeMethod($this->service, 'buildHeaders');
-
-        $this->assertArrayHasKey('User-Agent', $headers);
-        $this->assertArrayHasKey('Accept', $headers);
-        $this->assertArrayHasKey('Accept-Language', $headers);
-        $this->assertArrayHasKey('Accept-Encoding', $headers);
-        $this->assertArrayHasKey('Referer', $headers);
-        $this->assertArrayHasKey('Origin', $headers);
-
-        // Verify values are not empty
-        $this->assertNotEmpty($headers['User-Agent']);
-        $this->assertNotEmpty($headers['Accept']);
-
-        // Verify StyleHintService-specific headers (override from trait)
-        $this->assertEquals('for-app-review', $headers['appCheck']);
-        $this->assertEquals('zh_TW', $headers['langCode']);
-        $this->assertEquals('https://m.uniqlo.com', $headers['Origin']);
-        $this->assertEquals('https://m.uniqlo.com/', $headers['Referer']);
+        return [
+            'empty array' => [[]],
+            'null' => [null],
+        ];
     }
 
-    public function test_is_403_error_detects_403_correctly()
+    #[DataProvider('missingUserAgentConfigs')]
+    public function test_requests_fall_back_to_a_default_user_agent_when_none_configured(?array $userAgents)
     {
-        // Create a response with status 403
-        $mockResponse = new Response(
-            new Psr7Response(403)
-        );
+        // 曾因 array_rand([]) 讓整支爬蟲當掉
+        Config::set('app.user_agents', $userAgents);
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
 
-        // Create RequestException properly
-        $requestException = new RequestException($mockResponse);
-
-        $result = $this->invokeMethod($this->service, 'is403Error', [$requestException]);
-
-        $this->assertTrue($result);
-    }
-
-    public function test_is_403_error_returns_false_for_other_status_codes()
-    {
-        $mockResponse = new Response(
-            new Psr7Response(500)
-        );
-
-        $requestException = new RequestException($mockResponse);
-
-        $result = $this->invokeMethod($this->service, 'is403Error', [$requestException]);
-
-        $this->assertFalse($result);
-    }
-
-    public function test_is_403_error_returns_false_for_non_request_exception()
-    {
-        $exception = new Exception('Some error');
-
-        $result = $this->invokeMethod($this->service, 'is403Error', [$exception]);
-
-        $this->assertFalse($result);
-    }
-
-    public function test_should_offset_batch_rest_triggers_at_correct_interval()
-    {
-        Config::set('app.crawler.batch_rest.offset.interval', 75);
-
-        // offset: 0, limit: 50, result: 0 / 50 = 0 (should not trigger when offset is 0)
-        $result = $this->invokeMethod($this->service, 'shouldOffsetBatchRest', [0, 50]);
-        $this->assertFalse($result);
-
-        // offset: 3750 (75 * 50), limit: 50, result: 3750 / 50 = 75 % 75 = 0 (should trigger)
-        $result = $this->invokeMethod($this->service, 'shouldOffsetBatchRest', [3750, 50]);
-        $this->assertTrue($result);
-
-        // offset: 3700, limit: 50, result: 3700 / 50 = 74 % 75 != 0 (should not trigger)
-        $result = $this->invokeMethod($this->service, 'shouldOffsetBatchRest', [3700, 50]);
-        $this->assertFalse($result);
-    }
-
-    public function test_should_offset_batch_rest_handles_zero_limit()
-    {
-        // This tests the division-by-zero bug fix
-        Config::set('app.crawler.batch_rest.offset.interval', 75);
-
-        // Should not trigger (and not crash) when limit is 0
-        $result = $this->invokeMethod($this->service, 'shouldOffsetBatchRest', [100, 0]);
-        $this->assertFalse($result, 'Should handle zero limit without crashing');
-    }
-
-    public function test_should_offset_batch_rest_handles_zero_interval()
-    {
-        // This tests the division-by-zero bug fix
-        Config::set('app.crawler.batch_rest.offset.interval', 0);
-
-        // Should not trigger (and not crash) when interval is 0
-        $result = $this->invokeMethod($this->service, 'shouldOffsetBatchRest', [100, 50]);
-        $this->assertFalse($result, 'Should handle zero interval without crashing');
-    }
-
-    public function test_should_detail_batch_rest_triggers_at_interval()
-    {
-        Config::set('app.crawler.batch_rest.detail.interval', 200);
-
-        // detailCounter: 0 (should not trigger when 0)
-        $this->setPrivateProperty($this->service, 'detailCounter', 0);
-        $result = $this->invokeMethod($this->service, 'shouldDetailBatchRest');
-        $this->assertFalse($result);
-
-        // detailCounter: 200 (200 % 200 = 0, should trigger)
-        $this->setPrivateProperty($this->service, 'detailCounter', 200);
-        $result = $this->invokeMethod($this->service, 'shouldDetailBatchRest');
-        $this->assertTrue($result);
-
-        // detailCounter: 150 (150 % 200 != 0, should not trigger)
-        $this->setPrivateProperty($this->service, 'detailCounter', 150);
-        $result = $this->invokeMethod($this->service, 'shouldDetailBatchRest');
-        $this->assertFalse($result);
-    }
-
-    public function test_should_detail_batch_rest_handles_zero_interval()
-    {
-        // This tests the division-by-zero bug fix
-        Config::set('app.crawler.batch_rest.detail.interval', 0);
-
-        // Should not trigger (and not crash) when interval is 0
-        $this->setPrivateProperty($this->service, 'detailCounter', 200);
-        $result = $this->invokeMethod($this->service, 'shouldDetailBatchRest');
-        $this->assertFalse($result, 'Should handle zero interval without crashing');
-    }
-
-    public function test_get_random_user_agent_handles_empty_config()
-    {
-        // This tests the empty array bug fix
-        Config::set('app.user_agents', []);
-
-        Log::shouldReceive('warning')->once()->andReturnNull();
-
-        // Should not crash with Fatal Error from array_rand([])
-        $result = $this->invokeMethod($this->service, 'getRandomUserAgent');
-
-        $this->assertNotEmpty($result, 'Should return fallback User-Agent');
-        $this->assertStringContainsString('Mozilla', $result);
-    }
-
-    public function test_get_random_user_agent_handles_null_config()
-    {
-        // This tests the null config bug fix
-        Config::set('app.user_agents', null);
-
-        Log::shouldReceive('warning')->once()->andReturnNull();
-
-        // Should not crash
-        $result = $this->invokeMethod($this->service, 'getRandomUserAgent');
-
-        $this->assertNotEmpty($result, 'Should return fallback User-Agent when config is null');
-    }
-
-    public function test_get_random_user_agent_returns_from_pool()
-    {
-        Config::set('app.user_agents', [
-            'UserAgent1',
-            'UserAgent2',
-            'UserAgent3',
+        Http::fake([
+            'https://api.example.com/style-hint-list*' => Http::response([
+                'result' => ['images' => [], 'pagination' => ['total' => 0]],
+            ]),
         ]);
 
-        $result = $this->invokeMethod($this->service, 'getRandomUserAgent');
+        $this->assertTrue($this->service->fetchAllStyleHints('us'));
 
-        $this->assertContains($result, ['UserAgent1', 'UserAgent2', 'UserAgent3']);
+        Http::assertSent(fn ($request) => str_contains($request->header('User-Agent')[0] ?? '', 'Mozilla'));
+    }
+
+    public function test_requests_use_a_user_agent_from_the_configured_pool()
+    {
+        Config::set('app.user_agents', ['UserAgent1', 'UserAgent2', 'UserAgent3']);
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+
+        Http::fake([
+            'https://api.example.com/style-hint-list*' => Http::response([
+                'result' => ['images' => [], 'pagination' => ['total' => 0]],
+            ]),
+        ]);
+
+        $this->service->fetchAllStyleHints('us');
+
+        Http::assertSent(fn ($request) => in_array(
+            $request->header('User-Agent')[0] ?? null,
+            ['UserAgent1', 'UserAgent2', 'UserAgent3'],
+            true
+        ));
     }
 
     // ==================== 403 Blocking Tests ====================
 
     public function test_fetch_all_style_hints_stops_on_403_error()
     {
-        // Pre-set checkpoint (simulating partial completion)
-        Cache::set('style_hint:offset:us', 50);
-        $checkpointBefore = Cache::get('style_hint:offset:us');
-
-        // Use wildcard to match GET URLs with query parameters (e.g. ?offset=50&limit=50&...)
         Http::fake([
             'https://api.example.com/style-hint-list*' => Http::response([], 403),
         ]);
@@ -243,63 +138,42 @@ class StyleHintServiceTest extends TestCase
         Log::shouldReceive('info')->andReturnNull();
         Log::shouldReceive('error')->andReturnNull();
 
-        $this->service->fetchAllStyleHints('us');
+        $result = $this->service->fetchAllStyleHints('us');
 
-        // Checkpoint must not be overwritten on 403
-        $checkpointAfter = Cache::get('style_hint:offset:us');
-        $this->assertEquals(50, $checkpointBefore);
-        $this->assertEquals(50, $checkpointAfter, 'Checkpoint must not be overwritten on 403');
+        // 403 代表被封鎖：不重試、也不往下一頁
+        $this->assertFalse($result);
+        Http::assertSentCount(1);
     }
 
     public function test_fetch_style_hints_details_stops_on_403_error()
     {
-        Http::fake([
-            '*' => Http::response([], 403),
-        ]);
-
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
         Config::set('uniqlo.api.style_hint_detail.us', 'https://api.example.com/style-hint-detail/');
 
-        Log::spy();
+        Http::fake([
+            'https://api.example.com/style-hint-list*' => Http::response([
+                'result' => [
+                    'images' => [
+                        (object) ['outfitId' => 'o1'],
+                        (object) ['outfitId' => 'o2'],
+                    ],
+                    'pagination' => ['total' => 100],
+                ],
+            ]),
+            'https://api.example.com/style-hint-detail/*' => Http::response([], 403),
+        ]);
 
-        $mockSummaries = [
-            (object) ['outfitId' => '123'],
-        ];
+        Log::shouldReceive('info')->andReturnNull();
+        Log::shouldReceive('error')->andReturnNull();
 
-        // With the fix (throw exception), this should throw
-        try {
-            $this->invokeMethod($this->service, 'fetchStyleHintsDetails', ['us', $mockSummaries]);
-        } catch (\Throwable $e) {
-            // Expected - 403 should throw exception
-        }
+        $result = $this->service->fetchAllStyleHints('us');
 
-        // Verify error was logged
-        \Log::shouldHaveReceived('error')->atLeast()->once();
+        $this->assertFalse($result);
+        $this->assertCount(1, $this->requestsTo('/style-hint-detail/'), '明細遇到 403 後不該再抓同頁其他明細');
+        $this->assertCount(1, $this->requestsTo('/style-hint-list'), '明細遇到 403 後不該往下一頁');
     }
 
     // ==================== Checkpoint Tests ====================
-
-    public function test_backfill_saves_and_clears_checkpoint_on_completion()
-    {
-        Http::fake([
-            'https://api.example.com/style-hint-list*' => Http::response(
-                [
-                    'result' => [
-                        'images' => [],
-                        'pagination' => ['total' => 0],
-                    ],
-                ]
-            ),
-        ]);
-
-        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
-
-        Cache::flush();
-
-        $this->service->fetchAllStyleHints('us', backfill: true);
-
-        // Checkpoint should be cleared after successful backfill completion
-        $this->assertNull(Cache::get('style_hint:offset:us'));
-    }
 
     public function test_backfill_resumes_from_checkpoint()
     {
@@ -388,22 +262,15 @@ class StyleHintServiceTest extends TestCase
         Config::set('app.crawler.retry.times', 3);
         Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc-style-hints');
 
-        $requestCount = 0;
-        // Use wildcard to match GET URLs with query parameters (e.g. ?style_gender[]=1&...)
-        Http::fake(['https://api.example.com/ugc-style-hints*' => function ($request) use (&$requestCount) {
-            $requestCount++;
-
-            return Http::response([], 500);
-        }]);
+        Http::fake(['https://api.example.com/ugc-style-hints*' => Http::response([], 500)]);
 
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        // Directly call private method to avoid 5-gender loop
-        $this->invokeMethod($this->service, 'fetchStyleHintsFromUgcByGender', ['1', 'UNIQLO', false, false]);
+        $this->service->fetchAllStyleHintsFromUgc(isManual: false);
 
         // retry(3) = 3 total attempts; totalResultCount stays 0 → loop exits after 1 iteration
-        $this->assertEquals(3, $requestCount, 'Should make exactly 3 HTTP attempts (1 initial + 2 retries)');
+        $this->assertSame([1, 1, 1], $this->ugcPagesForGender('1'), 'Should make exactly 3 HTTP attempts (1 initial + 2 retries)');
     }
 
     public function test_fetch_style_hints_from_ugc_fetches_last_partial_page()
@@ -411,20 +278,14 @@ class StyleHintServiceTest extends TestCase
         // total_result_count=51, result_limit=50 → page 1 and page 2 should both be fetched
         Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc-style-hints');
 
-        $requestCount = 0;
-        // Use wildcard to match GET URLs with query parameters (e.g. ?style_gender[]=1&...)
-        Http::fake(['https://api.example.com/ugc-style-hints*' => function ($request) use (&$requestCount) {
-            $requestCount++;
+        Http::fake(['https://api.example.com/ugc-style-hints*' => Http::response([
+            'total_result_count' => 51,
+            'content_list' => [],
+        ])]);
 
-            return Http::response(json_encode([
-                'total_result_count' => 51,
-                'content_list' => [],
-            ]), 200, ['Content-Type' => 'application/json']);
-        }]);
+        $this->service->fetchAllStyleHintsFromUgc(isManual: false);
 
-        $this->invokeMethod($this->service, 'fetchStyleHintsFromUgcByGender', ['1', 'UNIQLO', false, false]);
-
-        $this->assertEquals(2, $requestCount, 'Should fetch page 1 (51 >= 50) and page 2 (51 >= 50), stop at page 3 (51 < 100)');
+        $this->assertSame([1, 2], $this->ugcPagesForGender('1'), 'Should fetch page 1 (51 >= 50) and page 2 (51 >= 50), stop at page 3 (51 < 100)');
     }
 
     public function test_list_api_not_re_called_when_style_hint_detail_fails()
@@ -479,8 +340,12 @@ class StyleHintServiceTest extends TestCase
         // Fix: resetDetailCounter() is now called once in fetchAllStyleHints() before the do-while.
         Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
         Config::set('uniqlo.api.style_hint_detail.us', 'https://api.example.com/style-hint-detail/');
+        // 兩頁各 3 筆：跨頁累積才會在第 4 筆休息，每頁歸零就永遠到不了 4
+        Config::set('app.crawler.batch_rest.detail.interval', 4);
+        Config::set('app.crawler.batch_rest.detail.sleep_min', self::DETAIL_REST_SECONDS);
+        Config::set('app.crawler.batch_rest.detail.sleep_max', self::DETAIL_REST_SECONDS);
+        Sleep::fake();
 
-        // Simulate 2 pages with 3 items each → detailCounter should reach 6 total
         $page = 0;
         Http::fake(function ($request) use (&$page) {
             $urlPath = parse_url($request->url(), PHP_URL_PATH);
@@ -520,16 +385,47 @@ class StyleHintServiceTest extends TestCase
             ]);
         });
 
-        Log::shouldReceive('info')->andReturnNull();
+        $this->service->fetchAllStyleHints('us');
+
+        $this->assertDetailRestedTimes(1);
+    }
+
+    /**
+     * 明細休息的 interval 設 0 代表關閉：明細照樣全部抓完，不休息。
+     */
+    public function test_a_detail_rest_interval_of_zero_turns_the_rest_off()
+    {
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
+        Config::set('uniqlo.api.style_hint_detail.us', 'https://api.example.com/style-hint-detail/');
+        Config::set('app.crawler.batch_rest.detail.interval', 0);
+        Config::set('app.crawler.batch_rest.detail.sleep_min', self::DETAIL_REST_SECONDS);
+        Config::set('app.crawler.batch_rest.detail.sleep_max', self::DETAIL_REST_SECONDS);
+        Sleep::fake();
+
+        Http::fake(function ($request) {
+            if (parse_url($request->url(), PHP_URL_PATH) === '/style-hint-list') {
+                return Http::response([
+                    'result' => [
+                        'images' => [
+                            (object) ['outfitId' => 'o1'],
+                            (object) ['outfitId' => 'o2'],
+                            (object) ['outfitId' => 'o3'],
+                        ],
+                        'pagination' => ['total' => 3],
+                    ],
+                ]);
+            }
+
+            return Http::response(['result' => (object) ['some' => 'data']]);
+        });
 
         $this->service->fetchAllStyleHints('us');
 
-        // detailCounter should be 6 (3 items × 2 pages), NOT reset to 3 after each page
-        $detailCounter = $this->getPrivateProperty($this->service, 'detailCounter');
-        $this->assertEquals(6, $detailCounter, 'detailCounter should accumulate across pages, not reset per page');
+        $this->assertCount(3, Http::recorded(fn ($request) => str_contains($request->url(), '/style-hint-detail/')));
+        $this->assertDetailRestedTimes(0);
     }
 
-    public function test_list_api_throws_on_missing_images_field()
+    public function test_page_missing_images_field_is_skipped_and_the_next_page_is_still_fetched()
     {
         // Bug #2: list API response missing result.images was not validated,
         // causing null property access errors.
@@ -537,23 +433,37 @@ class StyleHintServiceTest extends TestCase
         Config::set('app.crawler.retry.times', 1);
 
         Http::fake([
-            'https://api.example.com/style-hint-list*' => Http::response([
-                'result' => [
-                    // 'images' is missing
-                    'pagination' => ['total' => 100],
-                ],
-            ]),
+            'https://api.example.com/style-hint-list*' => function ($request) {
+                if ($request['offset'] === 50) {
+                    return Http::response([
+                        'result' => [
+                            // 'images' is missing
+                            'pagination' => ['total' => 100],
+                        ],
+                    ]);
+                }
+
+                return Http::response([
+                    'result' => [
+                        'images' => [],
+                        'pagination' => ['total' => 100],
+                    ],
+                ]);
+            },
         ]);
 
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
         Log::shouldReceive('warning')->andReturnNull();
 
-        // Should not crash — the exception is caught by the do-while's catch block
-        $this->service->fetchAllStyleHints('us');
+        $result = $this->service->fetchAllStyleHints('us');
 
-        // Verify it logged an error (retry exhausted)
-        Log::shouldHaveReceived('error')->atLeast()->once();
+        $this->assertTrue($result);
+        $this->assertSame(
+            [0, 50, 100],
+            $this->requestsTo('/style-hint-list')->map(fn ($request) => $request['offset'])->all(),
+            '缺欄位的那頁跳過後要繼續抓下一頁'
+        );
     }
 
     public function test_list_api_throws_on_missing_pagination_field()
@@ -613,33 +523,43 @@ class StyleHintServiceTest extends TestCase
         // causing over-counting when retries occur.
         Config::set('app.crawler.retry.times', 3);
         Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc-style-hints');
+        // 第一頁 3 筆（儲存失敗一次後重試成功）、第二頁 1 筆：正確計數在第二頁剛好到 4；
+        // 若重試也計數，第一頁就變 6、第二頁 7，永遠不會休息
+        Config::set('app.crawler.batch_rest.detail.interval', 4);
+        Config::set('app.crawler.batch_rest.detail.sleep_min', self::DETAIL_REST_SECONDS);
+        Config::set('app.crawler.batch_rest.detail.sleep_max', self::DETAIL_REST_SECONDS);
+        Sleep::fake();
 
-        $requestCount = 0;
-        Http::fake(['https://api.example.com/ugc-style-hints*' => function ($request) use (&$requestCount) {
-            $requestCount++;
+        $saveCalls = 0;
+        $mockRepository = $this->createMock(StyleHintRepository::class);
+        $mockRepository->method('saveStyleHintsFromUgc')
+            ->willReturnCallback(function () use (&$saveCalls) {
+                $saveCalls++;
 
-            // First attempt fails, second succeeds
-            if ($requestCount === 1) {
-                return Http::response([], 500);
+                if ($saveCalls === 1) {
+                    throw new RuntimeException('Temporary database failure');
+                }
+
+                return true;
+            });
+        $service = new StyleHintService($mockRepository);
+
+        Http::fake(['https://api.example.com/ugc-style-hints*' => function ($request) {
+            if ($request['style_gender'] !== ['1']) {
+                return Http::response(['total_result_count' => 0, 'content_list' => []]);
             }
 
-            return Http::response(json_encode([
-                'total_result_count' => 10,
-                'content_list' => [
-                    (object) ['id' => 1],
-                    (object) ['id' => 2],
-                    (object) ['id' => 3],
-                ],
-            ]), 200, ['Content-Type' => 'application/json']);
+            $contentList = $request['page'] === 1
+                ? [['id' => 1], ['id' => 2], ['id' => 3]]
+                : [['id' => 4]];
+
+            return Http::response(['total_result_count' => 51, 'content_list' => $contentList]);
         }]);
 
-        $this->setPrivateProperty($this->service, 'detailCounter', 0);
+        $service->fetchAllStyleHintsFromUgc(isManual: false);
 
-        $this->invokeMethod($this->service, 'fetchStyleHintsFromUgcByGender', ['1', 'UNIQLO', false, false]);
-
-        // detailCounter should be 3 (count of content_list), NOT 6 (from being inside retry)
-        $detailCounter = $this->getPrivateProperty($this->service, 'detailCounter');
-        $this->assertEquals(3, $detailCounter, 'detailCounter should only increment once per successful request, not per retry attempt');
+        $this->assertSame([1, 1, 2], $this->ugcPagesForGender('1'), '第一頁應因儲存失敗重試一次');
+        $this->assertDetailRestedTimes(1);
     }
 
     // ==================== Earlier Review Bug Fix Tests ====================
@@ -652,39 +572,31 @@ class StyleHintServiceTest extends TestCase
         Config::set('app.crawler.retry.times', 1);
         Config::set('uniqlo.api.ugc_style_hint_list.tw', 'https://api.example.com/ugc-style-hints');
 
-        $requestCount = 0;
-        Http::fake(['https://api.example.com/ugc-style-hints*' => function ($request) use (&$requestCount) {
-            $requestCount++;
+        $menRequests = 0;
+        Http::fake(['https://api.example.com/ugc-style-hints*' => function ($request) use (&$menRequests) {
+            if ($request['style_gender'] !== ['1']) {
+                return Http::response(['total_result_count' => 0, 'content_list' => []]);
+            }
 
-            // Page 1 succeeds with totalResultCount=100 (needs 2 pages of 50)
-            if ($requestCount === 1) {
-                return Http::response(json_encode([
-                    'total_result_count' => 100,
-                    'content_list' => [],
-                ]), 200, ['Content-Type' => 'application/json']);
+            // 程式退回卡在同一頁時用 403 中止，讓測試失敗而不是跑不完
+            if (++$menRequests > 10) {
+                return Http::response([], 403);
             }
 
             // Page 2 fails (500) — this is the page that must be advanced past
-            if ($requestCount === 2) {
+            if ($request['page'] === 2) {
                 return Http::response([], 500);
             }
 
-            // Page 3 succeeds — proves we advanced past failed page 2
-            return Http::response(json_encode([
-                'total_result_count' => 100,
-                'content_list' => [],
-            ]), 200, ['Content-Type' => 'application/json']);
+            return Http::response(['total_result_count' => 100, 'content_list' => []]);
         }]);
 
         Log::shouldReceive('error')->andReturnNull();
         Log::shouldReceive('info')->andReturnNull();
 
-        // Run in manual mode — page 2 fails, should advance to page 3 (not loop on page 2)
-        $this->invokeMethod($this->service, 'fetchStyleHintsFromUgcByGender', ['1', 'UNIQLO', false, true]);
+        $this->service->fetchAllStyleHintsFromUgc(isManual: true);
 
-        // Should make exactly 3 requests: page 1 (success) + page 2 (fail) + page 3 (success)
-        // Without the fix, it would loop on page 2 indefinitely
-        $this->assertEquals(3, $requestCount, 'Manual mode must advance past failed page, not retry infinitely');
+        $this->assertSame([1, 2, 3], $this->ugcPagesForGender('1'), 'Manual mode must advance past failed page, not retry infinitely');
     }
 
     public function test_backfill_all_pages_fail_preserves_checkpoint()
@@ -839,8 +751,9 @@ class StyleHintServiceTest extends TestCase
         $this->assertEquals(6, $listRequestCount, 'Counter should reset when page has new items');
     }
 
-    public function test_fetch_style_hints_details_returns_new_item_count()
+    public function test_details_are_only_fetched_for_outfits_not_already_stored()
     {
+        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
         Config::set('uniqlo.api.style_hint_detail.us', 'https://api.example.com/style-hint-detail/');
 
         // 2 of 4 items already exist
@@ -849,34 +762,29 @@ class StyleHintServiceTest extends TestCase
         $mockRepository->method('saveStyleHints')->willReturn(true);
         $service = new StyleHintService($mockRepository);
 
-        Http::fake(['*' => Http::response(['result' => (object) ['some' => 'data']])]);
+        Http::fake([
+            'https://api.example.com/style-hint-list*' => Http::response([
+                'result' => [
+                    'images' => [
+                        (object) ['outfitId' => 'o1'],
+                        (object) ['outfitId' => 'o2'],
+                        (object) ['outfitId' => 'o3'],
+                        (object) ['outfitId' => 'o4'],
+                    ],
+                    'pagination' => ['total' => 4],
+                ],
+            ]),
+            'https://api.example.com/style-hint-detail/*' => Http::response(['result' => (object) ['some' => 'data']]),
+        ]);
 
-        $summaries = [
-            (object) ['outfitId' => 'o1'],
-            (object) ['outfitId' => 'o2'],
-            (object) ['outfitId' => 'o3'],
-            (object) ['outfitId' => 'o4'],
-        ];
+        $service->fetchAllStyleHints('us');
 
-        $result = $this->invokeMethod($service, 'fetchStyleHintsDetails', ['us', $summaries]);
-
-        $this->assertEquals(2, $result, 'Should return count of new items (not existing in DB)');
-    }
-
-    public function test_fetch_style_hints_details_returns_zero_when_all_exist()
-    {
-        $mockRepository = $this->createMock(StyleHintRepository::class);
-        $mockRepository->method('getExistStyleHintOutfitIds')->willReturn(['o1', 'o2']);
-        $service = new StyleHintService($mockRepository);
-
-        $summaries = [
-            (object) ['outfitId' => 'o1'],
-            (object) ['outfitId' => 'o2'],
-        ];
-
-        $result = $this->invokeMethod($service, 'fetchStyleHintsDetails', ['us', $summaries]);
-
-        $this->assertEquals(0, $result, 'Should return 0 when all items already exist');
+        $this->assertSame(
+            ['o2', 'o4'],
+            $this->requestsTo('/style-hint-detail/')
+                ->map(fn ($request) => basename(dirname(parse_url($request->url(), PHP_URL_PATH))))
+                ->all()
+        );
     }
 
     // ==================== Backfill Mode Tests ====================
@@ -949,56 +857,41 @@ class StyleHintServiceTest extends TestCase
         $this->assertEquals(5, $listRequestCount, 'Backfill should fetch all pages without early termination');
     }
 
-    public function test_backfill_fresh_clears_and_starts_from_zero()
-    {
-        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
-
-        Cache::put('style_hint:offset:us', 500);
-
-        Http::fake([
-            'https://api.example.com/style-hint-list*' => Http::response([
-                'result' => [
-                    'images' => [],
-                    'pagination' => ['total' => 0],
-                ],
-            ]),
-        ]);
-
-        $this->service->fetchAllStyleHints('us', fresh: true, backfill: true);
-
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), 'offset=0');
-        });
-
-        // Checkpoint should be cleared (fresh cleared it, then completion cleared it)
-        $this->assertNull(Cache::get('style_hint:offset:us'));
-    }
-
     // ==================== Helper Methods ====================
 
-    private function invokeMethod(&$object, $methodName, array $parameters = [])
+    /**
+     * @return Collection<int, Request>
+     */
+    private function requestsTo(string $pathPrefix): Collection
     {
-        $reflection = new ReflectionClass(get_class($object));
-        $method = $reflection->getMethod($methodName);
-        $method->setAccessible(true);
-
-        return $method->invokeArgs($object, $parameters);
+        return Http::recorded()
+            ->map(fn (array $pair) => $pair[0])
+            ->filter(fn (Request $request) => str_starts_with((string) parse_url($request->url(), PHP_URL_PATH), $pathPrefix))
+            ->values();
     }
 
-    private function setPrivateProperty(&$object, $propertyName, $value)
+    /**
+     * @return int[] 依送出順序列出該性別 UGC 清單請求的頁碼（含重試）
+     */
+    private function ugcPagesForGender(string $gender): array
     {
-        $reflection = new ReflectionClass(get_class($object));
-        $property = $reflection->getProperty($propertyName);
-        $property->setAccessible(true);
-        $property->setValue($object, $value);
+        return Http::recorded()
+            ->map(fn (array $pair) => $pair[0])
+            ->filter(fn (Request $request) => ($request->data()['style_gender'] ?? null) === [$gender])
+            ->map(fn (Request $request) => $request['page'])
+            ->values()
+            ->all();
     }
 
-    private function getPrivateProperty(&$object, $propertyName)
+    /**
+     * 明細休息設成一個獨特的秒數（見 DETAIL_REST_SECONDS），跟重試與隨機延遲的
+     * 睡眠分得開，只數這種長度的睡眠就是休息次數。
+     */
+    private function assertDetailRestedTimes(int $times): void
     {
-        $reflection = new ReflectionClass(get_class($object));
-        $property = $reflection->getProperty($propertyName);
-        $property->setAccessible(true);
-
-        return $property->getValue($object);
+        Sleep::assertSlept(
+            fn (CarbonInterval $duration) => (int) $duration->totalSeconds === self::DETAIL_REST_SECONDS,
+            $times
+        );
     }
 }

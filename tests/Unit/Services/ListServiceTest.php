@@ -149,28 +149,28 @@ class ListServiceTest extends TestCase
     public function test_a_tag_matches_when_any_of_its_conditions_holds(): void
     {
         $products = $this->createProductCollection([
-            ['sex' => '男裝', 'identity' => '["time_doptimal"]'],
+            ['sex' => '男裝', 'code' => '官方標記', 'identity' => '["time_doptimal"]'],
             [
                 'sex' => '男裝',
+                'code' => '落在檔期內',
                 'identity' => '[]',
                 'time_limited_begin' => now()->subDay(),
                 'time_limited_end' => now()->addDay(),
             ],
-            ['sex' => '男裝', 'identity' => '["concessional_rate"]'],
+            ['sex' => '男裝', 'code' => '一般特價', 'identity' => '["concessional_rate"]'],
         ]);
 
         $filtered = $this->listService->filterHmallProducts($products, $this->listRequest(['tags' => ['limited-offer']]));
 
-        // 前兩件各符合期間限定的其中一種（官方標記、落在檔期內），第三件是一般特價
-        $this->assertCount(2, $filtered);
+        $this->assertSame(['官方標記', '落在檔期內'], $filtered->map->code->values()->all());
     }
 
     public function test_multiple_tags_are_combined_with_or(): void
     {
         $products = $this->createProductCollection([
-            ['sex' => '男裝', 'identity' => '["time_doptimal"]'],
-            ['sex' => '男裝', 'identity' => '["concessional_rate"]'],
-            ['sex' => '男裝', 'identity' => '["new_product"]'],
+            ['sex' => '男裝', 'code' => '期間限定', 'identity' => '["time_doptimal"]'],
+            ['sex' => '男裝', 'code' => '特價', 'identity' => '["concessional_rate"]'],
+            ['sex' => '男裝', 'code' => '新品', 'identity' => '["new_product"]'],
         ]);
 
         $filtered = $this->listService->filterHmallProducts(
@@ -178,7 +178,7 @@ class ListServiceTest extends TestCase
             $this->listRequest(['tags' => ['limited-offer', 'sale']])
         );
 
-        $this->assertCount(2, $filtered);
+        $this->assertSame(['期間限定', '特價'], $filtered->map->code->values()->all());
     }
 
     /**
@@ -187,19 +187,30 @@ class ListServiceTest extends TestCase
      */
     public function test_lowest_price_filter_includes_products_marked_as_on_sale(): void
     {
-        $onSaleAtLowest = $this->createProductCollection([
+        $products = $this->createProductCollection([
             [
                 'sex' => '男裝',
+                'code' => '特價中的史上最低',
                 'identity' => '["concessional_rate"]',
                 'min_price' => '790.00',
                 'lowest_record_price' => '790.00',
                 'highest_record_price' => '990.00',
                 'lowest_record_price_count' => 1,
             ],
-        ])->first();
+            [
+                'sex' => '男裝',
+                'code' => '特價但不是最低',
+                'identity' => '["concessional_rate"]',
+                'min_price' => '890.00',
+                'lowest_record_price' => '790.00',
+                'highest_record_price' => '990.00',
+            ],
+        ]);
 
-        $this->assertTrue($onSaleAtLowest->is_at_lowest_price, '篩選判準要找得到特價中的史上最低');
-        $this->assertFalse($onSaleAtLowest->is_new_historical_low, '卡片標籤仍然不重複顯示');
+        $filtered = $this->listService->filterHmallProducts($products, $this->listRequest(['tags' => ['lowest-price']]));
+
+        $this->assertSame(['特價中的史上最低'], $filtered->map->code->values()->all());
+        $this->assertFalse($filtered->first()->is_new_historical_low, '卡片標籤仍然不重複顯示');
     }
 
     public function test_a_product_that_never_changed_price_is_not_at_a_low(): void

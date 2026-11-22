@@ -56,26 +56,15 @@ class FetchHmallProductsTest extends TestCase
             ->assertExitCode(0);
     }
 
-    public function test_command_stops_on_403_blocking()
+    /**
+     * 排程就是這樣呼叫的：沒帶旗標時要從續跑點接著跑，看到的太少也要擋下缺貨判定。
+     */
+    public function test_without_options_the_command_resumes_and_keeps_the_shrink_guard()
     {
-        $mockService = $this->createMock(HmallProductService::class);
-        $mockService->method('fetchAllHmallProducts')
-            ->willReturn(new CrawlResult(CrawlOutcome::Failed));
-
-        $this->app->instance(HmallProductService::class, $mockService);
-
-        $this->artisan('hmall-product:fetch UNIQLO')
-            ->assertExitCode(1);
-    }
-
-    public function test_command_resumes_from_checkpoint()
-    {
-        Cache::set('hmall_products:page:UNIQLO', 2);
-
         $mockService = $this->createMock(HmallProductService::class);
         $mockService->expects($this->once())
             ->method('fetchAllHmallProducts')
-            ->with('UNIQLO', false)
+            ->with('UNIQLO', false, false)
             ->willReturn(new CrawlResult(CrawlOutcome::Succeeded));
 
         $this->app->instance(HmallProductService::class, $mockService);
@@ -133,7 +122,7 @@ class FetchHmallProductsTest extends TestCase
     /**
      * 完全失敗仍然不送結束通知：那一輪真的什麼都沒完成。
      */
-    public function test_a_total_failure_does_not_send_the_finished_notification()
+    public function test_a_total_failure_exits_with_failure_code_and_sends_no_finished_notification()
     {
         $mockService = $this->createMock(HmallProductService::class);
         $mockService->method('fetchAllHmallProducts')
@@ -141,7 +130,7 @@ class FetchHmallProductsTest extends TestCase
 
         $this->app->instance(HmallProductService::class, $mockService);
 
-        $this->artisan('hmall-product:fetch UNIQLO')->run();
+        $this->artisan('hmall-product:fetch UNIQLO')->assertExitCode(CrawlOutcome::Failed->value);
 
         Event::assertNotDispatched(AppTaskFinished::class);
     }

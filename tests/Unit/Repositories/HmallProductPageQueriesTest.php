@@ -18,14 +18,16 @@ class HmallProductPageQueriesTest extends TestCase
     public function test_related_products_skip_the_name_scan_on_the_second_visit(): void
     {
         $product = $this->createProduct(['name' => '圓領T恤', 'code' => '450001']);
-        $this->createProduct(['name' => '圓領T恤 短袖', 'code' => '450002', 'product_code' => 'u450002']);
+        $shortSleeve = $this->createProduct(['name' => '圓領T恤 短袖', 'code' => '450002', 'product_code' => 'u450002']);
 
         $repository = app(HmallProductRepository::class);
-        $repository->getRelatedHmallProducts($product);
+        // 短袖跟這件不同 code，只能靠名稱比對找到
+        $this->assertSame([$shortSleeve->id], $repository->getRelatedHmallProducts($product)->pluck('id')->all());
 
-        $statements = $this->recordStatements(fn () => $repository->getRelatedHmallProducts($product));
+        $this->createProduct(['name' => '圓領T恤 長袖', 'code' => '450003', 'product_code' => 'u450003']);
 
-        $this->assertEmpty(array_filter($statements, fn ($sql) => str_contains($sql, ' like ')));
+        // 第二次沿用第一次的候選，所以同樣靠名稱才找得到的長袖不會出現
+        $this->assertSame([$shortSleeve->id], $repository->getRelatedHmallProducts($product)->pluck('id')->all());
     }
 
     public function test_cached_related_products_are_still_ranked_by_the_latest_stock_and_price(): void
@@ -54,12 +56,9 @@ class HmallProductPageQueriesTest extends TestCase
         $this->assertSame(['4199990001'], $repository->getRelatedProductsForHmallProduct($found)->pluck('id')->all());
         $this->assertEmpty($repository->getRelatedProductsForHmallProduct($missing));
 
-        $statements = $this->recordStatements(function () use ($repository, $found, $missing) {
-            $repository->getRelatedProductsForHmallProduct($found);
-            $repository->getRelatedProductsForHmallProduct($missing);
-        });
-
-        $this->assertEmpty(array_filter($statements, fn ($sql) => str_contains($sql, '`name` like')));
+        // 第一次找不到也要記住：之後舊系統冒出能用名稱比對到的商品，也不再重掃整張表
+        Product::unguarded(fn () => Product::create(['id' => '4199990002', 'name' => '男裝 舊系統沒有的商品', 'price' => 390]));
+        $this->assertEmpty($repository->getRelatedProductsForHmallProduct($missing));
     }
 
     public function test_the_latest_style_hints_come_first(): void
@@ -83,18 +82,6 @@ class HmallProductPageQueriesTest extends TestCase
 
         $this->assertSame(['style-1'], $product->fresh()->styles->pluck('id')->all());
         $this->assertSame('bigint', Schema::getColumnType('hmall_product_style', 'hmall_product_id'));
-    }
-
-    private function recordStatements(callable $callback): array
-    {
-        $statements = [];
-        DB::listen(function ($query) use (&$statements) {
-            $statements[] = $query->sql;
-        });
-
-        $callback();
-
-        return $statements;
     }
 
     private function createProduct(array $attributes): HmallProduct

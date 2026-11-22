@@ -557,11 +557,15 @@ class BarcodeTest extends TestCase
     {
         $content = $this->get(route('home'))->assertOk()->getContent();
 
-        $this->assertSame(1, preg_match('/<button[^>]*data-barcode-scan[^>]*aria-label="掃吊牌條碼"[^>]*>(.*?)<\/button>/s', $content, $match));
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>'.$content);
+        $xpath = new \DOMXPath($dom);
+
+        $buttons = $xpath->query('//button[@data-barcode-scan][@aria-label="掃吊牌條碼"]');
+        $this->assertSame(1, $buttons->length);
         // 只有一個不給讀屏軟體念的圖示，沒有看得到的字
-        $this->assertStringContainsString('<svg', $match[1]);
-        $this->assertStringContainsString('aria-hidden="true"', $match[1]);
-        $this->assertSame('', trim(strip_tags($match[1])));
+        $this->assertSame(1, $xpath->query('.//*[local-name()="svg"][@aria-hidden="true"]', $buttons->item(0))->length);
+        $this->assertSame('', trim($buttons->item(0)->textContent));
         $this->assertStringContainsString('barcode-scan.js', $content);
         // 完整提示不變，窄螢幕的短提示交給前端換
         $this->assertStringContainsString('placeholder="輸入關鍵字或編號..."', $content);

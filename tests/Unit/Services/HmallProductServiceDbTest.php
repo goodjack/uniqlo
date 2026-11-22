@@ -7,17 +7,21 @@ use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use App\Services\HmallProductService;
+use Carbon\CarbonInterval;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use ReflectionClass;
+use Illuminate\Support\Sleep;
 use Tests\TestCase;
 
 class HmallProductServiceDbTest extends TestCase
 {
     use RefreshDatabase;
+
+    private const DETAIL_REST_SECONDS = 7;
 
     private HmallProductService $service;
 
@@ -42,33 +46,47 @@ class HmallProductServiceDbTest extends TestCase
         $this->service = new HmallProductService($this->mockHmallRepository, $mockProductRepository);
     }
 
-    public function test_detail_counter_only_incremented_on_success()
+    public function test_a_failed_description_does_not_count_toward_the_detail_batch_rest()
     {
-        // Insert 2 HmallProducts: PCODE001 (will succeed), PCODE002 (will fail)
+        Config::set('app.crawler.batch_rest.detail', ['interval' => 1, 'sleep_min' => self::DETAIL_REST_SECONDS, 'sleep_max' => self::DETAIL_REST_SECONDS]);
+        Sleep::fake();
+
         HmallProduct::unguarded(function () {
             HmallProduct::create(['product_code' => 'PCODE001', 'brand' => 'UNIQLO']);
             HmallProduct::create(['product_code' => 'PCODE002', 'brand' => 'UNIQLO']);
         });
 
         Http::fake([
-            // PCODE001 description endpoints → 200 success
             'https://api.example.com/description/PCODE001/*' => Http::response('<html>instruction</html>', 200),
-            // PCODE002 description endpoints → 500 failure (retry exhausted)
+            // 重試用完仍失敗，這件會被跳過
             'https://api.example.com/description/PCODE002/*' => Http::response([], 500),
         ]);
 
-        Log::shouldReceive('error')->andReturnNull();
-        Log::shouldReceive('info')->andReturnNull();
-
         $this->service->fetchAllHmallProductDescriptions('UNIQLO');
 
-        // detailCounter should be 1: PCODE001 succeeded, PCODE002 failed and was skipped
-        $reflection = new ReflectionClass($this->service);
-        $property = $reflection->getProperty('detailCounter');
-        $property->setAccessible(true);
-        $detailCounter = $property->getValue($this->service);
+        // 每成功一件就休息一次；失敗的那件若也算進去會休息兩次
+        $this->assertDetailRestedTimes(1);
+    }
 
-        $this->assertEquals(1, $detailCounter, 'Failed items must not increment detailCounter');
+    /**
+     * 整批抓說明時遇到 403 要立刻停下，續跑點停在最後一件成功的商品，
+     * 下一輪才會從被擋的那件接著抓。
+     */
+    public function test_a_403_stops_the_description_batch_and_keeps_the_checkpoint_at_the_last_success(): void
+    {
+        $blocked = HmallProduct::unguarded(fn () => HmallProduct::create(['product_code' => 'BLOCKED', 'brand' => 'UNIQLO']));
+        $succeeded = HmallProduct::unguarded(fn () => HmallProduct::create(['product_code' => 'SUCCEEDED', 'brand' => 'UNIQLO']));
+        $this->assertGreaterThan($blocked->id, $succeeded->id, 'id 大的先抓');
+
+        Http::fake([
+            'https://api.example.com/description/SUCCEEDED/*' => Http::response('<html>instruction</html>', 200),
+            'https://api.example.com/description/BLOCKED/*' => Http::response([], 403),
+        ]);
+
+        Log::spy();
+
+        $this->assertFalse($this->service->fetchAllHmallProductDescriptions('UNIQLO'));
+        $this->assertSame($succeeded->id, Cache::get('hmall_descriptions:last_id:UNIQLO'));
     }
 
     /**
@@ -209,5 +227,17 @@ class HmallProductServiceDbTest extends TestCase
         $json = file_get_contents(base_path('tests/stubs/hmall-search-v3-response.json'));
 
         return json_decode($json)->resp[0]->productList;
+    }
+
+    /**
+     * 明細休息設成一個獨特的秒數（見 DETAIL_REST_SECONDS），跟重試與隨機延遲的
+     * 睡眠分得開，只數這種長度的睡眠就是休息次數。
+     */
+    private function assertDetailRestedTimes(int $times): void
+    {
+        Sleep::assertSlept(
+            fn (CarbonInterval $duration) => (int) $duration->totalSeconds === self::DETAIL_REST_SECONDS,
+            $times
+        );
     }
 }

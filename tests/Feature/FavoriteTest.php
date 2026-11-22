@@ -42,7 +42,9 @@ class FavoriteTest extends TestCase
             'items' => [['brand' => 'UNIQLO', 'code' => 'u001']],
         ])->assertOk()->getContent();
 
+        $this->assertStringContainsString('羽絨外套', $content);
         $this->assertStringNotContainsString('1990', $content);
+        $this->assertStringNotContainsString('1,990', $content);
     }
 
     /**
@@ -163,17 +165,6 @@ class FavoriteTest extends TestCase
 
         $this->assertStringContainsString('data-on-offer="0"', $content);
         $this->assertStringNotContainsString('data-on-offer="1"', $content);
-    }
-
-    public function test_a_new_arrival_is_not_marked_as_on_offer(): void
-    {
-        $this->createProduct(['product_code' => 'u001', 'identity' => '["new_product"]']);
-
-        $content = $this->postJson(route('favorites.cards'), [
-            'items' => [['brand' => 'UNIQLO', 'code' => 'u001']],
-        ])->assertOk()->getContent();
-
-        $this->assertStringContainsString('data-on-offer="0"', $content);
     }
 
     public function test_items_are_required(): void

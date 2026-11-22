@@ -56,7 +56,10 @@ class FetchJapanProductsTest extends TestCase
             ->assertExitCode(0);
     }
 
-    public function test_command_stops_on_403_blocking()
+    /**
+     * 完全失敗時那一輪什麼都沒完成，不送結束通知，交給排程的失敗通知處理。
+     */
+    public function test_a_total_failure_exits_with_failure_code_and_sends_no_finished_notification()
     {
         $mockService = $this->createMock(JapanProductService::class);
         $mockService->method('fetchAllProducts')
@@ -65,17 +68,20 @@ class FetchJapanProductsTest extends TestCase
         $this->app->instance(JapanProductService::class, $mockService);
 
         $this->artisan('japan-product:fetch UNIQLO')
-            ->assertExitCode(1);
+            ->assertExitCode(CrawlOutcome::Failed->value);
+
+        Event::assertNotDispatched(AppTaskFinished::class);
     }
 
-    public function test_command_resumes_from_checkpoint()
+    /**
+     * 排程就是這樣呼叫的：沒帶旗標時要從續跑點接著跑，看到的太少也要擋下缺貨判定。
+     */
+    public function test_without_options_the_command_resumes_and_keeps_the_shrink_guard()
     {
-        Cache::set('japan_products:offset:UNIQLO', 72);
-
         $mockService = $this->createMock(JapanProductService::class);
         $mockService->expects($this->once())
             ->method('fetchAllProducts')
-            ->with('UNIQLO', false)
+            ->with('UNIQLO', false, false)
             ->willReturn(new CrawlResult(CrawlOutcome::Succeeded));
 
         $this->app->instance(JapanProductService::class, $mockService);

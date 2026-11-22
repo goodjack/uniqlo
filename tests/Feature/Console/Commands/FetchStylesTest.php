@@ -33,23 +33,6 @@ class FetchStylesTest extends TestCase
         Event::fake();
     }
 
-    public function test_command_accepts_fresh_option()
-    {
-        Http::fake([
-            '*' => Http::response([
-                'result' => [
-                    'styles' => [],
-                    'total_styles' => 0,
-                ],
-            ]),
-        ]);
-
-        Config::set('uniqlo.api.ugc_official_style_list.tw', 'https://api.example.com/styles');
-
-        $this->artisan('style:fetch UNIQLO --fresh')
-            ->assertExitCode(0);
-    }
-
     public function test_command_shows_fresh_warning()
     {
         Http::fake([
@@ -98,6 +81,10 @@ class FetchStylesTest extends TestCase
 
         $this->artisan('style:fetch UNIQLO')
             ->assertExitCode(0);
+
+        $firstRequest = Http::recorded()->first()[0];
+        $this->assertSame('1', $firstRequest['gender_id']);
+        $this->assertSame(2, $firstRequest['page'], '第一個請求要是續跑點那一頁');
 
         // Checkpoints should be cleared after completion
         $this->assertNull(Cache::get('styles:page:UNIQLO:1'));

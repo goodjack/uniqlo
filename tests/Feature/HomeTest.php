@@ -36,14 +36,15 @@ class HomeTest extends TestCase
     {
         $this->mockListService();
 
-        $response = $this->get(route('home'));
+        $html = $this->get(route('home'))->getContent();
 
-        $this->assertGreaterThan(
-            0,
-            substr_count($response->getContent(), 'ts doubling cards six uq-product-cards'),
-            '首頁每個區塊都該是 ts doubling cards six uq-product-cards'
-        );
-        $response->assertDontSee('home-product-row');
+        $sections = $this->xpathValues($html, '//*[@data-analytics-list]/@class');
+        $this->assertCount(count(self::SECTION_TITLES), $sections);
+        foreach ($sections as $class) {
+            $this->assertSame('ts doubling cards six uq-product-cards', $class);
+        }
+
+        $this->assertSame([], $this->xpathValues($html, '//*[@data-analytics-item][contains(concat(" ", @class, " "), " link ")]/@class'));
     }
 
     public function test_each_section_links_to_its_list_page(): void
@@ -68,18 +69,28 @@ class HomeTest extends TestCase
         $response = $this->get(route('home'));
 
         $response->assertOk();
-        $response->assertDontSee('新品上市');
-        $response->assertSee('限時特價');
+        $headings = $this->sectionHeadings($response->getContent());
+        $this->assertNotContains('新品上市', $headings);
+        $this->assertContains('限時特價', $headings);
     }
 
     public function test_section_shows_at_most_six_cards(): void
     {
         $this->mockListService(['getLimitedOfferHmallProducts' => 30]);
 
-        $response = $this->get(route('home'));
+        $html = $this->get(route('home'))->getContent();
 
-        // 第一區塊截到 6 張，其餘三區塊各 2 張
-        $this->assertSame(12, substr_count($response->getContent(), 'hmall-products/'));
+        // 限時特價截到 6 張，其餘三區塊各 2 張
+        $lists = $this->xpathValues($html, '//*[@data-analytics-list]/@data-analytics-list');
+        $cardCounts = array_combine($lists, array_map(
+            fn ($list) => count($this->xpathValues($html, "//*[@data-analytics-list=\"{$list}\"]/*[@data-analytics-item]")),
+            $lists
+        ));
+        // assertEquals 逐 key 比對、不看順序，首頁調換區塊順序不影響這支
+        $this->assertEquals(
+            ['home_limited_offers' => 6, 'home_most_visited' => 2, 'home_new' => 2, 'home_top_wearing' => 2],
+            $cardCounts
+        );
     }
 
     /**

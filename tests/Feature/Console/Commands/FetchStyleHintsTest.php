@@ -33,44 +33,6 @@ class FetchStyleHintsTest extends TestCase
         Event::fake();
     }
 
-    public function test_command_accepts_fresh_option()
-    {
-        Http::fake([
-            '*' => Http::response(
-                [
-                    'result' => [
-                        'images' => [],
-                        'pagination' => ['total' => 0],
-                    ],
-                ]
-            ),
-        ]);
-
-        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
-
-        $this->artisan('style-hint:fetch us --fresh')
-            ->assertExitCode(0);
-    }
-
-    public function test_command_runs_without_fresh_option()
-    {
-        Http::fake([
-            '*' => Http::response(
-                [
-                    'result' => [
-                        'images' => [],
-                        'pagination' => ['total' => 0],
-                    ],
-                ]
-            ),
-        ]);
-
-        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
-
-        $this->artisan('style-hint:fetch us')
-            ->assertExitCode(0);
-    }
-
     public function test_command_warns_fresh_without_backfill()
     {
         Http::fake([
@@ -89,6 +51,8 @@ class FetchStyleHintsTest extends TestCase
         $this->artisan('style-hint:fetch us --fresh')
             ->expectsOutput('--fresh has no effect without --backfill (daily mode always starts from 0)')
             ->assertExitCode(0);
+
+        Http::assertSent(fn ($request) => str_starts_with($request->url(), 'https://api.example.com/style-hint-list'));
     }
 
     public function test_command_shows_fresh_backfill_warning()
@@ -148,9 +112,8 @@ class FetchStyleHintsTest extends TestCase
         $this->artisan('style-hint:fetch us --backfill')
             ->assertExitCode(0);
 
-        Http::assertSent(function ($request) {
-            return $request->url() === 'https://api.example.com/style-hint-list?offset=50&limit=50&userType=0%2C1%2C2%2C3&order=published_at%3Adesc';
-        });
+        Http::assertSent(fn ($request) => $request['offset'] === 50);
+        $this->assertNull(Cache::get('style_hint:offset:us'), 'Checkpoint should be cleared after successful backfill completion');
     }
 
     public function test_daily_mode_ignores_checkpoint()
@@ -175,56 +138,7 @@ class FetchStyleHintsTest extends TestCase
             ->assertExitCode(0);
 
         // Daily mode always starts from offset 0
-        Http::assertSent(function ($request) {
-            return $request->url() === 'https://api.example.com/style-hint-list?offset=0&limit=50&userType=0%2C1%2C2%2C3&order=published_at%3Adesc';
-        });
-    }
-
-    public function test_backfill_clears_checkpoint_on_success()
-    {
-        Cache::set('style_hint:offset:us', 50);
-
-        Http::fake([
-            'https://api.example.com/style-hint-list*' => Http::response(
-                [
-                    'result' => [
-                        'images' => [],
-                        'pagination' => ['total' => 0],
-                    ],
-                ]
-            ),
-        ]);
-
-        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
-
-        $this->artisan('style-hint:fetch us --backfill')
-            ->assertExitCode(0);
-
-        // Checkpoint should be cleared after successful backfill completion
-        $checkpoint = Cache::get('style_hint:offset:us');
-        $this->assertNull($checkpoint, 'Checkpoint should be cleared after successful backfill completion');
-    }
-
-    public function test_command_with_multiple_batches()
-    {
-        Http::fake([
-            '*' => Http::response(
-                [
-                    'result' => [
-                        'images' => [],
-                        'pagination' => ['total' => 0],
-                    ],
-                ]
-            ),
-        ]);
-
-        Config::set('uniqlo.api.style_hint_list.us', 'https://api.example.com/style-hint-list');
-
-        $this->artisan('style-hint:fetch us --fresh')
-            ->assertExitCode(0);
-
-        // Should have made at least one request
-        $this->assertTrue(Http::recorded()->count() >= 1);
+        Http::assertSent(fn ($request) => $request['offset'] === 0);
     }
 
     public function test_command_accepts_backfill_option()

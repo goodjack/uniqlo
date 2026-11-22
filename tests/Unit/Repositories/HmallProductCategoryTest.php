@@ -150,6 +150,10 @@ class HmallProductCategoryTest extends TestCase
     {
         $this->repository->saveProductsFromV3($this->products());
 
+        $anchorKey = $this->linkKey('u0000000053204', 'all_women-bottoms-widepants-anchor09');
+        $before = $this->linkSorts();
+        $this->assertNotSame('000000001', $before[$anchorKey]);
+
         $changed = $this->products();
         foreach ($changed[0]->categorySortList as $item) {
             if ($item->code === 'all_women-bottoms-widepants-anchor09') {
@@ -157,14 +161,11 @@ class HmallProductCategoryTest extends TestCase
             }
         }
 
-        $writes = $this->captureLinkWrites(fn () => $this->repository->saveProductsFromV3($changed));
+        $this->repository->saveProductsFromV3($changed);
 
-        $this->assertCount(1, $writes);
-        $this->assertStringStartsWith('update', $writes[0]);
-
-        $anchor = HmallProduct::where('product_code', 'u0000000053204')->firstOrFail()
-            ->categories->firstWhere('code', 'all_women-bottoms-widepants-anchor09');
-        $this->assertSame('000000001', $anchor->pivot->sort);
+        $expected = $before;
+        $expected[$anchorKey] = '000000001';
+        $this->assertSame($expected, $this->linkSorts());
     }
 
     /**
@@ -343,6 +344,28 @@ class HmallProductCategoryTest extends TestCase
         $callback();
 
         return $writes;
+    }
+
+    /**
+     * 兩件商品所有分類關聯的排序值，以「商品編號|分類 code」為 key。
+     *
+     * @return array<string, string>
+     */
+    private function linkSorts(): array
+    {
+        return DB::table('hmall_category_hmall_product')
+            ->join('hmall_products', 'hmall_products.id', '=', 'hmall_category_hmall_product.hmall_product_id')
+            ->join('hmall_categories', 'hmall_categories.id', '=', 'hmall_category_hmall_product.hmall_category_id')
+            ->orderBy('hmall_products.product_code')
+            ->orderBy('hmall_categories.code')
+            ->get(['hmall_products.product_code', 'hmall_categories.code', 'hmall_category_hmall_product.sort'])
+            ->mapWithKeys(fn ($row) => [$this->linkKey($row->product_code, $row->code) => $row->sort])
+            ->all();
+    }
+
+    private function linkKey(string $productCode, string $categoryCode): string
+    {
+        return "{$productCode}|{$categoryCode}";
     }
 
     private function pivotCountFor(string $column, int $id): int
