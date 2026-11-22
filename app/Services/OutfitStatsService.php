@@ -42,6 +42,12 @@ class OutfitStatsService
     private const MAX_HEIGHT = 220;
 
     /**
+     * 依性別和身高看穿的尺寸時的身高切點。男生身高中位數比女生高十幾公分，切點各自落在中間；
+     * 男生只切一刀，165 公分左右的男生那組才常有足夠的則數。
+     */
+    private const SIZE_HEIGHT_CUTS = ['women' => [160, 170], 'men' => [175]];
+
+    /**
      * 商品名稱關鍵字對到官方辨識的品類，照順序比對：鞋、包、帽要比「針織」「上衣」先判斷。
      */
     private const DETECTED_CATEGORY_KEYWORDS = [
@@ -111,8 +117,8 @@ class OutfitStatsService
         // 色號來自商品編號（貨號-色號），編號不帶色號的不列入
         [$colors, $coloredOutfits] = $this->countOwnItems($product->code, $outfits, $itemsByOutfit, 'code',
             fn (StyleHintItem $item) => preg_match('/^\d+-(\w+)$/', (string) $item->original_product_id, $matches) ? $matches[1] : null);
-        [$sizes, $sizedOutfits] = $this->countOwnItems($product->code, $outfits, $itemsByOutfit, 'size',
-            fn (StyleHintItem $item) => self::normalizeSize($item->item_size));
+        $sizeOf = fn (StyleHintItem $item) => self::normalizeSize($item->item_size);
+        [$sizes, $sizedOutfits] = $this->countOwnItems($product->code, $outfits, $itemsByOutfit, 'size', $sizeOf);
         [$heights, $measuredOutfits] = $this->countHeights($outfits);
         [$detectedPairs, $detectedOutfits] = $this->countDetectedPairs($outfits, self::detectedCategoryOf((string) $product->name));
 
@@ -122,6 +128,7 @@ class OutfitStatsService
             'colored_outfits' => $coloredOutfits,
             'sizes' => $sizes,
             'sized_outfits' => $sizedOutfits,
+            'sizes_by_gender_height' => $this->sizesByGenderHeight($product->code, $outfits, $itemsByOutfit, $sizeOf),
             'genders' => $this->countGenders($outfits),
             'heights' => $heights,
             'measured_outfits' => $measuredOutfits,
@@ -139,10 +146,28 @@ class OutfitStatsService
      */
     private function countOwnItems(string $code, Collection $outfits, Collection $itemsByOutfit, string $keyName, callable $valueOf): array
     {
-        $counts = [];
-        $outfitsWithValue = 0;
+        $group = $this->countOwnItemsBy($code, $outfits, $itemsByOutfit, $valueOf, fn () => 'all', $keyName)['all'] ?? null;
+
+        return [$group['values'] ?? [], $group['outfits'] ?? 0];
+    }
+
+    /**
+     * 同上，但先依穿搭的某個屬性（例如性別加身高）分組，各組各自算；分不出組的穿搭不列入。
+     *
+     * @param  callable(StyleHintItem): ?string  $valueOf
+     * @param  callable(StyleHint): string|int|null  $groupOf
+     * @return array<string|int, array{outfits: int, values: array<int, array<string, string|int>>}>
+     */
+    private function countOwnItemsBy(string $code, Collection $outfits, Collection $itemsByOutfit, callable $valueOf, callable $groupOf, string $keyName): array
+    {
+        $groups = [];
 
         foreach ($outfits as $outfit) {
+            $group = $groupOf($outfit);
+            if ($group === null) {
+                continue;
+            }
+
             $values = collect($itemsByOutfit->get($outfit->id, []))
                 ->where('code', $code)
                 ->map($valueOf)
@@ -153,13 +178,60 @@ class OutfitStatsService
                 continue;
             }
 
-            $outfitsWithValue++;
+            $groups[$group]['outfits'] = ($groups[$group]['outfits'] ?? 0) + 1;
             foreach ($values as $value) {
-                $counts[$value] = ($counts[$value] ?? 0) + 1;
+                $groups[$group]['counts'][$value] = ($groups[$group]['counts'][$value] ?? 0) + 1;
             }
         }
 
-        return [$this->rank($counts, $keyName), $outfitsWithValue];
+        return array_map(
+            fn (array $group) => ['outfits' => $group['outfits'], 'values' => $this->rank($group['counts'], $keyName)],
+            $groups
+        );
+    }
+
+    /**
+     * 男生、女生各自依身高分組穿的尺寸，同性別矮到高排。兒童、嬰幼兒不列入。
+     *
+     * @return array<int, array{gender: string, from: int|null, until: int|null, outfits: int, sizes: array<int, array{size: string, count: int}>}>
+     */
+    private function sizesByGenderHeight(string $code, Collection $outfits, Collection $itemsByOutfit, callable $sizeOf): array
+    {
+        $groups = $this->countOwnItemsBy($code, $outfits, $itemsByOutfit, $sizeOf, function (StyleHint $outfit) {
+            $gender = self::GENDERS[(int) $outfit->gender] ?? null;
+            $height = $this->validHeight($outfit->model_height);
+
+            if (! isset(self::SIZE_HEIGHT_CUTS[$gender]) || $height === null) {
+                return null;
+            }
+
+            $from = null;
+            foreach (self::SIZE_HEIGHT_CUTS[$gender] as $cut) {
+                if ($height < $cut) {
+                    return "{$gender}|{$from}|{$cut}";
+                }
+                $from = $cut;
+            }
+
+            return "{$gender}|{$from}|";
+        }, 'size');
+
+        $rows = [];
+        foreach ($groups as $key => $group) {
+            [$gender, $from, $until] = explode('|', $key);
+            $rows[] = [
+                'gender' => $gender,
+                'from' => $from === '' ? null : (int) $from,
+                'until' => $until === '' ? null : (int) $until,
+                'outfits' => $group['outfits'],
+                'sizes' => $group['values'],
+            ];
+        }
+
+        // 畫面上的順序看過濾後的則數，由 presenter 排；這裡只固定順序讓每天算出來一樣
+        usort($rows, fn (array $a, array $b) => [$a['gender'], $a['from'] ?? 0] <=> [$b['gender'], $b['from'] ?? 0]);
+
+        return $rows;
     }
 
     /**
@@ -196,17 +268,20 @@ class OutfitStatsService
 
     private function heightBand(mixed $height): ?int
     {
+        $height = $this->validHeight($height);
+
+        return $height === null ? null : intdiv($height, self::HEIGHT_BAND) * self::HEIGHT_BAND;
+    }
+
+    private function validHeight(mixed $height): ?int
+    {
         if (! is_numeric($height)) {
             return null;
         }
 
         $height = (int) $height;
 
-        if ($height < self::MIN_HEIGHT || $height > self::MAX_HEIGHT) {
-            return null;
-        }
-
-        return intdiv($height, self::HEIGHT_BAND) * self::HEIGHT_BAND;
+        return $height < self::MIN_HEIGHT || $height > self::MAX_HEIGHT ? null : $height;
     }
 
     /**

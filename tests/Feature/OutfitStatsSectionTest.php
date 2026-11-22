@@ -136,6 +136,102 @@ class OutfitStatsSectionTest extends TestCase
     }
 
     /**
+     * 每列各自以那一列的則數算占比，不到 10 則的列不顯示（GU 359632：男生 175 以上只有 5 則）。
+     */
+    public function test_the_size_table_shows_each_gender_and_height_group_with_enough_outfits(): void
+    {
+        $this->cacheStats(['sizes_by_gender_height' => [
+            $this->sizeRow('women', null, 160, 18, ['S' => 9, 'M' => 6, 'L' => 3]),
+            $this->sizeRow('women', 160, 170, 14, ['L' => 7, 'M' => 6, 'S' => 1]),
+            $this->sizeRow('women', 170, null, 5, ['M' => 2, 'XL' => 2]),
+            $this->sizeRow('men', null, 175, 12, ['XL' => 9, 'L' => 3]),
+            $this->sizeRow('men', 175, null, 5, ['XL' => 5]),
+        ]]);
+
+        $page = $this->productPage();
+        $this->assertMatchesRegularExpression(
+            '/不同身高穿的尺寸.*女生未滿 160 公分.*18.*S 50%.*M 33%.*L 17%.*女生 160–169 公分.*14.*L 50%.*男生未滿 175 公分.*12.*XL 75%.*L 25%/s',
+            $page
+        );
+        $this->assertStringNotContainsString('女生 170 公分以上', $page);
+        $this->assertStringNotContainsString('男生 175 公分以上', $page);
+    }
+
+    /**
+     * 夠的列少於兩列整張不顯示：只剩一列時跟「最多人穿的尺寸」卡沒有差別。
+     */
+    public function test_the_size_table_needs_two_groups_with_enough_outfits(): void
+    {
+        $this->cacheStats(['sizes_by_gender_height' => [
+            $this->sizeRow('women', null, 160, 24, ['S' => 13, 'M' => 8]),
+            $this->sizeRow('women', 160, 170, 9, ['L' => 8]),
+            $this->sizeRow('men', 175, null, 2, ['XXL' => 2]),
+        ]]);
+
+        $this->assertStringNotContainsString('不同身高穿的尺寸', $this->productPage());
+    }
+
+    /**
+     * 卡片都沒過門檻，只有尺寸表夠資料時，區塊照樣出現。
+     */
+    public function test_the_section_shows_when_only_the_size_table_has_enough_data(): void
+    {
+        $this->cacheStats(['genders' => [], 'sizes_by_gender_height' => [
+            $this->sizeRow('men', null, 175, 19, ['M' => 11, 'S' => 8]),
+            $this->sizeRow('men', 175, null, 25, ['L' => 11, 'M' => 10]),
+        ]]);
+
+        $page = $this->productPage();
+        $this->assertStringContainsString('穿搭統計', $page);
+        $this->assertMatchesRegularExpression('/男生未滿 175 公分.*M 58%.*男生 175 公分以上.*L 44%/s', $page);
+        // 沒有卡片時不留空的卡片容器
+        $this->assertStringNotContainsString('uq-outfit-stats', $page);
+    }
+
+    /**
+     * 只有一種尺寸（例如包包的 ONE SIZE）時每列都是 100%，沒有資訊量，跟尺寸卡一樣不顯示。
+     */
+    public function test_the_size_table_skips_one_size_products(): void
+    {
+        $this->cacheStats(['sizes_by_gender_height' => [
+            $this->sizeRow('women', null, 160, 18, ['ONE SIZE' => 18]),
+            $this->sizeRow('women', 160, 170, 14, ['ONE SIZE' => 14]),
+        ]]);
+
+        $this->assertStringNotContainsString('不同身高穿的尺寸', $this->productPage());
+    }
+
+    /**
+     * 則數多的性別排前面，只算畫面上顯示的列：女生 10、8、7 則只顯示一列 10 則，男生兩列共 22 則。
+     */
+    public function test_the_gender_with_more_shown_outfits_comes_first(): void
+    {
+        $this->cacheStats(['sizes_by_gender_height' => [
+            $this->sizeRow('women', null, 160, 10, ['S' => 6, 'M' => 4]),
+            $this->sizeRow('women', 160, 170, 8, ['M' => 8]),
+            $this->sizeRow('women', 170, null, 7, ['L' => 7]),
+            $this->sizeRow('men', null, 175, 11, ['L' => 6, 'XL' => 5]),
+            $this->sizeRow('men', 175, null, 11, ['XL' => 11]),
+        ]]);
+
+        $this->assertMatchesRegularExpression('/男生未滿 175 公分.*男生 175 公分以上.*女生未滿 160 公分/s', $this->productPage());
+    }
+
+    /**
+     * @param  array<string, int>  $sizes
+     */
+    private function sizeRow(string $gender, ?int $from, ?int $until, int $outfits, array $sizes): array
+    {
+        return [
+            'gender' => $gender,
+            'from' => $from,
+            'until' => $until,
+            'outfits' => $outfits,
+            'sizes' => array_map(fn (string $size, int $count) => ['size' => $size, 'count' => $count], array_keys($sizes), $sizes),
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $overrides
      */
     private function cacheStats(array $overrides): void

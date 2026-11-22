@@ -1820,3 +1820,10 @@ dialog.ts.modal.uq-scanner-panel {
 .uq-outfit-stat .ts.progress {
     margin: 0;
 }
+
+/* 穿搭統計的尺寸表：尺寸之間留空，窄螢幕可換行 */
+.uq-outfit-size-table .uq-outfit-size {
+    display: inline-block;
+    margin-right: 12px;
+    white-space: nowrap;
+}

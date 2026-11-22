@@ -13,6 +13,16 @@ class OutfitStatsPresenter
     private const ROWS_PER_CARD = 5;
 
     /**
+     * 尺寸表每列只列最多人穿的幾個尺寸。
+     */
+    private const SIZES_PER_ROW = 3;
+
+    /**
+     * 尺寸表至少要有兩列夠資料：只剩一列時跟「最多人穿的尺寸」卡沒有差別。
+     */
+    private const MIN_TABLE_ROWS = 2;
+
+    /**
      * 辨識結果的「顏色＋單品」組合多，要比其他卡片更多則才穩定。抽樣 22 件商品：辨識資料有 30 則以上的，
      * 最常見組合都占三成以上；不到 30 則的比例跳動大。
      */
@@ -87,6 +97,55 @@ class OutfitStatsPresenter
         ];
 
         return array_values(array_filter($cards));
+    }
+
+    /**
+     * 男女各身高穿的尺寸。每列各自以那一列的則數算占比，不到 10 則的列不顯示，夠的列少於兩列整張不顯示；
+     * 只有一種尺寸（例如包包的 ONE SIZE）時每列都是 100%，跟尺寸卡一樣不顯示。
+     * 畫面上則數多的性別排前面，同性別矮到高。
+     *
+     * @return array{rows: array<int, array{label: string, outfits: int, sizes: array<int, array{size: string, percent: int}>}>}|null
+     */
+    public function sizeTable(array $stats): ?array
+    {
+        $rows = array_values(array_filter(
+            $stats['sizes_by_gender_height'] ?? [],
+            fn (array $row) => $row['outfits'] >= OutfitStatsService::MIN_OUTFITS
+        ));
+
+        if (count($rows) < self::MIN_TABLE_ROWS) {
+            return null;
+        }
+
+        if (collect($rows)->pluck('sizes')->flatten(1)->pluck('size')->unique()->count() < 2) {
+            return null;
+        }
+
+        $shownByGender = collect($rows)->groupBy('gender')->map->sum('outfits');
+        usort($rows, fn (array $a, array $b) => [$shownByGender[$b['gender']], $a['gender'], $a['from'] ?? 0]
+            <=> [$shownByGender[$a['gender']], $b['gender'], $b['from'] ?? 0]);
+
+        return [
+            'rows' => array_map(fn (array $row) => [
+                'label' => $this->genderHeightLabel($row['gender'], $row['from'], $row['until']),
+                'outfits' => $row['outfits'],
+                'sizes' => array_map(
+                    fn (array $size) => ['size' => $size['size'], 'percent' => (int) round($size['count'] / $row['outfits'] * 100)],
+                    array_slice($row['sizes'], 0, self::SIZES_PER_ROW)
+                ),
+            ], $rows),
+        ];
+    }
+
+    private function genderHeightLabel(string $gender, ?int $from, ?int $until): string
+    {
+        $who = (self::GENDERS[$gender] ?? $gender).'生';
+
+        return match (true) {
+            $from === null => "{$who}未滿 {$until} 公分",
+            $until === null => "{$who} {$from} 公分以上",
+            default => sprintf('%s %d–%d 公分', $who, $from, $until - 1),
+        };
     }
 
     /**
