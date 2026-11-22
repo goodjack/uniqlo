@@ -29,12 +29,6 @@
     <meta name="twitter:image" content="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}" />
 @endsection
 
-@section('css')
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css"
-        integrity="sha512-ZKX+BvQihRJPA8CROKBhDNvoc2aDMOdAlcm7TUQY+35XYtrd3yh95QOOhsPDQY9QnKE0Wqag9y38OIgEvb88cA=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
-@endsection
-
 @section('content')
     <div class="ts fluid slate">
         <i class="camera retro faded icon"></i>
@@ -67,7 +61,7 @@
                 @foreach ($styleHints as $key => $styleHint)
                     <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
                         largeImageUrl="{{ $styleHint->large_image_url }}" country="{{ $styleHint->country }}"
-                        alt="StyleHint 網友穿搭靈感 {{ $styleHints->firstItem() + $key }} ({{ $styleHint->user_name }})"
+                        :alt="'StyleHint 網友穿搭靈感 ' . ($styleHints->firstItem() + $key) . ' (' . $styleHint->user_name . ')'"
                         width="720" height="960" />
                 @endforeach
             </div>
@@ -79,20 +73,5 @@
 @endsection
 
 @section('javascript')
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox-plus-jquery.min.js"
-        integrity="sha512-U9dKDqsXAE11UA9kZ0XKFyZ2gQCj+3AwZdBMni7yXSvWqLFEj8C1s7wRmWl9iyij8d5zb4wm56j4z/JVEwS77g=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-
-    <script>
-        'use strict';
-
-        lightbox.option({
-            'alwaysShowNavOnTouchDevices': true,
-            'disableScrolling': true,
-            'fadeDuration': 150,
-            'resizeDuration': 150,
-            'imageFadeDuration': 0,
-            'showImageNumberLabel': false,
-        });
-    </script>
+    @include('partials.photo-lightbox')
 @endsection

@@ -64,93 +64,67 @@ class ProductPresenter
         return $html;
     }
 
-    public function getItemImages($product)
+    /**
+     * 商品實照：先放實照、再放各顏色的圖，交給 x-image-card 畫。
+     *
+     * @return array<int, array{link: ?string, imageUrl: ?string, largeImageUrl: string, alt: string, colorHeader: ?string}>
+     */
+    public function getPhotoCards($product): array
     {
-        $html = '';
-        $colors = json_decode($product->colors);
+        $base = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$product->id}";
+        $cards = [];
 
-        if (! empty($colors)) {
-            foreach ($colors as $color) {
-                $colorHeader = "{$color->code} {$color->name}";
-                $alt = "商品顏色 {$colorHeader}";
-
-                $html .= $this->getItemImageTag($product->id, $color->code, $colorHeader, $alt);
-            }
+        foreach (json_decode($product->sub_images) ?: [] as $key => $subImage) {
+            $cards[] = $this->card(null, "{$base}/sub/{$subImage}_popup.jpg", "{$base}/sub/{$subImage}.jpg", '商品實照 '.($key + 1));
         }
 
-        return $html;
-    }
-
-    public function getItemImageTag($id, $colorCode, $colorHeader, $alt)
-    {
-        $imgUrl = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$colorCode}_{$id}_popup.jpg";
-        $largeImgUrl = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/item/{$colorCode}_{$id}.jpg";
-        $link = $largeImgUrl;
-
-        $html = $this->getImageTag($link, $imgUrl, $largeImgUrl, $alt, $colorHeader);
-
-        return $html;
-    }
-
-    public function getSubImages($product)
-    {
-        $html = '';
-        $subImages = json_decode($product->sub_images);
-        foreach ($subImages as $key => $subImage) {
-            $alt = '商品實照 '.($key + 1);
-
-            $html .= $this->getSubImageTag($product->id, $subImage, $alt);
+        foreach (json_decode($product->colors) ?: [] as $color) {
+            $colorHeader = "{$color->code} {$color->name}";
+            $cards[] = $this->card(
+                null,
+                "{$base}/item/{$color->code}_{$product->id}_popup.jpg",
+                "{$base}/item/{$color->code}_{$product->id}.jpg",
+                "商品顏色 {$colorHeader}",
+                $colorHeader,
+            );
         }
 
-        return $html;
+        return $cards;
     }
 
-    public function getSubImageTag($id, $subImage, $alt)
+    /**
+     * 官方精選穿搭：Style 在前、Style Dictionary 在後，交給 x-image-card 畫。
+     *
+     * @return array<int, array{link: ?string, imageUrl: ?string, largeImageUrl: string, alt: string, colorHeader: ?string}>
+     */
+    public function getStyleCards($styles, $styleDictionaries): array
     {
-        $imgUrl = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImage}_popup.jpg";
-        $largeImgUrl = "https://im.uniqlo.com/images/tw/uq/pc/goods/{$id}/sub/{$subImage}.jpg";
-        $link = $largeImgUrl;
+        $cards = [];
 
-        return $this->getImageTag($link, $imgUrl, $largeImgUrl, $alt);
-    }
-
-    public function getStyleDictionaries($styleDictionaries)
-    {
-        $html = '';
-        foreach ($styleDictionaries as $key => $styleDictionary) {
-            $largeImgUrl = "https://www.uniqlo.com//tw/styledictionary/api/data/0/{$styleDictionary->fnm}-xxl.jpg";
-            $alt = '精選穿搭 Style Dictionary '.($key + 1);
-
-            $html .= $this->getImageTag($largeImgUrl, $styleDictionary->image_url, $largeImgUrl, $alt);
-        }
-
-        return $html;
-    }
-
-    public function getStyles($styles)
-    {
-        $html = '';
         foreach ($styles as $key => $style) {
-            $largeImgUrl = "https://im.uniqlo.com/style/{$style->image_path}-xxxl.jpg";
-            $alt = '精選穿搭 Style '.($key + 1);
-
-            $html .= $this->getImageTag($style->detail_url, $style->image_url, $largeImgUrl, $alt);
+            $cards[] = $this->card(
+                $style->detail_url,
+                $style->image_url,
+                $style->large_image_url,
+                '精選穿搭 Style '.($key + 1),
+            );
         }
 
-        return $html;
+        foreach ($styleDictionaries as $key => $styleDictionary) {
+            $cards[] = $this->card(
+                null,
+                $styleDictionary->image_url,
+                "https://www.uniqlo.com//tw/styledictionary/api/data/0/{$styleDictionary->fnm}-xxl.jpg",
+                '精選穿搭 Style Dictionary '.($key + 1),
+            );
+        }
+
+        return $cards;
     }
 
-    public function getImageTag($link, $imgUrl, $largeImgUrl, $alt, $colorHeader = null)
+    private function card(?string $link, ?string $imageUrl, string $largeImageUrl, string $alt, ?string $colorHeader = null): array
     {
-        $html = "<a class=\"ts borderless card\" href=\"{$largeImgUrl}\" rel=\"nofollow noopener\" data-lightbox=\"image\" data-title=\"<a href='{$link}' target='_blank' rel='nofollow noopener'>{$alt}</a>\"><div class=\"image\"><img src=\"{$imgUrl}\" loading=\"lazy\" alt=\"{$alt}\"></div>";
-
-        if (isset($colorHeader)) {
-            $html .= "<div class=\"overlapped content color-header\">{$colorHeader}</div>";
-        }
-
-        $html .= '</a>';
-
-        return $html;
+        return compact('link', 'imageUrl', 'largeImageUrl', 'alt', 'colorHeader');
     }
 
     public function getPriceChartLabels($productHistories)
