@@ -1039,6 +1039,15 @@ html:has(.uq-section-menu) {
     }
 }
 
+/* 規格收合列的標題就是段標題；已經有 Tocas 的箭頭圖示，瀏覽器內建的三角形拿掉 */
+details.uq-specs>summary {
+    list-style: none;
+}
+
+details.uq-specs>summary::-webkit-details-marker {
+    display: none;
+}
+
 /* 標題下已有隱藏分隔線的留白，表格自己的上邊距會再疊一段 */
 .ts.table.uq-facts {
     margin-top: 0;
@@ -1095,20 +1104,6 @@ html:has(.uq-section-menu) {
 }
 
 /* 社群熱推：Tocas 無外框卡片排成一排往右滑，露出下一張的一角提示還有；封面 2:3、文字在下方 */
-.uq-social-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1em;
-    padding-bottom: .6em;
-    margin-bottom: 1em;
-    border-bottom: 1px solid var(--uq-line);
-}
-
-.uq-social-head > .header {
-    margin: 0 !important;
-}
-
 .uq-social-shelf {
     position: relative;
 }

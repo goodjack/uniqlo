@@ -90,11 +90,9 @@ class HmallProductPresenter
         $description = preg_replace('/(<br>){3,}/', '<br><br>', $description);
         $description = preg_replace('/※.*(<br>|$)/U', '', $description);
 
-        // 去除 UNIQLO 產品標示
-        $description = preg_replace('/(商品材質|物料組成|網路商店退貨須知)\X*/', '', $description);
-
-        // 去除 GU 產品標示
-        $description = preg_replace('/(商品產地)\X*/', '', $description);
+        // 去除官網產品標示（UNIQLO 的商品材質、物料組成、網路商店退貨須知，GU 的商品產地）與之後的內容。
+        // 從標示所在那句的句首切：標示夾在句子中間時（「請參閱商品材質欄位…」），不留下半句
+        $description = preg_replace('/[^。<>]*(商品材質|物料組成|網路商店退貨須知|商品產地)\X*/u', '', $description) ?? $description;
 
         // 整理前後換行
         $description = trim($description);
@@ -174,6 +172,31 @@ class HmallProductPresenter
             'count' => $count,
             'percent' => (int) round($count / $total * 100),
         ], $levels, array_keys($levels));
+    }
+
+    /**
+     * 兩個品牌對同一欄的叫法不同，統一成一種，跨商品比較時才不會以為是兩回事。
+     */
+    public function getMaterialCareLabel(string $title): string
+    {
+        return match ($title) {
+            '' => '材質與洗滌',
+            '洗滌說明' => '洗滌方式',
+            default => $title,
+        };
+    }
+
+    /**
+     * 材質與洗滌拆成一行一件事，方便掃讀：原本的換行照留，句號後斷開，
+     * 「布料: …/ 襯裏: …」這種多部位的材質在每個部位前斷開。
+     *
+     * @return array<int, string>
+     */
+    public function getMaterialCareLines(string $content): array
+    {
+        $lines = preg_split('/\n|(?<=。)(?!」|）|$)|\/\s*(?=[^\/\s:：]+\s*[:：])/u', $content);
+
+        return array_values(array_filter(array_map('trim', $lines), fn (string $line) => $line !== ''));
     }
 
     public function getSkuPic($hmallProduct, $colorNum)

@@ -182,4 +182,27 @@ class HmallProductPresenterTest extends TestCase
     {
         $this->assertSame($expected, $this->presenter->getDescriptionBody($instruction));
     }
+
+    public static function officialLabelProvider(): array
+    {
+        return [
+            '標示在句子中間時整句拿掉' => [
+                '- 寬鬆版型。<br><br>- 本產品使用再生材質。請參閱商品材質欄位的使用比例。<br>- 此頁面所展示的圖片顏色可能會包含未販售的商品顏色。',
+                '- 寬鬆版型。<br><br>- 本產品使用再生材質。',
+            ],
+            '整行都是那一句時連行首一起拿掉' => ['寬鬆版型。<br>- 詳見商品材質欄位', '寬鬆版型。'],
+            '標示自成一段時從標示切' => ['寬鬆版型。<br><br>商品材質<br>棉 100%', '寬鬆版型。'],
+            'GU 的產地標示' => ['寬鬆版型。商品產地：越南', '寬鬆版型。'],
+        ];
+    }
+
+    /**
+     * 官網制式標示從所在那句的句首切掉，不留「請參閱」這種半句
+     *
+     * @dataProvider officialLabelProvider
+     */
+    public function test_description_drops_the_official_labels_without_leaving_half_a_sentence(string $instruction, string $expected): void
+    {
+        $this->assertSame($expected, $this->presenter->getDescriptionBody($instruction));
+    }
 }

@@ -110,6 +110,71 @@
         players.forEach(player => observer.observe(player));
     }
 
+    /**
+     * 各段有沒有被看到、怎麼被打開的 GA 事件（UqAnalytics 沒設 GA 時什麼都不送）：
+     * section_view       段標題進入畫面（exposure: heading），歷史價格與日本版的價格內容一半進入畫面時再送一次（exposure: content）
+     * section_menu_click 點章節選單
+     * details_expand     打開收合的段落
+     * media_open         開大圖或社群貼文，source 是哪一組
+     * go_official        前往官網，location 是哪一顆按鈕
+     */
+    function setUpTracking() {
+        const track = window.UqAnalytics ? window.UqAnalytics.track : () => {};
+
+        if ('IntersectionObserver' in window) {
+            const observe = (elements, threshold) => {
+                const observer = new IntersectionObserver((entries, self) => {
+                    entries.forEach(entry => {
+                        if (!entry.isIntersecting) {
+                            return;
+                        }
+
+                        self.unobserve(entry.target);
+                        track('section_view', {
+                            section: entry.target.dataset.sectionView,
+                            exposure: entry.target.dataset.sectionExposure || 'heading',
+                        });
+                    });
+                }, { threshold: threshold });
+
+                elements.forEach(element => observer.observe(element));
+            };
+
+            observe(document.querySelectorAll('[data-section-view]:not([data-section-exposure])'), 0);
+            observe(document.querySelectorAll('[data-section-view][data-section-exposure="content"]'), 0.5);
+        }
+
+        document.querySelectorAll('[data-analytics-details]').forEach(details => {
+            details.addEventListener('toggle', () => {
+                if (details.open) {
+                    track('details_expand', { section: details.dataset.analyticsDetails });
+                }
+            });
+        });
+
+        document.addEventListener('click', event => {
+            const menuItem = event.target.closest('.uq-section-menu a.item[href^="#"]');
+            // 社群卡片上的預覽播放鈕只在卡片裡播，不算打開
+            const media = event.target.closest('.uq-social-toggle')
+                ? null
+                : event.target.closest('a[data-lightbox], .uq-social-card, [data-social-all]');
+            const official = event.target.closest('a[data-analytics-official]');
+
+            if (menuItem) {
+                track('section_menu_click', { section: menuItem.hash.slice(1) });
+            }
+
+            if (media) {
+                track('media_open', { source: media.dataset.lightbox || 'social' });
+            }
+
+            if (official) {
+                track('go_official', { location: official.dataset.analyticsOfficial });
+            }
+        });
+    }
+
     setUpCollapsibles();
     setUpVideos();
+    setUpTracking();
 })();
