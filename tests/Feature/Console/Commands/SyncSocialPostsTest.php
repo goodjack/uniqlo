@@ -7,9 +7,12 @@ use App\Enums\SocialPostKind;
 use App\Enums\SocialPostStatus;
 use App\Enums\SocialSyncStatus;
 use App\Exceptions\SocialPostUnavailableException;
+use App\Models\HmallProduct;
 use App\Models\SocialPost;
 use App\Models\SocialPostCode;
 use App\Services\SocialPostFetcher;
+use App\Services\SocialPostService;
+use App\Support\SocialUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\RequestException;
@@ -71,12 +74,41 @@ class SyncSocialPostsTest extends TestCase
         ];
     }
 
+    /**
+     * 假的 Notion：讀單頁回清單裡那一頁；改欄位回套用後的整頁，編輯時間變成 02:00，跟真的一樣帶著欄位；頁面都沒有內文。
+     */
     private function fakeNotion(array $pages): void
     {
+        $find = fn (Request $request) => collect($pages)->firstWhere('id', basename((string) parse_url($request->url(), PHP_URL_PATH)));
+
         Http::fake([
             'api.notion.com/v1/data_sources/*' => Http::response(['results' => $pages, 'has_more' => false, 'next_cursor' => null]),
-            'api.notion.com/v1/pages/*' => Http::response(['last_edited_time' => '2026-10-18T02:00:00.000Z']),
+            'api.notion.com/v1/blocks/*' => Http::response(['results' => [], 'has_more' => false]),
+            'api.notion.com/v1/pages/*' => fn (Request $request) => Http::response($request->method() === 'GET'
+                ? $find($request)
+                : self::applied($find($request) ?? ['properties' => []], $request->data()['properties'] ?? [])),
         ]);
+    }
+
+    /** 把送出的欄位套到頁面上，回成 Notion 讀出來的樣子 */
+    private static function applied(array $page, array $sent): array
+    {
+        foreach ($sent as $key => $value) {
+            $type = array_key_first($value);
+            $page['properties'][$key] = ['type' => $type, $type => in_array($type, ['title', 'rich_text'], true)
+                ? array_map(fn (array $part) => ['plain_text' => $part['text']['content']], $value[$type])
+                : $value[$type]];
+        }
+
+        return array_merge($page, ['last_edited_time' => '2026-10-18T02:00:00.000Z']);
+    }
+
+    /** 只有改欄位、移到垃圾桶會失敗，讀取照常；要在 fakeNotion 之前登記才會先用到 */
+    private function failWrites(string $pageId): void
+    {
+        Http::fake(["api.notion.com/v1/pages/{$pageId}" => fn (Request $request) => $request->method() === 'PATCH'
+            ? Http::response(['message' => 'conflict'], 409)
+            : null]);
     }
 
     /** $canonical 沒給時網址原樣當正式網址，不追轉址 */
@@ -121,10 +153,32 @@ class SyncSocialPostsTest extends TestCase
 
     private function notionUpdates(): array
     {
-        return Http::recorded(fn (Request $request) => $request->method() === 'PATCH')
+        return Http::recorded(fn (Request $request) => $request->method() === 'PATCH' && isset($request->data()['properties']))
             ->map(fn ($pair) => $pair[0]->data()['properties'])
             ->values()
             ->all();
+    }
+
+    /** 依送出順序列出寫進 Notion 的動作：哪一列、改了哪些欄位或移到垃圾桶 */
+    private function notionWrites(): array
+    {
+        return Http::recorded(fn (Request $request) => $request->method() === 'PATCH')
+            ->map(fn ($pair) => [basename($pair[0]->url()), $pair[0]->data()['properties'] ?? ($pair[0]->data()['in_trash'] ? '垃圾桶' : null)])
+            ->values()
+            ->all();
+    }
+
+    /** 剛加進 Notion 的列，還在合併前的等待時間內 */
+    private function justCreated(): string
+    {
+        return now()->subMinutes(5)->utc()->format('Y-m-d\TH:i:s.v\Z');
+    }
+
+    private const EARLIER = '2026-10-16T17:00:00.000Z';
+
+    private static function codes(string $value): array
+    {
+        return ['rich_text' => [['text' => ['content' => $value]]]];
     }
 
     public function test_new_page_is_stored_with_codes_and_written_back(): void
@@ -251,7 +305,7 @@ class SyncSocialPostsTest extends TestCase
         $calls = 0;
         $this->fakeFetcher(function () use (&$calls) {
             // 第二則的作者超過欄位長度，存檔時資料庫會擋下
-            return $this->fetched(['author' => ++$calls === 2 ? str_repeat('a', 300) : 'a']);
+            return $this->fetched(['author' => ++$calls === 2 ? str_repeat('a', 300) : 'a', 'canonical_url' => self::CANONICAL_URL.$calls]);
         });
 
         $this->artisan('social-post:sync')
@@ -352,9 +406,10 @@ class SyncSocialPostsTest extends TestCase
 
     public function test_same_post_listed_twice_marks_the_later_row_as_a_duplicate(): void
     {
+        // 剛加進來的列還沒到合併的時候，只標重複
         $pages = [
             $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'sort' => 1, 'status' => null]),
-            $this->page('page-2', ['url' => self::SHORT_URL, 'codes' => '479123', 'status' => null]),
+            $this->page('page-2', ['url' => self::SHORT_URL, 'codes' => '479123', 'created' => $this->justCreated(), 'status' => null]),
         ];
         $this->fakeNotion($pages);
         $this->fakeFetcher(fn () => $this->fetched(), fn (string $url) => self::CANONICAL_URL);
@@ -376,7 +431,7 @@ class SyncSocialPostsTest extends TestCase
         $this->resetHttp();
         $this->fakeNotion([
             $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'sort' => 1, 'status' => '正常', 'edited' => '2026-10-18T02:00:00.000Z']),
-            $this->page('page-2', ['name' => '重複：我的穿搭', 'url' => self::CANONICAL_URL, 'codes' => '479123', 'status' => '重複', 'edited' => '2026-10-18T02:00:00.000Z']),
+            $this->page('page-2', ['name' => '重複：我的穿搭', 'url' => self::CANONICAL_URL, 'codes' => '479123', 'created' => $this->justCreated(), 'status' => '重複', 'edited' => '2026-10-18T02:00:00.000Z']),
         ]);
         $this->artisan('social-post:sync');
         $this->artisan('social-post:sync --full');
@@ -386,10 +441,11 @@ class SyncSocialPostsTest extends TestCase
 
     public function test_duplicate_of_a_row_without_a_name_is_named_after_its_url_and_named_rows_are_left_alone(): void
     {
+        // 剛加進來的列還沒到合併的時候，只標重複
         $this->fakeNotion([
             $this->page('page-1', ['url' => self::CANONICAL_URL, 'sort' => 1, 'status' => null]),
-            $this->page('page-2', ['name' => '人填的', 'url' => self::CANONICAL_URL, 'status' => null]),
-            $this->page('page-3', ['url' => self::CANONICAL_URL, 'status' => null]),
+            $this->page('page-2', ['name' => '人填的', 'url' => self::CANONICAL_URL, 'created' => $this->justCreated(), 'status' => null]),
+            $this->page('page-3', ['url' => self::CANONICAL_URL, 'created' => $this->justCreated(), 'status' => null]),
         ]);
         // 主列抓不到作者，不會補名稱
         $this->fakeFetcher(fn () => $this->fetched(['author' => null]));
@@ -408,8 +464,9 @@ class SyncSocialPostsTest extends TestCase
 
     public function test_duplicate_row_kept_is_the_one_the_site_shows(): void
     {
+        // 剛加進來的列還沒到合併的時候，只標重複
         $this->fakeNotion([
-            $this->page('page-1', ['name' => '排在前面', 'url' => self::SHORT_URL, 'sort' => 1, 'status' => null]),
+            $this->page('page-1', ['name' => '排在前面', 'url' => self::SHORT_URL, 'sort' => 1, 'created' => $this->justCreated(), 'status' => null]),
             $this->page('page-2', ['name' => '排在後面', 'url' => self::CANONICAL_URL, 'status' => null]),
         ]);
         // 排在前面那列這次沒抓到，網站上顯示的是後面那列，所以標重複的是前面那列
@@ -431,10 +488,11 @@ class SyncSocialPostsTest extends TestCase
 
     public function test_duplicate_row_with_codes_the_kept_row_lacks_is_flagged_so_it_is_not_deleted_blindly(): void
     {
+        // 剛加進來的列還沒到合併的時候，只標重複
         $this->fakeNotion([
             $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'codes' => '479123, ABC-1', 'sort' => 1, 'status' => '正常']),
             // 大小寫不同的貨號算同一件，只有 470001、888888 是這列多出來的
-            $this->page('page-2', ['url' => self::CANONICAL_URL, 'codes' => '470001, abc-1, 479123, 888888', 'status' => null]),
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'codes' => '470001, abc-1, 479123, 888888', 'created' => $this->justCreated(), 'status' => null]),
         ]);
         $this->fakeFetcher(fn () => $this->fetched());
 
@@ -449,6 +507,7 @@ class SyncSocialPostsTest extends TestCase
 
     public function test_duplicates_are_found_among_rows_skipped_this_time(): void
     {
+        // 剛加進來的列還沒到合併的時候，只標重複
         $this->fakeNotion([$this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'sort' => 1, 'status' => '正常'])]);
         $this->fakeFetcher(fn () => $this->fetched());
         $this->artisan('social-post:sync');
@@ -457,7 +516,7 @@ class SyncSocialPostsTest extends TestCase
         $this->resetHttp();
         $this->fakeNotion([
             $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'sort' => 1, 'status' => '正常']),
-            $this->page('page-2', ['name' => '又貼一次', 'url' => self::CANONICAL_URL, 'status' => null]),
+            $this->page('page-2', ['name' => '又貼一次', 'url' => self::CANONICAL_URL, 'created' => $this->justCreated(), 'status' => null]),
         ]);
         $this->artisan('social-post:sync');
 
@@ -467,9 +526,10 @@ class SyncSocialPostsTest extends TestCase
 
     public function test_row_no_longer_duplicated_gets_its_own_status_back(): void
     {
+        // 剛加進來的列還沒到合併的時候，只標重複
         $this->fakeNotion([
             $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'sort' => 1, 'status' => '正常']),
-            $this->page('page-2', ['name' => '又貼一次', 'url' => self::CANONICAL_URL, 'status' => null]),
+            $this->page('page-2', ['name' => '又貼一次', 'url' => self::CANONICAL_URL, 'created' => $this->justCreated(), 'status' => null]),
         ]);
         $this->fakeFetcher(fn () => $this->fetched(['embeddable' => false]));
         $this->artisan('social-post:sync');
@@ -488,8 +548,7 @@ class SyncSocialPostsTest extends TestCase
 
     public function test_write_back_that_failed_is_sent_again_next_time_even_if_the_row_is_skipped(): void
     {
-        // 先登記的假回應優先，寫回這次一律失敗
-        Http::fake(['api.notion.com/v1/pages/*' => Http::response(['message' => 'conflict'], 409)]);
+        $this->failWrites('page-1');
         $this->fakeNotion([$this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'status' => null])]);
         $this->fakeFetcher(fn () => $this->fetched());
         $this->artisan('social-post:sync');
@@ -652,6 +711,479 @@ class SyncSocialPostsTest extends TestCase
             '網址' => ['url' => self::CANONICAL_URL],
             '同步狀態' => ['select' => ['name' => '已刪除']],
         ]], $this->notionUpdates());
+    }
+
+    public function test_duplicate_whose_codes_are_all_kept_is_moved_to_the_trash_without_touching_the_kept_row(): void
+    {
+        $this->fakeNotion([
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'codes' => '479123, 470001', 'created' => self::EARLIER, 'status' => '正常']),
+            $this->page('page-2', ['url' => self::SHORT_URL, 'codes' => '470001', 'status' => null]),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync');
+
+        $this->assertSame([['page-2', '垃圾桶']], $this->notionWrites());
+        $this->assertSame(['page-1'], SocialPost::pluck('notion_page_id')->all());
+    }
+
+    public function test_duplicate_codes_are_merged_into_the_kept_row_before_it_is_moved_to_the_trash(): void
+    {
+        $this->fakeNotion([
+            // 留下那列的原文（含使用者的註記）一字不改，只在後面接上多出來的貨號
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'codes' => '479123@1:23, 470001 黑色那件', 'created' => self::EARLIER, 'status' => '正常']),
+            // 大小寫不同的算同一件；多出來的照重複那列原本的寫法接上
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'codes' => '470001、479123@1:23 ABC-1＠75, 888888', 'status' => null]),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync');
+
+        // 先寫好留下那列，成功了才把重複那列移到垃圾桶
+        $this->assertSame([
+            ['page-1', ['商品編號' => self::codes('479123@1:23, 470001 黑色那件, ABC-1＠75, 888888')]],
+            ['page-2', '垃圾桶'],
+        ], $this->notionWrites());
+
+        $post = SocialPost::with('codes')->sole();
+        $this->assertEquals(
+            ['470001' => null, '479123' => 83, '888888' => null, 'ABC-1' => 75],
+            $post->codes->pluck('start_seconds', 'code')->sortKeys()->all(),
+        );
+        $this->assertTrue($post->notion_edited_at->equalTo('2026-10-18T02:00:00Z'));
+        // 同一輪結束時，原本只在重複那列的貨號，商品頁就看得到
+        $product = (new HmallProduct)->forceFill(['code' => '888888']);
+        $this->assertSame(['page-1'], app(SocialPostService::class)->getForProduct($product)->pluck('notion_page_id')->all());
+    }
+
+    public function test_blank_name_and_sort_of_the_kept_row_are_filled_from_the_duplicate(): void
+    {
+        $this->fakeNotion([
+            $this->page('page-1', ['url' => self::CANONICAL_URL, 'created' => self::EARLIER, 'status' => '正常']),
+            $this->page('page-2', ['name' => '人填的名稱', 'url' => self::CANONICAL_URL, 'sort' => 5, 'status' => '重複']),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync');
+
+        $this->assertSame([
+            ['page-1', ['名稱' => ['title' => [['text' => ['content' => '人填的名稱']]]], '排序' => ['number' => 5]]],
+            ['page-2', '垃圾桶'],
+        ], $this->notionWrites());
+        $this->assertSame(5, SocialPost::sole()->sort);
+    }
+
+    public function test_duplicate_hint_we_wrote_is_not_moved_over_as_the_name(): void
+    {
+        $this->fakeNotion([
+            $this->page('page-1', ['url' => self::CANONICAL_URL, 'created' => self::EARLIER, 'status' => '正常']),
+            $this->page('page-2', ['name' => '重複：'.self::CANONICAL_URL, 'url' => self::CANONICAL_URL, 'sort' => 3, 'status' => '重複']),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched(['author' => null]));
+
+        $this->artisan('social-post:sync');
+
+        $this->assertSame([
+            ['page-1', ['排序' => ['number' => 3]]],
+            ['page-2', '垃圾桶'],
+        ], $this->notionWrites());
+    }
+
+    public function test_duplicate_is_not_trashed_when_the_kept_row_cannot_be_updated_and_is_retried_next_time(): void
+    {
+        $pages = [
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'codes' => '479123', 'created' => self::EARLIER]),
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'codes' => '888888']),
+        ];
+        $this->failWrites('page-1');
+        $this->fakeNotion($pages);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync');
+
+        $this->assertNotContains(['page-2', '垃圾桶'], $this->notionWrites());
+        $this->assertSame(2, SocialPost::count());
+
+        $this->resetHttp();
+        $this->fakeNotion($pages);
+        $this->artisan('social-post:sync');
+
+        $this->assertSame([
+            ['page-1', ['商品編號' => self::codes('479123, 888888')]],
+            ['page-2', '垃圾桶'],
+        ], array_values(array_filter($this->notionWrites(), fn ($write) => $write[1] === '垃圾桶' || isset($write[1]['商品編號']))));
+        $this->assertSame(['page-1'], SocialPost::pluck('notion_page_id')->all());
+    }
+
+    public function test_duplicate_that_cannot_be_trashed_stays_until_the_next_try(): void
+    {
+        $pages = [
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'created' => self::EARLIER, 'status' => '正常']),
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'status' => null]),
+        ];
+        $this->failWrites('page-2');
+        $this->fakeNotion($pages);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync');
+
+        $this->assertSame(2, SocialPost::count());
+
+        $this->resetHttp();
+        $this->fakeNotion($pages);
+        $this->artisan('social-post:sync');
+
+        $this->assertContains(['page-2', '垃圾桶'], $this->notionWrites());
+        $this->assertSame(['page-1'], SocialPost::pluck('notion_page_id')->all());
+    }
+
+    public function test_group_with_a_row_added_just_now_is_only_marked_and_left_for_later(): void
+    {
+        $this->fakeNotion([
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'codes' => '479123', 'created' => self::EARLIER, 'status' => '正常']),
+            // 剛加進來的可能還在整理，先標出來，等一陣子再合併
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'codes' => '479123', 'created' => $this->justCreated(), 'status' => null]),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync');
+
+        $this->assertSame([['page-2', [
+            '名稱' => ['title' => [['text' => ['content' => '重複：我的穿搭']]]],
+            '同步狀態' => ['select' => ['name' => '重複']],
+        ]]], $this->notionWrites());
+        $this->assertSame(2, SocialPost::count());
+    }
+
+    public function test_every_duplicate_in_a_group_of_three_is_merged_into_the_same_kept_row(): void
+    {
+        $this->fakeNotion([
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'codes' => '479123', 'created' => self::EARLIER, 'status' => '正常']),
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'codes' => '470001', 'created' => '2026-10-17T17:00:00.000Z']),
+            $this->page('page-3', ['url' => self::SHORT_URL, 'codes' => '888888, 470001', 'created' => '2026-10-17T18:00:00.000Z']),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync');
+
+        $this->assertSame([
+            ['page-1', ['商品編號' => self::codes('479123, 470001, 888888')]],
+            ['page-2', '垃圾桶'],
+            ['page-3', '垃圾桶'],
+        ], $this->notionWrites());
+        $this->assertSame(['page-1'], SocialPost::pluck('notion_page_id')->all());
+    }
+
+    public function test_kept_row_is_the_earliest_one_among_those_showing(): void
+    {
+        $this->fakeNotion([
+            // 最早建立但抓不到，網站上沒顯示
+            $this->page('page-1', ['url' => 'https://www.threads.com/share/Gone/', 'created' => '2026-10-15T17:00:00.000Z']),
+            $this->page('page-2', ['name' => '比較早', 'url' => self::CANONICAL_URL, 'created' => self::EARLIER]),
+            // 網站照排序會放在最前面，但留下的是比較早建立、通常已經整理過的那列
+            $this->page('page-3', ['url' => self::CANONICAL_URL, 'sort' => 1]),
+        ]);
+        $calls = 0;
+        $this->fakeFetcher(
+            function () use (&$calls) {
+                return ++$calls === 1 ? throw new RuntimeException('平台改版') : $this->fetched();
+            },
+            fn () => self::CANONICAL_URL,
+        );
+
+        $this->artisan('social-post:sync');
+
+        $this->assertSame([
+            ['page-2', ['排序' => ['number' => 1]]],
+            ['page-3', '垃圾桶'],
+            ['page-1', '垃圾桶'],
+        ], $this->notionWrites());
+        $this->assertSame(['page-2'], SocialPost::pluck('notion_page_id')->all());
+    }
+
+    public function test_row_whose_url_changed_but_failed_to_save_is_not_merged_away(): void
+    {
+        $this->fakeNotion([
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'created' => self::EARLIER]),
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'created' => $this->justCreated()]),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched());
+        $this->artisan('social-post:sync');
+
+        // 使用者把第二列改成別篇，這輪存檔又失敗，資料庫裡還是舊的那篇；不能拿舊網址判定重複就刪掉
+        $this->travel(1)->hours();
+        $this->resetHttp();
+        $this->fakeNotion([
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'created' => self::EARLIER]),
+            $this->page('page-2', ['url' => 'https://www.threads.com/@meta/post/C1', 'edited' => '2026-10-18T03:00:00.000Z']),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched(['author' => str_repeat('a', 300)]));
+        $this->artisan('social-post:sync');
+
+        $this->assertNotContains(['page-2', '垃圾桶'], $this->notionWrites());
+        $this->assertSame(2, SocialPost::count());
+    }
+
+    public function test_share_link_row_marked_while_new_is_merged_once_it_settles(): void
+    {
+        $created = $this->justCreated();
+        $this->fakeNotion([
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'created' => self::EARLIER, 'status' => '正常']),
+            $this->page('page-2', ['url' => self::SHORT_URL, 'created' => $created, 'status' => null]),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched(), fn (string $url) => self::CANONICAL_URL);
+        $this->artisan('social-post:sync');
+
+        // 剛加進來時只標重複、網址換成正式網址；等過了等待時間，就認得出網址是這輪確定的，可以合併
+        $this->travel(1)->hours();
+        $this->resetHttp();
+        $this->fakeNotion([
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'created' => self::EARLIER, 'status' => '正常']),
+            $this->page('page-2', ['name' => '重複：我的穿搭', 'url' => self::CANONICAL_URL, 'created' => $created, 'status' => '重複', 'edited' => '2026-10-18T02:00:00.000Z']),
+        ]);
+        $this->artisan('social-post:sync');
+
+        $this->assertSame([['page-2', '垃圾桶']], $this->notionWrites());
+        // 第二輪兩列都沒改過，不用重抓
+        $this->assertSame(2, $this->fetchCount);
+    }
+
+    public static function changesSinceTheListWasRead(): array
+    {
+        return [
+            '編輯時間變了' => [['last_edited_time' => '2026-10-18T03:00:00.000Z']],
+            '商品編號變了' => [['properties' => ['商品編號' => ['type' => 'rich_text', 'rich_text' => [['plain_text' => '479123, 470001']]]]]],
+            '已經被移到垃圾桶' => [['in_trash' => true]],
+        ];
+    }
+
+    #[DataProvider('changesSinceTheListWasRead')]
+    public function test_group_is_left_alone_when_a_row_changed_since_the_list_was_read(array $change): void
+    {
+        $pages = [
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'codes' => '479123', 'created' => self::EARLIER]),
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'codes' => '888888']),
+        ];
+        // 動手前重讀：使用者剛好在這時改了重複那列
+        Http::fake(['api.notion.com/v1/pages/page-2' => fn (Request $request) => $request->method() === 'GET'
+            ? Http::response(array_replace_recursive($pages[1], $change))
+            : null]);
+        $this->fakeNotion($pages);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync');
+
+        $this->assertSame([], array_filter($this->notionWrites(), fn ($write) => $write[1] === '垃圾桶' || isset($write[1]['商品編號'])));
+        $this->assertSame(2, SocialPost::count());
+    }
+
+    public static function storedNotAsSent(): array
+    {
+        $merged = ['商品編號' => ['type' => 'rich_text', 'rich_text' => [['plain_text' => '479123, 888888']]]];
+
+        return [
+            '商品編號沒存進去' => [[]],
+            '網址同時被改了' => [['properties' => $merged + ['網址' => ['type' => 'url', 'url' => 'https://www.threads.com/@meta/post/C1']]]],
+            '留下那列同時被移到垃圾桶' => [['properties' => $merged, 'in_trash' => true]],
+        ];
+    }
+
+    #[DataProvider('storedNotAsSent')]
+    public function test_duplicate_is_kept_when_the_kept_row_is_not_what_was_expected_after_writing(array $stored): void
+    {
+        $pages = [
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'codes' => '479123', 'created' => self::EARLIER]),
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'codes' => '888888']),
+        ];
+        Http::fake(['api.notion.com/v1/pages/page-1' => fn (Request $request) => $request->method() === 'PATCH'
+            ? Http::response(array_replace_recursive($pages[0], ['last_edited_time' => '2026-10-18T02:00:00.000Z'], $stored))
+            : null]);
+        $this->fakeNotion($pages);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync');
+
+        $this->assertNotContains(['page-2', '垃圾桶'], $this->notionWrites());
+        $this->assertSame(2, SocialPost::count());
+    }
+
+    public static function duplicatesWithTheirOwnContent(): array
+    {
+        return [
+            '商品編號有認不得的文字' => [['codes' => '479123'], ['codes' => '479123 黑色那件']],
+            '同一件的時間不同' => [['codes' => '479123@1:00'], ['codes' => '479123@2:00']],
+            '留下那列沒寫時間' => [['codes' => '479123'], ['codes' => '479123@1:23']],
+            '名稱不同' => [['name' => '我的穿搭'], ['name' => '另一個名字']],
+            '排序不同' => [['sort' => 1], ['sort' => 2]],
+            // 同一件寫了兩次，只有第二次帶時間；不能只看第一次就當作一樣
+            '同一件第二次才寫時間' => [['codes' => '479123'], ['codes' => '479123, 479123@2:00']],
+        ];
+    }
+
+    #[DataProvider('duplicatesWithTheirOwnContent')]
+    public function test_duplicate_with_content_of_its_own_is_only_marked(array $kept, array $duplicate): void
+    {
+        $this->fakeNotion([
+            $this->page('page-1', array_merge(['url' => self::CANONICAL_URL, 'codes' => '479123', 'created' => self::EARLIER, 'status' => '正常'], $kept)),
+            $this->page('page-2', array_merge(['url' => self::CANONICAL_URL, 'codes' => '479123', 'status' => null], $duplicate)),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched(['author' => null]));
+
+        $this->artisan('social-post:sync');
+
+        // 刪掉會弄丟使用者寫的東西，留給人處理
+        $this->assertNotContains(['page-2', '垃圾桶'], $this->notionWrites());
+        $this->assertSame(2, SocialPost::count());
+        $this->assertSame('重複', $this->notionUpdates()[0]['同步狀態']['select']['name']);
+        // 不用連網就看得出合不了，不去重讀頁面、也不讀內文
+        Http::assertNotSent(fn (Request $request) => $request->method() === 'GET'
+            && preg_match('~/v1/(pages|blocks)/~', $request->url()) === 1);
+    }
+
+    public function test_duplicate_page_with_content_inside_is_only_marked(): void
+    {
+        Http::fake(['api.notion.com/v1/blocks/page-2/children*' => Http::response(['results' => [['type' => 'paragraph', 'paragraph' => ['rich_text' => [['plain_text' => '這件買黑色']]]]], 'has_more' => false])]);
+        $this->fakeNotion([
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'created' => self::EARLIER, 'status' => '正常']),
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'status' => null]),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync');
+
+        $this->assertNotContains(['page-2', '垃圾桶'], $this->notionWrites());
+        $this->assertSame(2, SocialPost::count());
+    }
+
+    public static function pageContents(): array
+    {
+        // 欄位照 Notion 實際回的：嵌入與書籤帶 caption，連結預覽只有網址
+        $embed = fn (string $url, string $type = 'embed') => ['type' => $type, $type => $type === 'link_preview' ? ['url' => $url] : ['caption' => [], 'url' => $url]];
+        $post = self::CANONICAL_URL;
+
+        return [
+            // 從手機分享進 Notion 時，內文會自動放一個貼文網址的嵌入，不算使用者寫的
+            '只有同一篇的嵌入' => [[$embed("{$post}?xmt=abc")], false, true],
+            '同一篇的書籤' => [[$embed($post, 'bookmark')], false, true],
+            '同一篇的連結預覽' => [[$embed($post, 'link_preview')], false, true],
+            '分享短網址的嵌入，追到同一篇' => [[$embed(self::SHORT_URL)], false, true],
+            '嵌入指向別篇' => [[$embed('https://www.threads.com/@meta/post/C1')], false, false],
+            '嵌入加一段文字' => [[$embed($post), ['type' => 'paragraph', 'paragraph' => ['rich_text' => [['plain_text' => '這件買黑色']]]]], false, false],
+            '嵌入的網址追不到' => [[$embed('https://www.threads.com/share/Broken/')], false, false],
+            '內文超過一頁' => [[$embed($post)], true, false],
+            '書籤有說明文字' => [[['type' => 'bookmark', 'bookmark' => ['url' => $post, 'caption' => [['plain_text' => '這件好看']]]]], false, false],
+            '嵌入有說明文字' => [[['type' => 'embed', 'embed' => ['url' => $post, 'caption' => [['plain_text' => '黑色']]]]], false, false],
+            '嵌入的說明是空的' => [[['type' => 'embed', 'embed' => ['url' => $post, 'caption' => []]]], false, true],
+        ];
+    }
+
+    #[DataProvider('pageContents')]
+    public function test_duplicate_is_trashed_only_when_its_page_holds_nothing_but_links_to_the_same_post(array $blocks, bool $hasMore, bool $trashed): void
+    {
+        Http::fake(['api.notion.com/v1/blocks/page-2/children*' => Http::response(['results' => $blocks, 'has_more' => $hasMore])]);
+        $this->fakeNotion([
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'created' => self::EARLIER, 'status' => '正常']),
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'status' => null]),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched(), fn (string $url) => $url === self::SHORT_URL
+            ? self::CANONICAL_URL
+            : (SocialUrl::canonical($url) ?? throw new \InvalidArgumentException("不支援的網址：{$url}")));
+
+        $this->artisan('social-post:sync');
+
+        $this->assertSame($trashed, in_array(['page-2', '垃圾桶'], $this->notionWrites(), true));
+        $this->assertSame($trashed ? 1 : 2, SocialPost::count());
+    }
+
+    public static function namesOnceNoLongerDuplicated(): array
+    {
+        return [
+            '有作者，改回自動名稱' => ['a', [['text' => ['content' => 'a：t']]]],
+            '沒有作者，清成空白' => [null, []],
+        ];
+    }
+
+    #[DataProvider('namesOnceNoLongerDuplicated')]
+    public function test_duplicate_hint_is_replaced_once_the_kept_row_is_gone(?string $author, array $title): void
+    {
+        $created = $this->justCreated();
+        $this->fakeNotion([
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'created' => self::EARLIER, 'status' => '正常']),
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'created' => $created, 'status' => null]),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched(['author' => $author]));
+        $this->artisan('social-post:sync');
+
+        // 留下那列從 Notion 刪掉了，重複那列名稱上的提示已經不對
+        $this->resetHttp();
+        $this->fakeNotion([
+            $this->page('page-2', ['name' => '重複：我的穿搭', 'url' => self::CANONICAL_URL, 'created' => $created, 'status' => '重複', 'edited' => '2026-10-18T02:00:00.000Z']),
+        ]);
+        $this->artisan('social-post:sync');
+
+        $this->assertSame([['名稱' => ['title' => $title], '同步狀態' => ['select' => ['name' => '正常']]]], $this->notionUpdates());
+    }
+
+    public function test_duplicate_hint_is_replaced_when_that_row_becomes_the_one_kept(): void
+    {
+        $created = $this->justCreated();
+        $this->fakeNotion([
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'created' => self::EARLIER, 'status' => '正常']),
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'created' => $created, 'status' => null]),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched());
+        $this->artisan('social-post:sync');
+
+        // 原本留下的那列這次抓不到，網站上顯示的換成第二列，第二列就是留下的那列
+        $this->resetHttp();
+        $this->fakeNotion([
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'created' => self::EARLIER, 'status' => '正常', 'edited' => '2026-10-18T03:00:00.000Z']),
+            $this->page('page-2', ['name' => '重複：我的穿搭', 'url' => self::CANONICAL_URL, 'created' => $created, 'status' => '重複', 'edited' => '2026-10-18T02:00:00.000Z']),
+        ]);
+        $this->fakeFetcher(fn () => throw new RuntimeException('平台改版'));
+        $this->artisan('social-post:sync');
+
+        $this->assertSame([
+            ['page-1', ['同步狀態' => ['select' => ['name' => '重複']]]],
+            ['page-2', ['名稱' => ['title' => [['text' => ['content' => 'a：t']]]], '同步狀態' => ['select' => ['name' => '正常']]]],
+        ], $this->notionWrites());
+    }
+
+    public function test_auto_name_that_happens_to_start_like_the_hint_is_not_sent_again(): void
+    {
+        // 作者就叫「重複」時，自動名稱看起來跟我們的提示一樣；Notion 上已經是這個名稱就不再送
+        $this->fakeNotion([$this->page('page-1', ['url' => self::CANONICAL_URL])]);
+        $this->fakeFetcher(fn () => $this->fetched(['author' => '重複']));
+        $this->artisan('social-post:sync');
+        $this->assertSame([['名稱' => ['title' => [['text' => ['content' => '重複：t']]]]]], $this->notionUpdates());
+
+        $this->resetHttp();
+        $this->fakeNotion([$this->page('page-1', ['name' => '重複：t', 'url' => self::CANONICAL_URL, 'edited' => '2026-10-18T02:00:00.000Z'])]);
+        $this->artisan('social-post:sync');
+        $this->artisan('social-post:sync --full');
+
+        $this->assertSame([], $this->notionUpdates());
+    }
+
+    public function test_duplicate_kept_for_its_page_content_does_not_block_the_others(): void
+    {
+        // 第二列有排序、頁面也有內文，不刪；第三列的排序跟它不同，但留下那列排序空白，第三列照樣可以併進來
+        Http::fake(['api.notion.com/v1/blocks/page-2/children*' => Http::response(['results' => [['type' => 'paragraph', 'paragraph' => ['rich_text' => [['plain_text' => '這件買黑色']]]]], 'has_more' => false])]);
+        $this->fakeNotion([
+            $this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'created' => self::EARLIER]),
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'sort' => 1, 'created' => '2026-10-17T17:00:00.000Z']),
+            $this->page('page-3', ['url' => self::CANONICAL_URL, 'sort' => 2, 'created' => '2026-10-17T18:00:00.000Z']),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync');
+
+        $this->assertSame([
+            ['page-1', ['排序' => ['number' => 2]]],
+            ['page-3', '垃圾桶'],
+            ['page-2', ['名稱' => ['title' => [['text' => ['content' => '重複：我的穿搭']]]]]],
+        ], $this->notionWrites());
+        $this->assertEqualsCanonicalizing(['page-1', 'page-2'], SocialPost::pluck('notion_page_id')->all());
     }
 
     public function test_full_refetch_pauses_between_posts(): void

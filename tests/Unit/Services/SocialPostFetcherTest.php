@@ -129,6 +129,33 @@ class SocialPostFetcherTest extends TestCase
         $this->assertFalse(SocialPostFetcher::isTemporaryFailure($error));
     }
 
+    public static function otherOembedErrors(): array
+    {
+        return [
+            '網址格式錯' => [400, ['error' => ['message' => 'Invalid parameter', 'type' => 'OAuthException', 'code' => 100]]],
+            '改成要授權' => [401, ['error' => ['message' => 'Invalid OAuth access token', 'type' => 'OAuthException', 'code' => 190]]],
+            '回應不是 JSON' => [400, 'Bad Request'],
+        ];
+    }
+
+    #[DataProvider('otherOembedErrors')]
+    public function test_threads_oembed_errors_other_than_not_embeddable_are_passed_on(int $status, array|string $body): void
+    {
+        // 只有 Threads 對無法嵌入、已刪除、只給登入的人看的貼文回的錯誤代碼 24 才改看頁面；其他的照實記成失敗
+        Http::fake([
+            'graph.threads.net/*' => Http::response($body, $status),
+            'www.threads.com/*' => Http::response(self::THREADS_PREVIEW_TAGS),
+        ]);
+
+        try {
+            $this->fetch('https://www.threads.com/@meta/post/DDzbnVKx57R');
+            $this->fail('應該要往外丟');
+        } catch (RequestException $e) {
+            $this->assertSame($status, $e->response->status());
+        }
+        Http::assertNotSent(fn (Request $request) => str_starts_with($request->url(), 'https://www.threads.com/'));
+    }
+
     #[DataProvider('temporaryStatuses')]
     public function test_threads_oembed_rate_limits_and_server_errors_stay_temporary(int $status): void
     {

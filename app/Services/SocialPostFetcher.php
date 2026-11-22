@@ -35,6 +35,9 @@ class SocialPostFetcher
 
     private const MAX_BYTES = 5 * 1024 * 1024;
 
+    // Threads oEmbed 對無法嵌入、已刪除、只給登入的人看的貼文都回這個錯誤代碼；不看子碼，平台換了子碼也照樣認得
+    private const THREADS_OEMBED_UNAVAILABLE_CODE = 24;
+
     // 已刪除的 Threads 貼文會被導去登入頁，og 標籤是登入頁自己的，標題像「Threads • Log in」
     private const THREADS_LOGIN_TITLE = '~^Threads\b.*\bLog in$~i';
 
@@ -147,7 +150,7 @@ class SocialPostFetcher
     }
 
     /**
-     * 無法嵌入的公開貼文，oEmbed 跟已刪除、只給登入的人看的貼文一樣回 4xx，分不出來；
+     * 無法嵌入的公開貼文，oEmbed 跟已刪除、只給登入的人看的貼文一樣回錯誤代碼 24，分不出來；
      * 改看頁面的 og 標籤：公開的貼文照樣指向同一篇、有作者、內文或預覽圖，另外兩種沒有，或是首頁、登入頁自己的。
      */
     private function threads(array $post): array
@@ -156,7 +159,7 @@ class SocialPostFetcher
         try {
             $this->oembed('https://graph.threads.net/v1.0/oembed', $post['canonical_url']);
         } catch (RequestException $e) {
-            if (self::isTemporaryFailure($e) || ! $e->response->clientError()) {
+            if (self::isTemporaryFailure($e) || $e->response->json('error.code') !== self::THREADS_OEMBED_UNAVAILABLE_CODE) {
                 throw $e;
             }
 
