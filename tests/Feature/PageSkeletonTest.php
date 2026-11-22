@@ -416,7 +416,7 @@ class PageSkeletonTest extends TestCase
         $chart = $xpath->query('//*[@id="priceChart"]');
         $this->assertSame(1, $chart->length, '價格圖表要在頁面上');
         $this->assertGreaterThan(0, $xpath->query('//*[contains(@class, "uq-ad")]')->length, '廣告要在頁面上');
-        $this->assertSame(0, $xpath->query('//*[contains(@class, "uq-ad")][following::*[@id="priceChart"]]')->length, '廣告要排在價格圖表後面');
+        $this->assertSame(0, $xpath->query('//*[contains(@class, "uq-ad")][following::*[@id="priceChart"] or descendant::*[@id="priceChart"]]')->length, '廣告要排在價格圖表後面');
     }
 
     /**

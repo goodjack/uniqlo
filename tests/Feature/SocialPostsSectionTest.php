@@ -7,13 +7,14 @@ use App\Enums\SocialPostKind;
 use App\Enums\SocialPostStatus;
 use App\Models\HmallProduct;
 use App\Models\SocialPost;
-use DOMDocument;
 use DOMXPath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ParsesHtml;
 use Tests\TestCase;
 
 class SocialPostsSectionTest extends TestCase
 {
+    use ParsesHtml;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -109,6 +110,7 @@ class SocialPostsSectionTest extends TestCase
             fn ($template) => $template->getAttribute('data-embed'),
             iterator_to_array($xpath->query('//template[@data-embed]'))
         ));
+        $this->assertSame(['0', '1'], array_map(fn ($card) => $card->getAttribute('data-index'), $this->cards($xpath)));
     }
 
     public function test_posts_without_a_canonical_url_are_not_merged_into_one(): void
@@ -150,7 +152,9 @@ class SocialPostsSectionTest extends TestCase
         $threads = $this->cardBy($xpath, 'Meta');
 
         $this->assertSame('83', $youtube->getAttribute('data-start'));
-        $this->assertSame('1:23', trim($xpath->query('.//*[contains(@class, "uq-social-badge")]', $youtube)->item(0)->textContent));
+        $badge = $xpath->query('.//*[contains(@class, "uq-social-badge")]', $youtube)->item(0);
+        $this->assertSame('1:23', trim($badge->textContent));
+        $this->assertSame(1, $xpath->query('.//i[contains(@class, "play")]', $badge)->length);
         // IG、Threads 的官方嵌入不能指定開始時間，填了也不顯示
         $this->assertFalse($threads->hasAttribute('data-start'));
         $this->assertStringNotContainsString('2:05', $html);
@@ -235,15 +239,15 @@ class SocialPostsSectionTest extends TestCase
             'text' => '只在卡片上出現的內文',
         ]);
 
-        $html = $this->productPage();
-        preg_match('~<template data-embed="0">(.*?)</template>~s', $html, $m);
+        $xpath = $this->xpath($this->productPage());
+        $template = $xpath->query('//template[@data-embed="0"]')->item(0);
+        $embed = $xpath->query('.//blockquote[contains(@class, "text-post-media")]', $template)->item(0);
+        $fallback = $xpath->query('.//*[contains(@class, "uq-social-fallback")]', $template)->item(0);
 
-        [$embed, $fallback] = explode('uq-social-fallback', $m[1]);
-
-        $this->assertStringContainsString('data-text-post-permalink="https://www.threads.com/t/DDzbnVKx57R"', $embed);
-        $this->assertStringNotContainsString('只在卡片上出現的內文', $embed);
+        $this->assertSame('https://www.threads.com/t/DDzbnVKx57R', $embed->getAttribute('data-text-post-permalink'));
+        $this->assertStringNotContainsString('只在卡片上出現的內文', $embed->textContent);
         // 平台嵌入被擋時才顯示的備用卡片，用的是自己存的內容
-        $this->assertStringContainsString('只在卡片上出現的內文', $fallback);
+        $this->assertStringContainsString('只在卡片上出現的內文', $fallback->textContent);
     }
 
     public function test_post_that_cannot_be_embedded_opens_straight_to_the_fallback_card(): void
@@ -340,15 +344,5 @@ class SocialPostsSectionTest extends TestCase
 
         $this->assertFalse($quote->hasAttribute('hidden'));
         $this->assertStringContainsString($text, $quote->textContent);
-    }
-
-    private function xpath(string $html): DOMXPath
-    {
-        $document = new DOMDocument;
-        libxml_use_internal_errors(true);
-        $document->loadHTML('<?xml encoding="UTF-8">'.$html);
-        libxml_clear_errors();
-
-        return new DOMXPath($document);
     }
 }

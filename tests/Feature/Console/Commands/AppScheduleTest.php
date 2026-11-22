@@ -65,13 +65,16 @@ class AppScheduleTest extends TestCase
         Event::assertNotDispatched(AppTaskFailed::class);
     }
 
-    public function test_a_failed_product_detail_run_does_not_fail_the_daily_run(): void
+    /**
+     * @dataProvider failureModes
+     */
+    public function test_a_failed_product_detail_run_does_not_fail_the_daily_run(string $how): void
     {
-        $this->fakeAllSteps(throwing: ['hmall-product-detail:fetch']);
+        $this->fakeAllSteps(...[$how => ['hmall-product-detail:fetch']]);
 
         $exitCode = $this->artisan('app:schedule')->run();
 
-        $this->assertSame('hmall-product-detail:fetch', end($this->executedSteps), '商品詳細資料那一步要真的跑到並丟出例外');
+        $this->assertSame('hmall-product-detail:fetch', end($this->executedSteps), '商品詳細資料那一步要真的跑到');
         $this->assertSame(Command::SUCCESS, $exitCode);
         Event::assertNotDispatched(AppTaskFailed::class);
     }
@@ -270,7 +273,7 @@ class AppScheduleTest extends TestCase
      * 穿搭統計只影響商品頁的一個區塊，算失敗時照發失敗通知，但不能擋住清快取與後面的商品詳細資料，
      * 不然前面已經換新的價格要等快取到期才看得到。丟例外也一樣。
      *
-     * @dataProvider statsStepFailures
+     * @dataProvider failureModes
      */
     public function test_a_failing_outfit_stats_step_still_purges_and_reports_the_failure(string $how): void
     {
@@ -286,7 +289,7 @@ class AppScheduleTest extends TestCase
             && str_starts_with($event->data['failed_steps'][0], 'style-hint:cache-stats'));
     }
 
-    public static function statsStepFailures(): array
+    public static function failureModes(): array
     {
         return [
             'exit code 1' => ['failing'],

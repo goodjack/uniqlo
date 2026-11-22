@@ -112,6 +112,7 @@ class HmallProductDetailServiceTest extends TestCase
         $product = $this->createGuProduct();
         $this->fakeOfficialSite(instruction: self::OLD_DESCRIPTION);
         $this->service()->fetchProducts([$product]);
+        $this->assertCount(1, Http::recorded(fn (Request $request) => $request->url() === self::PURGE_API));
 
         $this->fakeOfficialSite();
         $summary = $this->service()->fetchProducts([$product->fresh()->load('detail')]);
