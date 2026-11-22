@@ -602,7 +602,7 @@
                     @foreach ($styleHints as $key => $styleHint)
                         <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
                             largeImageUrl="{{ $styleHint->large_image_url }}" country="{{ $styleHint->country }}"
-                            alt="StyleHint 網友穿搭靈感 {{ $key + 1 }} ({{ $styleHint->user_name }})" width="720"
+                            :alt="'StyleHint 網友穿搭靈感 ' . ($key + 1) . ' (' . $styleHint->user_name . ')'" width="720"
                             height="960" album="style-hints" />
                     @endforeach
                     @if ($styleHintCount > count($styleHints))
@@ -851,13 +851,7 @@
 @endsection
 
 @section('javascript')
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/glightbox/3.3.0/css/glightbox.min.css"
-        integrity="sha512-T+KoG3fbDoSnlgEXFQqwcTC9AdkFIxhBlmoaFqYaIjq2ShhNwNao9AKaLUPMfwiBPL0ScxAtc+UYbHAgvd+sjQ=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/glightbox/3.3.0/js/glightbox.min.js"
-        integrity="sha512-RBWI5Qf647bcVhqbEnRoL4KuUT+Liz+oG5jtF+HP05Oa5088M9G0GxG0uoHR9cyq35VbjahcI+Hd1xwY8E1/Kg=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
-    <script src="{{ asset('js/product-photos.js') }}?v={{ filemtime(public_path('js/product-photos.js')) }}" defer></script>
+    @include('partials.photo-lightbox')
     @if ($shown['social'])
         <script src="{{ asset('js/social-posts.js') }}?v={{ filemtime(public_path('js/social-posts.js')) }}" defer></script>
     @endif

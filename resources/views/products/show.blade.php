@@ -137,10 +137,6 @@ $shareUrl = [
             }
         }
     </style>
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css"
-        integrity="sha512-ZKX+BvQihRJPA8CROKBhDNvoc2aDMOdAlcm7TUQY+35XYtrd3yh95QOOhsPDQY9QnKE0Wqag9y38OIgEvb88cA=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
 @endsection
 
 @section('content')
@@ -166,12 +162,15 @@ $shareUrl = [
         <div class="ts container relaxed grid">
             <div class="nine wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
                 <div class="ts fluid container">
+                    {{-- 放大圖的說明同 x-image-card：轉義過的 template，由 data-description 指過去 --}}
                     <a class="ts centered image"
                         href="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
-                        rel="nofollow noopener" data-lightbox="image" data-title="{{ $product->name }}">
+                        rel="nofollow noopener" data-lightbox="image"
+                        data-description=".uq-caption-hero" data-type="image">
                         <x-lazy-load-image class="ts centered image"
                             src="{{ $productPresenter->getProductMainImageUrl($product, $relatedHmallProducts) }}"
                             alt="{{ $product->name }}" />
+                        <template class="uq-caption-hero">{{ $product->name }}</template>
                     </a>
                 </div>
             </div>
@@ -275,8 +274,11 @@ $shareUrl = [
                 <h2 class="ts large dividing header">Official Styling 官方精選穿搭</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
-                    {!! $productPresenter->getStyles($styles) !!}
-                    {!! $productPresenter->getStyleDictionaries($styleDictionaries) !!}
+                    @foreach ($productPresenter->getStyleCards($styles, $styleDictionaries) as $card)
+                        <x-image-card :link="$card['link']" :image-url="$card['imageUrl']"
+                            :large-image-url="$card['largeImageUrl']" :alt="$card['alt']"
+                            :color-header="$card['colorHeader']" width="3" height="4" album="styles" />
+                    @endforeach
                 </div>
             </div>
         </div>
@@ -288,8 +290,11 @@ $shareUrl = [
                 <h2 class="ts large dividing header">商品實照</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
-                    {!! $productPresenter->getSubImages($product) !!}
-                    {!! $productPresenter->getItemImages($product) !!}
+                    @foreach ($productPresenter->getPhotoCards($product) as $card)
+                        <x-image-card :link="$card['link']" :image-url="$card['imageUrl']"
+                            :large-image-url="$card['largeImageUrl']" :alt="$card['alt']"
+                            :color-header="$card['colorHeader']" />
+                    @endforeach
                 </div>
             </div>
         </div>
@@ -365,9 +370,7 @@ $shareUrl = [
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.bundle.min.js"
         integrity="sha512-SuxO9djzjML6b9w9/I07IWnLnQhgyYVSpHZx0JV97kGBfTIsUYlWflyuW4ypnvhBrslz1yJ3R+S14fdCWmSmSA=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox-plus-jquery.min.js"
-        integrity="sha512-U9dKDqsXAE11UA9kZ0XKFyZ2gQCj+3AwZdBMni7yXSvWqLFEj8C1s7wRmWl9iyij8d5zb4wm56j4z/JVEwS77g=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    @include('partials.photo-lightbox')
 
     <script>
         'use strict';
@@ -489,15 +492,6 @@ $shareUrl = [
         }
 
         priceChart.update();
-
-        lightbox.option({
-            'alwaysShowNavOnTouchDevices': true,
-            'albumLabel': '相片 %1 / %2',
-            'disableScrolling': true,
-            'fadeDuration': 150,
-            'resizeDuration': 150,
-            'imageFadeDuration': 0,
-        });
 
         async function webShare() {
             if (navigator.share === undefined) {

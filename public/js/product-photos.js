@@ -1,15 +1,13 @@
 'use strict';
 
-// 商品頁的照片用 GLightbox 放大，手機可以左右滑；同一個 data-lightbox 值算一本相簿。
-// 不用卡片上給舊套件的 data-title（裡面是沒轉義的 HTML），說明改讀卡片裡的 template
+// 照片用 GLightbox 放大，手機可以左右滑；同一個 data-lightbox 值算一本相簿。
+// 說明讀卡片裡轉義過的 template（data-description），不讀會被當成 HTML 的 data-title
 (function () {
     if (typeof GLightbox !== 'function') {
         return;
     }
 
     const links = [...document.querySelectorAll('a[data-lightbox]')];
-    links.forEach(link => link.removeAttribute('data-title'));
-
     // GLightbox 在 768px 以下換成手機版排法；它只在建立時讀連結上的設定，所以跨過這條線就拆掉重建
     const desktopLayout = window.matchMedia('(min-width: 769px)');
     let lightboxes = [];

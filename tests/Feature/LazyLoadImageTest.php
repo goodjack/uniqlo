@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Style;
 use App\Presenters\ProductPresenter;
 use Tests\TestCase;
 
@@ -41,9 +42,14 @@ class LazyLoadImageTest extends TestCase
 
     public function test_old_product_page_style_images_point_straight_at_the_real_url(): void
     {
-        $html = (new ProductPresenter)->getImageTag('https://example.com/style', self::SRC, self::SRC, '精選穿搭 Style 1');
+        $style = (new Style)->forceFill(['type' => 'old', 'detail_url' => 'https://example.com/style', 'image_url' => self::SRC, 'image_path' => 'style/1']);
+        $card = (new ProductPresenter)->getStyleCards([$style], [])[0];
+        $html = (string) $this->blade(
+            '<x-image-card :link="$card[\'link\']" :image-url="$card[\'imageUrl\']" :large-image-url="$card[\'largeImageUrl\']" :alt="$card[\'alt\']" />',
+            ['card' => $card],
+        );
 
-        $this->assertStringContainsString('<img src="'.self::SRC.'" loading="lazy"', $html);
+        $this->assertStringContainsString('<img src="'.self::SRC.'" alt="精選穿搭 Style 1" loading="lazy"', $html);
         $this->assertStringNotContainsString('data-src', $html);
         $this->assertStringNotContainsString('lazyload', $html);
     }

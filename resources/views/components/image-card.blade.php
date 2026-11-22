@@ -1,8 +1,6 @@
 @php($captionId = 'uq-caption-' . \Illuminate\Support\Str::random(12))
 <a class="ts borderless card" href="{{ $largeImageUrl }}" rel="nofollow noopener" data-lightbox="{{ $album }}"
-    data-description=".{{ $captionId }}" data-type="image"
-    @if (!empty($link)) data-title="<a href='{{ $link }}' target='_blank' rel='nofollow noopener'>{{ $alt }}</a>"
-    @else data-title="{{ $alt }}" @endif>
+    data-description=".{{ $captionId }}" data-type="image">
     <div class="image">
         <x-lazy-load-image src="{{ $imageUrl }}" alt="{{ $alt }}" width="{{ $width }}"
             height="{{ $height }}" />
