@@ -30,6 +30,8 @@
     --uq-top-wearing-text: #a9622f;
     /* 色相往黃偏，才跟網路獨家的橘分得開 */
     --uq-most-visited-text: #847321;
+    /* 藍紫色，跟暖色系的排名標籤與熱門評論的紫紅分得開 */
+    --uq-community-topic-text: #6a4fb3;
 
     /* 導覽型連結用安靜的深灰：Tocas 的亮藍放在密集的分類清單與麵包屑裡讀不出結構 */
     --uq-link: #404040;
@@ -104,6 +106,10 @@ i.online-special.icon {
 
 i.most-visited.icon {
     color: #b58105 !important;
+}
+
+i.community-topic.icon {
+    color: #7c5fd0 !important;
 }
 
 /* 跟特價標籤同一個意義，用同一個 token */

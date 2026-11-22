@@ -225,6 +225,32 @@ class PageSkeletonTest extends TestCase
         );
     }
 
+    /**
+     * 社群人氣話題標籤在商品頁連到自己的清單頁，清單頁列得出這件。
+     */
+    public function test_the_community_topic_label_links_to_its_list_that_shows_the_product(): void
+    {
+        $this->seedProduct(['identity' => json_encode(['COMMUNITY_TOPICS'])]);
+
+        $content = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(
+            1,
+            $this->countNodes(
+                $content,
+                '//a[contains(@class, "circular")][contains(@class, "label")]'.
+                '[@href="'.route('lists.community-topics').'"][normalize-space()="社群人氣話題"]'
+            )
+        );
+
+        $this->get(route('lists.community-topics'))
+            ->assertOk()
+            ->assertSee('<title>1 件社群人氣話題商品', false)
+            ->assertSee('短袖上衣');
+    }
+
     public function test_the_style_hint_strip_ends_with_a_link_to_all_of_them_only_when_some_are_hidden(): void
     {
         $this->seedProduct();

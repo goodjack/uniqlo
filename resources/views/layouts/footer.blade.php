@@ -63,6 +63,10 @@
                     aria-label="most-visited">
                     <p><i class="chart line icon"></i> 熱門瀏覽商品</p>
                 </a>
+                <a href="{{ route('lists.community-topics', $brandQuery) }}" class="fitted item"
+                    aria-label="community-topics">
+                    <p><i class="hashtag icon"></i> 社群人氣話題商品</p>
+                </a>
                 <a href="{{ route('lists.new', $brandQuery) }}" class="fitted item" aria-label="new">
                     <p><i class="leaf icon"></i> 新款商品</p>
                 </a>

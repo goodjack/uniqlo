@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ProductTag;
 use App\Enums\SocialPostStatus;
 use App\Enums\SocialSyncStatus;
 use App\Exceptions\SocialPostUnavailableException;
@@ -44,6 +45,24 @@ class SocialPostService
             ->map(fn (Collection $group) => $group->sortBy([['notion_created_at', 'asc'], ['id', 'asc']])->first()->id);
 
         return $posts->whereIn('id', $kept->values())->values();
+    }
+
+    /**
+     * 有社群人氣話題標籤、還沒收錄任何一則貼文的在售商品，給站長找貼文補收錄。
+     * 只算網站上看得到的貼文：已刪文或轉私人的那則等於沒收。評論多的排前面，比較可能找得到貼文。
+     *
+     * @return Collection<int, HmallProduct>
+     */
+    public function getCommunityTopicsWithoutPosts(): Collection
+    {
+        return HmallProduct::listedUnder(ProductTag::CommunityTopic)
+            ->whereNotExists(fn ($query) => $query->selectRaw('1')
+                ->from('social_post_codes')
+                ->whereColumn('social_post_codes.code', 'hmall_products.code')
+                ->whereIn('social_post_codes.social_post_id', SocialPost::visible()->select('id')))
+            ->orderByDesc('evaluation_count')
+            ->orderBy('id')
+            ->get();
     }
 
     /**

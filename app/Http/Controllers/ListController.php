@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ProductTag;
 use App\Http\Requests\ListRequest;
 use App\Services\ListService;
 use Illuminate\Support\Str;
@@ -163,6 +164,21 @@ class ListController extends Controller
             'most-visited',
             'chart line',
             '依瀏覽次數排序',
+        );
+    }
+
+    public function getCommunityTopics(ListRequest $listRequest)
+    {
+        $hmallProducts = $this->service->getCommunityTopicHmallProducts();
+
+        return $this->getList(
+            $hmallProducts,
+            $listRequest,
+            ProductTag::CommunityTopic->label(),
+            '社群人氣話題商品',
+            'community-topic',
+            'hashtag',
+            '依評論數排序'
         );
     }
 

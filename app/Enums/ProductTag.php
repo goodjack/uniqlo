@@ -22,6 +22,12 @@ enum ProductTag: string
     case MultiBuy = 'multi-buy';
     case OnlineSpecial = 'online-special';
 
+    /**
+     * 只有名字、不連到任何貼文，跟我們自己收錄貼文的社群熱推是兩回事。
+     * 兩家叫法不同時統一用 UNIQLO 的說法（特價、合購也是）。
+     */
+    case CommunityTopic = 'community-topic';
+
     public function label(): string
     {
         return match ($this) {
@@ -32,6 +38,7 @@ enum ProductTag: string
             self::ComingSoon => '即將上市',
             self::MultiBuy => '合購',
             self::OnlineSpecial => '網路獨家',
+            self::CommunityTopic => '社群人氣話題',
         };
     }
 
@@ -50,6 +57,7 @@ enum ProductTag: string
             self::ComingSoon => ['COMING SOON', 'COMING'],
             self::MultiBuy => ['multi_buy', 'SET'],
             self::OnlineSpecial => ['ONLINE SPECIAL', 'ECONLY'],
+            self::CommunityTopic => ['HOT ITEM', 'COMMUNITY_TOPICS'],
             self::LowestPrice => [],
         };
     }

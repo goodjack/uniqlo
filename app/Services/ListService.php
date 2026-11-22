@@ -78,6 +78,11 @@ class ListService extends Service
         return $this->repository->getOnlineSpecialHmallProducts();
     }
 
+    public function getCommunityTopicHmallProducts()
+    {
+        return $this->repository->getCommunityTopicHmallProducts();
+    }
+
     public function getMostVisitedHmallProducts(?int $limit = null)
     {
         return $this->repository->getMostVisitedHmallProducts()->take($limit);

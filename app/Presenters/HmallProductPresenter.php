@@ -158,6 +158,8 @@ class HmallProductPresenter
 
     private const COLOR_MOST_VISITED = 'var(--uq-most-visited-text)';
 
+    private const COLOR_COMMUNITY_TOPIC = 'var(--uq-community-topic-text)';
+
     /**
      * 商品的狀態標籤，依使用者在意的程度排序：省多少錢 › 買不買得到 › 其他屬性。
      * 卡片與商品頁共用同一份順序與文案；尺碼、通路這類屬性只在商品頁給。
@@ -219,6 +221,10 @@ class HmallProductPresenter
 
         if ($hmallProduct->most_visited_rank) {
             $add("瀏覽 TOP {$hmallProduct->most_visited_rank}", self::COLOR_MOST_VISITED, 'chart line', route('lists.most-visited'));
+        }
+
+        if ($hmallProduct->is_community_topic) {
+            $add(ProductTag::CommunityTopic->label(), self::COLOR_COMMUNITY_TOPIC, 'hashtag', route('lists.community-topics'));
         }
 
         if (! $forProductPage) {
