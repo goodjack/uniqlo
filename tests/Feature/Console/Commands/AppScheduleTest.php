@@ -37,7 +37,36 @@ class AppScheduleTest extends TestCase
         $exitCode = $this->artisan('app:schedule')->run();
 
         $this->assertSame(Command::SUCCESS, $exitCode);
-        $this->assertSame($this->stepCommands(), $this->executedCommands);
+        $this->assertSame([...$this->stepCommands(), AppSchedule::PRODUCT_DETAIL_COMMAND], $this->executedCommands);
+        Event::assertNotDispatched(AppTaskFailed::class);
+    }
+
+    public function test_product_details_are_skipped_when_a_step_fails(): void
+    {
+        $this->fakeAllSteps(failing: ['style:fetch']);
+
+        $this->artisan('app:schedule')->run();
+
+        $this->assertNotContains(AppSchedule::PRODUCT_DETAIL_COMMAND, $this->executedCommands);
+    }
+
+    public function test_product_details_still_run_when_only_a_step_that_does_not_block_the_purge_fails(): void
+    {
+        $this->fakeAllSteps(failing: ['style-hint:cache-stats']);
+
+        $exitCode = $this->artisan('app:schedule')->run();
+
+        $this->assertSame(Command::FAILURE, $exitCode);
+        $this->assertContains(AppSchedule::PRODUCT_DETAIL_COMMAND, $this->executedCommands);
+    }
+
+    public function test_a_failed_product_detail_run_does_not_fail_the_daily_run(): void
+    {
+        $this->fakeAllSteps(throwing: [AppSchedule::PRODUCT_DETAIL_COMMAND]);
+
+        $exitCode = $this->artisan('app:schedule')->run();
+
+        $this->assertSame(Command::SUCCESS, $exitCode);
         Event::assertNotDispatched(AppTaskFailed::class);
     }
 
@@ -305,7 +334,7 @@ class AppScheduleTest extends TestCase
     ): void {
         $test = $this;
 
-        foreach ($this->stepCommands() as $command) {
+        foreach ([...$this->stepCommands(), AppSchedule::PRODUCT_DETAIL_COMMAND] as $command) {
             $fake = new ClosureCommand(
                 "{$command} {brand?} {country?} {--only-recent} {--is-scheduled}",
                 function () use ($test, $command, $failing, $throwing, $partiallySucceeding, $notes, $overdue) {

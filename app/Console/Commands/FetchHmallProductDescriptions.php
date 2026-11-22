@@ -40,8 +40,8 @@ class FetchHmallProductDescriptions extends Command
         $this->info("Fetching Hmall product descriptions for {$brand}...");
         AppTaskStarting::dispatch(class_basename(__CLASS__), $brand);
 
-        $succeeded = $hmallProductService->fetchAllHmallProductDescriptions($brand, false, $fresh)
-            && $hmallProductService->refetchEmptyHmallProductDescriptions($brand);
+        // 說明是空殼的商品改由詳細資料的排程重抓（連尺寸表），這裡只抓還沒有說明的
+        $succeeded = $hmallProductService->fetchAllHmallProductDescriptions($brand, false, $fresh);
 
         if ($succeeded) {
             AppTaskFinished::dispatch(class_basename(__CLASS__), $brand);

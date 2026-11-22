@@ -12,6 +12,8 @@ use Throwable;
 
 class AppSchedule extends Command
 {
+    public const PRODUCT_DETAIL_COMMAND = 'hmall-product-detail:fetch';
+
     /**
      * The name and signature of the console command.
      *
@@ -65,9 +67,23 @@ class AppSchedule extends Command
         // 清不掉只記 log，不影響這一輪的結果
         if ($keepsCachePurge) {
             $this->call('cloudflare:purge');
+
+            $this->fetchProductDetails();
         }
 
         return $failedSteps === [] ? self::SUCCESS : self::FAILURE;
+    }
+
+    /**
+     * 等前面的步驟都跑完才開始。它自己會發失敗通知，結果不算進這一輪。
+     */
+    private function fetchProductDetails(): void
+    {
+        try {
+            $this->call(self::PRODUCT_DETAIL_COMMAND);
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     /**

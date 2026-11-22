@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\CrawlOutcome;
 use App\Models\HmallProduct;
-use App\Presenters\HmallProductPresenter;
 use App\Repositories\HmallProductRepository;
 use App\Repositories\ProductRepository;
 use App\Services\Traits\AntiBlockingCrawler;
@@ -29,8 +28,6 @@ class HmallProductService extends Service
     private const CACHE_KEY_HMALL_PRODUCTS_PAGE = 'hmall_products:page:%s';
 
     private const CACHE_KEY_HMALL_DESCRIPTIONS = 'hmall_descriptions:last_id:%s';
-
-    private const CACHE_KEY_HMALL_DESCRIPTION_REFETCH = 'hmall_descriptions:refetch_below_id:%s';
 
     public function __construct(HmallProductRepository $repository, ProductRepository $productRepository)
     {
@@ -339,65 +336,6 @@ class HmallProductService extends Service
         $this->saveHmallProductDescriptions($hmallProduct, $brand, $instruction, $sizeChart, $updateTimestamps);
 
         $this->randomDelay();
-    }
-
-    /**
-     * 上架初期官網的說明常是空殼，存下來之後 instruction 不再是 null，每天的抓取不會再碰它，
-     * 所以另外挑在售、說明實質空白的重抓，抓到有內容才寫回。被擋（403）回傳 false。
-     */
-    public function refetchEmptyHmallProductDescriptions(string $brand, int $limit = 100): bool
-    {
-        $presenter = app(HmallProductPresenter::class);
-        $cacheKey = sprintf(self::CACHE_KEY_HMALL_DESCRIPTION_REFETCH, $brand);
-        $startBelowId = Cache::get($cacheKey);
-
-        $candidates = HmallProduct::where('brand', $brand)
-            ->whereNull('stockout_at')
-            ->whereNotNull('instruction')
-            ->when($startBelowId, fn ($query) => $query->where('id', '<', $startBelowId))
-            ->select(['id', 'product_code', 'instruction', 'size_chart'])
-            ->lazyByIdDesc()
-            ->filter(fn (HmallProduct $hmallProduct) => $presenter->getDescriptionBody($hmallProduct->instruction) === '')
-            ->take($limit);
-
-        $checked = 0;
-        $filled = 0;
-
-        foreach ($candidates as $hmallProduct) {
-            try {
-                [$instruction, $sizeChart] = $this->downloadHmallProductDescriptions($hmallProduct, $brand);
-            } catch (Throwable $e) {
-                if ($this->is403Error($e)) {
-                    return false;
-                }
-
-                $instruction = null;
-            }
-
-            $checked++;
-            Cache::put($cacheKey, $hmallProduct->id, now()->addDays(30));
-
-            if ($instruction !== null && $presenter->getDescriptionBody($instruction) !== '') {
-                $keptSizeChart = trim(strip_tags($sizeChart)) === '' ? (string) $hmallProduct->size_chart : $sizeChart;
-
-                try {
-                    $this->saveHmallProductDescriptions($hmallProduct, $brand, $instruction, $keptSizeChart);
-                    $filled++;
-                } catch (Throwable) {
-                    // 已在 saveHmallProductDescriptions 記錄，換下一件
-                }
-            }
-
-            $this->randomDelay();
-        }
-
-        if ($checked < $limit) {
-            Cache::forget($cacheKey);
-        }
-
-        logger()->info('Refetched empty Hmall product descriptions', compact('brand', 'checked', 'filled'));
-
-        return true;
     }
 
     private function saveHmallProductDescriptions(

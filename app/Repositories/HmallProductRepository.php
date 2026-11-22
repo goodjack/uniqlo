@@ -8,6 +8,7 @@ use App\Enums\ProductTag;
 use App\Models\HmallCategory;
 use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
+use App\Models\HmallProductDetail;
 use App\Models\Product;
 use App\Models\StyleHint;
 use App\Support\Keywords;
@@ -32,6 +33,10 @@ use Throwable;
 class HmallProductRepository extends Repository
 {
     protected $model;
+
+    private const DETAIL_REFETCH_ATTRIBUTES = ['prices', 'min_price', 'max_price', 'color_nums', 'size', 'stock', 'stockout_at', 'main_first_pic'];
+
+    private const JSON_ATTRIBUTES = ['prices', 'color_nums', 'size'];
 
     private $hmallPriceHistory;
 
@@ -821,12 +826,14 @@ class HmallProductRepository extends Repository
 
         $failedProductCodes = [];
         $unidentifiedFailureCount = 0;
+        $changedProductIds = [];
 
         collect($products)->each(function ($product) use (
             $brand,
             $categoryIds,
             &$failedProductCodes,
-            &$unidentifiedFailureCount
+            &$unidentifiedFailureCount,
+            &$changedProductIds
         ) {
             try {
                 /** @var HmallProduct $model */
@@ -880,6 +887,8 @@ class HmallProductRepository extends Repository
                 // 缺貨判定靠 updated_at；資料沒變時 save() 不會碰它，商品會被誤標缺貨
                 $model->updated_at = now();
 
+                $isListingChanged = $model->exists && $this->isListingChanged($model);
+
                 // 價格與歷史要一起還原：新價格先寫進去而歷史沒寫的話，下次抓到同價
                 // 會被判「沒變」，價格走勢就永久缺一筆
                 DB::transaction(function () use ($model, $isChangedThePrice) {
@@ -894,6 +903,10 @@ class HmallProductRepository extends Repository
                     $hmallPriceHistory->max_price = $model->max_price;
                     $model->hmallPriceHistories()->save($hmallPriceHistory);
                 });
+
+                if ($isListingChanged) {
+                    $changedProductIds[] = $model->id;
+                }
             } catch (Throwable $e) {
                 $productCode = $product->productCode ?? null;
 
@@ -927,10 +940,57 @@ class HmallProductRepository extends Repository
             }
         });
 
+        $this->markDetailsStale($changedProductIds);
+
         return new ProductSaveResult(
             array_values(array_unique($failedProductCodes)),
             $unidentifiedFailureCount
         );
+    }
+
+    /**
+     * isDirty 是比字串：資料庫存回來的 790.00 對上 790、JSON 逗號後多的空白都會算變了，所以解開再比。
+     */
+    private function isListingChanged(HmallProduct $model): bool
+    {
+        foreach (array_intersect(array_keys($model->getDirty()), self::DETAIL_REFETCH_ATTRIBUTES) as $attribute) {
+            $original = $model->getRawOriginal($attribute);
+            $current = $model->getAttributes()[$attribute];
+
+            $isSame = match (true) {
+                in_array($attribute, self::JSON_ATTRIBUTES, true) => json_decode((string) $original, true) === json_decode((string) $current, true),
+                is_numeric($original) && is_numeric($current) => (float) $original === (float) $current,
+                default => false,
+            };
+
+            if (! $isSame) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 寫不進去只留紀錄，不影響價格。
+     *
+     * @param  array<int, int>  $hmallProductIds
+     */
+    private function markDetailsStale(array $hmallProductIds): void
+    {
+        if ($hmallProductIds === []) {
+            return;
+        }
+
+        try {
+            HmallProductDetail::whereIn('hmall_product_id', $hmallProductIds)
+                ->whereNull('stale_since')
+                ->update(['stale_since' => now()]);
+        } catch (Throwable $e) {
+            Log::error('Marking product details for refetch failed', ['count' => count($hmallProductIds)]);
+
+            report($e);
+        }
     }
 
     public function countInStockHmallProducts(string $brand): int
