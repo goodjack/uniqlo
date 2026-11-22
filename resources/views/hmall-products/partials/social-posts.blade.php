@@ -56,37 +56,41 @@
     @foreach ($socialPosts as $post)
         @if ($post->platform !== \App\Enums\SocialPlatform::Youtube)
             <template data-embed="{{ $loop->index }}">
-                @switch($post->platform)
-                    @case(\App\Enums\SocialPlatform::Instagram)
-                        <blockquote class="instagram-media" data-instgrm-permalink="{{ $post->canonical_url }}"
-                            data-instgrm-version="14" data-instgrm-captioned>
-                            <a href="{{ $post->canonical_url }}" target="_blank" rel="nofollow noopener">在 Instagram 查看</a>
-                        </blockquote>
-                    @break
-                    @case(\App\Enums\SocialPlatform::Threads)
-                        @php($threadsCode = basename($post->canonical_url))
-                        <blockquote class="text-post-media" id="ig-tp-{{ $threadsCode }}"
-                            data-text-post-permalink="https://www.threads.com/t/{{ $threadsCode }}" data-text-post-version="0">
-                            <a href="{{ $post->canonical_url }}" target="_blank" rel="nofollow noopener">在 Threads 查看</a>
-                        </blockquote>
-                    @break
-                    @case(\App\Enums\SocialPlatform::X)
-                        <blockquote class="twitter-tweet" data-dnt="true" data-conversation="none">
-                            <a href="{{ str_replace('https://x.com/', 'https://twitter.com/', $post->canonical_url) }}"
-                                target="_blank" rel="nofollow noopener">在 X 查看</a>
-                        </blockquote>
-                    @break
-                    @case(\App\Enums\SocialPlatform::Facebook)
-                        {{-- 用官方腳本嵌入，iframe 高度才會跟著貼文長短；直接放外掛 iframe 只能寫死高度，長的會被切掉 --}}
-                        @php($isFacebookVideo = $post->kind === \App\Enums\SocialPostKind::Video)
-                        <div class="{{ $isFacebookVideo ? 'fb-video' : 'fb-post' }}" data-href="{{ $post->canonical_url }}"
-                            data-show-text="true" @if ($isFacebookVideo) data-allowfullscreen="true" @endif></div>
-                    @break
-                @endswitch
+                {{-- 無法嵌入的貼文，平台的嵌入只會顯示「無法顯示」，不放嵌入、直接顯示站內卡片 --}}
+                @if ($post->embeddable)
+                    @switch($post->platform)
+                        @case(\App\Enums\SocialPlatform::Instagram)
+                            <blockquote class="instagram-media" data-instgrm-permalink="{{ $post->canonical_url }}"
+                                data-instgrm-version="14" data-instgrm-captioned>
+                                <a href="{{ $post->canonical_url }}" target="_blank" rel="nofollow noopener">在 Instagram 查看</a>
+                            </blockquote>
+                        @break
+                        @case(\App\Enums\SocialPlatform::Threads)
+                            @php($threadsCode = basename($post->canonical_url))
+                            <blockquote class="text-post-media" id="ig-tp-{{ $threadsCode }}"
+                                data-text-post-permalink="https://www.threads.com/t/{{ $threadsCode }}" data-text-post-version="0">
+                                <a href="{{ $post->canonical_url }}" target="_blank" rel="nofollow noopener">在 Threads 查看</a>
+                            </blockquote>
+                        @break
+                        @case(\App\Enums\SocialPlatform::X)
+                            <blockquote class="twitter-tweet" data-dnt="true" data-conversation="none">
+                                <a href="{{ str_replace('https://x.com/', 'https://twitter.com/', $post->canonical_url) }}"
+                                    target="_blank" rel="nofollow noopener">在 X 查看</a>
+                            </blockquote>
+                        @break
+                        @case(\App\Enums\SocialPlatform::Facebook)
+                            {{-- 用官方腳本嵌入，iframe 高度才會跟著貼文長短；直接放外掛 iframe 只能寫死高度，長的會被切掉 --}}
+                            @php($isFacebookVideo = $post->kind === \App\Enums\SocialPostKind::Video)
+                            <div class="{{ $isFacebookVideo ? 'fb-video' : 'fb-post' }}" data-href="{{ $post->canonical_url }}"
+                                data-show-text="true" @if ($isFacebookVideo) data-allowfullscreen="true" @endif></div>
+                        @break
+                    @endswitch
+                @endif
                 {{-- 平台的嵌入被瀏覽器或擴充套件（例如 Facebook Container）擋掉時，改顯示自己存的內容 --}}
-                <div class="ts card uq-social-fallback" hidden>
+                <div class="ts card uq-social-fallback" @if ($post->embeddable) hidden @endif>
                     @if ($post->image_url)
-                        <div class="image"><img src="{{ $post->image_url }}" alt=""></div>
+                        {{-- 預覽圖過期或抓不到就只留文字，不顯示破圖 --}}
+                        <div class="image"><img src="{{ $post->image_url }}" alt="" onerror="this.parentNode.remove()"></div>
                     @endif
                     <div class="content">
                         <div class="header">{{ $post->author }}</div>

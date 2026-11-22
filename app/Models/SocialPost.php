@@ -5,14 +5,21 @@ namespace App\Models;
 use App\Enums\SocialPlatform;
 use App\Enums\SocialPostKind;
 use App\Enums\SocialPostStatus;
+use App\Enums\SocialSyncStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 class SocialPost extends Model
 {
     protected $fillable = [
         'notion_page_id', 'notion_created_at', 'notion_edited_at', 'sort', 'source_url', 'canonical_url', 'platform',
-        'kind', 'author', 'text', 'youtube_id', 'cover_url', 'cover_expires_at', 'status', 'fetched_at',
+        'kind', 'author', 'text', 'youtube_id', 'cover_url', 'cover_expires_at', 'embeddable', 'status', 'sync_status', 'fetched_at',
+    ];
+
+    protected $attributes = [
+        'embeddable' => true,
     ];
 
     protected $casts = [
@@ -21,14 +28,38 @@ class SocialPost extends Model
         'fetched_at' => 'datetime',
         'cover_expires_at' => 'datetime',
         'sort' => 'integer',
+        'embeddable' => 'boolean',
         'platform' => SocialPlatform::class,
         'kind' => SocialPostKind::class,
         'status' => SocialPostStatus::class,
+        'sync_status' => SocialSyncStatus::class,
     ];
 
     public function codes()
     {
         return $this->hasMany(SocialPostCode::class);
+    }
+
+    /**
+     * 存檔並把貨號換成這次給的。
+     *
+     * @param  array<int, array{code: string, start_seconds: ?int}>  $codes
+     */
+    public function saveWithCodes(array $codes): void
+    {
+        DB::transaction(function () use ($codes) {
+            $this->save();
+            $this->codes()->delete();
+            $this->codes()->createMany(array_map(fn (array $code) => Arr::only($code, ['code', 'start_seconds']), $codes));
+        });
+    }
+
+    /** Notion 上的網址既不是上次抓的、也不是寫回去的正式網址，就是改填了別篇 */
+    public function urlReplacedBy(?string $url): bool
+    {
+        $url ??= '';
+
+        return $url !== $this->source_url && $url !== $this->canonical_url;
     }
 
     public function scopeVisible(Builder $query): Builder

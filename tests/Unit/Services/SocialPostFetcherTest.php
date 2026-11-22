@@ -3,6 +3,8 @@
 namespace Tests\Unit\Services;
 
 use App\Enums\SocialPostKind;
+use App\Enums\SocialSyncStatus;
+use App\Exceptions\SocialPostUnavailableException;
 use App\Services\SocialPostFetcher;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Client\RequestException;
@@ -14,6 +16,17 @@ use Tests\TestCase;
 class SocialPostFetcherTest extends TestCase
 {
     private const OEMBED_HTML = '<blockquote class="text-post-media">貼文</blockquote><script async src="https://www.threads.com/embed.js"></script>';
+
+    // 無法嵌入的貼文，Threads 的 oEmbed 一律回這個，跟已刪除、只給登入的人看的貼文分不出來
+    private const THREADS_OEMBED_UNAVAILABLE = ['error' => [
+        'message' => 'The requested resource does not exist', 'type' => 'OAuthException',
+        'code' => 24, 'error_subcode' => 4279056, 'is_transient' => false,
+    ]];
+
+    private const THREADS_PREVIEW_TAGS = '<meta property="og:url" content="https://www.threads.com/&#064;meta/post/DDzbnVKx57R" />'
+        .'<meta property="og:title" content="Meta (&#064;meta) on Threads" />'
+        .'<meta property="og:description" content="範例內文" />'
+        .'<meta property="og:image" content="https://scontent.cdninstagram.com/p.jpg?a=1&amp;oe=6AD5FF99" />';
 
     private function fetch(string $url): array
     {
@@ -40,6 +53,128 @@ class SocialPostFetcherTest extends TestCase
         // 失效時間取自網址的 oe 參數（16 進位 Unix 時間）
         $this->assertSame(hexdec('6AD5FF99'), $post['cover_expires_at']->getTimestamp());
         $this->assertArrayNotHasKey('embed_html', $post);
+        $this->assertTrue($post['embeddable']);
+    }
+
+    public function test_threads_post_that_cannot_be_embedded_keeps_its_page_preview(): void
+    {
+        Http::fake([
+            'graph.threads.net/*' => Http::response(self::THREADS_OEMBED_UNAVAILABLE, 400),
+            'www.threads.com/*' => Http::response(self::THREADS_PREVIEW_TAGS),
+        ]);
+
+        $post = $this->fetch('https://www.threads.com/@meta/post/DDzbnVKx57R');
+
+        // 點開時改顯示自己存的內容，所以作者、內文、預覽圖照樣要有
+        $this->assertFalse($post['embeddable']);
+        $this->assertSame('Meta (@meta)', $post['author']);
+        $this->assertSame('範例內文', $post['text']);
+        $this->assertSame('https://scontent.cdninstagram.com/p.jpg?a=1&oe=6AD5FF99', $post['cover_url']);
+    }
+
+    public function test_threads_post_url_without_the_account_still_counts_as_the_same_post(): void
+    {
+        Http::fake([
+            'graph.threads.net/*' => Http::response(self::THREADS_OEMBED_UNAVAILABLE, 400),
+            'www.threads.com/*' => Http::response(str_replace('&#064;meta/post/', '&#064;/post/', self::THREADS_PREVIEW_TAGS)),
+        ]);
+
+        $post = $this->fetch('https://www.threads.com/@meta/post/DDzbnVKx57R');
+
+        $this->assertFalse($post['embeddable']);
+        $this->assertSame('範例內文', $post['text']);
+    }
+
+    public static function threadsPagesWithoutThePost(): array
+    {
+        return [
+            '只給登入的人看，頁面沒有預覽資料' => [SocialSyncStatus::LoginRequired, '<meta property="og:type" content="article" />'
+                .'<meta property="og:url" content="https://www.threads.com/&#064;meta/post/DDzbnVKx57R" />'],
+            '已刪除，被導去登入頁' => [SocialSyncStatus::Deleted, '<meta property="og:title" content="Threads &#x2022; Log in" />'
+                .'<meta property="og:description" content="Join Threads to share ideas, ask questions, post random thoughts and more." />'
+                .'<meta property="og:image" content="https://static.cdninstagram.com/rsrc.php/threads-logo.png" />'],
+            '登入頁標題換了寫法' => [SocialSyncStatus::Deleted, '<meta property="og:title" content="Threads - Log in" />'
+                .'<meta property="og:image" content="https://static.cdninstagram.com/rsrc.php/threads-logo.png" />'],
+            // 網址判斷萬一被騙過，登入頁標題這道還要擋得住
+            '網址是同一篇，標題卻是登入頁' => [SocialSyncStatus::Deleted, '<meta property="og:title" content="Threads &#x2022; Log in" />'
+                .'<meta property="og:url" content="https://www.threads.com/&#064;meta/post/DDzbnVKx57R" />'
+                .'<meta property="og:image" content="https://static.cdninstagram.com/rsrc.php/threads-logo.png" />'],
+            '預覽資料齊全，卻是被導去首頁' => [SocialSyncStatus::Deleted, str_replace(
+                'https://www.threads.com/&#064;meta/post/DDzbnVKx57R', 'https://www.threads.com/', self::THREADS_PREVIEW_TAGS,
+            )],
+            '指向別篇貼文' => [SocialSyncStatus::Deleted, str_replace('/post/DDzbnVKx57R', '/post/C1', self::THREADS_PREVIEW_TAGS)],
+        ];
+    }
+
+    #[DataProvider('threadsPagesWithoutThePost')]
+    public function test_threads_post_that_cannot_be_embedded_is_rejected_when_the_page_has_no_preview(SocialSyncStatus $reason, string $html): void
+    {
+        Http::fake([
+            'graph.threads.net/*' => Http::response(self::THREADS_OEMBED_UNAVAILABLE, 400),
+            'www.threads.com/*' => Http::response($html),
+        ]);
+
+        $error = null;
+        try {
+            $this->fetch('https://www.threads.com/@meta/post/DDzbnVKx57R');
+        } catch (\Throwable $error) {
+        }
+
+        // 是讀過貼文頁才擋下，不是 oEmbed 的 400 直接往外丟；沒登入看不到與已刪除要分得出來，寫回 Notion 給人看
+        $this->assertInstanceOf(SocialPostUnavailableException::class, $error);
+        $this->assertSame($reason, $error->reason);
+        $this->assertInstanceOf(RequestException::class, $error->getPrevious());
+        Http::assertSent(fn (Request $request) => $request->url() === 'https://www.threads.com/@meta/post/DDzbnVKx57R');
+        // 不是暫時的錯誤，原本顯示中的貼文也要跟著藏起來
+        $this->assertFalse(SocialPostFetcher::isTemporaryFailure($error));
+    }
+
+    public static function otherOembedErrors(): array
+    {
+        return [
+            '網址格式錯' => [400, ['error' => ['message' => 'Invalid parameter', 'type' => 'OAuthException', 'code' => 100]]],
+            '改成要授權' => [401, ['error' => ['message' => 'Invalid OAuth access token', 'type' => 'OAuthException', 'code' => 190]]],
+            '回應不是 JSON' => [400, 'Bad Request'],
+        ];
+    }
+
+    #[DataProvider('otherOembedErrors')]
+    public function test_threads_oembed_errors_other_than_not_embeddable_are_passed_on(int $status, array|string $body): void
+    {
+        // 只有 Threads 對無法嵌入、已刪除、只給登入的人看的貼文回的錯誤代碼 24 才改看頁面；其他的照實記成失敗
+        Http::fake([
+            'graph.threads.net/*' => Http::response($body, $status),
+            'www.threads.com/*' => Http::response(self::THREADS_PREVIEW_TAGS),
+        ]);
+
+        try {
+            $this->fetch('https://www.threads.com/@meta/post/DDzbnVKx57R');
+            $this->fail('應該要往外丟');
+        } catch (RequestException $e) {
+            $this->assertSame($status, $e->response->status());
+        }
+        Http::assertNotSent(fn (Request $request) => str_starts_with($request->url(), 'https://www.threads.com/'));
+    }
+
+    #[DataProvider('temporaryStatuses')]
+    public function test_threads_oembed_rate_limits_and_server_errors_stay_temporary(int $status): void
+    {
+        Http::fake([
+            'graph.threads.net/*' => Http::response(['error' => ['message' => 'Please retry', 'is_transient' => true]], $status),
+            'www.threads.com/*' => Http::response(self::THREADS_PREVIEW_TAGS),
+        ]);
+
+        try {
+            $this->fetch('https://www.threads.com/@meta/post/DDzbnVKx57R');
+            $this->fail('應該要往外丟');
+        } catch (RequestException $e) {
+            $this->assertTrue(SocialPostFetcher::isTemporaryFailure($e));
+        }
+    }
+
+    public static function temporaryStatuses(): array
+    {
+        return ['被限流' => [429], '平台出錯' => [500], '暫時無法服務' => [503]];
     }
 
     public function test_requests_say_who_we_are_and_never_touch_the_embed_pages(): void
@@ -91,6 +226,45 @@ class SocialPostFetcherTest extends TestCase
         $post = $this->fetch('https://www.threads.com/share/AbCdEf1234/');
 
         $this->assertSame('https://www.threads.com/@meta/post/DDzbnVKx57R', $post['canonical_url']);
+    }
+
+    public function test_canonical_url_resolves_share_links_without_fetching_the_post(): void
+    {
+        Http::fake([
+            'www.threads.com/share/*' => Http::response('<meta property="og:url" content="https://www.threads.com/&#064;meta/post/DDzbnVKx57R" />'),
+        ]);
+
+        $url = app(SocialPostFetcher::class)->canonicalUrl('https://www.threads.com/share/AbCdEf1234/');
+
+        // 貼文本身抓不到時，同步也要能先記下正式網址
+        $this->assertSame('https://www.threads.com/@meta/post/DDzbnVKx57R', $url);
+        Http::assertSentCount(1);
+    }
+
+    public function test_share_link_to_a_deleted_post_keeps_the_post_url_it_passed_through(): void
+    {
+        // 分享短網址先轉到貼文，貼文已刪除再轉去首頁；最後落點認不出是哪則，就用路上經過的貼文網址
+        Http::fake([
+            'www.threads.com/share/*' => Http::response('', 302, ['Location' => 'https://www.threads.com/@meta/post/DDzbnVKx57R?xmt=abc']),
+            'www.threads.com/@meta/post/*' => Http::response('', 302, ['Location' => 'https://www.threads.com/?error=invalid_post']),
+            'www.threads.com/*' => Http::response('<meta property="og:url" content="https://www.threads.com/" />'),
+        ]);
+
+        $url = app(SocialPostFetcher::class)->canonicalUrl('https://www.threads.com/share/AbCdEf1234/');
+
+        $this->assertSame('https://www.threads.com/@meta/post/DDzbnVKx57R', $url);
+    }
+
+    public function test_share_link_redirecting_to_an_unknown_host_is_rejected(): void
+    {
+        Http::fake([
+            'www.threads.com/share/*' => Http::response('', 302, ['Location' => 'http://127.0.0.1/@meta/post/DDzbnVKx57R']),
+        ]);
+
+        // 記下轉址經過哪些網址時，每一次轉址仍要先檢查主機
+        $this->expectException(InvalidArgumentException::class);
+
+        app(SocialPostFetcher::class)->canonicalUrl('https://www.threads.com/share/AbCdEf1234/');
     }
 
     public function test_facebook_share_link_is_resolved_to_the_post_it_redirects_to(): void
@@ -340,6 +514,7 @@ class SocialPostFetcherTest extends TestCase
         $this->assertSame('M7lc1UVf-VE', $post['youtube_id']);
         $this->assertSame('範例影片', $post['text']);
         $this->assertNull($post['cover_url']);
+        $this->assertTrue($post['embeddable']);
     }
 
     public function test_unknown_hosts_are_rejected_before_any_request(): void

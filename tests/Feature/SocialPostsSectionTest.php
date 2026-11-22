@@ -91,6 +91,33 @@ class SocialPostsSectionTest extends TestCase
         $this->assertSame(['排序一', '排序二', '新的沒排序', '舊的沒排序'], $m[1]);
     }
 
+    public function test_same_post_listed_twice_shows_the_row_notion_keeps(): void
+    {
+        $url = 'https://www.threads.com/@meta/post/DDzbnVKx57R';
+        $this->seedPost('較早建立的那列', ['canonical_url' => $url, 'sort' => 2]);
+        $this->seedPost('較晚建立的那列', ['canonical_url' => $url, 'sort' => 1]);
+        $this->seedPost('另一篇', ['sort' => 3]);
+
+        $html = $this->productPage();
+
+        // Notion 清單裡同一篇貼了兩次又合併不了時，商品頁只放一張，而且是 Notion 上沒標重複的那列（最早建立的）
+        $this->assertSame(2, substr_count($html, 'class="ts borderless card uq-social-card"'));
+        $this->assertStringContainsString('較早建立的那列', $html);
+        $this->assertStringNotContainsString('較晚建立的那列', $html);
+        $this->assertStringContainsString('data-embed="1"', $html);
+        $this->assertStringNotContainsString('data-embed="2"', $html);
+    }
+
+    public function test_posts_without_a_canonical_url_are_not_merged_into_one(): void
+    {
+        $this->seedPost('第一則', ['canonical_url' => null]);
+        $this->seedPost('第二則', ['canonical_url' => null]);
+
+        $html = $this->productPage();
+
+        $this->assertSame(2, substr_count($html, 'class="ts borderless card uq-social-card"'));
+    }
+
     public function test_youtube_card_carries_video_id_and_uses_the_official_thumbnail(): void
     {
         $this->seedPost('範例頻道', [
@@ -193,6 +220,40 @@ class SocialPostsSectionTest extends TestCase
         $this->assertStringNotContainsString('只在卡片上出現的內文', $embed);
         // 平台嵌入被擋時才顯示的備用卡片，用的是自己存的內容
         $this->assertStringContainsString('只在卡片上出現的內文', $fallback);
+    }
+
+    public function test_post_that_cannot_be_embedded_opens_straight_to_the_fallback_card(): void
+    {
+        $this->seedPost('Meta (@meta)', [
+            'canonical_url' => 'https://www.threads.com/@meta/post/DDzbnVKx57R',
+            'text' => '無法嵌入的貼文',
+            'embeddable' => false,
+        ]);
+        $this->seedPost('Meta (@meta)', ['canonical_url' => 'https://www.threads.com/@meta/post/C1', 'text' => '可以嵌入的貼文']);
+
+        $html = $this->productPage();
+        preg_match_all('~<template data-embed="\d+">(.*?)</template>~s', $html, $m);
+        $embedOf = fn (string $text) => collect($m[1])->first(fn ($embed) => str_contains($embed, $text));
+        $embedError = $embedOf('無法嵌入的貼文');
+        $allowed = $embedOf('可以嵌入的貼文');
+
+        // 平台的嵌入只會顯示「無法顯示」，不載入，直接給自己存的內容
+        $this->assertStringNotContainsString('text-post-media', $embedError);
+        $this->assertMatchesRegularExpression('~class="ts card uq-social-fallback"\s*>~', $embedError);
+
+        $this->assertStringContainsString('class="text-post-media"', $allowed);
+        $this->assertMatchesRegularExpression('~class="ts card uq-social-fallback"\s+hidden~', $allowed);
+    }
+
+    public function test_fallback_card_drops_its_image_when_it_fails_to_load(): void
+    {
+        $this->seedPost('Meta (@meta)', ['cover_url' => 'https://scontent.cdninstagram.com/p.jpg?oe=6AD5FF99']);
+
+        $html = $this->productPage();
+        preg_match('~<template data-embed="0">(.*?)</template>~s', $html, $m);
+
+        // 預覽圖抓不到時只留文字，不顯示破圖
+        $this->assertMatchesRegularExpression('~<div class="image"><img [^>]*onerror="this\.parentNode\.remove\(\)"~', $m[1]);
     }
 
     public function test_facebook_embed_uses_the_official_script_so_its_height_follows_the_post(): void
