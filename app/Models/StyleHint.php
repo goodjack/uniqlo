@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class StyleHint extends Model
@@ -36,6 +38,86 @@ class StyleHint extends Model
         'user_info' => 'array',
         'hashtags' => 'array',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $styleHint) {
+            $styleHint->source_outfit_id = $styleHint->resolveSourceOutfitId();
+        });
+    }
+
+    /**
+     * 原始穿搭編號相同就是同一則，沒有編號的各自算一則。
+     */
+    public static function outfitKeySql(string $table = 'style_hints'): string
+    {
+        return sprintf("COALESCE(`%1\$s`.`source_outfit_id`, CONCAT('#', `%1\$s`.`id`))", $table);
+    }
+
+    /**
+     * 同一則穿搭各國版本共用的編號。不同來源的編號各成一套，加前綴避免撞號。
+     */
+    public function resolveSourceOutfitId(): ?string
+    {
+        $styleImageUrl = $this->attributes['style_image_url'] ?? null;
+
+        if (! is_string($styleImageUrl) || ! preg_match('/^[a-z]+[0-9]+(?:gu)?(Igbiz|Olapic)?([0-9]*)$/', $styleImageUrl, $matches)) {
+            return null;
+        }
+
+        [, $type, $number] = $matches;
+
+        if ($type !== '') {
+            $prefix = $type === 'Igbiz' ? 'instagram-business' : 'olapic';
+
+            return $number === '' ? null : "{$prefix}:{$number}";
+        }
+
+        $originalOutfitId = (string) ($this->attributes['original_source_url'] ?? '');
+
+        return ctype_digit($originalOutfitId) ? $originalOutfitId : null;
+    }
+
+    /**
+     * 某件商品的穿搭，同一則只留一筆，新的在前：優先台灣，沒有才用日本、美國，同一國取最新的。
+     * 一則穿搭標了這件商品兩個顏色也只出現一次。
+     */
+    public function scopeDistinctOutfitsForCode(Builder $query, string $code): Builder
+    {
+        $priority = fn (string $table) => "CASE `{$table}`.`country` WHEN 'tw' THEN 0 WHEN 'jp' THEN 1 WHEN 'us' THEN 2 ELSE 3 END";
+
+        return $query
+            ->select('style_hints.*')
+            ->join('style_hint_items as items', 'items.style_hint_id', '=', 'style_hints.id')
+            ->where('items.code', $code)
+            ->whereNotExists(function ($better) use ($priority) {
+                $better->selectRaw('1')
+                    ->from('style_hints as better')
+                    ->join('style_hint_items as better_items', function ($join) {
+                        $join->on('better_items.style_hint_id', '=', 'better.id')
+                            ->on('better_items.code', '=', 'items.code');
+                    })
+                    ->whereColumn('better.source_outfit_id', 'style_hints.source_outfit_id')
+                    ->whereColumn('better.id', '<>', 'style_hints.id')
+                    ->whereRaw(
+                        "({$priority('better')} < {$priority('style_hints')} OR ({$priority('better')} = {$priority('style_hints')} AND `better`.`id` > `style_hints`.`id`))"
+                    );
+            })
+            ->groupBy('items.style_hint_id')
+            ->orderByDesc('items.style_hint_id');
+    }
+
+    /**
+     * 某件商品有幾則不重複的穿搭，跟 distinctOutfitsForCode 列出的筆數相同。
+     */
+    public static function countDistinctOutfitsForCode(string $code): int
+    {
+        return (int) DB::table('style_hint_items as items')
+            ->join('style_hints', 'style_hints.id', '=', 'items.style_hint_id')
+            ->where('items.code', $code)
+            ->selectRaw('count(distinct '.self::outfitKeySql().') as aggregate')
+            ->value('aggregate');
+    }
 
     public function hmallProducts()
     {

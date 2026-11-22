@@ -9,6 +9,7 @@ use App\Models\HmallCategory;
 use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
 use App\Models\Product;
+use App\Models\StyleHint;
 use App\Support\Keywords;
 use App\Support\ProductSaveResult;
 use Carbon\Carbon;
@@ -146,12 +147,12 @@ class HmallProductRepository extends Repository
 
     public function getStyleHints(HmallProduct $hmallProduct, int $limit)
     {
-        return $hmallProduct->styleHints()->limit($limit)->get();
+        return $hmallProduct->distinctStyleHints()->limit($limit)->get();
     }
 
     public function getStyleHintCount(HmallProduct $hmallProduct)
     {
-        return $hmallProduct->styleHints()->count();
+        return $hmallProduct->styleHintCount();
     }
 
     /**
@@ -238,11 +239,12 @@ class HmallProductRepository extends Repository
     public function getCommonlyStyledHmallProducts(HmallProduct $hmallProduct, int $limit = 6): Collection
     {
         $select = self::SELECT_COLUMNS_FOR_LIST;
-        $select[] = DB::raw('count(*) as count');
+        $select[] = DB::raw('count(distinct '.StyleHint::outfitKeySql().') as count');
 
         return HmallProduct::select($select)
             ->join('style_hint_items as items', 'hmall_products.code', '=', 'items.code')
             ->join('style_hint_items as related_items', 'items.style_hint_id', '=', 'related_items.style_hint_id')
+            ->join('style_hints', 'style_hints.id', '=', 'items.style_hint_id')
             ->where('related_items.code', $hmallProduct->code)
             ->where('hmall_products.code', '<>', $hmallProduct->code)
             ->groupBy('hmall_products.id')
@@ -452,9 +454,16 @@ class HmallProductRepository extends Repository
 
     public function setTopWearingHmallProductsCache()
     {
+        // 指定先照商品代號分組、串回穿搭只讀小索引，重算才不用排序整批資料；查詢提示要是第一個 select 才有作用
         $styleHintItems = DB::table('style_hint_items')
-            ->select('style_hint_items.code')
-            ->selectRaw('count(*) AS count')
+            ->join(
+                DB::raw('`style_hints` FORCE INDEX (`style_hints_id_source_outfit_id_index`)'),
+                'style_hints.id',
+                '=',
+                'style_hint_items.style_hint_id'
+            )
+            ->selectRaw('/*+ JOIN_ORDER(style_hint_items, style_hints) */ style_hint_items.code')
+            ->selectRaw('count(distinct '.StyleHint::outfitKeySql().') AS count')
             ->groupBy('style_hint_items.code')
             ->having('count', '>', 100)
             ->orderBy('count', 'desc');

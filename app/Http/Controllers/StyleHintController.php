@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\HmallProduct;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 
 class StyleHintController extends Controller
 {
@@ -45,7 +47,15 @@ class StyleHintController extends Controller
      */
     public function show(HmallProduct $hmallProduct)
     {
-        $styleHints = $hmallProduct->styleHints()->paginate(32)->onEachSide(1);
+        $perPage = 32;
+        $page = Paginator::resolveCurrentPage();
+        $styleHints = (new LengthAwarePaginator(
+            $hmallProduct->distinctStyleHints()->forPage($page, $perPage)->get(),
+            $hmallProduct->styleHintCount(),
+            $perPage,
+            $page,
+            ['path' => Paginator::resolveCurrentPath()]
+        ))->onEachSide(1);
 
         return view('style-hints.show', [
             'hmallProduct' => $hmallProduct,
