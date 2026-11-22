@@ -7,11 +7,14 @@ use App\Enums\SocialPostKind;
 use App\Enums\SocialPostStatus;
 use App\Models\HmallProduct;
 use App\Models\SocialPost;
+use DOMXPath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\ParsesHtml;
 use Tests\TestCase;
 
 class SocialPostsSectionTest extends TestCase
 {
+    use ParsesHtml;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -86,8 +89,7 @@ class SocialPostsSectionTest extends TestCase
         $this->assertStringContainsString('社群熱推', $html);
         $this->assertStringContainsString('social-posts.js', $html);
         $this->assertStringContainsString('逛全部 4 則', $html);
-        preg_match_all('~class="uq-social-author">([^<]+)<~', $html, $m);
-        $this->assertSame(['排序一', '排序二', '新的沒排序', '舊的沒排序'], $m[1]);
+        $this->assertSame(['排序一', '排序二', '新的沒排序', '舊的沒排序'], $this->authors($this->xpath($html)));
     }
 
     public function test_same_post_listed_twice_shows_the_row_notion_keeps(): void
@@ -98,13 +100,17 @@ class SocialPostsSectionTest extends TestCase
         $this->seedPost('另一篇', ['sort' => 3]);
 
         $html = $this->productPage();
+        $xpath = $this->xpath($html);
 
         // Notion 清單裡同一篇貼了兩次又合併不了時，商品頁只放一張，而且是 Notion 上沒標重複的那列（最早建立的）
-        $this->assertSame(2, substr_count($html, 'class="ts borderless card uq-social-card"'));
-        $this->assertStringContainsString('較早建立的那列', $html);
+        $this->assertSame(['較早建立的那列', '另一篇'], $this->authors($xpath));
         $this->assertStringNotContainsString('較晚建立的那列', $html);
-        $this->assertStringContainsString('data-embed="1"', $html);
-        $this->assertStringNotContainsString('data-embed="2"', $html);
+        // 點開用的嵌入也跟卡片一一對應，不會多一份
+        $this->assertSame(['0', '1'], array_map(
+            fn ($template) => $template->getAttribute('data-embed'),
+            iterator_to_array($xpath->query('//template[@data-embed]'))
+        ));
+        $this->assertSame(['0', '1'], array_map(fn ($card) => $card->getAttribute('data-index'), $this->cards($xpath)));
     }
 
     public function test_posts_without_a_canonical_url_are_not_merged_into_one(): void
@@ -112,9 +118,7 @@ class SocialPostsSectionTest extends TestCase
         $this->seedPost('第一則', ['canonical_url' => null]);
         $this->seedPost('第二則', ['canonical_url' => null]);
 
-        $html = $this->productPage();
-
-        $this->assertSame(2, substr_count($html, 'class="ts borderless card uq-social-card"'));
+        $this->assertCount(2, $this->cards($this->xpath($this->productPage())));
     }
 
     public function test_youtube_card_carries_video_id_and_uses_the_official_thumbnail(): void
@@ -125,13 +129,16 @@ class SocialPostsSectionTest extends TestCase
             'youtube_id' => 'M7lc1UVf-VE',
         ]);
 
-        $html = $this->productPage();
+        $xpath = $this->xpath($this->productPage());
+        $card = $this->cards($xpath)[0];
+        $image = $xpath->query('.//img', $card)->item(0);
 
-        $this->assertStringContainsString('data-youtube-id="M7lc1UVf-VE" data-vertical="1"', $html);
+        $this->assertSame('M7lc1UVf-VE', $card->getAttribute('data-youtube-id'));
+        $this->assertSame('1', $card->getAttribute('data-vertical'));
         // Shorts 用直式縮圖，沒有就退回一般縮圖
-        $this->assertStringContainsString('<img src="https://i.ytimg.com/vi/M7lc1UVf-VE/oardefault.jpg"', $html);
-        $this->assertStringContainsString('https://i.ytimg.com/vi/M7lc1UVf-VE/hqdefault.jpg', $html);
-        $this->assertStringContainsString('aria-label="YouTube：範例頻道"', $html);
+        $this->assertSame('https://i.ytimg.com/vi/M7lc1UVf-VE/oardefault.jpg', $image->getAttribute('src'));
+        $this->assertStringContainsString('https://i.ytimg.com/vi/M7lc1UVf-VE/hqdefault.jpg', $image->getAttribute('onerror'));
+        $this->assertSame('YouTube：範例頻道', $xpath->query('.//*[contains(@class, "uq-social-title")]', $card)->item(0)->getAttribute('aria-label'));
     }
 
     public function test_youtube_card_starts_where_the_video_talks_about_this_product(): void
@@ -140,12 +147,17 @@ class SocialPostsSectionTest extends TestCase
         $this->seedPost('Meta', start: 125);
 
         $html = $this->productPage();
+        $xpath = $this->xpath($html);
+        $youtube = $this->cardBy($xpath, '範例頻道');
+        $threads = $this->cardBy($xpath, 'Meta');
 
-        $this->assertStringContainsString('data-start="83"', $html);
-        $this->assertMatchesRegularExpression('~uq-social-badge">\s*<i class="play icon" aria-hidden="true"></i>\s*1:23\s*</span>~', $html);
+        $this->assertSame('83', $youtube->getAttribute('data-start'));
+        $badge = $xpath->query('.//*[contains(@class, "uq-social-badge")]', $youtube)->item(0);
+        $this->assertSame('1:23', trim($badge->textContent));
+        $this->assertSame(1, $xpath->query('.//i[contains(@class, "play")]', $badge)->length);
         // IG、Threads 的官方嵌入不能指定開始時間，填了也不顯示
+        $this->assertFalse($threads->hasAttribute('data-start'));
         $this->assertStringNotContainsString('2:05', $html);
-        $this->assertSame(1, substr_count($html, 'data-start='));
     }
 
     public function test_preview_image_goes_through_our_own_url_and_card_shows_the_handle(): void
@@ -154,12 +166,14 @@ class SocialPostsSectionTest extends TestCase
         $this->seedPost('只有文字', ['text' => '沒有圖的貼文']);
 
         $html = $this->productPage();
+        $xpath = $this->xpath($html);
+        $withImage = $this->cardBy($xpath, '@meta');
+        $textOnly = $this->cardBy($xpath, '只有文字');
 
-        $this->assertStringContainsString('<img src="'.e($post->image_url).'"', $html);
-        $this->assertStringContainsString('/social-img/'.$post->id.'.jpg', $html);
+        $this->assertSame($post->image_url, $xpath->query('.//img', $withImage)->item(0)->getAttribute('src'));
+        $this->assertStringContainsString('/social-img/'.$post->id.'.jpg', $post->image_url);
         $this->assertStringNotContainsString('cdninstagram.com', $html);
-        $this->assertStringContainsString('class="uq-social-author">@meta<', $html);
-        $this->assertMatchesRegularExpression('~class="uq-social-quote"\s*>.*?沒有圖的貼文~s', $html);
+        $this->assertVisibleQuote($xpath, $textOnly, '沒有圖的貼文');
     }
 
     public function test_x_video_card_shows_the_relayed_preview_and_a_play_badge(): void
@@ -173,13 +187,17 @@ class SocialPostsSectionTest extends TestCase
         $this->seedPost('純文字', ['platform' => SocialPlatform::X, 'canonical_url' => 'https://x.com/Interior/status/2', 'text' => '只有字的推文']);
 
         $html = $this->productPage();
+        $xpath = $this->xpath($html);
+        $videoCard = $this->cardBy($xpath, 'US Department of the Interior');
+        $textOnly = $this->cardBy($xpath, '純文字');
 
-        $this->assertStringContainsString('<img src="'.e($video->image_url).'"', $html);
+        $this->assertSame($video->image_url, $xpath->query('.//img', $videoCard)->item(0)->getAttribute('src'));
         $this->assertStringNotContainsString('pbs.twimg.com', $html);
-        $this->assertSame(1, substr_count($html, 'uq-social-badge'));
-        $this->assertMatchesRegularExpression('~class="uq-social-quote"\s*>.*?只有字的推文~s', $html);
+        $this->assertSame(1, $xpath->query('.//*[contains(@class, "uq-social-badge")]', $videoCard)->length);
+        $this->assertSame(0, $xpath->query('.//*[contains(@class, "uq-social-badge")]', $textOnly)->length);
+        $this->assertVisibleQuote($xpath, $textOnly, '只有字的推文');
         // 卡片上只有 YouTube 預覽播放，X 點開才用官方嵌入
-        $this->assertStringNotContainsString('data-youtube-id', $html);
+        $this->assertSame(0, $xpath->query('//*[@data-youtube-id]')->length);
     }
 
     public function test_post_text_is_escaped(): void
@@ -187,7 +205,12 @@ class SocialPostsSectionTest extends TestCase
         $this->seedPost('<img src=x onerror=alert(1)>', ['text' => '<script>alert(1)</script>']);
 
         $html = $this->productPage();
+        $xpath = $this->xpath($html);
 
+        // 文字要照原樣顯示出來，而不是被吃掉或變成真的標籤
+        $card = $this->cards($xpath)[0];
+        $this->assertSame('<script>alert(1)</script>', trim($xpath->query('.//*[contains(@class, "uq-social-title")]', $card)->item(0)->textContent));
+        $this->assertStringContainsString('<img src=x onerror=alert(1)>', $xpath->query('.//*[contains(@class, "uq-social-title")]', $card)->item(0)->getAttribute('aria-label'));
         $this->assertStringNotContainsString('<img src=x onerror', $html);
         $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
     }
@@ -197,10 +220,16 @@ class SocialPostsSectionTest extends TestCase
         $this->seedPost('Meta');
 
         $html = $this->productPage();
+        $xpath = $this->xpath($html);
 
-        $this->assertLessThan(strpos($html, '>商品資訊</h2>'), strpos($html, '>社群熱推</h2>'));
-        preg_match('~id="product_menu".*?</div>~s', $html, $menu);
-        $this->assertLessThan(strpos($menu[0], '商品資訊'), strpos($menu[0], '社群熱推'));
+        $headings = array_map(fn ($h2) => trim($h2->textContent), iterator_to_array($xpath->query('//h2')));
+        $this->assertContains('社群熱推', $headings);
+        $this->assertContains('商品資訊', $headings);
+        $this->assertLessThan(array_search('商品資訊', $headings, true), array_search('社群熱推', $headings, true));
+
+        $firstMenuItem = $xpath->query('//*[@id="product_menu"]/a')->item(0);
+        $this->assertSame('#social', $firstMenuItem->getAttribute('href'));
+        $this->assertSame('社群熱推', trim($firstMenuItem->textContent));
     }
 
     public function test_platform_embed_is_built_from_the_url_only(): void
@@ -210,15 +239,15 @@ class SocialPostsSectionTest extends TestCase
             'text' => '只在卡片上出現的內文',
         ]);
 
-        $html = $this->productPage();
-        preg_match('~<template data-embed="0">(.*?)</template>~s', $html, $m);
+        $xpath = $this->xpath($this->productPage());
+        $template = $xpath->query('//template[@data-embed="0"]')->item(0);
+        $embed = $xpath->query('.//blockquote[contains(@class, "text-post-media")]', $template)->item(0);
+        $fallback = $xpath->query('.//*[contains(@class, "uq-social-fallback")]', $template)->item(0);
 
-        [$embed, $fallback] = explode('uq-social-fallback', $m[1]);
-
-        $this->assertStringContainsString('data-text-post-permalink="https://www.threads.com/t/DDzbnVKx57R"', $embed);
-        $this->assertStringNotContainsString('只在卡片上出現的內文', $embed);
+        $this->assertSame('https://www.threads.com/t/DDzbnVKx57R', $embed->getAttribute('data-text-post-permalink'));
+        $this->assertStringNotContainsString('只在卡片上出現的內文', $embed->textContent);
         // 平台嵌入被擋時才顯示的備用卡片，用的是自己存的內容
-        $this->assertStringContainsString('只在卡片上出現的內文', $fallback);
+        $this->assertStringContainsString('只在卡片上出現的內文', $fallback->textContent);
     }
 
     public function test_post_that_cannot_be_embedded_opens_straight_to_the_fallback_card(): void
@@ -230,29 +259,33 @@ class SocialPostsSectionTest extends TestCase
         ]);
         $this->seedPost('Meta (@meta)', ['canonical_url' => 'https://www.threads.com/@meta/post/C1', 'text' => '可以嵌入的貼文']);
 
-        $html = $this->productPage();
-        preg_match_all('~<template data-embed="\d+">(.*?)</template>~s', $html, $m);
-        $embedOf = fn (string $text) => collect($m[1])->first(fn ($embed) => str_contains($embed, $text));
+        $xpath = $this->xpath($this->productPage());
+        $embedOf = fn (string $text) => $xpath->query('//template[@data-embed][contains(., "'.$text.'")]')->item(0);
         $embedError = $embedOf('無法嵌入的貼文');
         $allowed = $embedOf('可以嵌入的貼文');
+        $fallback = fn ($template) => $xpath->query('.//*[contains(@class, "uq-social-fallback")]', $template)->item(0);
 
         // 平台的嵌入只會顯示「無法顯示」，不載入，直接給自己存的內容
-        $this->assertStringNotContainsString('text-post-media', $embedError);
-        $this->assertMatchesRegularExpression('~class="ts card uq-social-fallback"\s*>~', $embedError);
+        $this->assertStringContainsString('無法嵌入的貼文', $fallback($embedError)->textContent);
+        $this->assertSame(0, $xpath->query('.//*[contains(@class, "text-post-media")]', $embedError)->length);
+        $this->assertFalse($fallback($embedError)->hasAttribute('hidden'));
 
-        $this->assertStringContainsString('class="text-post-media"', $allowed);
-        $this->assertMatchesRegularExpression('~class="ts card uq-social-fallback"\s+hidden~', $allowed);
+        $this->assertStringContainsString('可以嵌入的貼文', $fallback($allowed)->textContent);
+        $this->assertSame(1, $xpath->query('.//*[contains(@class, "text-post-media")]', $allowed)->length);
+        $this->assertTrue($fallback($allowed)->hasAttribute('hidden'));
     }
 
     public function test_fallback_card_drops_its_image_when_it_fails_to_load(): void
     {
-        $this->seedPost('Meta (@meta)', ['cover_url' => 'https://scontent.cdninstagram.com/p.jpg?oe=6AD5FF99']);
+        $this->seedPost('Meta (@meta)', ['cover_url' => 'https://scontent.cdninstagram.com/p.jpg?oe=6AD5FF99', 'text' => '圖片以外的內文']);
 
-        $html = $this->productPage();
-        preg_match('~<template data-embed="0">(.*?)</template>~s', $html, $m);
+        $xpath = $this->xpath($this->productPage());
+        $fallback = $xpath->query('//template[@data-embed="0"]//*[contains(@class, "uq-social-fallback")]')->item(0);
 
-        // 預覽圖抓不到時只留文字，不顯示破圖
-        $this->assertMatchesRegularExpression('~<div class="image"><img [^>]*onerror="this\.parentNode\.remove\(\)"~', $m[1]);
+        // 預覽圖抓不到時把圖片那一格整個拿掉、只留文字，不顯示破圖
+        $image = $xpath->query('.//*[contains(@class, "image")]/img', $fallback)->item(0);
+        $this->assertSame('this.parentNode.remove()', $image->getAttribute('onerror'));
+        $this->assertSame('圖片以外的內文', trim($xpath->query('.//*[contains(@class, "description")]', $fallback)->item(0)->textContent));
     }
 
     public function test_facebook_embed_uses_the_official_script_so_its_height_follows_the_post(): void
@@ -261,12 +294,55 @@ class SocialPostsSectionTest extends TestCase
         $this->seedPost('Facebook', ['platform' => SocialPlatform::Facebook, 'kind' => SocialPostKind::Video, 'canonical_url' => 'https://www.facebook.com/reel/1']);
 
         $html = $this->productPage();
+        $xpath = $this->xpath($html);
+        $post = $xpath->query('//template//*[contains(concat(" ", normalize-space(@class), " "), " fb-post ")]')->item(0);
+        $video = $xpath->query('//template//*[contains(concat(" ", normalize-space(@class), " "), " fb-video ")]')->item(0);
 
-        $this->assertStringContainsString('class="fb-post" data-href="https://www.facebook.com/20531316728/posts/10154009990506729"', $html);
-        $this->assertStringContainsString('class="fb-video" data-href="https://www.facebook.com/reel/1"', $html);
+        $this->assertSame('https://www.facebook.com/20531316728/posts/10154009990506729', $post->getAttribute('data-href'));
+        $this->assertSame('https://www.facebook.com/reel/1', $video->getAttribute('data-href'));
         $this->assertStringNotContainsString('facebook.com/plugins/', $html);
         // 影片才開全螢幕，官方設定預設是關的
-        $this->assertMatchesRegularExpression('~class="fb-video"[^>]*data-allowfullscreen="true"~', $html);
-        $this->assertDoesNotMatchRegularExpression('~class="fb-post"[^>]*data-allowfullscreen~', $html);
+        $this->assertSame('true', $video->getAttribute('data-allowfullscreen'));
+        $this->assertFalse($post->hasAttribute('data-allowfullscreen'));
+    }
+
+    /**
+     * @return array<int, \DOMElement>
+     */
+    private function cards(DOMXPath $xpath): array
+    {
+        return iterator_to_array($xpath->query('//*[contains(concat(" ", normalize-space(@class), " "), " uq-social-card ")]'));
+    }
+
+    /** 卡片上顯示的帳號是這個的那一張 */
+    private function cardBy(DOMXPath $xpath, string $author): \DOMElement
+    {
+        $cards = array_values(array_filter(
+            $this->cards($xpath),
+            fn ($card) => trim($xpath->query('.//*[contains(@class, "uq-social-author")]', $card)->item(0)->textContent) === $author
+        ));
+        $this->assertCount(1, $cards, "找不到 {$author} 的卡片");
+
+        return $cards[0];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function authors(DOMXPath $xpath): array
+    {
+        return array_map(
+            fn ($card) => trim($xpath->query('.//*[contains(@class, "uq-social-author")]', $card)->item(0)->textContent),
+            $this->cards($xpath)
+        );
+    }
+
+    /** 沒有預覽圖的卡片直接顯示文字，不是藏起來等圖片失敗才出現 */
+    private function assertVisibleQuote(DOMXPath $xpath, \DOMElement $card, string $text): void
+    {
+        $quote = $xpath->query('.//*[contains(@class, "uq-social-quote")]', $card)->item(0);
+
+        $this->assertFalse($quote->hasAttribute('hidden'));
+        $this->assertStringContainsString($text, $quote->textContent);
     }
 }

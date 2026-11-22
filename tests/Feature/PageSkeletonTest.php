@@ -412,7 +412,11 @@ class PageSkeletonTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertGreaterThan(strpos($content, 'id="priceChart"'), strpos($content, 'class="uq-ad"'));
+        $xpath = $this->xpath($content);
+        $chart = $xpath->query('//*[@id="priceChart"]');
+        $this->assertSame(1, $chart->length, '價格圖表要在頁面上');
+        $this->assertGreaterThan(0, $xpath->query('//*[contains(@class, "uq-ad")]')->length, '廣告要在頁面上');
+        $this->assertSame(0, $xpath->query('//*[contains(@class, "uq-ad")][following::*[@id="priceChart"] or descendant::*[@id="priceChart"]]')->length, '廣告要排在價格圖表後面');
     }
 
     /**
@@ -559,7 +563,15 @@ class PageSkeletonTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertGreaterThan(0, $this->countNodes($content, '//div[contains(@class, "uq-card")]/a[contains(concat(\' \', normalize-space(@class), \' \'), \' uq-card-link \')]'));
+        $this->assertSame(
+            1,
+            $this->countNodes(
+                $content,
+                '//div[contains(@class, "uq-card")]/a[contains(concat(" ", normalize-space(@class), " "), " uq-card-link ")]'.
+                '[@href="'.route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']).'"]'
+            ),
+            '覆蓋連結要連到這件商品的頁面'
+        );
     }
 
     /**
@@ -596,9 +608,10 @@ class PageSkeletonTest extends TestCase
 
         $content = $this->get(route($name, $parameters))->assertOk()->getContent();
 
-        $this->assertGreaterThan(
-            0,
-            $this->countNodes($content, '//div[contains(@class, "header")][contains(@class, "smaller")]')
+        $this->assertSame(
+            1,
+            $this->countNodes($content, '//div[contains(@class, "header")][contains(@class, "smaller")][contains(normalize-space(), "短袖上衣")]'),
+            "{$name} 的卡片要顯示商品名"
         );
     }
 

@@ -5,28 +5,28 @@ namespace Tests\Unit\Models;
 use App\Models\StyleHint;
 use App\Repositories\StyleHintRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class StyleHintTest extends TestCase
 {
     use RefreshDatabase;
-    use WithFaker;
 
     /**
-     * @dataProvider dataProvider
+     * 穿搭圖與來源網址在資料庫存成精簡格式省空間，讀出來時還原成完整網址。
+     *
+     * @dataProvider compactUrlProvider
      */
-    public function test_user_can_set_and_get_StyleHint_attributes(
+    public function test_urls_are_stored_compactly_and_read_back_in_full(
         $country,
         $styleImageUrlFromApi,
         $styleImageUrlFromDb,
         $originalSourceUrlFromApi,
         $originalSourceUrlFromDb
     ): void {
-        $model = new StyleHint();
+        $model = new StyleHint;
 
         $model->country = $country;
-        $model->outfit_id = fake()->randomNumber(7, false);
+        $model->outfit_id = '1234567';
         $model->style_image_url = $styleImageUrlFromApi;
         $model->original_source_url = $originalSourceUrlFromApi;
 
@@ -115,7 +115,7 @@ class StyleHintTest extends TestCase
         );
     }
 
-    public function dataProvider()
+    public static function compactUrlProvider(): array
     {
         return [
             'uq_jp_stylehint' => [

@@ -5,7 +5,6 @@ namespace Tests\Unit\Repositories;
 use App\Models\HmallProduct;
 use App\Repositories\HmallProductRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -110,10 +109,11 @@ class HmallProductStyleHintDedupTest extends TestCase
             fn ($sql) => str_contains($sql, '(select /*+ JOIN_ORDER(style_hint_items, style_hints) */ ')
         ), '查詢提示要緊接在子查詢的 select 後面才有作用');
 
-        $ranked = Cache::get('hmall_product:top_wearing');
+        $ranked = app(HmallProductRepository::class)->getTopWearingHmallProducts();
         $this->assertSame([$popular->id], $ranked->pluck('id')->all());
         $this->assertSame(101, (int) $ranked->first()->count);
-        $this->assertArrayNotHasKey($inflated->id, Cache::get('hmall_product:top_wearing_ranks')->all());
+        $this->assertSame(1, $popular->fresh()->top_wearing_rank);
+        $this->assertNull($inflated->fresh()->top_wearing_rank);
     }
 
     /**

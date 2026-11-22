@@ -184,8 +184,20 @@ class ProductDetailSectionTest extends TestCase
             ['alt' => '<img src=x onerror=alert(1)>小明'],
         );
 
-        $view->assertSee('data-description=".uq-caption-', false);
-        $view->assertSee('<a href="https://www.uniqlo.com/tw/stylehint/1" target="_blank" rel="nofollow noopener">&lt;img src=x onerror=alert(1)&gt;小明</a>', false);
+        $html = (string) $view;
+        $captionClass = ltrim($this->xpath($html)->query('//a[@data-lightbox]')->item(0)->getAttribute('data-description'), '.');
+        $this->assertStringStartsWith('uq-caption-', $captionClass);
+
+        // 說明放在 <template> 裡、外層又是 <a>，整頁解析會把巢狀連結拆掉，所以只拿 template 的內容來解析
+        $this->assertSame(1, preg_match('~<template class="'.preg_quote($captionClass, '~').'">(.*?)</template>~s', $html, $template));
+        $caption = $this->xpath($template[1]);
+        $link = $caption->query('//a')->item(0);
+
+        $this->assertSame('https://www.uniqlo.com/tw/stylehint/1', $link->getAttribute('href'));
+        $this->assertSame('_blank', $link->getAttribute('target'));
+        $this->assertContains('noopener', explode(' ', $link->getAttribute('rel')));
+        $this->assertSame('<img src=x onerror=alert(1)>小明', trim($link->textContent));
+        $this->assertSame(0, $caption->query('//img')->length, '名稱裡的標籤不能變成真的元素');
         $view->assertDontSee('<img src=x', false);
     }
 
@@ -227,15 +239,21 @@ class ProductDetailSectionTest extends TestCase
 
     public function test_the_structured_data_lists_every_image_but_not_the_rating_distribution(): void
     {
-        $this->seedProduct(['main_images' => $this->mainImages(3), 'rating_levels' => [16, 1, 2, 0, 0]]);
+        // 則數挑一個不會跟頁面其他數字撞到的值，才能確定它沒有以任何形式出現在結構化資料裡
+        $this->seedProduct(['main_images' => $this->mainImages(3), 'rating_levels' => [7351, 0, 0, 0, 0]]);
 
-        $html = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))->getContent();
+        $html = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))->assertOk()->getContent();
         $jsonLd = collect($this->xpath($html)->query('//script[@type="application/ld+json"]'))
             ->map(fn ($node) => json_decode($node->textContent, true))
             ->firstWhere('@type', 'Product');
 
-        $this->assertCount(3, $jsonLd['image']);
-        $this->assertStringNotContainsString('"16"', json_encode($jsonLd));
+        $this->assertSame([
+            'https://www.uniqlo.com/tw/hmall/test/u990001/main/first/1000/1.jpg',
+            'https://www.uniqlo.com/tw/hmall/test/u990001/main/other1/1000/2.jpg',
+            'https://www.uniqlo.com/tw/hmall/test/u990001/main/other2/1000/3.jpg',
+        ], $jsonLd['image']);
+        $this->assertStringContainsString('7351', $html, '評價分布要在頁面上，否則下一條斷言沒有意義');
+        $this->assertStringNotContainsString('7351', json_encode($jsonLd));
         $this->assertArrayNotHasKey('review', $jsonLd);
     }
 

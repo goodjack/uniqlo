@@ -47,12 +47,24 @@ class FetchHmallProductDetailsTest extends TestCase
         $this->createProduct('UNIQLO', 'u001');
         $this->createProduct('UNIQLO', 'u002');
         $this->createProduct('GU', 'u003');
+        // 上架很久、已經到期該輪替的那件：輪替組上限 0，這一輪不抓
+        $this->createProduct('GU', 'u004', ['fetched_at' => now()->subDays(40), 'next_fetch_at' => now()->subDay()])
+            ->forceFill(['created_at' => now()->subDays(400)])
+            ->save();
         Http::fake([self::DETAIL_API.'*' => Http::response(['success' => false, 'resp' => []])]);
 
         $this->artisan('hmall-product-detail:fetch', ['--priority-limit' => 1, '--rotation-limit' => 0])
             ->assertExitCode(Command::SUCCESS);
 
-        Http::assertSentCount(2);
+        $sentCodes = Http::recorded()
+            ->map(fn (array $pair) => (string) $pair[0]['productCode'])
+            ->sort()
+            ->values()
+            ->all();
+        // UNIQLO 有兩件但上限一件；GU 那件也要抓到，到期輪替的不抓
+        $this->assertCount(2, $sentCodes);
+        $this->assertSame('u003', end($sentCodes));
+        $this->assertContains($sentCodes[0], ['u001', 'u002']);
     }
 
     public function test_being_blocked_fails_the_command_reports_it_and_skips_the_other_brand(): void

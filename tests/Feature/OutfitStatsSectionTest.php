@@ -5,10 +5,12 @@ namespace Tests\Feature;
 use App\Models\HmallProduct;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Tests\Concerns\ParsesHtml;
 use Tests\TestCase;
 
 class OutfitStatsSectionTest extends TestCase
 {
+    use ParsesHtml;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -40,8 +42,9 @@ class OutfitStatsSectionTest extends TestCase
 
     public function test_the_section_shows_each_stat_as_a_share_of_the_outfits_it_covers(): void
     {
+        // 全部則數跟各卡的分母刻意不同，卡片用錯分母時百分比就對不上
         Cache::forever('hmall_product:outfit_stats:360889', [
-            'outfits' => 50,
+            'outfits' => 60,
             'colors' => [['code' => '03', 'count' => 14], ['code' => '44', 'count' => 13], ['code' => '99', 'count' => 1]],
             'colored_outfits' => 50,
             'genders' => ['women' => 47, 'men' => 3],
@@ -54,17 +57,17 @@ class OutfitStatsSectionTest extends TestCase
 
         $page = $this->productPage();
 
-        $this->assertStringContainsString('穿搭統計', $page);
-        $this->assertStringContainsString('50 則', $page);
-        // 顏色用官網的色名，現在不賣的顏色只寫色號
-        $this->assertMatchesRegularExpression('/03 GRAY.*28%/s', $page);
-        $this->assertMatchesRegularExpression('/色號 99.*2%/s', $page);
-        $this->assertMatchesRegularExpression('/女.*94%.*男.*6%/s', $page);
-        $this->assertMatchesRegularExpression('/155–159 公分.*38%/s', $page);
-        $this->assertMatchesRegularExpression('/鞋子.*42%/s', $page);
-        // 辨識結果以有辨識資料的則數為分母，沒翻譯的字照原文
-        $this->assertMatchesRegularExpression('/黑色鞋子.*75%/s', $page);
-        $this->assertMatchesRegularExpression('/mauve 包包.*10%/s', $page);
+        $this->assertStringContainsString('60 則', $page);
+        $this->assertSame([
+            // 顏色用官網的色名，現在不賣的顏色只寫色號
+            '最多人穿的顏色' => ['03 GRAY' => '28%', '44 YELLOW' => '26%', '色號 99' => '2%'],
+            '男女比例' => ['女' => '94%', '男' => '6%'],
+            '身高分布' => ['150–154 公分' => '20%', '155–159 公分' => '38%', '160–164 公分' => '42%'],
+            // 搭配品類以全部則數為分母
+            '最常一起穿的品類' => ['鞋子' => '35%', '褲裝' => '15%'],
+            // 辨識結果以有辨識資料的則數為分母，沒翻譯的字照原文
+            '搭配單品的顏色' => ['黑色鞋子' => '75%', 'mauve 包包' => '10%'],
+        ], $this->statCards($page));
     }
 
     public function test_the_detected_colors_card_is_left_out_when_no_outfit_was_detected(): void
@@ -249,6 +252,27 @@ class OutfitStatsSectionTest extends TestCase
             'detected_outfits' => 0,
             'detected_pairs' => [],
         ], $overrides));
+    }
+
+    /**
+     * 穿搭統計每張卡的每一列：卡片標題 => [列的文字 => 百分比]
+     *
+     * @return array<string, array<string, string>>
+     */
+    private function statCards(string $html): array
+    {
+        $xpath = $this->xpath($html);
+
+        $cards = [];
+        foreach ($xpath->query('//*[contains(@class, "uq-outfit-stats")]//*[contains(@class, "card")]') as $card) {
+            $title = trim($xpath->query('.//*[contains(@class, "header")]', $card)->item(0)->textContent);
+            foreach ($xpath->query('.//*[contains(@class, "uq-outfit-stat-label")]', $card) as $row) {
+                $spans = $xpath->query('./span', $row);
+                $cards[$title][trim($spans->item(0)->textContent)] = trim($spans->item(1)->textContent);
+            }
+        }
+
+        return $cards;
     }
 
     private function productPage(): string

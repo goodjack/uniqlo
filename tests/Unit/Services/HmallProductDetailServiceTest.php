@@ -6,8 +6,10 @@ use App\Models\HmallProduct;
 use App\Models\HmallProductDetail;
 use App\Services\HmallProductDetailService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Events\RequestSending;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -110,13 +112,17 @@ class HmallProductDetailServiceTest extends TestCase
         $product = $this->createGuProduct();
         $this->fakeOfficialSite(instruction: self::OLD_DESCRIPTION);
         $this->service()->fetchProducts([$product]);
+        $this->assertCount(1, Http::recorded(fn (Request $request) => $request->url() === self::PURGE_API));
 
         $this->fakeOfficialSite();
         $summary = $this->service()->fetchProducts([$product->fresh()->load('detail')]);
 
         $this->assertSame(1, $summary['changed']);
         $this->assertSame(self::NEW_DESCRIPTION, $product->fresh()->instruction);
-        Http::assertSent(fn (Request $request) => $request->url() === self::PURGE_API);
+        // 第一次抓已經清過一次，第二次內容變了要再清一次這件商品的頁面
+        $purges = Http::recorded(fn (Request $request) => $request->url() === self::PURGE_API)->values();
+        $this->assertCount(2, $purges);
+        $this->assertSame(['files' => [$product->route_url]], $purges[1][0]->data());
     }
 
     public function test_an_empty_shell_from_the_official_site_keeps_the_saved_description(): void
@@ -301,12 +307,18 @@ class HmallProductDetailServiceTest extends TestCase
         Config::set('app.crawler.delay', ['min' => 50000, 'max' => 50000]);
         $product = $this->createGuProduct();
         $this->fakeOfficialSite();
+        $sentAt = [];
+        Event::listen(RequestSending::class, function () use (&$sentAt) {
+            $sentAt[] = microtime(true);
+        });
 
-        $startedAt = microtime(true);
         $this->service()->fetchProducts([$product]);
 
-        // 三個片段前各等一次，抓完再等一次
-        $this->assertGreaterThanOrEqual(0.2, microtime(true) - $startedAt);
+        // 詳細資料、三個片段、最後清快取共五個請求；三個片段前各等一次，抓完再等一次，所以每兩個請求之間都隔開
+        $this->assertCount(5, $sentAt);
+        foreach (range(1, 4) as $i) {
+            $this->assertGreaterThanOrEqual(0.05, $sentAt[$i] - $sentAt[$i - 1], "第 {$i} 個與下一個請求之間沒有間隔");
+        }
     }
 
     public function test_new_products_come_before_listing_changes_and_the_rest_are_capped(): void

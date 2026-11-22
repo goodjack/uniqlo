@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Style;
 use App\Presenters\ProductPresenter;
+use Tests\Concerns\ParsesHtml;
 use Tests\TestCase;
 
 /**
@@ -12,6 +13,8 @@ use Tests\TestCase;
  */
 class LazyLoadImageTest extends TestCase
 {
+    use ParsesHtml;
+
     private const SRC = 'https://im.uniqlo.com/global-cms/spa/res/goods_00_990001.jpg';
 
     public function test_deferred_image_points_straight_at_the_real_url(): void
@@ -49,7 +52,11 @@ class LazyLoadImageTest extends TestCase
             ['card' => $card],
         );
 
-        $this->assertStringContainsString('<img src="'.self::SRC.'" alt="精選穿搭 Style 1" loading="lazy"', $html);
+        $image = $this->xpath($html)->query('//img')->item(0);
+
+        $this->assertSame(self::SRC, $image->getAttribute('src'));
+        $this->assertSame('精選穿搭 Style 1', $image->getAttribute('alt'));
+        $this->assertSame('lazy', $image->getAttribute('loading'));
         $this->assertStringNotContainsString('data-src', $html);
         $this->assertStringNotContainsString('lazyload', $html);
     }
