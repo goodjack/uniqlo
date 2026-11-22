@@ -229,6 +229,43 @@ class AppScheduleTest extends TestCase
         Http::assertNothingSent();
     }
 
+    /**
+     * 穿搭統計只影響商品頁的一個區塊，算失敗時照發失敗通知，但不能擋住清快取，
+     * 不然前面已經換新的價格要等快取到期才看得到。丟例外也一樣。
+     *
+     * @dataProvider statsStepFailures
+     */
+    public function test_a_failing_outfit_stats_step_still_purges_and_reports_the_failure(string $how): void
+    {
+        $this->configureCloudflare();
+        $this->fakeAllSteps(...[$how => ['style-hint:cache-stats']]);
+
+        $exitCode = $this->artisan('app:schedule')->run();
+
+        $this->assertSame(Command::FAILURE, $exitCode);
+        Http::assertSent(fn (Request $request) => str_ends_with($request->url(), '/zones/zone-123/purge_cache'));
+        Event::assertDispatched(AppTaskFailed::class, fn (AppTaskFailed $event) => count($event->data['failed_steps']) === 1
+            && str_starts_with($event->data['failed_steps'][0], 'style-hint:cache-stats'));
+    }
+
+    public static function statsStepFailures(): array
+    {
+        return [
+            'exit code 1' => ['failing'],
+            'exception' => ['throwing'],
+        ];
+    }
+
+    public function test_cdn_cache_is_still_left_alone_when_another_step_also_fails(): void
+    {
+        $this->configureCloudflare();
+        $this->fakeAllSteps(failing: ['style:fetch', 'style-hint:cache-stats']);
+
+        $this->artisan('app:schedule')->run();
+
+        Http::assertNothingSent();
+    }
+
     public function test_a_failed_purge_does_not_fail_the_daily_run(): void
     {
         $this->configureCloudflare(status: 500);

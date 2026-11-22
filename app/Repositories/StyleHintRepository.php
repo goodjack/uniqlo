@@ -6,6 +6,7 @@ use App\Models\StyleHint;
 use App\Models\StyleHintItem;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -97,6 +98,41 @@ class StyleHintRepository extends Repository
         });
     }
 
+    /**
+     * 回應沒帶辨識結果時不放這欄，已存的就不會被蓋掉。
+     *
+     * @return array{detected_items?: array<int, array{category: string, color: string}>}
+     */
+    private function detectedItemsData(object $content): array
+    {
+        $attributes = data_get($content, 'attributes');
+
+        return is_iterable($attributes)
+            ? ['detected_items' => StyleHint::detectedItemsFromUgc($attributes)]
+            : [];
+    }
+
+    /**
+     * 穿搭裡每件商品穿的尺寸，以商品編號（貨號-色號）為鍵。
+     *
+     * @return array<string, string>
+     */
+    private function itemSizesFromUgc(object $content): array
+    {
+        $sizes = [];
+
+        foreach (data_get($content, 'products', []) ?? [] as $product) {
+            $productId = data_get($product, 'ugc_item.product_id');
+            $size = data_get($product, 'ugc_item.item_size');
+
+            if (is_string($productId) && is_string($size) && $size !== '') {
+                $sizes[$productId] = $size;
+            }
+        }
+
+        return $sizes;
+    }
+
     public function saveStyleHintsFromUgc(array $contentList, string $brand = 'UNIQLO')
     {
         $country = 'tw';
@@ -127,6 +163,7 @@ class StyleHintRepository extends Repository
                 'hashtags' => null,
                 'gender' => data_get($content, 'gender'),
                 'published_at' => $publishedAt ? Carbon::parse($publishedAt) : null,
+                ...$this->detectedItemsData($content),
             ];
 
             $outfitId = $content->id_ugc_dist_content;
@@ -159,8 +196,9 @@ class StyleHintRepository extends Repository
             }
 
             $originalProductIds = collect(data_get($content, 'products.*.ugc_item.product_id'));
+            $itemSizes = $this->itemSizesFromUgc($content);
 
-            $upsertData = array_merge($upsertData, $originalProductIds->map(function ($originalProductId) use ($model) {
+            $upsertData = array_merge($upsertData, $originalProductIds->map(function ($originalProductId) use ($model, $itemSizes) {
                 try {
                     preg_match('/([0-9]+)-/', $originalProductId, $matches);
                     $code = $matches[1] ?? null;
@@ -175,6 +213,7 @@ class StyleHintRepository extends Repository
                         'style_hint_id' => $model->id,
                         'code' => $code,
                         'original_product_id' => $originalProductId,
+                        'item_size' => $itemSizes[$originalProductId] ?? null,
                     ];
                 } catch (Throwable $e) {
                     Log::error('saveStyleHintsFromUgc StyleHintItem upsert error', [
@@ -191,7 +230,12 @@ class StyleHintRepository extends Repository
 
         try {
             if ($upsertData) {
-                StyleHintItem::upsert($upsertData, uniqueBy: ['style_hint_id', 'code', 'original_product_id']);
+                // 回應沒帶尺寸時不蓋掉已存的尺寸，跟辨識結果一樣
+                StyleHintItem::upsert(
+                    $upsertData,
+                    uniqueBy: ['style_hint_id', 'code', 'original_product_id'],
+                    update: ['item_size' => DB::raw('COALESCE(VALUES(`item_size`), `item_size`)')],
+                );
             }
         } catch (Throwable $e) {
             Log::error('saveStyleHintsFromUgc StyleHintItem upsert error', [

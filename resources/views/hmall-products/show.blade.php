@@ -530,6 +530,11 @@
         </div>
     @endif
 
+    {{-- 試玩用的位置，等商品頁資訊安排定案再調 --}}
+    @if ($outfitStats)
+        @include('hmall-products.partials.outfit-stats', ['product' => $hmallProduct, 'stats' => $outfitStats])
+    @endif
+
     @if ($shown['commonly-styled'])
         <div class="ts very padded horizontally fitted attached fluid tertiary segment">
             <div class="ts container">
