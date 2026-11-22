@@ -67,6 +67,19 @@ class HmallProduct extends Model
         )->orderByDesc('style_hint_items.style_hint_id');
     }
 
+    /**
+     * 這件商品的穿搭，同一則只留一筆，新的在前。
+     */
+    public function distinctStyleHints(): Builder
+    {
+        return StyleHint::query()->distinctOutfitsForCode($this->code);
+    }
+
+    public function styleHintCount(): int
+    {
+        return StyleHint::countDistinctOutfitsForCode($this->code);
+    }
+
     public function japanProduct()
     {
         return $this->hasOne(JapanProduct::class, 'l1Id', 'code');
