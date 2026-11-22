@@ -274,10 +274,11 @@ $shareUrl = [
                 <h2 class="ts large dividing header">Official Styling 官方精選穿搭</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
+                    {{-- 舊系統的圖來源比例不一，縮圖照原圖比例、不裁切（寬高給 null） --}}
                     @foreach ($productPresenter->getStyleCards($styles, $styleDictionaries) as $card)
                         <x-image-card :link="$card['link']" :image-url="$card['imageUrl']"
                             :large-image-url="$card['largeImageUrl']" :alt="$card['alt']"
-                            :color-header="$card['colorHeader']" width="3" height="4" album="styles" />
+                            :color-header="$card['colorHeader']" :width="null" :height="null" album="styles" />
                     @endforeach
                 </div>
             </div>
@@ -293,7 +294,7 @@ $shareUrl = [
                     @foreach ($productPresenter->getPhotoCards($product) as $card)
                         <x-image-card :link="$card['link']" :image-url="$card['imageUrl']"
                             :large-image-url="$card['largeImageUrl']" :alt="$card['alt']"
-                            :color-header="$card['colorHeader']" />
+                            :color-header="$card['colorHeader']" :width="null" :height="null" />
                     @endforeach
                 </div>
             </div>

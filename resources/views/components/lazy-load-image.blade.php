@@ -1,7 +1,8 @@
+{{-- 沒給寬高時照原圖比例顯示，不裁切 --}}
 @if ($priority)
     <img src="{{ $src }}" alt="{{ $alt }}" fetchpriority="high" {{ $attributes }}
-        style="aspect-ratio: {{ $width }} / {{ $height }}; object-fit: cover;">
+        @if ($width && $height) style="aspect-ratio: {{ $width }} / {{ $height }}; object-fit: cover;" @endif>
 @else
     <img src="{{ $src }}" alt="{{ $alt }}" loading="lazy" {{ $attributes }}
-        style="aspect-ratio: {{ $width }} / {{ $height }}; object-fit: cover;">
+        @if ($width && $height) style="aspect-ratio: {{ $width }} / {{ $height }}; object-fit: cover;" @endif>
 @endif

@@ -39,6 +39,8 @@ class PhotoLightboxTest extends TestCase
         $caption = $xpath->query('//template[contains(@class, "'.ltrim($link->getAttribute('data-description'), '.').'")]')->item(0);
         $this->assertStringContainsString(self::HTML_TEXT, $caption->textContent);
         $this->assertSame(0, $xpath->query('.//b', $caption)->length);
+        // 縮圖的替代文字也只轉義一次：解析後就是原本的名稱，不是 &lt;b&gt;
+        $this->assertStringContainsString(self::HTML_TEXT, $xpath->query('.//img', $link)->item(0)->getAttribute('alt'));
 
         $this->assertOpensAsImages($xpath, 1);
         $this->assertUsesTheSharedLightbox($html);
@@ -74,6 +76,14 @@ class PhotoLightboxTest extends TestCase
         $this->assertStringNotContainsString('<i>黑色', $html);
         $this->assertSame(0, $xpath->query('//*[@data-title]')->length);
         $this->assertStringContainsString('<template class="uq-caption-hero">&lt;b&gt;男裝 圓領T恤&lt;/b&gt;</template>', $html);
+
+        // 舊系統的縮圖照原圖比例，不裁切；替代文字只轉義一次
+        $cardImages = iterator_to_array($xpath->query('//a[contains(@class, "card")][@data-lightbox]//img'));
+        $this->assertCount(4, $cardImages);
+        foreach ($cardImages as $image) {
+            $this->assertFalse($image->hasAttribute('style'), $image->getAttribute('src'));
+        }
+        $this->assertSame('商品顏色 09 <i>黑色</i>', end($cardImages)->getAttribute('alt'));
 
         // 穿搭大圖網址跟 Style 模型同一套規則
         $this->assertSame([
