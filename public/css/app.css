@@ -1346,6 +1346,57 @@ body.glightbox-open {
     height: auto !important;
 }
 
+/* 照片說明：GLightbox 預設是白底黑字的框，改成深色背景上的淡色小字 */
+.glightbox-container.glightbox-clean .gslide-description {
+    background: none;
+}
+
+.glightbox-container.glightbox-clean .gslide-desc {
+    color: rgb(255 255 255 / .7);
+    font-size: .875rem;
+    text-align: center;
+}
+
+.glightbox-container.glightbox-clean .gslide-desc a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+/* GLightbox 的動畫時長寫死在它的樣式表、選項改不到：進場、離場與換張縮短並換成減速、加速與標準曲線。
+   它的樣式表比這份晚載入，前面多一層 body 才蓋得過 */
+body .gfadeIn {
+    animation-duration: .2s;
+    animation-timing-function: cubic-bezier(0, 0, 0, 1);
+}
+
+body .gfadeOut {
+    animation-duration: .15s;
+    animation-timing-function: cubic-bezier(.3, 0, 1, 1);
+}
+
+body .gslideInRight,
+body .gslideInLeft,
+body .gslideOutLeft,
+body .gslideOutRight {
+    animation-duration: .25s;
+    animation-timing-function: cubic-bezier(.2, 0, 0, 1);
+}
+
+/* 系統開了「減少動態效果」：商品照片與社群熱推的放大圖都不做動畫。
+   不能直接設成 none，GLightbox 要等動畫結束才會繼續關閉或換張，所以縮到幾乎為零 */
+@media (prefers-reduced-motion: reduce) {
+    body .gfadeIn,
+    body .gfadeOut,
+    body .gzoomIn,
+    body .gzoomOut,
+    body .gslideInRight,
+    body .gslideInLeft,
+    body .gslideOutLeft,
+    body .gslideOutRight {
+        animation-duration: .01ms;
+    }
+}
+
 /* 在黑色區域用滑鼠拖曳換則時，不要順便選到文字 */
 .glightbox-container {
     user-select: none;

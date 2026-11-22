@@ -58,6 +58,7 @@ class HmallProductController extends Controller
      */
     public function show(HmallProduct $hmallProduct, SocialPostService $socialPostService, OutfitStatsService $outfitStatsService)
     {
+        $hmallProduct->loadMissing('detail');
         $commonlyStyledHmallProducts = $this->service->getCommonlyStyledHmallProducts($hmallProduct);
         $relatedHmallProducts = $this->service->getRelatedHmallProducts($hmallProduct);
         $relatedProducts = $this->service->getRelatedProducts($hmallProduct);

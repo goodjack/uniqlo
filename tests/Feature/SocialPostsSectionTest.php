@@ -72,7 +72,6 @@ class SocialPostsSectionTest extends TestCase
 
         $this->assertStringNotContainsString('社群熱推', $html);
         $this->assertStringNotContainsString('social-posts.js', $html);
-        $this->assertStringNotContainsString('glightbox', $html);
     }
 
     public function test_sorted_posts_come_first_then_newest(): void

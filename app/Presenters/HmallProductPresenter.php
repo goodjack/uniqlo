@@ -5,6 +5,7 @@ namespace App\Presenters;
 use App\Enums\ProductTag;
 use App\Models\HmallPriceHistory;
 use App\Models\HmallProduct;
+use App\Support\OfficialProductDetail;
 use App\Support\SiteTitle;
 
 class HmallProductPresenter
@@ -115,6 +116,64 @@ class HmallProductPresenter
         }
 
         return "https://www.uniqlo.com/tw{$hmallProduct->main_first_pic}";
+    }
+
+    /**
+     * 商品的主圖，第一張放商品頁上方，其餘放「商品實照」；還沒有詳細資料的商品只有第一張主圖。
+     *
+     * @return array<int, array{src: string, large: string}>
+     */
+    public function getMainImages(HmallProduct $hmallProduct): array
+    {
+        $images = $hmallProduct->detail?->main_images ?: [];
+
+        if ($images === []) {
+            $firstPic = $this->getMainFirstPic($hmallProduct);
+
+            return [['src' => $firstPic, 'large' => $firstPic]];
+        }
+
+        return array_map(fn (array $image) => [
+            'src' => $this->getOfficialAssetUrl($hmallProduct, $image['medium']),
+            'large' => $this->getOfficialAssetUrl($hmallProduct, $image['large']),
+        ], $images);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getVideos(HmallProduct $hmallProduct): array
+    {
+        return array_map(
+            fn (string $path) => $this->getOfficialAssetUrl($hmallProduct, $path),
+            $hmallProduct->detail?->videos ?: []
+        );
+    }
+
+    public function getOfficialAssetUrl(HmallProduct $hmallProduct, string $path): string
+    {
+        return OfficialProductDetail::url($hmallProduct->brand, $path);
+    }
+
+    /**
+     * 五星到一星各幾則與占比，沒有評價時回傳空陣列。
+     *
+     * @return array<int, array{stars: int, count: int, percent: int}>
+     */
+    public function getRatingDistribution(HmallProduct $hmallProduct): array
+    {
+        $levels = $hmallProduct->detail?->rating_levels;
+        $total = array_sum($levels ?? []);
+
+        if ($total === 0) {
+            return [];
+        }
+
+        return array_map(fn (int $count, int $index) => [
+            'stars' => 5 - $index,
+            'count' => $count,
+            'percent' => (int) round($count / $total * 100),
+        ], $levels, array_keys($levels));
     }
 
     public function getSkuPic($hmallProduct, $colorNum)

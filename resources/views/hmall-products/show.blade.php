@@ -40,10 +40,20 @@
 
     $productTags = $hmallProductPresenter->getProductTags($hmallProduct, true);
 
+    $detail = $hmallProduct->detail;
+    $mainImages = $hmallProductPresenter->getMainImages($hmallProduct);
+    $ratingDistribution = $hmallProductPresenter->getRatingDistribution($hmallProduct);
+    $features = $detail?->features ?: [];
+    // 第一張主圖放上方，其餘主圖放進「商品實照」，影片放進「商品影片」
+    $extraImages = array_slice($mainImages, 1);
+    $officialVideos = $hmallProductPresenter->getVideos($hmallProduct);
+    $materialCare = $detail?->material_care ?: [];
+
     // 只列有值的欄位。「適用對象」不沿用官方的「適穿」：值是男裝、女裝這種對象
     $productFacts = array_filter([
         '適用對象' => $hmallProduct->sex,
         '季節' => $hmallProduct->season,
+        '產地' => $detail?->origin_place,
         '網路商店編號' => $hmallProduct->product_code,
     ], fn($value) => filled($value));
 
@@ -55,14 +65,14 @@
     $collapsible = fn (int $count, string $on) => $count > $collapseAfter[$on]
         ? new \Illuminate\Support\HtmlString("data-collapse-on=\"{$on}\" data-collapse-after=\"{$collapseAfter[$on]}\"")
         : '';
-    $photoCount = count($colorNums ?? []) + count(optional($japanProduct)->main_images ?? []) + count(optional($japanProduct)->sub_images ?? []);
+    $photoCount = count($extraImages) + count($colorNums ?? []) + count(optional($japanProduct)->main_images ?? []) + count(optional($japanProduct)->sub_images ?? []);
 
     // 每一段有沒有內容。章節選單與下面各段的 @if 共用這一份，選單才不會指到不存在的段落
     $shown = [
-        'facts' => ! empty($productFacts) || $categories->isNotEmpty(),
+        'facts' => ! empty($productFacts) || $categories->isNotEmpty() || $features || $materialCare,
         'social' => $socialPosts->isNotEmpty(),
-        'videos' => (bool) optional($japanProduct)->has_videos,
-        'photos' => (bool) ($colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images),
+        'videos' => $officialVideos || optional($japanProduct)->has_videos,
+        'photos' => (bool) ($extraImages || $colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images),
         'styles' => $styles->isNotEmpty(),
         'style-hints' => $styleHints->isNotEmpty(),
         'commonly-styled' => $commonlyStyledHmallProducts->isNotEmpty(),
@@ -106,7 +116,7 @@
             'model' => $hmallProduct->code,
             'name' => $productName,
             'description' => $hmallProductPresenter->getSocialMediaDescription($hmallProduct),
-            'image' => [$hmallProductPresenter->getMainFirstPic($hmallProduct)],
+            'image' => array_column($mainImages, 'large'),
             'itemCondition' => 'https://schema.org/NewCondition',
             'brand' => ['@type' => 'Brand', 'name' => $hmallProduct->brand],
             // 價格區間刻意標歷史最低與最高價，跟頁面上顯示的一致
@@ -250,10 +260,6 @@
             }
         }
     </style>
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css"
-        integrity="sha512-ZKX+BvQihRJPA8CROKBhDNvoc2aDMOdAlcm7TUQY+35XYtrd3yh95QOOhsPDQY9QnKE0Wqag9y38OIgEvb88cA=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
 @endsection
 
 @section('content')
@@ -264,12 +270,14 @@
         <div class="ts container relaxed grid">
             <div class="seven wide large screen eight wide computer sixteen wide tablet sixteen wide mobile column">
                 <div class="ts fluid container">
-                    <a class="ts centered image" href="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
+                    {{-- 放大圖的說明同 x-image-card：轉義過的 template，由 data-description 指過去 --}}
+                    <a class="ts centered image" href="{{ $mainImages[0]['large'] }}"
                         rel="nofollow noopener" data-lightbox="image"
-                        data-title="{{ $productName }}">
+                        data-description=".uq-caption-hero" data-type="image">
                         <x-lazy-load-image class="ts centered fluid image" :priority="true"
-                            src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
+                            src="{{ $mainImages[0]['src'] }}"
                             alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}" />
+                        <template class="uq-caption-hero">{{ $productName }}</template>
                     </a>
                 </div>
             </div>
@@ -400,6 +408,41 @@
                                 <td>{{ $value }}</td>
                             </tr>
                         @endforeach
+                        @foreach ($materialCare as $section)
+                            <tr>
+                                <td class="collapsing">{{ $section['title'] ?: '材質與洗滌' }}</td>
+                                <td>{!! nl2br(e($section['content'])) !!}</td>
+                            </tr>
+                        @endforeach
+                        @if ($ratingDistribution)
+                            <tr>
+                                <td class="collapsing">評價分布</td>
+                                <td>
+                                    {{-- 放進 Tocas 的格線限制寬度，長條才不會拉滿整列 --}}
+                                    <div class="ts grid">
+                                    <div class="sixteen wide mobile ten wide tablet six wide computer column">
+                                    <table class="ts very basic compact table" aria-label="官網評價分布">
+                                        <tbody>
+                                            @foreach ($ratingDistribution as $level)
+                                                <tr>
+                                                    <td class="collapsing">{{ $level['stars'] }} 星</td>
+                                                    <td>
+                                                        <div class="ts tiny progress" aria-hidden="true">
+                                                            @if ($level['count'] > 0)
+                                                                <div class="bar" style="width: {{ $level['percent'] }}%"></div>
+                                                            @endif
+                                                        </div>
+                                                    </td>
+                                                    <td class="collapsing right aligned">{{ $level['count'] }} 則</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                    </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endif
                         @if ($categories->isNotEmpty())
                             <tr>
                                 <td class="collapsing">分類</td>
@@ -416,6 +459,35 @@
                         @endif
                     </tbody>
                 </table>
+
+                @if ($features)
+                    <h3 class="ts small dividing header">商品特點</h3>
+                    {{-- 排法照官網：電腦版一列兩則、方形小圖在左文字在右，手機一列一則；點圖放大看圖裡的字 --}}
+                    <div class="ts stackable two column grid">
+                        @foreach ($features as $feature)
+                            <div class="column">
+                                <div class="ts items">
+                                    <div class="item">
+                                        @if ($feature['image'])
+                                            <a class="ts small image" href="{{ $hmallProductPresenter->getOfficialAssetUrl($hmallProduct, $feature['image']) }}"
+                                                rel="nofollow noopener" data-lightbox="features" data-type="image"
+                                                data-description=".uq-caption-feature-{{ $loop->index }}">
+                                                <img src="{{ $hmallProductPresenter->getOfficialAssetUrl($hmallProduct, $feature['image']) }}"
+                                                    alt="{{ $feature['text'] ?: '商品特點 ' . $loop->iteration }}" width="1000" height="1000" loading="lazy">
+                                                <template class="uq-caption-feature-{{ $loop->index }}">{{ $feature['text'] ?: '商品特點 ' . $loop->iteration }}</template>
+                                            </a>
+                                        @endif
+                                        @if ($feature['text'])
+                                            <div class="content">
+                                                <div class="description">{{ $feature['text'] }}</div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </div>
         </div>
     @endif
@@ -426,13 +498,22 @@
                 @include('partials.section-anchor', ['anchor' => 'videos', 'menu' => 'product_menu'])
                 <h2 class="ts large dividing header">
                     商品影片
-                    <div class="inline sub header">日本版</div>
+                    @unless ($officialVideos)
+                        <div class="inline sub header">日本版</div>
+                    @endunless
                 </h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards">
-                    @foreach ($japanProduct->sub_videos as $key => $subVideo)
+                    {{-- 兩邊都有影片時，日本版的每支各自標來源，不然看起來像台灣官網的影片 --}}
+                    @foreach ([
+                        ...array_map(fn($video) => [$video, false], $officialVideos),
+                        ...array_map(fn($video) => [$video, (bool) $officialVideos], optional($japanProduct)->sub_videos ?? []),
+                    ] as [$subVideo, $labelAsJapan])
                         <div class="ts borderless card">
                             <div class="video uq-video">
+                                @if ($labelAsJapan)
+                                    <div class="ts mini top right attached label">日本版</div>
+                                @endif
                                 <video data-src="{{ $subVideo }}" preload="none" muted loop playsinline hidden></video>
                                 <noscript>
                                     <video src="{{ $subVideo }}" preload="none" muted loop playsinline controls></video>
@@ -455,6 +536,10 @@
                 <h2 class="ts large dividing header">商品實照</h2>
                 <div class="ts hidden divider"></div>
                 <div class="ts doubling four flatted cards uq-strip" {{ $collapsible($photoCount, 'desktop') }}>
+                    @foreach ($extraImages as $key => $image)
+                        <x-image-card imageUrl="{{ $image['src'] }}" largeImageUrl="{{ $image['large'] }}"
+                            link="" alt="官網商品圖 {{ $key + 2 }}" width="1200" height="1600" />
+                    @endforeach
                     @if ($colorNums)
                         @foreach ($colorNums as $key => $colorNum)
                             <x-image-card imageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
@@ -766,20 +851,18 @@
 @endsection
 
 @section('javascript')
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/glightbox/3.3.0/css/glightbox.min.css"
+        integrity="sha512-T+KoG3fbDoSnlgEXFQqwcTC9AdkFIxhBlmoaFqYaIjq2ShhNwNao9AKaLUPMfwiBPL0ScxAtc+UYbHAgvd+sjQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/glightbox/3.3.0/js/glightbox.min.js"
+        integrity="sha512-RBWI5Qf647bcVhqbEnRoL4KuUT+Liz+oG5jtF+HP05Oa5088M9G0GxG0uoHR9cyq35VbjahcI+Hd1xwY8E1/Kg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+    <script src="{{ asset('js/product-photos.js') }}?v={{ filemtime(public_path('js/product-photos.js')) }}" defer></script>
     @if ($shown['social'])
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/glightbox/3.3.0/css/glightbox.min.css"
-            integrity="sha512-T+KoG3fbDoSnlgEXFQqwcTC9AdkFIxhBlmoaFqYaIjq2ShhNwNao9AKaLUPMfwiBPL0ScxAtc+UYbHAgvd+sjQ=="
-            crossorigin="anonymous" referrerpolicy="no-referrer" />
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/glightbox/3.3.0/js/glightbox.min.js"
-            integrity="sha512-RBWI5Qf647bcVhqbEnRoL4KuUT+Liz+oG5jtF+HP05Oa5088M9G0GxG0uoHR9cyq35VbjahcI+Hd1xwY8E1/Kg=="
-            crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
         <script src="{{ asset('js/social-posts.js') }}?v={{ filemtime(public_path('js/social-posts.js')) }}" defer></script>
     @endif
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.bundle.min.js"
         integrity="sha512-SuxO9djzjML6b9w9/I07IWnLnQhgyYVSpHZx0JV97kGBfTIsUYlWflyuW4ypnvhBrslz1yJ3R+S14fdCWmSmSA=="
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox-plus-jquery.min.js"
-        integrity="sha512-U9dKDqsXAE11UA9kZ0XKFyZ2gQCj+3AwZdBMni7yXSvWqLFEj8C1s7wRmWl9iyij8d5zb4wm56j4z/JVEwS77g=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="{{ asset('js/product-page.js') }}?v={{ filemtime(public_path('js/product-page.js')) }}"></script>
 
@@ -911,15 +994,6 @@
         }
 
         priceChart.update();
-
-        lightbox.option({
-            'alwaysShowNavOnTouchDevices': true,
-            'albumLabel': '相片 %1 / %2',
-            'disableScrolling': true,
-            'fadeDuration': 150,
-            'resizeDuration': 150,
-            'imageFadeDuration': 0,
-        });
 
         async function webShare() {
             if (navigator.share === undefined) {
