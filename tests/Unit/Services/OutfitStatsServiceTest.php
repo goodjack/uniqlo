@@ -177,6 +177,34 @@ class OutfitStatsServiceTest extends TestCase
     }
 
     /**
+     * 女生切 160、170 公分，男生切 175 公分（男生身高中位數比女生高十幾公分，切點各自落在中間）。
+     */
+    public function test_sizes_are_counted_per_gender_and_height_group(): void
+    {
+        $this->seedOutfits(2, ['gender' => 2, 'height' => 159, 'sizes' => ['S']]);
+        $this->seedOutfit(['gender' => 2, 'height' => 152, 'sizes' => ['M']]);
+        // 同一則穿了這件的兩個尺寸，各算一次，這一則在這組只算一則
+        $this->seedOutfit(['gender' => 2, 'height' => 160, 'colors' => ['03', '44'], 'sizes' => ['M', 'L']]);
+        $this->seedOutfit(['gender' => 2, 'height' => 170, 'sizes' => ['L']]);
+        $this->seedOutfits(2, ['gender' => 1, 'height' => 174, 'sizes' => ['XL']]);
+        $this->seedOutfit(['gender' => 1, 'height' => 175, 'sizes' => ['xl']]);
+        // 兒童、沒填身高或沒有尺寸的不列入
+        $this->seedOutfit(['gender' => 3, 'height' => 150, 'sizes' => ['S']]);
+        $this->seedOutfit(['gender' => 2, 'height' => null, 'sizes' => ['S']]);
+        $this->seedOutfit(['gender' => 1, 'height' => 170, 'sizes' => [null]]);
+
+        $stats = $this->service()->compute($this->product);
+
+        $this->assertSame([
+            ['gender' => 'men', 'from' => null, 'until' => 175, 'outfits' => 2, 'sizes' => [['size' => 'XL', 'count' => 2]]],
+            ['gender' => 'men', 'from' => 175, 'until' => null, 'outfits' => 1, 'sizes' => [['size' => 'XL', 'count' => 1]]],
+            ['gender' => 'women', 'from' => null, 'until' => 160, 'outfits' => 3, 'sizes' => [['size' => 'S', 'count' => 2], ['size' => 'M', 'count' => 1]]],
+            ['gender' => 'women', 'from' => 160, 'until' => 170, 'outfits' => 1, 'sizes' => [['size' => 'L', 'count' => 1], ['size' => 'M', 'count' => 1]]],
+            ['gender' => 'women', 'from' => 170, 'until' => null, 'outfits' => 1, 'sizes' => [['size' => 'L', 'count' => 1]]],
+        ], $stats['sizes_by_gender_height']);
+    }
+
+    /**
      * 官方辨識會把商品本身也算進去：牛仔褲的穿搭幾乎都有「藍色褲子」，那是這件商品自己。
      */
     public function test_detected_items_leave_out_the_kind_of_item_this_product_is(): void
