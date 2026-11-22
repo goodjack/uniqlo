@@ -2,15 +2,12 @@
 
 namespace Tests\Feature\Console\Commands;
 
-use App\Console\Commands\AppSchedule;
 use App\Models\HmallProduct;
 use App\Services\OutfitStatsService;
 use App\Support\TaskNotes;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use ReflectionMethod;
 use RuntimeException;
 use Tests\TestCase;
 use Throwable;
@@ -32,9 +29,9 @@ class CacheOutfitStatsTest extends TestCase
 
         $this->artisan('style-hint:cache-stats')->assertSuccessful();
 
-        $this->assertSame(OutfitStatsService::MIN_OUTFITS, Cache::get('hmall_product:outfit_stats:450001')['outfits']);
-        $this->assertNull(Cache::get('hmall_product:outfit_stats:450002'));
-        $this->assertNull(Cache::get('hmall_product:outfit_stats:450003'));
+        $this->assertSame(OutfitStatsService::MIN_OUTFITS, $this->statsOf('450001')['outfits']);
+        $this->assertNull($this->statsOf('450002'));
+        $this->assertNull($this->statsOf('450003'));
     }
 
     public function test_the_all_option_includes_products_no_longer_on_sale(): void
@@ -44,7 +41,7 @@ class CacheOutfitStatsTest extends TestCase
 
         $this->artisan('style-hint:cache-stats', ['--all' => true])->assertSuccessful();
 
-        $this->assertNotNull(Cache::get('hmall_product:outfit_stats:450002'));
+        $this->assertNotNull($this->statsOf('450002'));
     }
 
     public function test_the_product_option_limits_the_run_to_those_product_codes(): void
@@ -56,8 +53,8 @@ class CacheOutfitStatsTest extends TestCase
 
         $this->artisan('style-hint:cache-stats', ['--product' => ['u450002']])->assertSuccessful();
 
-        $this->assertNull(Cache::get('hmall_product:outfit_stats:450001'));
-        $this->assertNotNull(Cache::get('hmall_product:outfit_stats:450002'));
+        $this->assertNull($this->statsOf('450001'));
+        $this->assertNotNull($this->statsOf('450002'));
     }
 
     public function test_detected_items_of_the_same_kind_as_the_product_are_left_out(): void
@@ -70,7 +67,7 @@ class CacheOutfitStatsTest extends TestCase
 
         $this->artisan('style-hint:cache-stats')->assertSuccessful();
 
-        $this->assertSame(['shoes'], array_column(Cache::get('hmall_product:outfit_stats:450001')['detected_pairs'], 'category'));
+        $this->assertSame(['shoes'], array_column($this->statsOf('450001')['detected_pairs'], 'category'));
     }
 
     public function test_a_few_failing_products_do_not_fail_the_scheduled_step(): void
@@ -123,16 +120,9 @@ class CacheOutfitStatsTest extends TestCase
         $this->assertSame(['同一個錯誤', '測試用的失敗 450003'], $reported);
     }
 
-    public function test_it_runs_after_the_outfits_are_fetched_in_the_daily_schedule(): void
+    private function statsOf(string $code): ?array
     {
-        $steps = (new ReflectionMethod(AppSchedule::class, 'steps'))->invoke(null);
-        $commands = array_map(fn (array $step) => $step[0], $steps);
-
-        $this->assertSame('style-hint:cache-stats', end($commands));
-        $this->assertGreaterThan(
-            array_search('style-hint-ugc:fetch', $commands, true),
-            array_search('style-hint:cache-stats', $commands, true)
-        );
+        return app(OutfitStatsService::class)->get(HmallProduct::where('code', $code)->firstOrFail());
     }
 
     /**

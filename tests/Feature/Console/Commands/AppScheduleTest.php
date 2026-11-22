@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Console\Commands;
 
-use App\Console\Commands\AppSchedule;
 use App\Enums\CrawlOutcome;
 use App\Events\AppTaskFailed;
 use App\Events\AppTaskFinished;
@@ -66,31 +65,13 @@ class AppScheduleTest extends TestCase
         Event::assertNotDispatched(AppTaskFailed::class);
     }
 
-    public function test_product_details_are_skipped_when_a_step_fails(): void
-    {
-        $this->fakeAllSteps(failing: ['style:fetch']);
-
-        $this->artisan('app:schedule')->run();
-
-        $this->assertNotContains(AppSchedule::PRODUCT_DETAIL_COMMAND, $this->executedSteps);
-    }
-
-    public function test_product_details_still_run_when_only_a_step_that_does_not_block_the_purge_fails(): void
-    {
-        $this->fakeAllSteps(failing: ['style-hint:cache-stats']);
-
-        $exitCode = $this->artisan('app:schedule')->run();
-
-        $this->assertSame(Command::FAILURE, $exitCode);
-        $this->assertContains(AppSchedule::PRODUCT_DETAIL_COMMAND, $this->executedSteps);
-    }
-
     public function test_a_failed_product_detail_run_does_not_fail_the_daily_run(): void
     {
-        $this->fakeAllSteps(throwing: [AppSchedule::PRODUCT_DETAIL_COMMAND]);
+        $this->fakeAllSteps(throwing: ['hmall-product-detail:fetch']);
 
         $exitCode = $this->artisan('app:schedule')->run();
 
+        $this->assertSame('hmall-product-detail:fetch', end($this->executedSteps), '商品詳細資料那一步要真的跑到並丟出例外');
         $this->assertSame(Command::SUCCESS, $exitCode);
         Event::assertNotDispatched(AppTaskFailed::class);
     }
@@ -273,7 +254,7 @@ class AppScheduleTest extends TestCase
      * 有步驟整步失敗時不清：失敗通知會叫人處理，頁面靠快取到期自然更新，
      * 也避免原始伺服器狀況不好時一次把所有快取都清掉。
      */
-    public function test_cdn_cache_is_left_alone_when_a_step_fails(): void
+    public function test_cdn_cache_is_left_alone_and_product_details_are_skipped_when_a_step_fails(): void
     {
         $this->configureCloudflare();
         $this->fakeAllSteps(failing: ['style:fetch']);
@@ -282,10 +263,11 @@ class AppScheduleTest extends TestCase
 
         $this->assertSame(Command::FAILURE, $exitCode);
         Http::assertNothingSent();
+        $this->assertNotContains('hmall-product-detail:fetch', $this->executedSteps);
     }
 
     /**
-     * 穿搭統計只影響商品頁的一個區塊，算失敗時照發失敗通知，但不能擋住清快取，
+     * 穿搭統計只影響商品頁的一個區塊，算失敗時照發失敗通知，但不能擋住清快取與後面的商品詳細資料，
      * 不然前面已經換新的價格要等快取到期才看得到。丟例外也一樣。
      *
      * @dataProvider statsStepFailures
@@ -299,6 +281,7 @@ class AppScheduleTest extends TestCase
 
         $this->assertSame(Command::FAILURE, $exitCode);
         Http::assertSent(fn (Request $request) => str_ends_with($request->url(), '/zones/zone-123/purge_cache'));
+        $this->assertContains('hmall-product-detail:fetch', $this->executedSteps, '清完快取照樣接著抓商品詳細資料');
         Event::assertDispatched(AppTaskFailed::class, fn (AppTaskFailed $event) => count($event->data['failed_steps']) === 1
             && str_starts_with($event->data['failed_steps'][0], 'style-hint:cache-stats'));
     }
