@@ -38,10 +38,10 @@ return [
     ],
 
     /*
-     * 清單頁的分組，十個清單平舖會變成十個一樣重要的入口。
+     * 清單頁的分組：清單一多，平舖會變成一堆一樣重要的入口。
      *
      * pinned：桌機導覽列外層的一鍵入口（同 master），下拉裡就不重複列。
-     * 有對應 ProductTag 的清單直接讀它的 label；「熱門」那組不是官方標籤，寫死。
+     * 有對應 ProductTag 的清單直接讀它的 label；「熱門」那組除了社群人氣話題都不是官方標籤，寫死。
      */
     'groups' => [
         '優惠' => [
@@ -55,6 +55,7 @@ return [
             ['route' => 'lists.top-wearing', 'label' => '熱門穿搭', 'icon' => 'camera retro'],
             ['route' => 'lists.most-reviewed', 'label' => '熱門評論', 'icon' => 'comments outline'],
             ['route' => 'lists.japan-most-reviewed', 'label' => '日本熱門評論', 'icon' => 'comments outline'],
+            ['route' => 'lists.community-topics', 'label' => ProductTag::CommunityTopic->label(), 'icon' => 'hashtag'],
         ],
         '新品' => [
             ['route' => 'lists.new', 'label' => ProductTag::NewArrival->label(), 'icon' => 'leaf'],

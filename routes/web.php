@@ -108,6 +108,7 @@ Route::group(['prefix' => 'lists', 'middleware' => 'edge-cache'], function () {
     Route::get('/multi-buy', [ListController::class, 'getMultiBuy'])->name('lists.multi-buy');
     Route::get('/online-special', [ListController::class, 'getOnlineSpecial'])->name('lists.online-special');
     Route::get('/most-visited', [ListController::class, 'getMostVisited'])->name('lists.most-visited');
+    Route::get('/community-topics', [ListController::class, 'getCommunityTopics'])->name('lists.community-topics');
 });
 
 Route::group(['prefix' => 'old-lists'], function () {

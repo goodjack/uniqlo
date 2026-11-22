@@ -147,7 +147,7 @@ class ProductTagTest extends TestCase
         foreach ([
             '["time_doptimal"]', '["APP"]', '["ECONLY"]', '["concessional_rate"]',
             '["new_product"]', '["COMING SOON"]', '["COMING"]', '["multi_buy"]',
-            '["SET"]', '["ONLINE SPECIAL"]', '["APPAREL"]',
+            '["SET"]', '["ONLINE SPECIAL"]', '["APPAREL"]', '["HOT ITEM"]', '["COMMUNITY_TOPICS"]',
         ] as $identity) {
             $this->createProduct(['identity' => $identity]);
         }

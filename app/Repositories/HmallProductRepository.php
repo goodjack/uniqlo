@@ -54,6 +54,8 @@ class HmallProductRepository extends Repository
 
     private const CACHE_KEY_ONLINE_SPECIAL = 'hmall_product:online_special';
 
+    private const CACHE_KEY_COMMUNITY_TOPIC = 'hmall_product:community_topic';
+
     private const CACHE_KEY_MOST_VISITED = 'hmall_product:most_visited';
 
     private const CACHE_KEY_MOST_VISITED_RANKS = 'hmall_product:most_visited_ranks';
@@ -332,6 +334,15 @@ class HmallProductRepository extends Repository
         return Cache::get(self::CACHE_KEY_ONLINE_SPECIAL);
     }
 
+    public function getCommunityTopicHmallProducts()
+    {
+        if (! Cache::has(self::CACHE_KEY_COMMUNITY_TOPIC)) {
+            $this->setCommunityTopicHmallProductsCache();
+        }
+
+        return Cache::get(self::CACHE_KEY_COMMUNITY_TOPIC);
+    }
+
     public function getMostVisitedHmallProducts()
     {
         if (! Cache::has(self::CACHE_KEY_MOST_VISITED)) {
@@ -542,6 +553,21 @@ class HmallProductRepository extends Repository
             ->get();
 
         Cache::forever(self::CACHE_KEY_ONLINE_SPECIAL, $hmallProducts);
+    }
+
+    public function setCommunityTopicHmallProductsCache()
+    {
+        $hmallProducts = $this->model
+            ->select(self::SELECT_COLUMNS_FOR_LIST)
+            ->with('japanProduct')
+            ->listedUnder(ProductTag::CommunityTopic)
+            ->orderBy('evaluation_count', 'desc')
+            ->orderBy('score', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        Cache::forever(self::CACHE_KEY_COMMUNITY_TOPIC, $hmallProducts);
     }
 
     public function setMostVisitedHmallProductsCache()

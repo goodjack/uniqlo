@@ -42,6 +42,7 @@ class SetHmallProductCaches extends Command
         $hmallProductRepository->setComingSoonHmallProductsCache();
         $hmallProductRepository->setMultiBuyHmallProductsCache();
         $hmallProductRepository->setOnlineSpecialHmallProductsCache();
+        $hmallProductRepository->setCommunityTopicHmallProductsCache();
 
         AppTaskFinished::dispatch(class_basename(__CLASS__));
         $this->info('Set Hmall product caches');

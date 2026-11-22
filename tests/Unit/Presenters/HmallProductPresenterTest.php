@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Presenters;
 
+use App\Enums\ProductTag;
 use App\Models\HmallProduct;
 use App\Presenters\HmallProductPresenter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -67,6 +68,34 @@ class HmallProductPresenterTest extends TestCase
             '新款商品' => [['identity' => '["new_product"]']],
             '即將上市' => [['identity' => '["COMING SOON"]']],
             '網路獨家販售（不含 ECONLY）' => [['identity' => '["ONLINE SPECIAL"]']],
+        ];
+    }
+
+    /**
+     * 兩家的代號都對到同一個標籤，卡片標籤連到清單頁；它講的是人氣，不算優惠。
+     *
+     * @dataProvider communityTopicProvider
+     */
+    public function test_both_brands_codes_map_to_the_community_topic_tag(string $brand, string $identity): void
+    {
+        $product = $this->createProduct(['brand' => $brand, 'identity' => json_encode([$identity])]);
+
+        $this->assertSame(
+            [ProductTag::CommunityTopic],
+            collect(ProductTag::cases())->filter(fn (ProductTag $tag) => $tag->matches($product))->values()->all()
+        );
+
+        $tag = collect($this->presenter->getProductTags($product))->firstWhere('url', route('lists.community-topics'));
+
+        $this->assertNotNull($tag, "{$brand} 的商品要有連到清單頁的標籤");
+        $this->assertFalse($this->presenter->isOnOffer($product));
+    }
+
+    public static function communityTopicProvider(): array
+    {
+        return [
+            'GU' => ['GU', 'HOT ITEM'],
+            'UNIQLO' => ['UNIQLO', 'COMMUNITY_TOPICS'],
         ];
     }
 

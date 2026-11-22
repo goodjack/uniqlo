@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ProductTag;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -89,6 +90,21 @@ class HmallProduct extends Model
     public function getIsOnlineSpecialAttribute()
     {
         return ProductTag::OnlineSpecial->matches($this);
+    }
+
+    /**
+     * 清單頁收哪些商品：有這個標籤而且在售。清單快取與站長指令共用，兩邊列的才會是同一批。
+     */
+    public function scopeListedUnder(Builder $query, ProductTag $tag): Builder
+    {
+        return $query->where(fn ($group) => $tag->applyTo($group))
+            ->where('hmall_products.stock', 'Y')
+            ->whereNull('hmall_products.stockout_at');
+    }
+
+    public function getIsCommunityTopicAttribute(): bool
+    {
+        return ProductTag::CommunityTopic->matches($this);
     }
 
     /**
