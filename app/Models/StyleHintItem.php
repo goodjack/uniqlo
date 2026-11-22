@@ -9,7 +9,7 @@ class StyleHintItem extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['style_hint_id', 'code', 'original_product_id'];
+    protected $fillable = ['style_hint_id', 'code', 'original_product_id', 'item_size'];
 
     public $timestamps = false;
 }

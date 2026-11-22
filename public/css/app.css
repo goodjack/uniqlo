@@ -1753,3 +1753,19 @@ dialog.ts.modal.uq-scanner-panel {
     color: var(--uq-link);
     text-decoration: underline;
 }
+
+/* 商品頁穿搭統計：每列名稱與占比在上、長條在下 */
+.uq-outfit-stats .uq-outfit-stat+.uq-outfit-stat {
+    margin-top: 10px;
+}
+
+.uq-outfit-stat-label {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.uq-outfit-stat .ts.progress {
+    margin: 0;
+}

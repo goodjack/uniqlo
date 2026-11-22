@@ -34,6 +34,7 @@ class AppSchedule extends Command
         $steps = self::steps();
         $failedSteps = [];
         $partialSteps = [];
+        $keepsCachePurge = true;
 
         foreach ($steps as $step) {
             $command = $step[0];
@@ -51,6 +52,7 @@ class AppSchedule extends Command
                 $partialSteps[] = $description;
             } else {
                 $failedSteps[] = $description;
+                $keepsCachePurge = $keepsCachePurge && in_array($command, self::PURGE_ANYWAY_COMMANDS, true);
             }
         }
 
@@ -58,17 +60,23 @@ class AppSchedule extends Command
             $this->reportOutcome($failedSteps, $partialSteps, count($steps));
         }
 
-        if ($failedSteps !== []) {
-            return self::FAILURE;
-        }
-
         // 價格與商品資料整批換新了，CDN 上的頁面跟著清掉，不用等快取過期。
         // 有步驟整步失敗時不清：交給快取自然過期，也避免原始伺服器狀況不好時清空快取。
         // 清不掉只記 log，不影響這一輪的結果
-        $this->call('cloudflare:purge');
+        if ($keepsCachePurge) {
+            $this->call('cloudflare:purge');
+        }
 
-        return self::SUCCESS;
+        return $failedSteps === [] ? self::SUCCESS : self::FAILURE;
     }
+
+    /**
+     * 失敗時照發失敗通知、但不擋最後清快取的指令：只算顯示用的衍生資料，
+     * 失敗多半是指令本身的問題，不代表原始伺服器狀況不好；擋下來的話前面換新的價格要等快取到期才看得到。
+     */
+    private const PURGE_ANYWAY_COMMANDS = [
+        'style-hint:cache-stats',
+    ];
 
     /**
      * exit code 照 CrawlOutcome 解讀的指令。其他指令的 2 是 Symfony 的
@@ -105,6 +113,7 @@ class AppSchedule extends Command
             ['style-hint:fetch', ['country' => 'jp']],
             ['style-hint-ugc:fetch', ['brand' => Brand::Uniqlo->value, '--only-recent' => true, '--is-scheduled' => true]],
             ['style-hint-ugc:fetch', ['brand' => Brand::Gu->value, '--only-recent' => true, '--is-scheduled' => true]],
+            ['style-hint:cache-stats'],
         ];
     }
 

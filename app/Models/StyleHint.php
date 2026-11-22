@@ -32,11 +32,13 @@ class StyleHint extends Model
         'hashtags',
         'gender',
         'published_at',
+        'detected_items',
     ];
 
     protected $casts = [
         'user_info' => 'array',
         'hashtags' => 'array',
+        'detected_items' => 'array',
     ];
 
     protected static function booted(): void
@@ -117,6 +119,30 @@ class StyleHint extends Model
             ->where('items.code', $code)
             ->selectRaw('count(distinct '.self::outfitKeySql().') as aggregate')
             ->value('aggregate');
+    }
+
+    /**
+     * 官方辨識出的單品，每種「品類＋顏色」只留一筆：同一雙鞋常被辨識成左右兩隻、或同時標成鞋子與靴子。
+     *
+     * @param  iterable<int, object|array<string, mixed>>  $attributes
+     * @return array<int, array{category: string, color: string}>
+     */
+    public static function detectedItemsFromUgc(iterable $attributes): array
+    {
+        $items = [];
+
+        foreach ($attributes as $attribute) {
+            $category = data_get($attribute, 'intermediate_category');
+            $color = data_get($attribute, 'detected_color');
+
+            if (! is_string($category) || $category === '' || ! is_string($color) || $color === '') {
+                continue;
+            }
+
+            $items["{$category}|{$color}"] = ['category' => $category, 'color' => $color];
+        }
+
+        return array_values($items);
     }
 
     public function hmallProducts()
