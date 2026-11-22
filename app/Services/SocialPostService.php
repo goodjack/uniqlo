@@ -29,17 +29,21 @@ class SocialPostService
     {
         $codes = fn ($query) => $query->where('code', $hmallProduct->code);
 
-        return SocialPost::visible()
+        $posts = SocialPost::visible()
             ->whereHas('codes', $codes)
             ->addSelect(['start_seconds' => SocialPostCode::select('start_seconds')
                 ->whereColumn('social_post_id', 'social_posts.id')
                 ->where('code', $hmallProduct->code)
                 ->limit(1)])
             ->displayOrder()
-            ->get()
-            // 同一篇在 Notion 清單裡貼了不只一次，只留排在最前面的那則；沒有正式網址的認不出是哪篇，各自留著
-            ->unique(fn (SocialPost $post) => $post->canonical_url ?? "id:{$post->id}")
-            ->values();
+            ->get();
+
+        // 同一篇在 Notion 清單裡貼了不只一次（合併被擋下時），只放 Notion 上沒標重複的那列：
+        // 跟 SocialPostDuplicateMerger 一樣挑最早建立的，再照網站排序擺。沒有正式網址的認不出是哪篇，各自留著
+        $kept = $posts->groupBy(fn (SocialPost $post) => $post->canonical_url ?? "id:{$post->id}")
+            ->map(fn (Collection $group) => $group->sortBy([['notion_created_at', 'asc'], ['id', 'asc']])->first()->id);
+
+        return $posts->whereIn('id', $kept->values())->values();
     }
 
     /**
@@ -158,12 +162,11 @@ class SocialPostService
                 'exception' => $e->getMessage(),
             ]);
             // 連不上或平台暫時擋下可能只是暫時的，原本正常顯示的就先留著，隔天整批重抓再判斷
-            $temporary = $noPreview || SocialPostFetcher::isTemporaryFailure($e);
-            if (! ($temporary && $post->exists && ! $replaced)) {
+            // 原本就有、也沒換成別篇的才沿用原狀態；新加的、或換了別篇的，就算只是暫時的錯誤也沒上網站，
+            // 記成失敗讓 Notion 看得出來，下次抓到就會改掉
+            $keepAsIs = ($noPreview || SocialPostFetcher::isTemporaryFailure($e)) && $post->exists && ! $replaced;
+            if (! $keepAsIs) {
                 $post->status = SocialPostStatus::Failed;
-            }
-            // 換了別篇時即使只是暫時的錯誤也已經下架，記成失敗讓 Notion 看得出來，下次抓到就會改掉
-            if (! $temporary || $replaced) {
                 $post->sync_status = $e instanceof SocialPostUnavailableException ? $e->reason : SocialSyncStatus::Failed;
             }
 

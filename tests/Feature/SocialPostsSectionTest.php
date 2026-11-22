@@ -91,19 +91,19 @@ class SocialPostsSectionTest extends TestCase
         $this->assertSame(['排序一', '排序二', '新的沒排序', '舊的沒排序'], $m[1]);
     }
 
-    public function test_same_post_listed_twice_shows_one_card_in_display_order(): void
+    public function test_same_post_listed_twice_shows_the_row_notion_keeps(): void
     {
         $url = 'https://www.threads.com/@meta/post/DDzbnVKx57R';
-        $this->seedPost('排在後面的那列', ['canonical_url' => $url, 'sort' => 2]);
-        $this->seedPost('排在前面的那列', ['canonical_url' => $url, 'sort' => 1]);
+        $this->seedPost('較早建立的那列', ['canonical_url' => $url, 'sort' => 2]);
+        $this->seedPost('較晚建立的那列', ['canonical_url' => $url, 'sort' => 1]);
         $this->seedPost('另一篇', ['sort' => 3]);
 
         $html = $this->productPage();
 
-        // Notion 清單裡同一篇貼了兩次（原文網址、分享短網址），商品頁只放一張
+        // Notion 清單裡同一篇貼了兩次又合併不了時，商品頁只放一張，而且是 Notion 上沒標重複的那列（最早建立的）
         $this->assertSame(2, substr_count($html, 'class="ts borderless card uq-social-card"'));
-        $this->assertStringContainsString('排在前面的那列', $html);
-        $this->assertStringNotContainsString('排在後面的那列', $html);
+        $this->assertStringContainsString('較早建立的那列', $html);
+        $this->assertStringNotContainsString('較晚建立的那列', $html);
         $this->assertStringContainsString('data-embed="1"', $html);
         $this->assertStringNotContainsString('data-embed="2"', $html);
     }

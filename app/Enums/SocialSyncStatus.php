@@ -12,7 +12,7 @@ enum SocialSyncStatus: string
     case NotEmbeddable = '無法嵌入';
     case LoginRequired = '沒登入看不到';
     case Deleted = '已刪除';
-    // 同一篇貼文在清單裡出現不只一次，網站只放排在最前面的那列
+    // 同一篇貼文在清單裡出現不只一次，網站只放最早建立的那列，其餘標這個
     case Duplicate = '重複';
     // 重複，但這列有排在前面那列沒有的貨號，刪掉這列那幾個商品頁就少了這篇
     case DuplicateWithExtraCodes = '重複，貨號不同';

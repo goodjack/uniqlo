@@ -654,14 +654,29 @@ class SyncSocialPostsTest extends TestCase
         $this->assertSame([['同步狀態' => ['select' => ['name' => '抓取失敗']]]], $this->notionUpdates());
     }
 
-    public function test_temporary_failures_leave_the_sync_status_alone(): void
+    public function test_temporary_failures_leave_the_sync_status_of_an_existing_row_alone(): void
     {
-        $this->fakeNotion([$this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'status' => '已刪除'])]);
+        $this->fakeNotion([$this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'status' => '正常'])]);
+        $this->fakeFetcher(fn () => $this->fetched());
+        $this->artisan('social-post:sync');
+
+        $this->fakeFetcher(fn () => throw new RequestException(new Response(new \GuzzleHttp\Psr7\Response(503))));
+        $this->artisan('social-post:sync --full');
+
+        $this->assertSame([], $this->notionUpdates());
+        $this->assertSame(SocialPostStatus::Ok, SocialPost::first()->status);
+    }
+
+    public function test_new_row_hit_by_a_temporary_failure_is_marked_failed(): void
+    {
+        // 新加的列第一次就抓不到，沒上網站；Notion 要看得出來，不能一直空白
+        $this->fakeNotion([$this->page('page-1', ['name' => '我的穿搭', 'url' => self::CANONICAL_URL, 'status' => null])]);
         $this->fakeFetcher(fn () => throw new RequestException(new Response(new \GuzzleHttp\Psr7\Response(503))));
 
         $this->artisan('social-post:sync');
 
-        $this->assertSame([], $this->notionUpdates());
+        $this->assertSame([['同步狀態' => ['select' => ['name' => '抓取失敗']]]], $this->notionUpdates());
+        $this->assertSame(SocialPostStatus::Failed, SocialPost::first()->status);
     }
 
     public function test_sync_status_is_skipped_when_the_notion_database_has_no_such_property(): void
@@ -1211,5 +1226,29 @@ class SyncSocialPostsTest extends TestCase
         $this->assertSame([], $marks);
         $this->assertSame(2, SocialPost::count());
         Http::assertNothingSent();
+    }
+
+    public function test_site_shows_the_row_notion_does_not_mark_when_a_merge_is_blocked(): void
+    {
+        // 影片時間不同合併不了，兩列並存：Notion 標重複的是較晚那列，商品頁就要放較早那列（從它的時間播）
+        $product = HmallProduct::unguarded(fn () => HmallProduct::create([
+            'brand' => 'UNIQLO', 'name' => '寬褲', 'product_name' => '寬褲', 'code' => '479123', 'product_code' => 'u479123',
+            'sex' => '女裝', 'gender' => '女裝', 'identity' => '[]', 'stock' => 'Y',
+            'min_price' => 990, 'lowest_record_price' => 990, 'highest_record_price' => 990,
+        ]));
+        $this->fakeNotion([
+            $this->page('page-2', ['url' => self::CANONICAL_URL, 'codes' => '479123@2:00', 'status' => null]),
+            // 較早建立的 page-1 排在清單後面，資料庫編號比較大，確認挑的是建立時間不是編號
+            $this->page('page-1', ['url' => self::CANONICAL_URL, 'codes' => '479123@1:00', 'created' => '2026-10-17T16:00:00.000Z', 'status' => null]),
+        ]);
+        $this->fakeFetcher(fn () => $this->fetched());
+
+        $this->artisan('social-post:sync');
+
+        $marked = collect($this->notionWrites())->filter(fn (array $write) => ($write[1]['同步狀態']['select']['name'] ?? null) === '重複');
+        $this->assertSame(['page-2'], $marked->pluck(0)->values()->all());
+        $shown = app(SocialPostService::class)->getForProduct($product);
+        $this->assertSame(['page-1'], $shown->pluck('notion_page_id')->all());
+        $this->assertSame(60, $shown->first()->start_seconds);
     }
 }
