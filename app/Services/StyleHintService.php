@@ -21,6 +21,8 @@ class StyleHintService extends Service
 
     private const CONSECUTIVE_EMPTY_PAGES_THRESHOLD = 3;
 
+    private const MAX_CONSECUTIVE_PAGES_WITHOUT_TOTAL = 3;
+
     private const CACHE_UGC_SCHEDULING = 'style_hint_ugc:scheduling';
 
     private const CACHE_UGC_MANUAL_LAST_GENDER = 'style_hint_ugc:manual:%s:last_gender';
@@ -73,6 +75,7 @@ class StyleHintService extends Service
         $total = 0;
         $hasSucceeded = false;
         $consecutiveEmptyPages = 0;
+        $pagesWithoutTotal = 0;
 
         logger()->info("Fetching style hints for {$country}".($backfill ? ' (backfill)' : '').", starting from offset {$offset}");
 
@@ -80,7 +83,7 @@ class StyleHintService extends Service
 
         do {
             try {
-                [$styleHintSummaries, $total] = retry(
+                [$styleHintSummaries, $pageTotal] = retry(
                     config('app.crawler.retry.times'),
                     function ($attempts) use ($country, $offset, $limit) {
                         $response = Http::withHeaders($this->buildHeaders())
@@ -97,33 +100,48 @@ class StyleHintService extends Service
                         $images = data_get($responseBody, 'result.images');
                         $total = data_get($responseBody, 'result.pagination.total');
 
-                        if (is_null($images) || is_null($total)) {
-                            throw new Exception("Missing required fields in response. {$response->body()}");
-                        }
+                        $this->ensureListResponseUsable(is_array($images), is_numeric($total), $attempts, $response->body());
 
-                        return [$images, $total];
+                        return [is_array($images) ? $images : null, $total];
                     },
                     fn ($attempts, $e) => $this->getRetrySleepMilliseconds($attempts, $e),
                     fn ($e) => $this->shouldRetry($e),
                 );
 
-                $newCount = $this->fetchStyleHintsDetails($country, $styleHintSummaries);
+                $total = $this->resolveTotal(
+                    $pageTotal,
+                    $total,
+                    $offset,
+                    $limit,
+                    count($styleHintSummaries ?? []),
+                    $pagesWithoutTotal,
+                    ['country' => $country, 'offset' => $offset],
+                );
 
-                $hasSucceeded = true;
+                if (is_null($styleHintSummaries)) {
+                    logger()->error('fetchAllStyleHints page missing images - skipped', [
+                        'country' => $country,
+                        'offset' => $offset,
+                    ]);
+                } else {
+                    $newCount = $this->fetchStyleHintsDetails($country, $styleHintSummaries);
 
-                // Early termination in daily mode
-                if (! $backfill) {
-                    if ($newCount === 0) {
-                        $consecutiveEmptyPages++;
-                        logger()->info("Page at offset {$offset} had zero new items ({$consecutiveEmptyPages}/".self::CONSECUTIVE_EMPTY_PAGES_THRESHOLD.')');
+                    $hasSucceeded = true;
 
-                        if ($consecutiveEmptyPages >= self::CONSECUTIVE_EMPTY_PAGES_THRESHOLD) {
-                            logger()->info("Early termination: {$consecutiveEmptyPages} consecutive empty pages for {$country}");
+                    // Early termination in daily mode
+                    if (! $backfill) {
+                        if ($newCount === 0) {
+                            $consecutiveEmptyPages++;
+                            logger()->info("Page at offset {$offset} had zero new items ({$consecutiveEmptyPages}/".self::CONSECUTIVE_EMPTY_PAGES_THRESHOLD.')');
 
-                            break;
+                            if ($consecutiveEmptyPages >= self::CONSECUTIVE_EMPTY_PAGES_THRESHOLD) {
+                                logger()->info("Early termination: {$consecutiveEmptyPages} consecutive empty pages for {$country}");
+
+                                break;
+                            }
+                        } else {
+                            $consecutiveEmptyPages = 0;
                         }
-                    } else {
-                        $consecutiveEmptyPages = 0;
                     }
                 }
 
@@ -240,6 +258,54 @@ class StyleHintService extends Service
         return $allCompleted;
     }
 
+    /**
+     * 少了欄位先照常重試；最後一次仍只缺列表或總數其中一個，才收下交給呼叫端跳過那部分。
+     */
+    private function ensureListResponseUsable(bool $hasList, bool $hasTotal, int $attempts, string $body): void
+    {
+        if ($hasList && $hasTotal) {
+            return;
+        }
+
+        $isLastAttempt = $attempts >= (int) config('app.crawler.retry.times');
+
+        if ($isLastAttempt && ($hasList || $hasTotal)) {
+            return;
+        }
+
+        throw new Exception("Missing required fields in response. {$body}");
+    }
+
+    /**
+     * 這頁沒給總數時沿用已知的總數；這頁是滿的就先假設後面還有，讓第 1 頁缺總數也能往下抓。
+     * 連續幾頁都沒給總數就不再往後推，避免上游一直回滿頁時停不下來。
+     */
+    private function resolveTotal(
+        mixed $pageTotal,
+        int $knownTotal,
+        int $offset,
+        int $limit,
+        int $pageCount,
+        int &$pagesWithoutTotal,
+        array $logContext,
+    ): int {
+        if (is_numeric($pageTotal)) {
+            $pagesWithoutTotal = 0;
+
+            return (int) $pageTotal;
+        }
+
+        $pagesWithoutTotal++;
+        $canAssumeMore = $pageCount >= $limit && $pagesWithoutTotal < self::MAX_CONSECUTIVE_PAGES_WITHOUT_TOTAL;
+
+        logger()->error('Style hint list page missing total', $logContext + [
+            'consecutive_pages_without_total' => $pagesWithoutTotal,
+            'assume_more_pages' => $canAssumeMore,
+        ]);
+
+        return $canAssumeMore ? max($knownTotal, $offset + $limit) : $knownTotal;
+    }
+
     private function fetchStyleHintsDetails($country, $styleHintSummaries): int
     {
         $styleHintSummaries = collect($styleHintSummaries);
@@ -247,6 +313,19 @@ class StyleHintService extends Service
         if ($styleHintSummaries->isEmpty()) {
             return 0;
         }
+
+        $styleHintSummaries = $styleHintSummaries->filter(function ($styleHintSummary) use ($country) {
+            if (filled(data_get($styleHintSummary, 'outfitId'))) {
+                return true;
+            }
+
+            logger()->error('fetchStyleHintsDetails summary missing outfitId - skipped', [
+                'country' => $country,
+                'summary' => $styleHintSummary,
+            ]);
+
+            return false;
+        });
 
         $existOutfitIds = $this->repository->getExistStyleHintOutfitIds(
             $country,
@@ -341,6 +420,7 @@ class StyleHintService extends Service
 
         $page = 1;
         $totalResultCount = 0;
+        $pagesWithoutTotal = 0;
 
         do {
             if ($isManual) {
@@ -354,9 +434,9 @@ class StyleHintService extends Service
             }
 
             try {
-                [$totalResultCount, $contentCount] = retry(
+                [$pageTotal, $contentCount] = retry(
                     config('app.crawler.retry.times'),
-                    function ($attempts) use ($ugcStyleHintListApiUrl, $brand, $gender, $page, $resultLimit, $onlyRecent) {
+                    function ($attempts) use ($ugcStyleHintListApiUrl, $brand, $gender, $page, $resultLimit) {
                         $headers = $this->buildHeaders();
                         $headers['x-fr-clientid'] = $this->getClientId($brand);
 
@@ -372,19 +452,16 @@ class StyleHintService extends Service
                             ]);
 
                         $responseBody = json_decode($response->getBody());
-                        $contentList = optional($responseBody)->content_list;
+                        $contentList = data_get($responseBody, 'content_list');
+                        $total = data_get($responseBody, 'total_result_count');
 
-                        if (is_null($contentList)) {
-                            throw new Exception("Content list does not exist. {$response->body()}");
+                        $this->ensureListResponseUsable(is_array($contentList), is_numeric($total), $attempts, $response->body());
+
+                        if (! is_array($contentList)) {
+                            return [$total, null];
                         }
 
                         $this->repository->saveStyleHintsFromUgc($contentList, $brand);
-
-                        $total = $responseBody->total_result_count;
-
-                        if ($onlyRecent && $total > 10000) {
-                            $total = 10000;
-                        }
 
                         return [$total, count($contentList)];
                     },
@@ -392,7 +469,26 @@ class StyleHintService extends Service
                     fn ($e) => $this->shouldRetry($e),
                 );
 
-                $this->detailCounter += $contentCount;
+                $logContext = ['brand' => $brand, 'style_gender' => $gender, 'page' => $page];
+                $totalResultCount = $this->resolveTotal(
+                    $pageTotal,
+                    $totalResultCount,
+                    ($page - 1) * $resultLimit,
+                    $resultLimit,
+                    $contentCount ?? 0,
+                    $pagesWithoutTotal,
+                    $logContext,
+                );
+
+                if ($onlyRecent && $totalResultCount > 10000) {
+                    $totalResultCount = 10000;
+                }
+
+                if (is_null($contentCount)) {
+                    logger()->error('fetchStyleHintsFromUgcByGender page missing content_list - skipped', $logContext);
+                }
+
+                $this->detailCounter += $contentCount ?? 0;
 
                 // Check if detail batch rest is needed
                 if ($this->shouldDetailBatchRest()) {

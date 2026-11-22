@@ -145,6 +145,17 @@ class StyleHintRepository extends Repository
             ->get();
 
         foreach ($contentList as $content) {
+            $outfitId = data_get($content, 'id_ugc_dist_content');
+
+            if (blank($outfitId)) {
+                Log::error('saveStyleHintsFromUgc content missing id - skipped', [
+                    'brand' => $brand,
+                    'content' => $content,
+                ]);
+
+                continue;
+            }
+
             $publishedAt = data_get($content, 'updated_date');
 
             $modelData = [
@@ -166,7 +177,6 @@ class StyleHintRepository extends Repository
                 ...$this->detectedItemsData($content),
             ];
 
-            $outfitId = $content->id_ugc_dist_content;
             $model = $existingStyleHints->firstWhere('outfit_id', $outfitId);
 
             try {
@@ -191,8 +201,8 @@ class StyleHintRepository extends Repository
                 report($e);
             }
 
-            if (is_null($model->id)) {
-                return;
+            if (is_null($model?->id)) {
+                continue;
             }
 
             $originalProductIds = collect(data_get($content, 'products.*.ugc_item.product_id'));
