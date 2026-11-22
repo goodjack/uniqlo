@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\SocialPlatform;
 use App\Enums\SocialPostKind;
 use App\Enums\SocialPostStatus;
+use App\Enums\SocialSyncStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -12,7 +13,11 @@ class SocialPost extends Model
 {
     protected $fillable = [
         'notion_page_id', 'notion_created_at', 'notion_edited_at', 'sort', 'source_url', 'canonical_url', 'platform',
-        'kind', 'author', 'text', 'youtube_id', 'cover_url', 'cover_expires_at', 'status', 'fetched_at',
+        'kind', 'author', 'text', 'youtube_id', 'cover_url', 'cover_expires_at', 'embeddable', 'status', 'sync_status', 'fetched_at',
+    ];
+
+    protected $attributes = [
+        'embeddable' => true,
     ];
 
     protected $casts = [
@@ -21,9 +26,11 @@ class SocialPost extends Model
         'fetched_at' => 'datetime',
         'cover_expires_at' => 'datetime',
         'sort' => 'integer',
+        'embeddable' => 'boolean',
         'platform' => SocialPlatform::class,
         'kind' => SocialPostKind::class,
         'status' => SocialPostStatus::class,
+        'sync_status' => SocialSyncStatus::class,
     ];
 
     public function codes()

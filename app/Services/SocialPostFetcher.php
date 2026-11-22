@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Enums\SocialPlatform;
 use App\Enums\SocialPostKind;
+use App\Enums\SocialSyncStatus;
+use App\Exceptions\SocialPostUnavailableException;
 use App\Support\SocialUrl;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
@@ -24,7 +26,7 @@ use RuntimeException;
  *
  * 官方 oEmbed（免金鑰）用來確認貼文還在、可以嵌入，回傳的 HTML 不存也不輸出；彈出視窗的嵌入標記由頁面用網址自己組。
  * IG、Threads 的預覽圖與作者、內文，以及 X 的預覽圖，取自頁面給連結預覽用的 og 標籤，只在新加或快過期時讀一次；
- * 讀不到就退回文字卡。
+ * 讀不到就退回文字卡。Threads 無法嵌入的公開貼文改用頁面的連結預覽（og 標籤）顯示，點開時直接顯示站內卡片。
  */
 class SocialPostFetcher
 {
@@ -33,22 +35,17 @@ class SocialPostFetcher
 
     private const MAX_BYTES = 5 * 1024 * 1024;
 
+    // 已刪除的 Threads 貼文會被導去登入頁，og 標籤是登入頁自己的，標題像「Threads • Log in」
+    private const THREADS_LOGIN_TITLE = '~^Threads\b.*\bLog in$~i';
+
     /**
      * @return array{platform: SocialPlatform, kind: SocialPostKind, canonical_url: string, author: ?string, text: ?string,
-     *     youtube_id: ?string, cover_url: ?string, cover_expires_at: ?Carbon}
+     *     youtube_id: ?string, cover_url: ?string, cover_expires_at: ?Carbon, embeddable: bool}
      */
     public function fetch(string $url): array
     {
-        if (SocialUrl::isShareLink($url)) {
-            $url = $this->resolveRedirect($url);
-        }
-
-        $platform = SocialUrl::platform($url);
-        $canonical = SocialUrl::canonical($url);
-
-        if ($platform === null || $canonical === null) {
-            throw new InvalidArgumentException("不支援的網址：{$url}");
-        }
+        $canonical = $this->canonicalUrl($url);
+        $platform = SocialUrl::platform($canonical);
 
         $post = [
             'platform' => $platform,
@@ -58,6 +55,7 @@ class SocialPostFetcher
             'text' => null,
             'youtube_id' => null,
             'cover_url' => null,
+            'embeddable' => true,
         ];
 
         $post = match ($platform) {
@@ -77,6 +75,22 @@ class SocialPostFetcher
         $post['cover_expires_at'] = $this->expiresAt($post['cover_url']);
 
         return $post;
+    }
+
+    /** 分享短網址先追轉址；只換網址、不抓貼文，貼文本身抓不到時也能先記下正式網址 */
+    public function canonicalUrl(string $url): string
+    {
+        if (SocialUrl::isShareLink($url)) {
+            $url = $this->resolveRedirect($url);
+        }
+
+        $canonical = SocialUrl::canonical($url);
+
+        if (SocialUrl::platform($url) === null || $canonical === null) {
+            throw new InvalidArgumentException("不支援的網址：{$url}");
+        }
+
+        return $canonical;
     }
 
     /** 連不上、被限流或平台出錯，過一陣子再抓多半就好了，跟貼文刪除、轉私人分開處理 */
@@ -132,16 +146,57 @@ class SocialPostFetcher
         ]);
     }
 
+    /**
+     * 無法嵌入的公開貼文，oEmbed 跟已刪除、只給登入的人看的貼文一樣回 4xx，分不出來；
+     * 改看頁面的 og 標籤：公開的貼文照樣指向同一篇、有作者、內文或預覽圖，另外兩種沒有，或是首頁、登入頁自己的。
+     */
     private function threads(array $post): array
     {
-        $this->oembed('https://graph.threads.net/v1.0/oembed', $post['canonical_url']);
-        $og = $this->ogTags($post['canonical_url']);
+        $embedError = null;
+        try {
+            $this->oembed('https://graph.threads.net/v1.0/oembed', $post['canonical_url']);
+        } catch (RequestException $e) {
+            if (self::isTemporaryFailure($e) || ! $e->response->clientError()) {
+                throw $e;
+            }
 
-        return array_merge($post, [
+            $embedError = $e;
+        }
+
+        $og = $this->ogTags($post['canonical_url']);
+        $post = array_merge($post, [
             'author' => $this->authorFromTitle($og['title'] ?? ''),
             'text' => $og['description'] ?? null,
             'cover_url' => $og['image'] ?? null,
+            'embeddable' => $embedError === null,
         ]);
+
+        if (! $embedError) {
+            return $post;
+        }
+
+        if (! self::isSameThreadsPost($og['url'] ?? '', $post['canonical_url']) || self::isThreadsLoginPage($og['title'] ?? '')) {
+            throw new SocialPostUnavailableException("Threads 貼文已刪除：{$post['canonical_url']}", SocialSyncStatus::Deleted, $embedError);
+        }
+
+        if ($post['author'] === null && blank($post['text']) && blank($post['cover_url'])) {
+            throw new SocialPostUnavailableException("Threads 貼文只給登入的人看：{$post['canonical_url']}", SocialSyncStatus::LoginRequired, $embedError);
+        }
+
+        return $post;
+    }
+
+    /** 已刪除的貼文會被導去首頁，og:url 不再是這篇；帳號那段可能是空的，只比對貼文代碼 */
+    private static function isSameThreadsPost(string $ogUrl, string $canonical): bool
+    {
+        $code = preg_quote(Str::afterLast($canonical, '/'), '~');
+
+        return preg_match("~/post/{$code}/?$~", (string) parse_url($ogUrl, PHP_URL_PATH)) === 1;
+    }
+
+    private static function isThreadsLoginPage(string $title): bool
+    {
+        return preg_match(self::THREADS_LOGIN_TITLE, trim($title)) === 1;
     }
 
     /**
@@ -232,14 +287,21 @@ class SocialPostFetcher
         return $data;
     }
 
-    /** 分享短網址：追轉址拿正式網址，拿不到就看頁面的 og:url */
+    /**
+     * 分享短網址：追轉址拿正式網址。已刪除的貼文會再從貼文網址轉去首頁，最後落點認不出是哪則，
+     * 就用路上最後經過、認得出來的那個；都沒有才看頁面的 og:url。
+     */
     private function resolveRedirect(string $url): string
     {
-        $response = $this->client('en-US')->get($url);
-        $effective = (string) $response->effectiveUri();
+        $response = $this->client('en-US')
+            ->withOptions(['allow_redirects' => ['track_redirects' => true]])
+            ->get($url);
+        $hops = [...$response->toPsrResponse()->getHeader('X-Guzzle-Redirect-History'), (string) $response->effectiveUri()];
 
-        if (SocialUrl::canonical($effective) !== null) {
-            return $effective;
+        foreach (array_reverse($hops) as $hop) {
+            if (SocialUrl::canonical($hop) !== null) {
+                return $hop;
+            }
         }
 
         preg_match('~<meta property="og:url" content="([^"]+)"~', $response->body(), $m);
