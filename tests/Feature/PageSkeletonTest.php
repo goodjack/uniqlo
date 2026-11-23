@@ -460,9 +460,9 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 規格是要查的人才看：自己一段、排在穿搭後面、預設收合，不留在主區。
+     * 規格是要查的人才看：自己一段、排在穿搭後面、直接展開，不留在主區。
      */
-    public function test_the_specs_are_folded_in_their_own_section_after_the_outfits(): void
+    public function test_the_specs_are_in_their_own_section_after_the_outfits(): void
     {
         $this->seedProduct();
 
@@ -471,8 +471,8 @@ class PageSkeletonTest extends TestCase
             ->getContent();
 
         $this->assertSame(0, $this->countNodes($content, '//*[@id="product_hero"]//*[contains(@class, "uq-facts")]'), '規格不留在主區');
-        $this->assertSame(1, $this->countNodes($content, '//*[@id="specs"]/following::details[not(@open)]//*[contains(@class, "uq-facts")]'), '規格在自己的段落、預設收合');
-        $this->assertSame(1, $this->countNodes($content, '//details/summary/h2[contains(@class, "header")][contains(normalize-space(), "商品規格")]'), '收合列的標題就是段標題');
+        $this->assertSame(1, $this->countNodes($content, '//*[@id="specs"]/following-sibling::*[contains(@class, "uq-facts")]'), '規格在自己的段落');
+        $this->assertSame(0, $this->countNodes($content, '//details'), '規格直接展開，不收合');
         $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "tertiary")]'), '各段同一種白底，不分色塊');
     }
 

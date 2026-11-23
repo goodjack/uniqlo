@@ -1052,21 +1052,7 @@ html:has(.uq-section-menu) {
     }
 }
 
-/* 規格收合列的標題就是段標題；已經有 Tocas 的箭頭圖示，瀏覽器內建的三角形拿掉 */
-details.uq-specs>summary {
-    list-style: none;
-}
-
-details.uq-specs>summary::-webkit-details-marker {
-    display: none;
-}
-
-/* 標題下已有隱藏分隔線的留白，表格自己的上邊距會再疊一段 */
-.ts.table.uq-facts {
-    margin-top: 0;
-}
-
-/* 區段灰底上 --uq-muted 對比不到 4.5:1，這裡加深一階 */
+/* 規格的項目名稱用灰字跟內容分開；--uq-muted 的對比剛好壓在 4.5:1 邊緣，這裡加深一階 */
 .ts.table.uq-facts td.collapsing {
     color: #6e6e6e;
 }

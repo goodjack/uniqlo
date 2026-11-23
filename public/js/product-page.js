@@ -114,7 +114,6 @@
      * 各段有沒有被看到、怎麼被打開的 GA 事件（UqAnalytics 沒設 GA 時什麼都不送）：
      * section_view       段標題進入畫面（exposure: heading），歷史價格與日本版的價格內容一半進入畫面時再送一次（exposure: content）
      * section_menu_click 點章節選單
-     * details_expand     打開收合的段落
      * media_open         開大圖或社群貼文，source 是哪一組
      * go_official        前往官網，location 是哪一顆按鈕
      */
@@ -143,14 +142,6 @@
             observe(document.querySelectorAll('[data-section-view]:not([data-section-exposure])'), 0);
             observe(document.querySelectorAll('[data-section-view][data-section-exposure="content"]'), 0.5);
         }
-
-        document.querySelectorAll('[data-analytics-details]').forEach(details => {
-            details.addEventListener('toggle', () => {
-                if (details.open) {
-                    track('details_expand', { section: details.dataset.analyticsDetails });
-                }
-            });
-        });
 
         document.addEventListener('click', event => {
             const menuItem = event.target.closest('.uq-section-menu a.item[href^="#"]');

@@ -221,7 +221,7 @@ class ProductDetailSectionTest extends TestCase
         $view->assertDontSee('<img src=x', false);
     }
 
-    public function test_the_specs_fold_material_care_origin_and_store_code_without_the_rating_distribution(): void
+    public function test_the_specs_list_material_care_origin_and_store_code_without_the_rating_distribution(): void
     {
         $this->seedProduct([
             'origin_place' => '柬埔寨製',
@@ -236,9 +236,9 @@ class ProductDetailSectionTest extends TestCase
         $xpath = $this->xpath($html);
         $specs = $this->sectionXpath('specs');
 
-        $details = $xpath->query($specs.'//details')->item(0);
-        $this->assertFalse($details->hasAttribute('open'), '規格預設收合');
-        $this->assertStringContainsString('商品材質、洗滌方式等 5 項', $xpath->query('./summary', $details)->item(0)->textContent);
+        // 直接展開，標題跟其他段一樣
+        $this->assertSame(0, $xpath->query($specs.'//details')->length);
+        $this->assertSame('商品規格', trim($xpath->query('//h2[@data-section-view="specs"]')->item(0)->textContent));
 
         $rows = [];
         foreach ($xpath->query($specs.'//table[contains(@class, "uq-facts")]/tbody/tr') as $row) {
@@ -371,7 +371,6 @@ class ProductDetailSectionTest extends TestCase
             ['price-history', 'japan'],
             array_map(fn ($node) => $node->getAttribute('data-section-view'), iterator_to_array($xpath->query('//*[@data-section-exposure="content"]')))
         );
-        $this->assertSame('specs', $xpath->query('//details[@data-analytics-details]')->item(0)->getAttribute('data-analytics-details'));
         $this->assertSame(
             ['hero', 'japan'],
             array_map(fn ($link) => $link->getAttribute('data-analytics-official'), iterator_to_array($xpath->query('//a[@data-analytics-official]')))

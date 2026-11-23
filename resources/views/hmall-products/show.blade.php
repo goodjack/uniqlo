@@ -63,10 +63,6 @@
         '產地' => $detail?->origin_place,
         '網路商店編號' => $hmallProduct->product_code,
     ], fn($value) => filled($value));
-    $specLabels = [
-        ...array_map(fn($section) => $hmallProductPresenter->getMaterialCareLabel($section['title']), $materialCare),
-        ...array_keys($productFacts),
-    ];
 
     // 不用 getDescription()：它文末接的網路商店編號，下面的商品規格已經有了
     $descriptionHtml = $hmallProductPresenter->getDescriptionBody($hmallProduct->instruction);
@@ -89,7 +85,7 @@
         'official-styles' => $styles->isNotEmpty(),
         'social' => $socialPosts->isNotEmpty(),
         'commonly-styled' => $commonlyStyledHmallProducts->isNotEmpty(),
-        'specs' => $specLabels !== [],
+        'specs' => $materialCare !== [] || $productFacts !== [],
         'related' => $relatedHmallProducts->isNotEmpty() || $categories->isNotEmpty() || $relatedProducts->isNotEmpty(),
         'price-history' => true,
         'japan' => isset($japanProduct),
@@ -524,42 +520,34 @@
         </div>
     @endif
 
-    {{-- 規格是要查的人才看，預設收合（官網也這樣）；標題露出有哪幾項 --}}
+    {{-- 規格排在穿搭後面、直接展開；材質洗滌一行一件事 --}}
     @if ($shown['specs'])
         <div class="ts basic padded horizontally fitted fluid segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'specs', 'menu' => 'product_menu'])
-                <details class="ts accordion uq-specs" data-analytics-details="specs">
-                    <summary>
-                        <x-section-header section="specs" :sub="implode('、', array_slice($specLabels, 0, 2)) . (count($specLabels) > 2 ? '等 ' . count($specLabels) . ' 項' : '')">
-                            <x-slot:icon><i class="dropdown icon" aria-hidden="true"></i></x-slot:icon>商品規格
-                        </x-section-header>
-                    </summary>
-                    <div class="content">
-                        <table class="ts very basic table uq-facts">
-                            <tbody>
-                                @foreach ($materialCare as $section)
-                                    <tr>
-                                        <td class="collapsing">{{ $hmallProductPresenter->getMaterialCareLabel($section['title']) }}</td>
-                                        <td>
-                                            <div class="ts list">
-                                                @foreach ($hmallProductPresenter->getMaterialCareLines($section['content']) as $line)
-                                                    <div class="item">{{ $line }}</div>
-                                                @endforeach
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                                @foreach ($productFacts as $label => $value)
-                                    <tr>
-                                        <td class="collapsing">{{ $label }}</td>
-                                        <td>{{ $value }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </details>
+                <x-section-header section="specs">商品規格</x-section-header>
+                <table class="ts very basic table uq-facts">
+                    <tbody>
+                        @foreach ($materialCare as $section)
+                            <tr>
+                                <td class="collapsing top aligned">{{ $hmallProductPresenter->getMaterialCareLabel($section['title']) }}</td>
+                                <td>
+                                    <div class="ts list">
+                                        @foreach ($hmallProductPresenter->getMaterialCareLines($section['content']) as $line)
+                                            <div class="item">{{ $line }}</div>
+                                        @endforeach
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                        @foreach ($productFacts as $label => $value)
+                            <tr>
+                                <td class="collapsing">{{ $label }}</td>
+                                <td>{{ $value }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         </div>
     @endif
