@@ -124,6 +124,25 @@ class ProductDetailSectionTest extends TestCase
         $this->assertSame(0, $xpath->query('//a[@data-lightbox]//button')->length);
     }
 
+    public function test_a_malformed_video_url_still_plays_in_place_but_never_reaches_the_lightbox(): void
+    {
+        $product = $this->seedProduct(['main_images' => $this->mainImages(1)]);
+        JapanProduct::unguarded(fn () => JapanProduct::create([
+            'brand' => 'UNIQLO',
+            'product_id' => 'E990001-000',
+            'l1Id' => $product->code,
+            'main_images' => [],
+            'sub_images' => [],
+            'sub_videos' => [['video' => 'https://x"><img src=x onerror=alert(1)>.com/v.mp4'], ['video' => 'javascript:alert(1)']],
+        ]));
+
+        $xpath = $this->productPage();
+
+        // 燈箱會把網址拼進 HTML，格式不對的網址不給燈箱連結，只在原地播
+        $this->assertSame(2, $xpath->query($this->sectionXpath('photos').'//video[@data-src]')->length);
+        $this->assertSame(0, $xpath->query('//a[@data-type="video"]')->length);
+    }
+
     public function test_only_a_product_with_videos_loads_the_video_player(): void
     {
         $product = $this->seedProduct(['main_images' => $this->mainImages(2)]);
