@@ -61,12 +61,17 @@ class HmallProduct extends Model
      */
     public function distinctStyleHints(): Builder
     {
+        // 穿搭用商品代號對應；少數商品沒有代號，當作沒有穿搭
+        if ($this->code === null) {
+            return StyleHint::query()->whereRaw('1 = 0');
+        }
+
         return StyleHint::query()->distinctOutfitsForCode($this->code);
     }
 
     public function styleHintCount(): int
     {
-        return StyleHint::countDistinctOutfitsForCode($this->code);
+        return $this->code === null ? 0 : StyleHint::countDistinctOutfitsForCode($this->code);
     }
 
     public function japanProduct()

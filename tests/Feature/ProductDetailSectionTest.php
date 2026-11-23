@@ -8,6 +8,7 @@ use App\Enums\SocialPostStatus;
 use App\Models\HmallProduct;
 use App\Models\JapanProduct;
 use App\Models\SocialPost;
+use App\Services\OutfitStatsService;
 use DOMDocument;
 use DOMXPath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -122,6 +123,21 @@ class ProductDetailSectionTest extends TestCase
         );
         // 暫停鈕不能放在燈箱連結裡，按暫停才不會順便打開燈箱
         $this->assertSame(0, $xpath->query('//a[@data-lightbox]//button')->length);
+    }
+
+    public function test_a_product_without_a_code_shows_no_outfits_instead_of_failing(): void
+    {
+        // 商品代號是穿搭的對應鍵；有少數商品沒有代號，商品頁與看更多穿搭頁都要照常打開、穿搭當作沒有
+        $product = $this->seedProduct(['main_images' => $this->mainImages(1)], ['code' => null]);
+
+        $xpath = $this->productPage();
+        $this->assertSame(0, $xpath->query('//*[@data-section-view="style-hints" or @data-section-view="outfit-stats"]')->length);
+
+        $this->get(route('uniqlo-style-hints.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->assertSee('共 0 張 StyleHint 網友穿搭靈感');
+
+        $this->assertNull(app(OutfitStatsService::class)->refresh($product));
     }
 
     public function test_a_malformed_video_url_still_plays_in_place_but_never_reaches_the_lightbox(): void

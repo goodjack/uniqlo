@@ -77,14 +77,18 @@ class OutfitStatsService
 
     public function get(HmallProduct $product): ?array
     {
-        return Cache::get($this->cacheKey($product->code));
+        return $product->code === null ? null : Cache::get($this->cacheKey($product->code));
     }
 
     /**
-     * 重算並寫進快取；則數不夠時清掉舊的。
+     * 重算並寫進快取；則數不夠時清掉舊的。沒有商品代號的商品對不到穿搭，不算也不寫快取。
      */
     public function refresh(HmallProduct $product): ?array
     {
+        if ($product->code === null) {
+            return null;
+        }
+
         $stats = $this->compute($product);
         $key = $this->cacheKey($product->code);
 
@@ -99,6 +103,10 @@ class OutfitStatsService
 
     public function compute(HmallProduct $product): ?array
     {
+        if ($product->code === null) {
+            return null;
+        }
+
         $outfits = StyleHint::query()
             ->distinctOutfitsForCode($product->code)
             ->select(['style_hints.id', 'style_hints.gender', 'style_hints.model_height', 'style_hints.detected_items'])
