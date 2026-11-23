@@ -56,17 +56,6 @@ class HmallProduct extends Model
         return $this->belongsToMany(Style::class)->orderByDesc('created_at');
     }
 
-    public function styleHints()
-    {
-        return $this->belongsToMany(
-            StyleHint::class,
-            'style_hint_items',
-            'code',
-            'style_hint_id',
-            'code'
-        )->orderByDesc('style_hint_items.style_hint_id');
-    }
-
     /**
      * 這件商品的穿搭，同一則只留一筆，新的在前。
      */
