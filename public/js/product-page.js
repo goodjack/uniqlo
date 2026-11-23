@@ -111,7 +111,7 @@
 
     /**
      * 各段有沒有被看到、怎麼被打開的 GA 事件（UqAnalytics 沒設 GA 時什麼都不送）：
-     * section_view       段標題進入畫面（exposure: heading），歷史價格與日本版的價格內容一半進入畫面時再送一次（exposure: content）
+     * section_view       段標題進入畫面並停留 1 秒（exposure: heading），歷史價格與日本版的價格內容一半進入畫面並停留 1 秒時再送一次（exposure: content）
      * section_menu_click 點章節選單
      * media_open         開大圖或社群貼文，source 是哪一組
      * go_official        前往官網，location 是哪一顆按鈕
@@ -120,18 +120,32 @@
         const track = window.UqAnalytics ? window.UqAnalytics.track : () => {};
 
         if ('IntersectionObserver' in window) {
+            // 停留夠久才算看到：點章節選單平滑捲動、或手機快速甩動時，一路滑過的段落不算
+            const dwell = 1000;
+
             const observe = (elements, threshold) => {
+                const timers = new Map();
                 const observer = new IntersectionObserver((entries, self) => {
                     entries.forEach(entry => {
-                        if (!entry.isIntersecting) {
+                        if (!entry.isIntersecting || entry.intersectionRatio < threshold) {
+                            clearTimeout(timers.get(entry.target));
+                            timers.delete(entry.target);
+
                             return;
                         }
 
-                        self.unobserve(entry.target);
-                        track('section_view', {
-                            section: entry.target.dataset.sectionView,
-                            exposure: entry.target.dataset.sectionExposure || 'heading',
-                        });
+                        if (timers.has(entry.target)) {
+                            return;
+                        }
+
+                        timers.set(entry.target, setTimeout(() => {
+                            timers.delete(entry.target);
+                            self.unobserve(entry.target);
+                            track('section_view', {
+                                section: entry.target.dataset.sectionView,
+                                exposure: entry.target.dataset.sectionExposure || 'heading',
+                            });
+                        }, dwell));
                     });
                 }, { threshold: threshold });
 
