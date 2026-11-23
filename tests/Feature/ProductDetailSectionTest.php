@@ -325,7 +325,7 @@ class ProductDetailSectionTest extends TestCase
         $headings = iterator_to_array($xpath->query('//h2[@data-section-view]'));
         $this->assertCount(7, $headings);
         foreach ($headings as $heading) {
-            $this->assertSame('ts large header', $heading->getAttribute('class'), $heading->getAttribute('data-section-view'));
+            $this->assertSame('ts big header uq-section-header', $heading->getAttribute('class'), $heading->getAttribute('data-section-view'));
         }
         $actions = iterator_to_array($xpath->query('//h2[@data-section-view]/*[contains(@class, "button")]'));
         $kinds = array_unique(array_map(fn ($action) => $action->nodeName, $actions));

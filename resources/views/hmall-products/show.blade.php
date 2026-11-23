@@ -395,7 +395,6 @@
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'features', 'menu' => 'product_menu'])
                 <x-section-header section="features">商品特點</x-section-header>
-                <div class="ts hidden divider"></div>
                 {{-- 跟商品實照同樣大小：電腦一列四張、手機兩張，說明放圖下方；點圖放大看圖裡的字 --}}
                 <div class="ts doubling four cards">
                     @foreach ($features as $feature)
@@ -426,7 +425,6 @@
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'photos', 'menu' => 'product_menu'])
                 <x-section-header section="photos">商品實照</x-section-header>
-                <div class="ts hidden divider"></div>
                 {{-- 影片排在最前面，跟圖同一排滑動；日本版混在一起、右上角標來源（同 StyleHint 的多國穿搭） --}}
                 <div class="ts doubling four flatted cards uq-strip" {{ $collapsible($photoCount, 'desktop') }}>
                     @foreach ($officialVideos as $video)
@@ -460,7 +458,6 @@
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'social', 'menu' => 'product_menu'])
                 <x-section-header section="social" action-icon="play" :action-label="'逛全部 ' . $socialPosts->count() . ' 則'" :action-data="['data-social-all' => '']">社群熱推</x-section-header>
-                <div class="ts hidden divider"></div>
                 @include('hmall-products.partials.social-posts', ['socialPosts' => $socialPosts])
             </div>
         </div>
@@ -473,10 +470,8 @@
                 @include('partials.section-anchor', ['anchor' => 'styles', 'menu' => 'product_menu'])
 
                 @if ($shown['style-hints'])
-                    <div id="style-hints"></div>
-                    <x-section-header section="style-hints" :sub="'共 ' . $styleHintCount . ' 張'"
-                        action-label="查看列表" action-icon="camera retro" :action-href="$hmallProductPresenter->getStyleHintsRoute($hmallProduct)">StyleHint 網友穿搭靈感</x-section-header>
-                    <div class="ts hidden divider"></div>
+                    <x-section-header id="style-hints" section="style-hints" :sub="'共 ' . $styleHintCount . ' 張'"
+                        action-label="看更多" action-icon="camera retro" :action-href="$hmallProductPresenter->getStyleHintsRoute($hmallProduct)">StyleHint 穿搭靈感</x-section-header>
                     <div class="ts doubling four flatted cards uq-strip">
                         @foreach ($styleHints as $key => $styleHint)
                             <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
@@ -496,9 +491,7 @@
                 @endif
 
                 @if ($shown['official-styles'])
-                    <div id="official-styles"></div>
-                    <x-section-header section="official-styles">Official Styling 官方精選穿搭</x-section-header>
-                    <div class="ts hidden divider"></div>
+                    <x-section-header id="official-styles" section="official-styles">Official Styling 官方精選穿搭</x-section-header>
                     <div class="ts doubling four flatted cards uq-strip" {{ $collapsible($styles->count(), 'desktop') }}>
                         @foreach ($styles as $key => $style)
                             <x-image-card link="{{ $style->detail_url }}" imageUrl="{{ $style->image_url }}"
@@ -522,9 +515,7 @@
     @if ($shown['commonly-styled'])
         <div class="ts basic padded horizontally fitted fluid segment">
             <div class="ts container">
-                <span id="commonly-styled"></span>
-                <x-section-header section="commonly-styled">經常搭配商品</x-section-header>
-                <div class="ts hidden divider"></div>
+                <x-section-header id="commonly-styled" section="commonly-styled">經常搭配商品</x-section-header>
                 <div class="ts doubling cards six uq-product-cards" data-analytics-list="product_commonly_styled" {{ $collapsible($commonlyStyledHmallProducts->count(), 'mobile') }}>
                     @each('hmall-products.simple-card', $commonlyStyledHmallProducts, 'hmallProduct')
                 </div>
@@ -576,9 +567,7 @@
     @if ($shown['related'])
         <div class="ts basic padded horizontally fitted fluid segment">
             <div class="ts container">
-                <span id="related"></span>
-                <x-section-header section="related">延伸商品</x-section-header>
-                <div class="ts hidden divider"></div>
+                <x-section-header id="related" section="related">延伸商品</x-section-header>
                 @if ($categories->isNotEmpty())
                     {{-- 商品同時掛在男裝、女裝、企劃等幾棵樹下，是平行的入口，所以用中點清單、不用麵包屑 --}}
                     <div class="ts horizontal middoted list uq-categories-line" aria-label="所屬分類">
@@ -611,7 +600,6 @@
         <div class="ts container">
             @include('partials.section-anchor', ['anchor' => 'price-history', 'menu' => 'product_menu'])
             <x-section-header section="price-history">歷史價格</x-section-header>
-            <div class="ts hidden divider"></div>
             <div class="ts fluid container grid">
                 <div class="four wide computer sixteen wide tablet sixteen wide mobile column">
                     <div class="ts grid" data-section-view="price-history" data-section-exposure="content">
@@ -673,7 +661,6 @@
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'japan', 'menu' => 'product_menu'])
                 <x-section-header section="japan">日本版商品資訊</x-section-header>
-                <div class="ts hidden divider"></div>
                 <div class="ts items">
                     <div class="item">
                         <div class="ts tiny image">

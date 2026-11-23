@@ -4,7 +4,6 @@
 
 <x-section-header section="outfit-stats" :sub="'依' . ($isSampled ? '最近 ' : ' ') . $stats['outfits'] . ' 則網友穿搭'">穿搭統計</x-section-header>
 @if ($cards !== [])
-    <div class="ts hidden divider"></div>
     <div class="ts doubling three cards uq-outfit-stats">
         @foreach ($cards as $card)
             <div class="ts card">
