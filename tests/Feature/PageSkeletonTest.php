@@ -19,9 +19,11 @@ class PageSkeletonTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * 狀態標籤。認 horizontal 加 circular 的組合：品牌角標與頁首也都是 .ts.label。
+     * 狀態標籤。卡片上是直排清單的一行；商品頁主區與收藏清單是 horizontal 加 circular 的 .ts.label
+     * （品牌角標與頁首也都是 .ts.label，所以要認這個組合）。
      */
-    private const CARD_LABEL_XPATH = '//*[contains(@class, "horizontal")][contains(@class, "circular")][contains(@class, "label")]';
+    private const CARD_LABEL_XPATH = '(//*[contains(@class, "horizontal")][contains(@class, "circular")][contains(@class, "label")]'
+        .' | //*[contains(@class, "uq-card")]//*[contains(@class, "description")]/div[contains(@class, "list")]/div[contains(@class, "item")])';
 
     protected function setUp(): void
     {
@@ -597,9 +599,9 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 狀態標籤用 Tocas 原生的 label，不自己寫一套。
+     * 卡片的狀態標籤一個一行，用 Tocas 原生的直排清單，不自己寫一套；不畫外框，只留彩色字。
      */
-    public function test_a_card_uses_tocas_labels_for_its_status(): void
+    public function test_a_card_lists_its_status_tags_one_per_line(): void
     {
         $this->seedProduct(['identity' => json_encode(['time_doptimal', 'concessional_rate'])]);
 
@@ -607,15 +609,16 @@ class PageSkeletonTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        // 期間限定與特價兩顆，都要是 Tocas 的 horizontal basic circular label
         $this->assertSame(
-            2,
-            $this->countNodes(
-                $content,
-                '//*[contains(@class, "description")]/div[contains(@class, "ts")][contains(@class, "horizontal")]'.
-                '[contains(@class, "basic")][contains(@class, "circular")][contains(@class, "label")]'
+            ['期間限定特價', '特價商品'],
+            array_map(
+                fn ($item) => trim($item->textContent),
+                iterator_to_array($this->xpath($content)->query(
+                    '//*[contains(@class, "uq-card")]//*[contains(@class, "description")]/div[@class="ts small list"]/div[@class="item"]'
+                ))
             )
         );
+        $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-card")]//*[contains(@class, "description")]//*[contains(@class, "label")]'));
     }
 
     /**

@@ -3,5 +3,5 @@
     <div class="ts mini @if ($hmallProduct->brand === 'GU') info @else negative @endif label">
         {{ $hmallProduct->brand }}
     </div>
-    @include('hmall-products.partials.card-labels', ['hmallProduct' => $hmallProduct])
+    @include('hmall-products.partials.card-labels', ['hmallProduct' => $hmallProduct, 'inline' => true])
 </div>
