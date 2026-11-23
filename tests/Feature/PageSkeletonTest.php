@@ -19,9 +19,11 @@ class PageSkeletonTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * 狀態標籤。認 horizontal 加 circular 的組合：品牌角標與頁首也都是 .ts.label。
+     * 狀態標籤。卡片上是直排清單的一行；商品頁主區與收藏清單是 horizontal 加 circular 的 .ts.label
+     * （品牌角標與頁首也都是 .ts.label，所以要認這個組合）。
      */
-    private const CARD_LABEL_XPATH = '//*[contains(@class, "horizontal")][contains(@class, "circular")][contains(@class, "label")]';
+    private const CARD_LABEL_XPATH = '(//*[contains(@class, "horizontal")][contains(@class, "circular")][contains(@class, "label")]'
+        .' | //*[contains(@class, "uq-card")]//*[contains(@class, "description")]/div[contains(@class, "list")]/div[contains(@class, "item")])';
 
     protected function setUp(): void
     {
@@ -437,12 +439,6 @@ class PageSkeletonTest extends TestCase
                 "商品頁不該還有「{$heading}」這個小標題"
             );
         }
-
-        $this->assertGreaterThan(
-            0,
-            $this->countNodes($content, '//*[contains(@class, "uq-facts")]//*[contains(@class, "item")]'),
-            '商品資訊改用 Tocas 的 horizontal stackable list 呈現'
-        );
     }
 
     /**
@@ -465,7 +461,10 @@ class PageSkeletonTest extends TestCase
         $this->assertSame(0, $this->countNodes($list, '//*[@data-reveal-after]'));
     }
 
-    public function test_the_facts_live_in_their_own_section(): void
+    /**
+     * 規格是要查的人才看：自己一段、排在穿搭後面、直接展開，不留在主區。
+     */
+    public function test_the_specs_are_in_their_own_section_after_the_outfits(): void
     {
         $this->seedProduct();
 
@@ -473,29 +472,14 @@ class PageSkeletonTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertSame(
-            0,
-            $this->countNodes($content, '//*[@id="comment"]//*[contains(@class, "uq-facts")]'),
-            '商品資訊不留在 hero 右欄'
-        );
-        $this->assertSame(
-            1,
-            $this->countNodes(
-                $content,
-                '//*[@id="facts"]/following::*[contains(@class, "uq-facts")]'
-            ),
-            '商品資訊在自己的章節裡、排在錨點後面'
-        );
-        $this->assertSame(
-            1,
-            $this->countNodes($content, '//h2[contains(@class, "header")][normalize-space()="商品資訊"]'),
-            '章節標題用跟其他章節同一種 Tocas 標題'
-        );
-        $this->assertSame(1, $this->countNodes($content, '//*[@id="facts"]'), '章節有錨點');
+        $this->assertSame(0, $this->countNodes($content, '//*[@id="product_hero"]//*[contains(@class, "uq-facts")]'), '規格不留在主區');
+        $this->assertSame(1, $this->countNodes($content, '//*[@id="specs"]/following-sibling::*[contains(@class, "uq-facts")]'), '規格在自己的段落');
+        $this->assertSame(0, $this->countNodes($content, '//details'), '規格直接展開，不收合');
+        $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "tertiary")]'), '各段同一種白底，不分色塊');
     }
 
     /**
-     * 商品說明放在固定高度的 #comment 框裡，不另做「顯示更多」收合。
+     * 商品說明放在主區固定高度的 #comment 框裡，填電腦版圖片右邊的空間，不另做「顯示更多」收合。
      */
     public function test_the_description_sits_in_the_fixed_comment_box(): void
     {
@@ -505,9 +489,8 @@ class PageSkeletonTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertSame(1, $this->countNodes($content, '//*[@id="comment"]'), '說明在 #comment 框裡');
+        $this->assertSame(1, $this->countNodes($content, '//*[@id="product_hero"]//*[@id="comment"]'), '說明在主區的 #comment 框裡');
         $this->assertStringContainsString('這是一段夠長的商品說明文字。', $content);
-        $this->assertSame(0, $this->countNodes($content, '//details'), '不再有自訂的顯示更多收合');
     }
 
     /**
@@ -616,9 +599,9 @@ class PageSkeletonTest extends TestCase
     }
 
     /**
-     * 狀態標籤用 Tocas 原生的 label，不自己寫一套。
+     * 卡片的狀態標籤一個一行，用 Tocas 原生的直排清單，不自己寫一套；不畫外框，只留彩色字。
      */
-    public function test_a_card_uses_tocas_labels_for_its_status(): void
+    public function test_a_card_lists_its_status_tags_one_per_line(): void
     {
         $this->seedProduct(['identity' => json_encode(['time_doptimal', 'concessional_rate'])]);
 
@@ -626,15 +609,16 @@ class PageSkeletonTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        // 期間限定與特價兩顆，都要是 Tocas 的 horizontal basic circular label
         $this->assertSame(
-            2,
-            $this->countNodes(
-                $content,
-                '//*[contains(@class, "description")]/div[contains(@class, "ts")][contains(@class, "horizontal")]'.
-                '[contains(@class, "basic")][contains(@class, "circular")][contains(@class, "label")]'
+            ['期間限定特價', '特價商品'],
+            array_map(
+                fn ($item) => trim($item->textContent),
+                iterator_to_array($this->xpath($content)->query(
+                    '//*[contains(@class, "uq-card")]//*[contains(@class, "description")]/div[@class="ts small list"]/div[@class="item"]'
+                ))
             )
         );
+        $this->assertSame(0, $this->countNodes($content, '//*[contains(@class, "uq-card")]//*[contains(@class, "description")]//*[contains(@class, "label")]'));
     }
 
     /**

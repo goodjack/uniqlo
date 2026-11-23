@@ -549,6 +549,11 @@ body.uq-busy [aria-busy="true"] {
     top: calc(-1 * (var(--uq-nav-height) + var(--uq-section-menu-height) + 12px));
 }
 
+/* 標題本身帶 id 的（網友穿搭、官方穿搭、經常搭配、延伸商品）被直接連到時，跟章節錨點一樣讓出導覽列與章節選單 */
+.uq-section-header[id] {
+    scroll-margin-top: calc(var(--uq-nav-height) + var(--uq-section-menu-height) + 12px);
+}
+
 /* 錨點搶走了標題的 :first-child，Tocas 的首個標題不留上距就失效 */
 .ts.container>.uq-section-anchor:first-child+.ts.header {
     margin-top: 0;
@@ -628,11 +633,10 @@ html:has(.uq-section-menu) {
     margin: .875em 0;
 }
 
-/* 純圖片連上下也不留縫；底下補回原本的距離，用 padding 才不會跟外層 margin 合併 */
+/* 純圖片連上下也不留縫；跟下一段的距離交給段落本身的留白，不另外補 */
 .ts.doubling.four.flatted.cards:not(.waterfall):not(.uq-text-cards) {
     margin-top: 0;
     margin-bottom: 0;
-    padding-bottom: .875em;
 }
 
 .ts.doubling.four.flatted.cards:not(.waterfall):not(.uq-text-cards)>.card {
@@ -697,16 +701,17 @@ html:has(.uq-section-menu) {
     position: relative;
 }
 
+/* 開燈箱的連結包著影片；連結預設是行內元素，影片底下會多出一行的空隙 */
+.ts.card>.video.uq-video>a {
+    display: block;
+}
+
 /* 影片滑到才載入，先撐出官網影片的 3:4，載入時版面才不會跳 */
 .ts.card>.video.uq-video video:not([hidden]) {
     display: block;
     width: 100%;
     aspect-ratio: 3 / 4;
     object-fit: cover;
-}
-
-.ts.card>.video.uq-video>video {
-    cursor: pointer;
 }
 
 .uq-video-toggle {
@@ -829,11 +834,22 @@ html:has(.uq-section-menu) {
 }
 
 /*
- * 標題旁的次要按鈕（「看全部」「查看列表」）。Tocas 的按鈕是 font-size: 1em，
+ * 標題旁的次要按鈕（「看全部」「看更多」）。Tocas 的按鈕是 font-size: 1em，
  * 放在標題裡會跟著放大到比標題還搶眼，所有尺寸變體也都是相對值。
  */
 .ts.button.uq-header-action {
     font-size: .9rem;
+}
+
+/*
+ * 商品頁段標題（x-section-header）在手機上縮小字級、拉開標題下距，跟官網手機版一致。
+ * Tocas 沒有依螢幕寬度換字級的修飾詞。
+ */
+@media (max-width: 767px) {
+    .ts.big.header.uq-section-header {
+        font-size: 22px;
+        margin-bottom: 24px;
+    }
 }
 
 /* 標題列差一點放得下時，彈性排版會把張數壓成一字一行，而不是讓按鈕換行 */
@@ -1039,12 +1055,7 @@ html:has(.uq-section-menu) {
     }
 }
 
-/* 標題下已有隱藏分隔線的留白，表格自己的上邊距會再疊一段 */
-.ts.table.uq-facts {
-    margin-top: 0;
-}
-
-/* 區段灰底上 --uq-muted 對比不到 4.5:1，這裡加深一階 */
+/* 規格的項目名稱用灰字跟內容分開；--uq-muted 的對比剛好壓在 4.5:1 邊緣，這裡加深一階 */
 .ts.table.uq-facts td.collapsing {
     color: #6e6e6e;
 }
@@ -1095,20 +1106,6 @@ html:has(.uq-section-menu) {
 }
 
 /* 社群熱推：Tocas 無外框卡片排成一排往右滑，露出下一張的一角提示還有；封面 2:3、文字在下方 */
-.uq-social-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1em;
-    padding-bottom: .6em;
-    margin-bottom: 1em;
-    border-bottom: 1px solid var(--uq-line);
-}
-
-.uq-social-head > .header {
-    margin: 0 !important;
-}
-
 .uq-social-shelf {
     position: relative;
 }

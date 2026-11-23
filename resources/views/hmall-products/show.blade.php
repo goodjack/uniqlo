@@ -1,4 +1,5 @@
 @inject('hmallProductPresenter', 'App\Presenters\HmallProductPresenter')
+@inject('outfitStatsPresenter', 'App\Presenters\OutfitStatsPresenter')
 @extends('layouts.master')
 
 @php
@@ -42,11 +43,17 @@
 
     $detail = $hmallProduct->detail;
     $mainImages = $hmallProductPresenter->getMainImages($hmallProduct);
-    $ratingDistribution = $hmallProductPresenter->getRatingDistribution($hmallProduct);
     $features = $detail?->features ?: [];
-    // 第一張主圖放上方，其餘主圖放進「商品實照」，影片放進「商品影片」
+    // 第一張主圖放上方，其餘都放進「商品實照」：台灣影片 → 日本影片 → 台灣圖 → 日本圖，日本版的每張標「日本版」
     $extraImages = array_slice($mainImages, 1);
     $officialVideos = $hmallProductPresenter->getVideos($hmallProduct);
+    $japanMainImages = optional($japanProduct)->main_images ?? [];
+    $japanSubImages = optional($japanProduct)->sub_images ?? [];
+    $japanImages = [
+        ...array_map(fn($image, $i) => [$image, '日本版商品穿搭照 ' . ($i + 1)], $japanMainImages, array_keys($japanMainImages)),
+        ...array_map(fn($image, $i) => [$image, '日本版商品實照 ' . ($i + 1)], $japanSubImages, array_keys($japanSubImages)),
+    ];
+    $japanVideos = optional($japanProduct)->sub_videos ?? [];
     $materialCare = $detail?->material_care ?: [];
 
     // 只列有值的欄位。「適用對象」不沿用官方的「適穿」：值是男裝、女裝這種對象
@@ -57,44 +64,43 @@
         '網路商店編號' => $hmallProduct->product_code,
     ], fn($value) => filled($value));
 
-    // 不用 getDescription()：它文末接的網路商店編號，上面的商品資訊已經有了
+    // 不用 getDescription()：它文末接的網路商店編號，下面的商品規格已經有了
     $descriptionHtml = $hmallProductPresenter->getDescriptionBody($hmallProduct->instruction);
 
+    $outfitCards = $outfitStats ? $outfitStatsPresenter->cards($hmallProduct, $outfitStats) : [];
+    $outfitSizeTable = $outfitStats ? $outfitStatsPresenter->sizeTable($outfitStats) : null;
 
     $collapseAfter = ['mobile' => 2, 'desktop' => 8];
     $collapsible = fn (int $count, string $on) => $count > $collapseAfter[$on]
         ? new \Illuminate\Support\HtmlString("data-collapse-on=\"{$on}\" data-collapse-after=\"{$collapseAfter[$on]}\"")
         : '';
-    $photoCount = count($extraImages) + count($colorNums ?? []) + count(optional($japanProduct)->main_images ?? []) + count(optional($japanProduct)->sub_images ?? []);
+    $photoCount = count($officialVideos) + count($japanVideos) + count($extraImages) + count($colorNums ?? []) + count($japanImages);
 
     // 每一段有沒有內容。章節選單與下面各段的 @if 共用這一份，選單才不會指到不存在的段落
     $shown = [
-        'facts' => ! empty($productFacts) || $categories->isNotEmpty() || $features || $materialCare,
-        'social' => $socialPosts->isNotEmpty(),
-        'videos' => $officialVideos || optional($japanProduct)->has_videos,
-        'photos' => (bool) ($extraImages || $colorNums || optional($japanProduct)->main_images || optional($japanProduct)->sub_images),
-        'styles' => $styles->isNotEmpty(),
+        'photos' => (bool) ($officialVideos || $japanVideos || $extraImages || $colorNums || $japanImages),
+        'features' => (bool) $features,
+        'outfit-stats' => $outfitCards !== [] || $outfitSizeTable !== null,
         'style-hints' => $styleHints->isNotEmpty(),
+        'official-styles' => $styles->isNotEmpty(),
+        'social' => $socialPosts->isNotEmpty(),
         'commonly-styled' => $commonlyStyledHmallProducts->isNotEmpty(),
-        'related' => $relatedHmallProducts->isNotEmpty(),
+        'specs' => $materialCare !== [] || $productFacts !== [],
+        'related' => $relatedHmallProducts->isNotEmpty() || $categories->isNotEmpty() || $relatedProducts->isNotEmpty(),
         'price-history' => true,
         'japan' => isset($japanProduct),
-        'legacy' => $relatedProducts->isNotEmpty(),
     ];
+    $shown['styles'] = $shown['style-hints'] || $shown['official-styles'] || $shown['outfit-stats'];
 
-    // 選單用的短名，比各段標題短，橫向才排得下
+    // 章節選單最多 7 項、順序跟內文一致；經常搭配與延伸商品往下逛自然會看到，不列
     $sections = collect([
+        'features' => '特點',
+        'photos' => '實照',
         'social' => '社群熱推',
-        'facts' => '商品資訊',
-        'videos' => '商品影片',
-        'photos' => '商品實照',
-        'styles' => '官方穿搭',
-        'style-hints' => '網友穿搭',
-        'commonly-styled' => '經常搭配',
-        'related' => '延伸商品',
+        'styles' => '穿搭',
+        'specs' => '規格',
         'price-history' => '歷史價格',
-        'japan' => '日本版資訊',
-        'legacy' => '舊系統商品',
+        'japan' => '日本版',
     ])
         ->filter(fn($label, $anchor) => $shown[$anchor])
         ->map(fn($label, $anchor) => ['anchor' => $anchor, 'label' => $label])
@@ -263,7 +269,7 @@
 @endsection
 
 @section('content')
-    <div class="ts very padded horizontally fitted attached fluid segment" id="product_hero">
+    <div class="ts basic very padded horizontally fitted fluid segment" id="product_hero">
         <div class="ts container">
             @include('partials.breadcrumb', ['crumbs' => $crumbs])
         </div>
@@ -351,12 +357,12 @@
                                 @if ($hmallProduct->brand === 'GU')
                                     <a class="ts info right labeled icon button"
                                         href="{{ \App\Support\Url::officialTaiwanProduct(\App\Enums\Brand::Gu, $hmallProduct->product_code) }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="GU">前往 GU 官網<i
+                                        target="_blank" rel="nofollow noopener" aria-label="GU" data-analytics-official="hero">前往 GU 官網<i
                                             class="external icon"></i></a>
                                 @else
                                     <a class="ts negative right labeled icon button"
                                         href="{{ \App\Support\Url::officialTaiwanProduct(\App\Enums\Brand::Uniqlo, $hmallProduct->product_code) }}"
-                                        target="_blank" rel="nofollow noopener" aria-label="UNIQLO">前往 UNIQLO 官網<i
+                                        target="_blank" rel="nofollow noopener" aria-label="UNIQLO" data-analytics-official="hero">前往 UNIQLO 官網<i
                                             class="external icon"></i></a>
                                 @endif
                                 {{-- 文字固定「收藏」，狀態只靠 aria-pressed：切換按鈕的名稱不隨狀態變 --}}
@@ -378,150 +384,31 @@
 
     @include('partials.section-menu', ['id' => 'product_menu', 'items' => $sections, 'revealAfter' => 'product_hero'])
 
-    @if ($shown['social'])
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+    {{-- 各段同一種白底、不分色塊，靠段標題與留白分段（照 UNIQLO、GU 官網）。
+         段標題的 data-section-view 是 GA 的段落曝光，名稱對到章節錨點 --}}
+    @if ($shown['features'])
+        <div class="ts basic padded horizontally fitted fluid segment">
             <div class="ts container">
-                @include('partials.section-anchor', ['anchor' => 'social', 'menu' => 'product_menu'])
-                <div class="uq-social-head">
-                    <h2 class="ts large header">社群熱推</h2>
-                    <button type="button" class="ts basic small button" data-social-all>
-                        逛全部 {{ $socialPosts->count() }} 則 <i class="chevron right icon" aria-hidden="true"></i>
-                    </button>
-                </div>
-                @include('hmall-products.partials.social-posts', ['socialPosts' => $socialPosts])
-            </div>
-        </div>
-    @endif
-
-    @if ($shown['facts'])
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-            <div class="ts container">
-                @include('partials.section-anchor', ['anchor' => 'facts', 'menu' => 'product_menu'])
-                <h2 class="ts large dividing header">商品資訊</h2>
-                <div class="ts hidden divider"></div>
-
-                <table class="ts very basic table uq-facts">
-                    <tbody>
-                        @foreach ($productFacts as $label => $value)
-                            <tr>
-                                <td class="collapsing">{{ $label }}</td>
-                                <td>{{ $value }}</td>
-                            </tr>
-                        @endforeach
-                        @foreach ($materialCare as $section)
-                            <tr>
-                                <td class="collapsing">{{ $section['title'] ?: '材質與洗滌' }}</td>
-                                <td>{!! nl2br(e($section['content'])) !!}</td>
-                            </tr>
-                        @endforeach
-                        @if ($ratingDistribution)
-                            <tr>
-                                <td class="collapsing">評價分布</td>
-                                <td>
-                                    {{-- 放進 Tocas 的格線限制寬度，長條才不會拉滿整列 --}}
-                                    <div class="ts grid">
-                                    <div class="sixteen wide mobile ten wide tablet six wide computer column">
-                                    <table class="ts very basic compact table" aria-label="官網評價分布">
-                                        <tbody>
-                                            @foreach ($ratingDistribution as $level)
-                                                <tr>
-                                                    <td class="collapsing">{{ $level['stars'] }} 星</td>
-                                                    <td>
-                                                        <div class="ts tiny progress" aria-hidden="true">
-                                                            @if ($level['count'] > 0)
-                                                                <div class="bar" style="width: {{ $level['percent'] }}%"></div>
-                                                            @endif
-                                                        </div>
-                                                    </td>
-                                                    <td class="collapsing right aligned">{{ $level['count'] }} 則</td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                    </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endif
-                        @if ($categories->isNotEmpty())
-                            <tr>
-                                <td class="collapsing">分類</td>
-                                <td>
-                                    {{-- 商品同時掛在男裝、女裝、企劃等幾棵樹下，是平行的入口，所以用中點清單、不用麵包屑 --}}
-                                    <div class="ts horizontal middoted list uq-categories-line">
-                                        @foreach ($categories as $category)
-                                            <a class="item"
-                                                href="{{ \App\Support\Url::category($category->brand, $category->code) }}">{{ $category->name }}</a>
-                                        @endforeach
-                                    </div>
-                                </td>
-                            </tr>
-                        @endif
-                    </tbody>
-                </table>
-
-                @if ($features)
-                    <h3 class="ts small dividing header">商品特點</h3>
-                    {{-- 排法照官網：電腦版一列兩則、方形小圖在左文字在右，手機一列一則；點圖放大看圖裡的字 --}}
-                    <div class="ts stackable two column grid">
-                        @foreach ($features as $feature)
-                            <div class="column">
-                                <div class="ts items">
-                                    <div class="item">
-                                        @if ($feature['image'])
-                                            <a class="ts small image" href="{{ $hmallProductPresenter->getOfficialAssetUrl($hmallProduct, $feature['image']) }}"
-                                                rel="nofollow noopener" data-lightbox="features" data-type="image"
-                                                data-description=".uq-caption-feature-{{ $loop->index }}">
-                                                <img src="{{ $hmallProductPresenter->getOfficialAssetUrl($hmallProduct, $feature['image']) }}"
-                                                    alt="{{ $feature['text'] ?: '商品特點 ' . $loop->iteration }}" width="1000" height="1000" loading="lazy">
-                                                <template class="uq-caption-feature-{{ $loop->index }}">{{ $feature['text'] ?: '商品特點 ' . $loop->iteration }}</template>
-                                            </a>
-                                        @endif
-                                        @if ($feature['text'])
-                                            <div class="content">
-                                                <div class="description">{{ $feature['text'] }}</div>
-                                            </div>
-                                        @endif
-                                    </div>
+                @include('partials.section-anchor', ['anchor' => 'features', 'menu' => 'product_menu'])
+                <x-section-header section="features">商品特點</x-section-header>
+                {{-- 跟商品實照同樣大小：電腦一列四張、手機兩張，說明放圖下方；點圖放大看圖裡的字 --}}
+                <div class="ts doubling four cards">
+                    @foreach ($features as $feature)
+                        <div class="ts card">
+                            @if ($feature['image'])
+                                <a class="image" href="{{ $hmallProductPresenter->getOfficialAssetUrl($hmallProduct, $feature['image']) }}"
+                                    rel="nofollow noopener" data-lightbox="features" data-type="image"
+                                    data-description=".uq-caption-feature-{{ $loop->index }}">
+                                    <x-lazy-load-image :src="$hmallProductPresenter->getOfficialAssetUrl($hmallProduct, $feature['image'])"
+                                        :alt="$feature['text'] ?: '商品特點 ' . $loop->iteration" width="1000" height="1000" />
+                                    <template class="uq-caption-feature-{{ $loop->index }}">{{ $feature['text'] ?: '商品特點 ' . $loop->iteration }}</template>
+                                </a>
+                            @endif
+                            @if ($feature['text'])
+                                <div class="content">
+                                    <div class="description">{{ $feature['text'] }}</div>
                                 </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
-        </div>
-    @endif
-
-    @if ($shown['videos'])
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-            <div class="ts container">
-                @include('partials.section-anchor', ['anchor' => 'videos', 'menu' => 'product_menu'])
-                <h2 class="ts large dividing header">
-                    商品影片
-                    @unless ($officialVideos)
-                        <div class="inline sub header">日本版</div>
-                    @endunless
-                </h2>
-                <div class="ts hidden divider"></div>
-                <div class="ts doubling four flatted cards">
-                    {{-- 兩邊都有影片時，日本版的每支各自標來源，不然看起來像台灣官網的影片 --}}
-                    @foreach ([
-                        ...array_map(fn($video) => [$video, false], $officialVideos),
-                        ...array_map(fn($video) => [$video, (bool) $officialVideos], optional($japanProduct)->sub_videos ?? []),
-                    ] as [$subVideo, $labelAsJapan])
-                        <div class="ts borderless card">
-                            <div class="video uq-video">
-                                @if ($labelAsJapan)
-                                    <div class="ts mini top right attached label">日本版</div>
-                                @endif
-                                <video data-src="{{ $subVideo }}" preload="none" muted loop playsinline hidden></video>
-                                <noscript>
-                                    <video src="{{ $subVideo }}" preload="none" muted loop playsinline controls></video>
-                                </noscript>
-                                <button type="button" class="uq-video-toggle" aria-label="播放影片" hidden>
-                                    <i class="play icon" aria-hidden="true"></i>
-                                </button>
-                            </div>
+                            @endif
                         </div>
                     @endforeach
                 </div>
@@ -530,102 +417,101 @@
     @endif
 
     @if ($shown['photos'])
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+        <div class="ts basic padded horizontally fitted fluid segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'photos', 'menu' => 'product_menu'])
-                <h2 class="ts large dividing header">商品實照</h2>
-                <div class="ts hidden divider"></div>
+                <x-section-header section="photos">商品實照</x-section-header>
+                {{-- 影片排在最前面，跟圖同一排滑動；日本版混在一起、右上角標來源（同 StyleHint 的多國穿搭） --}}
                 <div class="ts doubling four flatted cards uq-strip" {{ $collapsible($photoCount, 'desktop') }}>
+                    @foreach ($officialVideos as $video)
+                        @include('hmall-products.partials.video-card', ['video' => $video])
+                    @endforeach
+                    @foreach ($japanVideos as $video)
+                        @include('hmall-products.partials.video-card', ['video' => $video, 'country' => 'jp'])
+                    @endforeach
                     @foreach ($extraImages as $key => $image)
                         <x-image-card imageUrl="{{ $image['src'] }}" largeImageUrl="{{ $image['large'] }}"
                             link="" alt="官網商品圖 {{ $key + 2 }}" width="1200" height="1600" />
                     @endforeach
-                    @if ($colorNums)
-                        @foreach ($colorNums as $key => $colorNum)
-                            <x-image-card imageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
-                                largeImageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
-                                link="" alt="商品實照 {{ $key + 1 }}" width="1200" height="1600" />
-                        @endforeach
-                    @endif
-                    @if (optional($japanProduct)->main_images)
-                        @foreach ($japanProduct->main_images as $key => $mainImage)
-                            <x-image-card imageUrl="{{ $mainImage }}" largeImageUrl="{{ $mainImage }}"
-                                country="jp" link="" alt="日本版商品穿搭照 {{ $key + 1 }}" width="1200"
-                                height="1600" />
-                        @endforeach
-                    @endif
-                    @if (optional($japanProduct)->sub_images)
-                        @foreach ($japanProduct->sub_images as $key => $subImage)
-                            <x-image-card imageUrl="{{ $subImage }}" largeImageUrl="{{ $subImage }}"
-                                country="jp" link="" alt="日本版商品實照 {{ $key + 1 }}" width="1200"
-                                height="1600" />
-                        @endforeach
-                    @endif
+                    @foreach ($colorNums ?? [] as $key => $colorNum)
+                        <x-image-card imageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
+                            largeImageUrl="{{ $hmallProductPresenter->getSkuPic($hmallProduct, $colorNum) }}"
+                            link="" alt="商品實照 {{ $key + 1 }}" width="1200" height="1600" />
+                    @endforeach
+                    @foreach ($japanImages as [$image, $alt])
+                        <x-image-card imageUrl="{{ $image }}" largeImageUrl="{{ $image }}" country="jp"
+                            link="" alt="{{ $alt }}" width="1200" height="1600" />
+                    @endforeach
                 </div>
                 @includeWhen($collapsible($photoCount, 'desktop'), 'partials.expand-button', ['on' => 'desktop', 'label' => "顯示全部 {$photoCount} 張"])
             </div>
         </div>
     @endif
 
+    {{-- 社群熱推緊接商品實照：網紅實穿是看真人穿起來的第一站 --}}
+    @if ($shown['social'])
+        <div class="ts basic padded horizontally fitted fluid segment">
+            <div class="ts container">
+                @include('partials.section-anchor', ['anchor' => 'social', 'menu' => 'product_menu'])
+                <x-section-header section="social" action-icon="play" :action-label="'逛全部 ' . $socialPosts->count() . ' 則'" :action-data="['data-social-all' => '']">社群熱推</x-section-header>
+                @include('hmall-products.partials.social-posts', ['socialPosts' => $socialPosts])
+            </div>
+        </div>
+    @endif
+
+    {{-- 穿搭一整段：網友、官方，最後用穿搭統計收尾；章節選單的「穿搭」跳到這段開頭 --}}
     @if ($shown['styles'])
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+        <div class="ts basic padded horizontally fitted fluid segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'styles', 'menu' => 'product_menu'])
-                <h2 class="ts large dividing header">Official Styling 官方精選穿搭</h2>
-                <div class="ts hidden divider"></div>
-                <div class="ts doubling four flatted cards uq-strip" {{ $collapsible($styles->count(), 'desktop') }}>
-                    @foreach ($styles as $key => $style)
-                        <x-image-card link="{{ $style->detail_url }}" imageUrl="{{ $style->image_url }}"
-                            largeImageUrl="{{ $style->large_image_url }}"
-                            alt="Official Styling 官方精選穿搭 {{ $key + 1 }}" width="720" height="960" album="styles" />
-                    @endforeach
-                </div>
-                @includeWhen($collapsible($styles->count(), 'desktop'), 'partials.expand-button', ['on' => 'desktop', 'label' => "顯示全部 {$styles->count()} 張"])
-            </div>
-        </div>
-    @endif
 
-    @if ($shown['style-hints'])
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-            <div class="ts container">
-                @include('partials.section-anchor', ['anchor' => 'style-hints', 'menu' => 'product_menu'])
-                <h2 class="ts large dividing header">
-                    StyleHint 網友穿搭靈感
-                    <div class="inline sub header">共 {{ $styleHintCount }} 張</div>
-                    <a class="ts right floated icon labeled button uq-header-action"
-                        href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
-                        <i class="camera retro icon" aria-hidden="true"></i>查看列表
-                    </a>
-                </h2>
-                <div class="ts hidden divider"></div>
-                <div class="ts doubling four flatted cards uq-strip">
-                    @foreach ($styleHints as $key => $styleHint)
-                        <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
-                            largeImageUrl="{{ $styleHint->large_image_url }}" country="{{ $styleHint->country }}"
-                            :alt="'StyleHint 網友穿搭靈感 ' . ($key + 1) . ' (' . $styleHint->user_name . ')'" width="720"
-                            height="960" album="style-hints" />
-                    @endforeach
-                    @if ($styleHintCount > count($styleHints))
-                        <a class="ts borderless card uq-strip-more" href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
-                            看全部 {{ $styleHintCount }} 張
-                        </a>
+                @if ($shown['style-hints'])
+                    <x-section-header id="style-hints" section="style-hints" :sub="'共 ' . $styleHintCount . ' 張'"
+                        action-label="看更多" action-icon="camera retro" :action-href="$hmallProductPresenter->getStyleHintsRoute($hmallProduct)">StyleHint 穿搭靈感</x-section-header>
+                    <div class="ts doubling four flatted cards uq-strip">
+                        @foreach ($styleHints as $key => $styleHint)
+                            <x-image-card link="{{ $styleHint->official_site_url }}" imageUrl="{{ $styleHint->image_url }}"
+                                largeImageUrl="{{ $styleHint->large_image_url }}" country="{{ $styleHint->country }}"
+                                :alt="'StyleHint 網友穿搭靈感 ' . ($key + 1) . ' (' . $styleHint->user_name . ')'" width="720"
+                                height="960" album="style-hints" />
+                        @endforeach
+                        @if ($styleHintCount > count($styleHints))
+                            <a class="ts borderless card uq-strip-more" href="{{ $hmallProductPresenter->getStyleHintsRoute($hmallProduct) }}">
+                                看全部 {{ $styleHintCount }} 張
+                            </a>
+                        @endif
+                    </div>
+                    @if ($shown['official-styles'] || $shown['outfit-stats'])
+                        <div class="ts hidden section divider"></div>
                     @endif
-                </div>
+                @endif
+
+                @if ($shown['official-styles'])
+                    <x-section-header id="official-styles" section="official-styles">Official Styling 官方精選穿搭</x-section-header>
+                    <div class="ts doubling four flatted cards uq-strip" {{ $collapsible($styles->count(), 'desktop') }}>
+                        @foreach ($styles as $key => $style)
+                            <x-image-card link="{{ $style->detail_url }}" imageUrl="{{ $style->image_url }}"
+                                largeImageUrl="{{ $style->large_image_url }}"
+                                alt="Official Styling 官方精選穿搭 {{ $key + 1 }}" width="720" height="960" album="styles" />
+                        @endforeach
+                    </div>
+                    @includeWhen($collapsible($styles->count(), 'desktop'), 'partials.expand-button', ['on' => 'desktop', 'label' => "顯示全部 {$styles->count()} 張"])
+                    @if ($shown['outfit-stats'])
+                        <div class="ts hidden section divider"></div>
+                    @endif
+                @endif
+
+                @if ($shown['outfit-stats'])
+                    @include('hmall-products.partials.outfit-stats', ['stats' => $outfitStats, 'cards' => $outfitCards, 'sizeTable' => $outfitSizeTable])
+                @endif
             </div>
         </div>
-    @endif
-
-    {{-- 試玩用的位置，等商品頁資訊安排定案再調 --}}
-    @if ($outfitStats)
-        @include('hmall-products.partials.outfit-stats', ['product' => $hmallProduct, 'stats' => $outfitStats])
     @endif
 
     @if ($shown['commonly-styled'])
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+        <div class="ts basic padded horizontally fitted fluid segment">
             <div class="ts container">
-                @include('partials.section-anchor', ['anchor' => 'commonly-styled', 'menu' => 'product_menu'])
-                <h2 class="ts large dividing header">經常搭配商品</h2>
-                <div class="ts hidden divider"></div>
+                <x-section-header id="commonly-styled" section="commonly-styled">經常搭配商品</x-section-header>
                 <div class="ts doubling cards six uq-product-cards" data-analytics-list="product_commonly_styled" {{ $collapsible($commonlyStyledHmallProducts->count(), 'mobile') }}>
                     @each('hmall-products.simple-card', $commonlyStyledHmallProducts, 'hmallProduct')
                 </div>
@@ -634,28 +520,77 @@
         </div>
     @endif
 
-    @if ($shown['related'])
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+    {{-- 規格排在穿搭後面、直接展開；材質洗滌一行一件事 --}}
+    @if ($shown['specs'])
+        <div class="ts basic padded horizontally fitted fluid segment">
             <div class="ts container">
-                @include('partials.section-anchor', ['anchor' => 'related', 'menu' => 'product_menu'])
-                <h2 class="ts large dividing header">延伸商品</h2>
-                <div class="ts hidden divider"></div>
-                <div class="ts doubling cards six uq-product-cards" data-analytics-list="product_related" {{ $collapsible($relatedHmallProducts->count(), 'mobile') }}>
-                    @each('hmall-products.card', $relatedHmallProducts, 'hmallProduct')
-                </div>
-                @includeWhen($collapsible($relatedHmallProducts->count(), 'mobile'), 'partials.expand-button', ['on' => 'mobile', 'label' => '展開其餘 ' . ($relatedHmallProducts->count() - $collapseAfter['mobile']) . ' 件'])
+                @include('partials.section-anchor', ['anchor' => 'specs', 'menu' => 'product_menu'])
+                <x-section-header section="specs">商品規格</x-section-header>
+                <table class="ts very basic table uq-facts">
+                    <tbody>
+                        @foreach ($materialCare as $section)
+                            <tr>
+                                <td class="collapsing top aligned">{{ $hmallProductPresenter->getMaterialCareLabel($section['title']) }}</td>
+                                <td>
+                                    <div class="ts list">
+                                        @foreach ($hmallProductPresenter->getMaterialCareLines($section['content']) as $line)
+                                            <div class="item">{{ $line }}</div>
+                                        @endforeach
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                        @foreach ($productFacts as $label => $value)
+                            <tr>
+                                <td class="collapsing">{{ $label }}</td>
+                                <td>{{ $value }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         </div>
     @endif
 
-    <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+    @if ($shown['related'])
+        <div class="ts basic padded horizontally fitted fluid segment">
+            <div class="ts container">
+                <x-section-header id="related" section="related">延伸商品</x-section-header>
+                @if ($categories->isNotEmpty())
+                    {{-- 商品同時掛在男裝、女裝、企劃等幾棵樹下，是平行的入口，所以用中點清單、不用麵包屑 --}}
+                    <div class="ts horizontal middoted list uq-categories-line" aria-label="所屬分類">
+                        @foreach ($categories as $category)
+                            <a class="item"
+                                href="{{ \App\Support\Url::category($category->brand, $category->code) }}">{{ $category->name }}</a>
+                        @endforeach
+                    </div>
+                    <div class="ts hidden divider"></div>
+                @endif
+                @if ($relatedHmallProducts->isNotEmpty())
+                    <div class="ts doubling cards six uq-product-cards" data-analytics-list="product_related" {{ $collapsible($relatedHmallProducts->count(), 'mobile') }}>
+                        @each('hmall-products.card', $relatedHmallProducts, 'hmallProduct')
+                    </div>
+                    @includeWhen($collapsible($relatedHmallProducts->count(), 'mobile'), 'partials.expand-button', ['on' => 'mobile', 'label' => '展開其餘 ' . ($relatedHmallProducts->count() - $collapseAfter['mobile']) . ' 件'])
+                @endif
+                @if ($relatedProducts->isNotEmpty())
+                    <div class="ts hidden section divider"></div>
+                    <h3 class="ts medium header">舊系統商品</h3>
+                    <div class="ts doubling cards six uq-product-cards uq-text-cards">
+                        @each('products.card', $relatedProducts, 'product')
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
+    {{-- 歷史價格與日本版固定排最後：從選單跳過來的人才會翻到頁尾 --}}
+    <div class="ts basic padded horizontally fitted fluid segment">
         <div class="ts container">
             @include('partials.section-anchor', ['anchor' => 'price-history', 'menu' => 'product_menu'])
-            <h2 class="ts large dividing header">歷史價格</h2>
-            <div class="ts hidden divider"></div>
+            <x-section-header section="price-history">歷史價格</x-section-header>
             <div class="ts fluid container grid">
                 <div class="four wide computer sixteen wide tablet sixteen wide mobile column">
-                    <div class="ts grid">
+                    <div class="ts grid" data-section-view="price-history" data-section-exposure="content">
                         <div class="sixteen wide computer eight wide tablet eight wide mobile column">
                             <div class="ts card">
                                 <div class="center aligned content">
@@ -686,29 +621,9 @@
                     <div class="ts hidden divider"></div>
                 </div>
                 <div class="twelve wide computer sixteen wide tablet sixteen wide mobile column">
-                    <div class="ts items">
-                        <div class="item">
-                            <div class="ts mini image">
-                                <x-lazy-load-image src="{{ $hmallProductPresenter->getMainFirstPic($hmallProduct) }}"
-                                    alt="{{ $hmallProductPresenter->getFullNameWithCodeAndProductCode($hmallProduct) }}"
-                                    width="1" height="1" />
-                            </div>
-                            <div class="middle aligned content">
-                                <div class="header">
-                                    {{ $hmallProductPresenter->getFullName($hmallProduct) }}
-                                </div>
-                                <div class="inline middoted meta">
-                                    <span>{{ $hmallProduct->brand }} 商品編號 {{ $hmallProduct->code }}
-                                        {{ $hmallProduct->product_code }}</span>
-                                    {!! $hmallProductPresenter->getRatingForProductCardAndItem($hmallProduct) !!}
-                                    <span>NT${{ $hmallProduct->price }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     <div class="ts flatted card">
                         <div class="image">
-                            <canvas id="priceChart"></canvas>
+                            <canvas id="priceChart" aria-label="價格走勢"></canvas>
                         </div>
                     </div>
                 </div>
@@ -730,11 +645,10 @@
     </div>
 
     @if ($shown['japan'])
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
+        <div class="ts basic padded horizontally fitted fluid segment">
             <div class="ts container">
                 @include('partials.section-anchor', ['anchor' => 'japan', 'menu' => 'product_menu'])
-                <h2 class="ts large dividing header">日本版商品資訊</h2>
-                <div class="ts hidden divider"></div>
+                <x-section-header section="japan">日本版商品資訊</x-section-header>
                 <div class="ts items">
                     <div class="item">
                         <div class="ts tiny image">
@@ -758,7 +672,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="ts doubling four column grid">
+                <div class="ts doubling four column grid" data-section-view="japan" data-section-exposure="content">
                     <div class="column">
                         <div class="ts card">
                             <div class="center aligned content">
@@ -812,38 +726,17 @@
                         </div>
                     </div>
                     <div class="right floated column">
-                        @if ($japanProduct->brand === 'GU' && collect($japanProduct->prices)->count() >= 2)
-                            <a class="ts right floated tiny basic info right labeled icon button"
-                                href="{{ \App\Support\Url::officialJapanSearch(\App\Enums\Brand::Gu, $japanProduct->l1Id) }}" target="_blank"
-                                rel="nofollow noopener" aria-label="GU">前往日本 GU 官網<i class="external icon"></i></a>
-                        @elseif ($japanProduct->brand === 'GU' && collect($japanProduct->prices)->count() <= 1)
-                            <a class="ts right floated tiny basic info right labeled icon button"
-                                href="{{ \App\Support\Url::officialJapanProduct(\App\Enums\Brand::Gu, $japanProduct->product_id) }}"
-                                target="_blank" rel="nofollow noopener" aria-label="GU">前往日本 GU 官網<i
-                                    class="external icon"></i></a>
-                        @elseif ($japanProduct->brand === 'UNIQLO' && collect($japanProduct->prices)->count() >= 2)
-                            <a class="ts right floated tiny basic negative right labeled icon button"
-                                href="{{ \App\Support\Url::officialJapanSearch(\App\Enums\Brand::Uniqlo, $japanProduct->l1Id) }}" target="_blank"
-                                rel="nofollow noopener" aria-label="UNIQLO">前往日本 UNIQLO 官網<i class="external icon"></i></a>
-                        @elseif ($japanProduct->brand === 'UNIQLO' && collect($japanProduct->prices)->count() <= 1)
-                            <a class="ts right floated tiny basic negative right labeled icon button"
-                                href="{{ \App\Support\Url::officialJapanProduct(\App\Enums\Brand::Uniqlo, $japanProduct->product_id) }}" target="_blank"
-                                rel="nofollow noopener" aria-label="UNIQLO">前往日本 UNIQLO 官網<i class="external icon"></i></a>
-                        @endif
+                        @php
+                            $japanBrand = $japanProduct->brand === 'GU' ? \App\Enums\Brand::Gu : \App\Enums\Brand::Uniqlo;
+                            $japanUrl = collect($japanProduct->prices)->count() >= 2
+                                ? \App\Support\Url::officialJapanSearch($japanBrand, $japanProduct->l1Id)
+                                : \App\Support\Url::officialJapanProduct($japanBrand, $japanProduct->product_id);
+                        @endphp
+                        <a class="ts right floated tiny basic {{ $japanProduct->brand === 'GU' ? 'info' : 'negative' }} right labeled icon button"
+                            href="{{ $japanUrl }}" target="_blank" rel="nofollow noopener"
+                            aria-label="{{ $japanProduct->brand }}" data-analytics-official="japan">前往日本 {{ $japanProduct->brand }} 官網<i
+                                class="external icon"></i></a>
                     </div>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    @if ($shown['legacy'])
-        <div class="ts very padded horizontally fitted attached fluid tertiary segment">
-            <div class="ts container">
-                @include('partials.section-anchor', ['anchor' => 'legacy', 'menu' => 'product_menu'])
-                <h2 class="ts large dividing header">舊系統商品</h2>
-                <div class="ts hidden divider"></div>
-                <div class="ts doubling cards six uq-product-cards uq-text-cards">
-                    @each('products.card', $relatedProducts, 'product')
                 </div>
             </div>
         </div>
@@ -851,6 +744,7 @@
 @endsection
 
 @section('javascript')
+    @includeWhen($officialVideos || $japanVideos, 'partials.video-player')
     @include('partials.photo-lightbox')
     @if ($shown['social'])
         <script src="{{ asset('js/social-posts.js') }}?v={{ filemtime(public_path('js/social-posts.js')) }}" defer></script>

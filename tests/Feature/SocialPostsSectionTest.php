@@ -215,21 +215,17 @@ class SocialPostsSectionTest extends TestCase
         $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
     }
 
-    public function test_section_comes_right_after_the_price_area_and_first_in_the_menu(): void
+    public function test_section_stands_on_its_own_and_has_its_own_menu_item(): void
     {
         $this->seedPost('Meta');
 
-        $html = $this->productPage();
-        $xpath = $this->xpath($html);
+        $xpath = $this->xpath($this->productPage());
 
-        $headings = array_map(fn ($h2) => trim($h2->textContent), iterator_to_array($xpath->query('//h2')));
-        $this->assertContains('社群熱推', $headings);
-        $this->assertContains('商品資訊', $headings);
-        $this->assertLessThan(array_search('商品資訊', $headings, true), array_search('社群熱推', $headings, true));
-
-        $firstMenuItem = $xpath->query('//*[@id="product_menu"]/a')->item(0);
-        $this->assertSame('#social', $firstMenuItem->getAttribute('href'));
-        $this->assertSame('社群熱推', trim($firstMenuItem->textContent));
+        // 只有社群貼文時，穿搭段不出現，社群熱推自己一段、章節選單直接跳過來
+        $this->assertSame(0, $xpath->query('//*[@id="styles"]')->length);
+        $this->assertSame('社群熱推', trim($xpath->query('//*[@id="social"]/following::h2[1]/text()[normalize-space()]')->item(0)->textContent));
+        $menuItem = $xpath->query('//*[@id="product_menu"]/a[@href="#social"]')->item(0);
+        $this->assertSame('社群熱推', trim($menuItem->textContent));
     }
 
     public function test_platform_embed_is_built_from_the_url_only(): void

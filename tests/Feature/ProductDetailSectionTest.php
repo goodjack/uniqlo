@@ -2,11 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Enums\SocialPlatform;
+use App\Enums\SocialPostKind;
+use App\Enums\SocialPostStatus;
 use App\Models\HmallProduct;
 use App\Models\JapanProduct;
+use App\Models\SocialPost;
+use App\Services\OutfitStatsService;
 use DOMDocument;
 use DOMXPath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -51,43 +57,128 @@ class ProductDetailSectionTest extends TestCase
         $this->assertSame(0, $xpath->query('//*[@id="photos"]')->length);
     }
 
-    public function test_videos_go_to_the_video_section_and_wait_until_scrolled_to(): void
+    public function test_official_videos_lead_the_photo_strip_and_wait_until_scrolled_to(): void
     {
-        $this->seedProduct(['main_images' => $this->mainImages(1), 'videos' => ['/hmall/test/u990001/video/1000/2.mp4']]);
+        $this->seedProduct(['main_images' => $this->mainImages(2), 'videos' => ['/hmall/test/u990001/video/1000/2.mp4']]);
 
         $xpath = $this->productPage();
 
-        $videos = $xpath->query($this->sectionXpath('videos').'//video[@data-src]');
+        $strip = $this->sectionXpath('photos').'//div[contains(@class, "uq-strip")]';
+        $this->assertSame(1, $xpath->query($strip)->length);
+        $videos = $xpath->query($strip.'/div[1]//video[@data-src]');
         $this->assertSame(1, $videos->length);
         $this->assertSame('https://www.uniqlo.com/tw/hmall/test/u990001/video/1000/2.mp4', $videos->item(0)->getAttribute('data-src'));
         $this->assertSame('none', $videos->item(0)->getAttribute('preload'));
         $this->assertFalse($videos->item(0)->hasAttribute('src'));
-        $this->assertStringNotContainsString('日本版', $xpath->query($this->sectionXpath('videos').'//h2')->item(0)->textContent);
+        $this->assertSame('商品實照', trim($xpath->query($this->sectionXpath('photos').'//h2')->item(0)->textContent));
     }
 
-    public function test_japan_videos_are_labelled_when_official_videos_are_also_shown(): void
+    public function test_japan_videos_and_photos_join_the_photo_strip_with_a_japan_label(): void
     {
-        $product = $this->seedProduct(['main_images' => $this->mainImages(1), 'videos' => ['/hmall/test/u990001/video/1000/2.mp4']]);
+        $product = $this->seedProduct(['main_images' => $this->mainImages(2), 'videos' => ['/hmall/test/u990001/video/1000/2.mp4']]);
+        $this->seedJapanVideo($product, [['image' => 'https://image.uniqlo.com/UQ/ST3/jp/imagesgoods/990001/item/jpgoods_09_990001.jpg']]);
+
+        $xpath = $this->productPage();
+
+        // 順序：台灣影片 → 日本影片 → 台灣圖 → 日本圖；只有日本版的卡片標「日本版」
+        $cards = iterator_to_array($xpath->query($this->sectionXpath('photos').'//div[contains(@class, "uq-strip")]/*'));
+        $this->assertSame(
+            [
+                ['https://www.uniqlo.com/tw/hmall/test/u990001/video/1000/2.mp4', ''],
+                [self::JAPAN_VIDEO, '日本版'],
+                ['https://www.uniqlo.com/tw/hmall/test/u990001/main/other1/1000/2.jpg', ''],
+                ['https://image.uniqlo.com/UQ/ST3/jp/imagesgoods/990001/item/jpgoods_09_990001.jpg', '日本版'],
+            ],
+            array_map(fn ($card) => [
+                $xpath->query('.//video[@data-src]/@data-src | self::a/@href', $card)->item(0)->nodeValue,
+                trim($xpath->query('.//*[contains(@class, "label")]', $card)->item(0)?->textContent ?? ''),
+            ], $cards)
+        );
+
+        // 日本版段只留資訊（價格、前往日本官網），不放圖與影片
+        $this->assertSame(0, $xpath->query($this->sectionXpath('japan').'//video')->length);
+        $this->assertSame(0, $xpath->query($this->sectionXpath('japan').'//*[@data-lightbox]')->length);
+        $this->assertSame(1, $xpath->query($this->sectionXpath('japan').'//a[@data-analytics-official="japan"]')->length);
+    }
+
+    public function test_videos_open_in_the_same_lightbox_as_the_photos_in_strip_order(): void
+    {
+        $product = $this->seedProduct(['main_images' => $this->mainImages(2), 'videos' => ['/hmall/test/u990001/video/1000/2.mp4']]);
         $this->seedJapanVideo($product);
 
         $xpath = $this->productPage();
 
-        $cards = iterator_to_array($xpath->query($this->sectionXpath('videos').'//div[contains(@class, "uq-video")]'));
-        $this->assertCount(2, $cards);
-        $this->assertSame(0, $xpath->query('.//*[contains(@class, "label")]', $cards[0])->length);
-        $this->assertSame('日本版', trim($xpath->query('.//*[contains(@class, "label")]', $cards[1])->item(0)->textContent));
-        $this->assertSame(self::JAPAN_VIDEO, $xpath->query('.//video[@data-src]', $cards[1])->item(0)->getAttribute('data-src'));
+        // 主圖、台灣影片、日本影片、其餘照片同一組，左右切換的順序跟畫面一樣；影片要標明類型，GLightbox 才會用播放器開
+        $this->assertSame(
+            [
+                ['https://www.uniqlo.com/tw/hmall/test/u990001/main/first/1000/1.jpg', 'image'],
+                ['https://www.uniqlo.com/tw/hmall/test/u990001/video/1000/2.mp4', 'video'],
+                [self::JAPAN_VIDEO, 'video'],
+                ['https://www.uniqlo.com/tw/hmall/test/u990001/main/other1/1000/2.jpg', 'image'],
+            ],
+            array_map(
+                fn ($link) => [$link->getAttribute('href'), $link->getAttribute('data-type') ?: 'image'],
+                iterator_to_array($xpath->query('//a[@data-lightbox="image"]'))
+            )
+        );
+        // 暫停鈕不能放在燈箱連結裡，按暫停才不會順便打開燈箱
+        $this->assertSame(0, $xpath->query('//a[@data-lightbox]//button')->length);
     }
 
-    public function test_only_japan_videos_keep_the_label_in_the_heading(): void
+    public function test_a_product_without_a_code_shows_no_outfits_instead_of_failing(): void
+    {
+        // 商品代號是穿搭的對應鍵；有少數商品沒有代號，商品頁與看更多穿搭頁都要照常打開、穿搭當作沒有
+        $product = $this->seedProduct(['main_images' => $this->mainImages(1)], ['code' => null]);
+
+        $xpath = $this->productPage();
+        $this->assertSame(0, $xpath->query('//*[@data-section-view="style-hints" or @data-section-view="outfit-stats"]')->length);
+
+        $this->get(route('uniqlo-style-hints.show', ['uniqlo_product_code' => 'u990001']))
+            ->assertOk()
+            ->assertSee('共 0 張 StyleHint 網友穿搭靈感');
+
+        $this->assertNull(app(OutfitStatsService::class)->refresh($product));
+    }
+
+    public function test_a_malformed_video_url_still_plays_in_place_but_never_reaches_the_lightbox(): void
+    {
+        $product = $this->seedProduct(['main_images' => $this->mainImages(1)]);
+        JapanProduct::unguarded(fn () => JapanProduct::create([
+            'brand' => 'UNIQLO',
+            'product_id' => 'E990001-000',
+            'l1Id' => $product->code,
+            'main_images' => [],
+            'sub_images' => [],
+            'sub_videos' => [['video' => 'https://x"><img src=x onerror=alert(1)>.com/v.mp4'], ['video' => 'javascript:alert(1)']],
+        ]));
+
+        $xpath = $this->productPage();
+
+        // 燈箱會把網址拼進 HTML，格式不對的網址不給燈箱連結，只在原地播
+        $this->assertSame(2, $xpath->query($this->sectionXpath('photos').'//video[@data-src]')->length);
+        $this->assertSame(0, $xpath->query('//a[@data-type="video"]')->length);
+    }
+
+    public function test_only_a_product_with_videos_loads_the_video_player(): void
+    {
+        $product = $this->seedProduct(['main_images' => $this->mainImages(2)]);
+
+        $player = '//script[@id="uq-plyr-js"][@integrity][@crossorigin] | //link[@id="uq-plyr-css"][@integrity][@crossorigin]';
+        $this->assertSame(0, $this->productPage()->query($player)->length, '沒有影片的商品頁不載播放器');
+
+        $this->seedJapanVideo($product);
+        $this->assertSame(2, $this->productPage()->query($player)->length, '有影片才載，而且照其他套件一樣帶完整性檢查');
+    }
+
+    public function test_a_product_with_only_japan_videos_still_gets_a_photo_section(): void
     {
         $product = $this->seedProduct(['main_images' => $this->mainImages(1)]);
         $this->seedJapanVideo($product);
 
         $xpath = $this->productPage();
 
-        $this->assertStringContainsString('日本版', $xpath->query($this->sectionXpath('videos').'//h2')->item(0)->textContent);
-        $this->assertSame(0, $xpath->query($this->sectionXpath('videos').'//div[contains(@class, "uq-video")]//*[contains(@class, "label")]')->length);
+        $this->assertSame(1, $xpath->query($this->sectionXpath('photos').'//video[@data-src]')->length);
+        $this->assertSame('日本版', trim($xpath->query($this->sectionXpath('photos').'//*[contains(@class, "label")]')->item(0)->textContent));
     }
 
     public function test_the_top_picture_gets_an_escaped_caption_in_the_lightbox(): void
@@ -116,11 +207,11 @@ class ProductDetailSectionTest extends TestCase
         );
         $this->assertSame(
             'https://www.gu-global.com/tw/hmall/test/u990002/main/other1/1000/2.jpg',
-            $xpath->query($this->sectionXpath('photos').'//a[@data-lightbox]')->item(0)->getAttribute('href')
+            $xpath->query($this->sectionXpath('photos').'//a[@data-type="image"]')->item(0)->getAttribute('href')
         );
         $this->assertSame(
             'https://www.gu-global.com/tw/hmall/test/u990002/video/1000/intro.mp4',
-            $xpath->query($this->sectionXpath('videos').'//video[@data-src]')->item(0)->getAttribute('data-src')
+            $xpath->query($this->sectionXpath('photos').'//video[@data-src]')->item(0)->getAttribute('data-src')
         );
     }
 
@@ -161,8 +252,7 @@ class ProductDetailSectionTest extends TestCase
         $image = $this->productPage()->query('//a[@data-lightbox="features"]//img')->item(0);
 
         $this->assertSame('lazy', $image->getAttribute('loading'));
-        $this->assertNotSame('', $image->getAttribute('width'));
-        $this->assertSame($image->getAttribute('width'), $image->getAttribute('height'));
+        $this->assertStringContainsString('aspect-ratio: 1000 / 1000', $image->getAttribute('style'));
     }
 
     public function test_reduced_motion_turns_off_every_lightbox_animation_on_the_page(): void
@@ -201,40 +291,160 @@ class ProductDetailSectionTest extends TestCase
         $view->assertDontSee('<img src=x', false);
     }
 
-    public function test_origin_material_care_rating_distribution_and_features_are_in_the_product_facts(): void
+    public function test_the_specs_list_material_care_origin_and_store_code_without_the_rating_distribution(): void
     {
         $this->seedProduct([
             'origin_place' => '柬埔寨製',
             'rating_levels' => [16, 1, 2, 0, 0],
-            'features' => [['image' => '/hmall/test/u990001/features/1.jpg', 'text' => '<b>具備保暖功能</b>']],
-            'material_care' => [['title' => '商品材質', 'content' => "棉 100%\n<script>x</script>"]],
+            'material_care' => [
+                ['title' => '商品材質', 'content' => "棉 100%\n<script>x</script>"],
+                ['title' => '洗滌說明', 'content' => '洗衣機/弱水流。不可烘乾。'],
+            ],
         ]);
 
         $html = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))->assertOk()->getContent();
         $xpath = $this->xpath($html);
-        $facts = $this->sectionXpath('facts');
+        $specs = $this->sectionXpath('specs');
+
+        // 直接展開，標題跟其他段一樣
+        $this->assertSame(0, $xpath->query($specs.'//details')->length);
+        $this->assertSame('商品規格', trim($xpath->query('//h2[@data-section-view="specs"]')->item(0)->textContent));
 
         $rows = [];
-        foreach ($xpath->query($facts.'//table[contains(@class, "uq-facts")]/tbody/tr') as $row) {
-            $rows[trim($xpath->query('./td[1]', $row)->item(0)->textContent)] = $xpath->query('./td[2]', $row)->item(0);
+        foreach ($xpath->query($specs.'//table[contains(@class, "uq-facts")]/tbody/tr') as $row) {
+            $rows[trim($xpath->query('./td[1]', $row)->item(0)->textContent)] = array_map(
+                fn ($item) => trim($item->textContent),
+                iterator_to_array($xpath->query('./td[2]//*[contains(@class, "item")]', $row)) ?: [$xpath->query('./td[2]', $row)->item(0)]
+            );
         }
-        $this->assertSame('柬埔寨製', trim($rows['產地']->textContent));
-        $this->assertStringContainsString('棉 100%', $rows['商品材質']->textContent);
-        // 0 則的星等不畫長條
-        $this->assertSame(3, $xpath->query('.//div[contains(@class, "progress")]/div[@class="bar"]', $rows['評價分布'])->length);
-        $this->assertStringContainsString('16 則', $rows['評價分布']->textContent);
+        // 材質洗滌在前、一行一件事、兩個品牌的叫法統一；網路商店編號排最後
+        $this->assertSame(['商品材質', '洗滌方式', '適用對象', '產地', '網路商店編號'], array_keys($rows));
+        $this->assertSame(['棉 100%', '<script>x</script>'], $rows['商品材質']);
+        $this->assertSame(['洗衣機/弱水流。', '不可烘乾。'], $rows['洗滌方式']);
+        $this->assertSame(['柬埔寨製'], $rows['產地']);
+        $this->assertStringNotContainsString('<script>x</script>', $html);
 
-        // 特點圖點了用同一套放大圖；說明文字不論內容都照樣放在圖下方
-        $feature = $xpath->query($facts.'//a[@data-lightbox="features"]')->item(0);
+        // 官網評價先不顯示
+        $this->assertStringNotContainsString('評價分布', $html);
+        $this->assertSame(0, $xpath->query('//div[contains(@class, "progress")]')->length);
+    }
+
+    public function test_feature_images_open_in_the_lightbox_and_the_full_description_stays_on_top(): void
+    {
+        $this->seedProduct([
+            'features' => [['image' => '/hmall/test/u990001/features/1.jpg', 'text' => '<b>具備保暖功能</b>']],
+        ], ['instruction' => '具備保暖功能。<br>- 寬鬆版型。']);
+
+        $html = $this->get(route('uniqlo-hmall-products.show', ['uniqlo_product_code' => 'u990001']))->assertOk()->getContent();
+        $xpath = $this->xpath($html);
+        $features = $this->sectionXpath('features');
+
+        // 跟商品實照同一種卡片欄數（電腦四張、手機兩張），圖在卡片裡、說明在圖下方
+        $feature = $xpath->query($features.'//div[contains(@class, "doubling four cards")]/div[contains(@class, "card")]/a[@data-lightbox="features"]')->item(0);
         $this->assertSame('https://www.uniqlo.com/tw/hmall/test/u990001/features/1.jpg', $feature->getAttribute('href'));
         $this->assertSame('image', $feature->getAttribute('data-type'));
         $this->assertSame(
             '<b>具備保暖功能</b>',
-            trim($xpath->query($facts.'//div[contains(@class, "items")]//div[contains(@class, "description")]')->item(0)->textContent)
+            trim($xpath->query($features.'//div[contains(@class, "card")]//div[contains(@class, "description")]')->item(0)->textContent)
         );
         $this->assertStringContainsString('&lt;b&gt;具備保暖功能&lt;/b&gt;', $html);
-        $this->assertStringContainsString('棉 100%<br />', $html);
-        $this->assertStringNotContainsString('<script>x</script>', $html);
+
+        // 說明全文留在主區，跟特點圖說重複也照樣顯示
+        $this->assertSame('具備保暖功能。- 寬鬆版型。', trim($xpath->query('//*[@id="product_hero"]//*[@id="comment"]')->item(0)->textContent));
+    }
+
+    public function test_a_product_without_feature_images_has_no_features_section(): void
+    {
+        $this->seedProduct(null, ['instruction' => '只有說明的商品。']);
+
+        $xpath = $this->productPage();
+
+        $this->assertSame(0, $xpath->query('//*[@id="features"]')->length);
+        $this->assertSame('只有說明的商品。', trim($xpath->query('//*[@id="comment"]')->item(0)->textContent));
+    }
+
+    public function test_sections_follow_the_agreed_order_and_the_menu_lists_them_the_same_way(): void
+    {
+        $this->seedProductWithEverySection();
+
+        $xpath = $this->productPage();
+
+        $this->assertSame(
+            ['features', 'photos', 'social', 'style-hints', 'specs', 'price-history', 'japan'],
+            array_map(fn ($heading) => $heading->getAttribute('data-section-view'), iterator_to_array($xpath->query('//h2[@data-section-view]')))
+        );
+        $menu = iterator_to_array($xpath->query('//*[@id="product_menu"]/a'));
+        $this->assertSame(['特點', '實照', '社群熱推', '穿搭', '規格', '歷史價格', '日本版'], array_map(fn ($item) => trim($item->textContent), $menu));
+        foreach ($menu as $item) {
+            $this->assertSame(1, $xpath->query('//*[@id="'.substr($item->getAttribute('href'), 1).'"]')->length, $item->getAttribute('href'));
+        }
+    }
+
+    public function test_every_section_heading_comes_from_the_shared_header_component(): void
+    {
+        // 商品頁的段標題一律用 x-section-header，不在頁面裡另外手寫（主區的價格不是段標題）
+        foreach (glob(resource_path('views/hmall-products/{,partials/}*.blade.php'), GLOB_BRACE) as $view) {
+            $this->assertDoesNotMatchRegularExpression('/<h2[^>]*class=/', file_get_contents($view), basename($view));
+        }
+
+        $this->seedProductWithEverySection();
+
+        $xpath = $this->productPage();
+
+        // 每段標題長一樣、沒有底線；右側按鈕不管是連結還是按鈕都同一種樣式
+        $headings = iterator_to_array($xpath->query('//h2[@data-section-view]'));
+        $this->assertCount(7, $headings);
+        foreach ($headings as $heading) {
+            $this->assertSame('ts big header uq-section-header', $heading->getAttribute('class'), $heading->getAttribute('data-section-view'));
+        }
+        $actions = iterator_to_array($xpath->query('//h2[@data-section-view]/*[contains(@class, "button")]'));
+        $kinds = array_unique(array_map(fn ($action) => $action->nodeName, $actions));
+        sort($kinds);
+        $this->assertSame(['a', 'button'], $kinds, 'StyleHint 的連結與社群熱推的按鈕都要驗到');
+        // 圖示可選：給了圖示的多 labeled icon，其餘樣式完全一樣
+        $this->assertCount(1, array_unique(array_map(fn ($action) => str_replace(' labeled icon', '', $action->getAttribute('class')), $actions)));
+        $icons = [];
+        foreach ($actions as $action) {
+            $icons[$action->parentNode->getAttribute('data-section-view')] = $xpath->query('./i/@class', $action)->item(0)?->nodeValue;
+        }
+        $this->assertSame(['social' => 'play icon', 'style-hints' => 'camera retro icon'], $icons);
+        foreach ($actions as $action) {
+            $this->assertSame(
+                $xpath->query('./i', $action)->length === 1,
+                str_contains($action->getAttribute('class'), 'labeled icon'),
+                trim($action->textContent)
+            );
+        }
+        $this->assertSame(0, $xpath->query('//*[contains(@class, "uq-social-head")]')->length);
+    }
+
+    public function test_the_section_header_button_shows_an_icon_only_when_one_is_given(): void
+    {
+        $plain = $this->xpath(Blade::render('<x-section-header section="x" action-label="看全部" action-href="/all">標題</x-section-header>'));
+        $withIcon = $this->xpath(Blade::render('<x-section-header section="x" action-label="看全部" action-href="/all" action-icon="play">標題</x-section-header>'));
+
+        $this->assertSame('ts right floated button uq-header-action', $plain->query('//a')->item(0)->getAttribute('class'));
+        $this->assertSame(0, $plain->query('//a/i')->length);
+        $this->assertSame('ts right floated labeled icon button uq-header-action', $withIcon->query('//a')->item(0)->getAttribute('class'));
+        $this->assertSame('play icon', $withIcon->query('//a/i')->item(0)->getAttribute('class'));
+    }
+
+    public function test_each_section_reports_when_it_is_seen_and_how_it_is_opened(): void
+    {
+        $product = $this->seedProduct(['material_care' => [['title' => '商品材質', 'content' => '棉 100%']]]);
+        $this->seedJapanVideo($product);
+
+        $xpath = $this->productPage();
+
+        // 歷史價格與日本版除了標題，價格內容進入畫面時另外算一次
+        $this->assertSame(
+            ['price-history', 'japan'],
+            array_map(fn ($node) => $node->getAttribute('data-section-view'), iterator_to_array($xpath->query('//*[@data-section-exposure="content"]')))
+        );
+        $this->assertSame(
+            ['hero', 'japan'],
+            array_map(fn ($link) => $link->getAttribute('data-analytics-official'), iterator_to_array($xpath->query('//a[@data-analytics-official]')))
+        );
     }
 
     public function test_the_structured_data_lists_every_image_but_not_the_rating_distribution(): void
@@ -252,8 +462,8 @@ class ProductDetailSectionTest extends TestCase
             'https://www.uniqlo.com/tw/hmall/test/u990001/main/other1/1000/2.jpg',
             'https://www.uniqlo.com/tw/hmall/test/u990001/main/other2/1000/3.jpg',
         ], $jsonLd['image']);
-        $this->assertStringContainsString('7351', $html, '評價分布要在頁面上，否則下一條斷言沒有意義');
-        $this->assertStringNotContainsString('7351', json_encode($jsonLd));
+        // 評價分布目前不顯示（資料照存），頁面上與結構化資料裡都不該出現
+        $this->assertStringNotContainsString('7351', $html);
         $this->assertArrayNotHasKey('review', $jsonLd);
     }
 
@@ -289,16 +499,42 @@ class ProductDetailSectionTest extends TestCase
         return $product;
     }
 
-    private function seedJapanVideo(HmallProduct $product): void
+    private function seedJapanVideo(HmallProduct $product, array $mainImages = []): void
     {
         JapanProduct::unguarded(fn () => JapanProduct::create([
             'brand' => 'UNIQLO',
             'product_id' => 'E990001-000',
             'l1Id' => $product->code,
-            'main_images' => [],
+            'main_images' => $mainImages,
             'sub_images' => [],
             'sub_videos' => [['video' => self::JAPAN_VIDEO]],
         ]));
+    }
+
+    /** 每一段都有內容的商品：特點、商品實照、社群熱推、StyleHint、規格、日本版 */
+    private function seedProductWithEverySection(): void
+    {
+        $product = $this->seedProduct([
+            'main_images' => $this->mainImages(2),
+            'features' => [['image' => '/hmall/test/u990001/features/1.jpg', 'text' => '具備保暖功能']],
+            'material_care' => [['title' => '商品材質', 'content' => '棉 100%']],
+        ]);
+        DB::table('style_hints')->insert(['id' => 1, 'outfit_id' => '16693239', 'country' => 'tw', 'style_image_url' => 'https://api.fastretailing.com/ugc/v1/uq/jp/SR_IMAGES/ugc_stylehint_uq_jp_photo_1_2043193']);
+        DB::table('style_hint_items')->insert(['style_hint_id' => 1, 'code' => '990001', 'original_product_id' => '990001-09']);
+        $this->seedJapanVideo($product);
+        SocialPost::create([
+            'notion_page_id' => 'page-1',
+            'notion_created_at' => now()->subDay(),
+            'notion_edited_at' => now(),
+            'source_url' => 'https://www.threads.com/@meta/post/1',
+            'canonical_url' => 'https://www.threads.com/@meta/post/1',
+            'platform' => SocialPlatform::Threads,
+            'kind' => SocialPostKind::Post,
+            'author' => 'Meta',
+            'text' => '內文',
+            'status' => SocialPostStatus::Ok,
+        ])->codes()->create(['code' => '990001']);
+
     }
 
     /** 章節錨點所在的那一段 */

@@ -56,28 +56,22 @@ class HmallProduct extends Model
         return $this->belongsToMany(Style::class)->orderByDesc('created_at');
     }
 
-    public function styleHints()
-    {
-        return $this->belongsToMany(
-            StyleHint::class,
-            'style_hint_items',
-            'code',
-            'style_hint_id',
-            'code'
-        )->orderByDesc('style_hint_items.style_hint_id');
-    }
-
     /**
      * 這件商品的穿搭，同一則只留一筆，新的在前。
      */
     public function distinctStyleHints(): Builder
     {
+        // 穿搭用商品代號對應；少數商品沒有代號，當作沒有穿搭
+        if ($this->code === null) {
+            return StyleHint::query()->whereRaw('1 = 0');
+        }
+
         return StyleHint::query()->distinctOutfitsForCode($this->code);
     }
 
     public function styleHintCount(): int
     {
-        return StyleHint::countDistinctOutfitsForCode($this->code);
+        return $this->code === null ? 0 : StyleHint::countDistinctOutfitsForCode($this->code);
     }
 
     public function japanProduct()

@@ -56,16 +56,6 @@ class HmallProductStyleHintDedupTest extends TestCase
         $this->assertSame([2], app(HmallProductRepository::class)->getStyleHints($product, 12)->pluck('id')->all());
     }
 
-    public function test_the_style_hints_relation_still_lists_every_copy(): void
-    {
-        $product = $this->createProduct('450001');
-        $this->seedOutfit(1, 'tw', '900', ['450001']);
-        $this->seedOutfit(2, 'jp', '900', ['450001']);
-
-        $this->assertSame([2, 1], $product->styleHints->pluck('id')->all());
-        $this->assertSame([2, 1], HmallProduct::with('styleHints')->find($product->id)->styleHints->pluck('id')->all());
-    }
-
     public function test_commonly_styled_products_count_each_outfit_once(): void
     {
         $product = $this->createProduct('450001');
