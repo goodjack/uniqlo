@@ -154,27 +154,6 @@ class HmallProductPresenter
     }
 
     /**
-     * 五星到一星各幾則與占比，沒有評價時回傳空陣列。
-     *
-     * @return array<int, array{stars: int, count: int, percent: int}>
-     */
-    public function getRatingDistribution(HmallProduct $hmallProduct): array
-    {
-        $levels = $hmallProduct->detail?->rating_levels;
-        $total = array_sum($levels ?? []);
-
-        if ($total === 0) {
-            return [];
-        }
-
-        return array_map(fn (int $count, int $index) => [
-            'stars' => 5 - $index,
-            'count' => $count,
-            'percent' => (int) round($count / $total * 100),
-        ], $levels, array_keys($levels));
-    }
-
-    /**
      * 兩個品牌對同一欄的叫法不同，統一成一種，跨商品比較時才不會以為是兩回事。
      */
     public function getMaterialCareLabel(string $title): string
