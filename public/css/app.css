@@ -696,16 +696,17 @@ html:has(.uq-section-menu) {
     position: relative;
 }
 
+/* 開燈箱的連結包著影片；連結預設是行內元素，影片底下會多出一行的空隙 */
+.ts.card>.video.uq-video>a {
+    display: block;
+}
+
 /* 影片滑到才載入，先撐出官網影片的 3:4，載入時版面才不會跳 */
 .ts.card>.video.uq-video video:not([hidden]) {
     display: block;
     width: 100%;
     aspect-ratio: 3 / 4;
     object-fit: cover;
-}
-
-.ts.card>.video.uq-video>video {
-    cursor: pointer;
 }
 
 .uq-video-toggle {

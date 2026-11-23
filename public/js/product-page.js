@@ -82,7 +82,6 @@
 
             video.addEventListener('play', showState);
             video.addEventListener('pause', showState);
-            video.addEventListener('click', toggle);
             button.addEventListener('click', toggle);
         });
 

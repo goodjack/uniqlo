@@ -744,6 +744,7 @@
 @endsection
 
 @section('javascript')
+    @includeWhen($officialVideos || $japanVideos, 'partials.video-player')
     @include('partials.photo-lightbox')
     @if ($shown['social'])
         <script src="{{ asset('js/social-posts.js') }}?v={{ filemtime(public_path('js/social-posts.js')) }}" defer></script>

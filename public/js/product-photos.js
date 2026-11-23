@@ -8,6 +8,8 @@
     }
 
     const links = [...document.querySelectorAll('a[data-lightbox]')];
+    const plyrCss = document.getElementById('uq-plyr-css');
+    const plyrJs = document.getElementById('uq-plyr-js');
     // GLightbox 在 768px 以下換成手機版排法；它只在建立時讀連結上的設定，所以跨過這條線就拆掉重建
     const desktopLayout = window.matchMedia('(min-width: 769px)');
     let lightboxes = [];
@@ -34,6 +36,22 @@
             moreText: '顯示更多',
             touchNavigation: true,
             loop: false,
+            // 商品實照裡的影片也在同一組，GLightbox 用 Plyr 播。播放器由頁面先載（partials/video-player），
+            // 網址照抄頁面上的那兩個標籤，GLightbox 才認得出已經載過、不會再插一次。
+            // 比例照官網影片的 3:4（預設 16:9 會在直式影片左右補黑邊）；靜音才能在手機上自動播，跟頁面上的預覽一樣；
+            // Plyr 的方向鍵是快轉，會搶走燈箱左右換張，關掉。
+            // 寬度給 64vh：3:4 的影片高約 85vh，跟照片的 86vh 一樣留出上下空白（手機上 GLightbox 會自己縮到畫面寬）
+            videosWidth: '64vh',
+            plyr: {
+                ...(plyrCss && plyrJs ? { css: plyrCss.getAttribute('href'), js: plyrJs.getAttribute('src') } : {}),
+                config: {
+                    ...(plyrJs ? { iconUrl: plyrJs.dataset.iconUrl } : {}),
+                    ratio: '3:4',
+                    muted: true,
+                    keyboard: { focused: false, global: false },
+                    fullscreen: { enabled: true, iosNative: true },
+                },
+            },
         }));
     }
 

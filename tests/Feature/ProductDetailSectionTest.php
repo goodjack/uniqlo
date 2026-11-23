@@ -100,6 +100,41 @@ class ProductDetailSectionTest extends TestCase
         $this->assertSame(1, $xpath->query($this->sectionXpath('japan').'//a[@data-analytics-official="japan"]')->length);
     }
 
+    public function test_videos_open_in_the_same_lightbox_as_the_photos_in_strip_order(): void
+    {
+        $product = $this->seedProduct(['main_images' => $this->mainImages(2), 'videos' => ['/hmall/test/u990001/video/1000/2.mp4']]);
+        $this->seedJapanVideo($product);
+
+        $xpath = $this->productPage();
+
+        // 主圖、台灣影片、日本影片、其餘照片同一組，左右切換的順序跟畫面一樣；影片要標明類型，GLightbox 才會用播放器開
+        $this->assertSame(
+            [
+                ['https://www.uniqlo.com/tw/hmall/test/u990001/main/first/1000/1.jpg', 'image'],
+                ['https://www.uniqlo.com/tw/hmall/test/u990001/video/1000/2.mp4', 'video'],
+                [self::JAPAN_VIDEO, 'video'],
+                ['https://www.uniqlo.com/tw/hmall/test/u990001/main/other1/1000/2.jpg', 'image'],
+            ],
+            array_map(
+                fn ($link) => [$link->getAttribute('href'), $link->getAttribute('data-type') ?: 'image'],
+                iterator_to_array($xpath->query('//a[@data-lightbox="image"]'))
+            )
+        );
+        // 暫停鈕不能放在燈箱連結裡，按暫停才不會順便打開燈箱
+        $this->assertSame(0, $xpath->query('//a[@data-lightbox]//button')->length);
+    }
+
+    public function test_only_a_product_with_videos_loads_the_video_player(): void
+    {
+        $product = $this->seedProduct(['main_images' => $this->mainImages(2)]);
+
+        $player = '//script[@id="uq-plyr-js"][@integrity][@crossorigin] | //link[@id="uq-plyr-css"][@integrity][@crossorigin]';
+        $this->assertSame(0, $this->productPage()->query($player)->length, '沒有影片的商品頁不載播放器');
+
+        $this->seedJapanVideo($product);
+        $this->assertSame(2, $this->productPage()->query($player)->length, '有影片才載，而且照其他套件一樣帶完整性檢查');
+    }
+
     public function test_a_product_with_only_japan_videos_still_gets_a_photo_section(): void
     {
         $product = $this->seedProduct(['main_images' => $this->mainImages(1)]);
@@ -137,7 +172,7 @@ class ProductDetailSectionTest extends TestCase
         );
         $this->assertSame(
             'https://www.gu-global.com/tw/hmall/test/u990002/main/other1/1000/2.jpg',
-            $xpath->query($this->sectionXpath('photos').'//a[@data-lightbox]')->item(0)->getAttribute('href')
+            $xpath->query($this->sectionXpath('photos').'//a[@data-type="image"]')->item(0)->getAttribute('href')
         );
         $this->assertSame(
             'https://www.gu-global.com/tw/hmall/test/u990002/video/1000/intro.mp4',
