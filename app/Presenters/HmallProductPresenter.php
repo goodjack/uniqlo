@@ -91,8 +91,9 @@ class HmallProductPresenter
         $description = preg_replace('/※.*(<br>|$)/U', '', $description);
 
         // 去除官網產品標示（UNIQLO 的商品材質、物料組成、網路商店退貨須知，GU 的商品產地）與之後的內容。
-        // 從標示所在那句的句首切：標示夾在句子中間時（「請參閱商品材質欄位…」），不留下半句
-        $description = preg_replace('/[^。<>]*(商品材質|物料組成|網路商店退貨須知|商品產地)\X*/u', '', $description) ?? $description;
+        // 從標示所在那句的句首切：標示夾在句子中間時（「請參閱商品材質欄位…」），不留下半句。
+        // 句號、驚嘆號、問號（全形半形）都算句尾，前一句才不會被一起切掉
+        $description = preg_replace('/[^。！？!?<>]*(商品材質|物料組成|網路商店退貨須知|商品產地)\X*/u', '', $description) ?? $description;
 
         // 整理前後換行
         $description = trim($description);
