@@ -838,14 +838,11 @@ html:has(.uq-section-menu) {
 
 /*
  * 商品頁段標題（x-section-header）在手機上縮小字級、拉開標題下距，跟官網手機版一致。
- * Tocas 沒有依螢幕寬度換字級的修飾詞。收合的規格標題是 summary 裡最後一個元素，不加下距。
+ * Tocas 沒有依螢幕寬度換字級的修飾詞。
  */
 @media (max-width: 767px) {
     .ts.big.header.uq-section-header {
         font-size: 22px;
-    }
-
-    .ts.big.header.uq-section-header:not(:last-child) {
         margin-bottom: 24px;
     }
 }
