@@ -549,6 +549,11 @@ body.uq-busy [aria-busy="true"] {
     top: calc(-1 * (var(--uq-nav-height) + var(--uq-section-menu-height) + 12px));
 }
 
+/* 標題本身帶 id 的（網友穿搭、官方穿搭、經常搭配、延伸商品）被直接連到時，跟章節錨點一樣讓出導覽列與章節選單 */
+.uq-section-header[id] {
+    scroll-margin-top: calc(var(--uq-nav-height) + var(--uq-section-menu-height) + 12px);
+}
+
 /* 錨點搶走了標題的 :first-child，Tocas 的首個標題不留上距就失效 */
 .ts.container>.uq-section-anchor:first-child+.ts.header {
     margin-top: 0;
